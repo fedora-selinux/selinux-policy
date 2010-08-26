@@ -14,6 +14,8 @@
 template(`rhcs_domain_template',`
 	gen_require(`
 		attribute cluster_domain;
+		attribute cluster_tmpfs;
+		attribute cluster_pid;
 	')
 
 	##############################
@@ -25,13 +27,13 @@ template(`rhcs_domain_template',`
 	type $1_exec_t;
 	init_daemon_domain($1_t, $1_exec_t)
 
-	type $1_tmpfs_t;
+	type $1_tmpfs_t, cluster_tmpfs;
 	files_tmpfs_file($1_tmpfs_t)
 
 	type $1_var_log_t;
 	logging_log_file($1_var_log_t)
 
-	type $1_var_run_t;
+	type $1_var_run_t, cluster_pid;
 	files_pid_file($1_var_run_t)
 
 	##############################
@@ -335,6 +337,67 @@ interface(`rhcs_rw_groupd_shm',`
 	manage_files_pattern($1, groupd_tmpfs_t, groupd_tmpfs_t)
 ')
 
+########################################
+## <summary>
+##	Read and write to group shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_rw_cluster_shm',`
+	gen_require(`
+		attribute cluster_domain;
+		attribute cluster_tmpfs;
+	')
+
+	allow $1 cluster_domain:shm { rw_shm_perms destroy };
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, cluster_tmpfs, cluster_tmpfs)
+')
+
+####################################
+## <summary>
+##      Read and write access to cluster domains semaphores.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`rhcs_rw_cluster_semaphores',`
+        gen_require(`
+                type cluster_domain;
+        ')
+
+        allow $1 cluster_domain:sem { rw_sem_perms destroy };
+')
+
+####################################
+## <summary>
+##  Connect to cluster domains over a unix domain
+##  stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_stream_connect_cluster',`
+    gen_require(`
+        attribute cluster_domain;
+        attribute cluster_pid;
+    ')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, cluster_pid, cluster_pid, cluster_domain)
+')
+
 ######################################
 ## <summary>
 ##	Execute a domain transition to run qdiskd.
@@ -352,4 +415,22 @@ interface(`rhcs_domtrans_qdiskd',`
 
 	corecmd_search_bin($1)
 	domtrans_pattern($1, qdiskd_exec_t, qdiskd_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to read qdiskd tmpfs files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_read_qdiskd_tmpfs_files',`
+	gen_require(`
+		type qdiskd_tmpfs_t;
+	')
+
+	allow $1 qdiskd_tmpfs_t:file read_file_perms;
 ')

@@ -20,8 +20,8 @@ files_type(etc_aliases_t)
 type etc_mail_t;
 files_config_file(etc_mail_t)
 
-type mail_forward_t;
-files_type(mail_forward_t)
+type mail_home_t alias mail_forward_t;
+userdom_user_home_content(mail_home_t)
 
 type mqueue_spool_t;
 files_mountpoint(mqueue_spool_t)
@@ -50,21 +50,8 @@ ubac_constrained(user_mail_tmp_t)
 
 # newalias required this, not sure if it is needed in 'if' file
 allow system_mail_t self:capability { dac_override fowner };
-allow system_mail_t self:fifo_file rw_fifo_file_perms;
-
-read_files_pattern(system_mail_t, etc_mail_t, etc_mail_t)
 
 read_files_pattern(system_mail_t, mailcontent_type, mailcontent_type)
-
-allow system_mail_t mail_forward_t:file read_file_perms;
-
-allow system_mail_t mta_exec_type:file entrypoint;
-
-can_exec(system_mail_t, mta_exec_type)
-
-kernel_read_system_state(system_mail_t)
-kernel_read_network_state(system_mail_t)
-kernel_request_load_module(system_mail_t)
 
 dev_read_sysfs(system_mail_t)
 dev_read_rand(system_mail_t)
@@ -82,6 +69,9 @@ init_use_script_ptys(system_mail_t)
 
 userdom_use_user_terminals(system_mail_t)
 userdom_dontaudit_search_user_home_dirs(system_mail_t)
+userdom_dontaudit_list_admin_dir(system_mail_t)
+
+logging_append_all_logs(system_mail_t)
 
 optional_policy(`
 	apache_read_squirrelmail_data(system_mail_t)
@@ -92,6 +82,12 @@ optional_policy(`
 	apache_dontaudit_rw_stream_sockets(system_mail_t)
 	apache_dontaudit_rw_tcp_sockets(system_mail_t)
 	apache_dontaudit_rw_sys_script_stream_sockets(system_mail_t)
+	apache_dontaudit_write_tmp_files(system_mail_t)
+
+	# apache should set close-on-exec
+	apache_dontaudit_rw_stream_sockets(mta_user_agent)
+	apache_dontaudit_rw_sys_script_stream_sockets(mta_user_agent)
+	apache_append_log(mta_user_agent)
 ')
 
 optional_policy(`
@@ -103,6 +99,11 @@ optional_policy(`
 ')
 
 optional_policy(`
+	bugzilla_search_dirs(system_mail_t)
+	bugzilla_dontaudit_rw_script_stream_sockets(system_mail_t)
+')
+
+optional_policy(`
 	clamav_stream_connect(system_mail_t)
 	clamav_append_log(system_mail_t)
 ')
@@ -111,6 +112,8 @@ optional_policy(`
 	cron_read_system_job_tmp_files(system_mail_t)
 	cron_dontaudit_write_pipes(system_mail_t)
 	cron_rw_system_job_stream_sockets(system_mail_t)
+	cron_rw_inherited_spool_files(system_mail_t)
+	cron_rw_inherited_user_spool_files(system_mail_t)
 ')
 
 optional_policy(`
@@ -124,12 +127,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	exim_domtrans(system_mail_t)
-	exim_manage_log(system_mail_t)
-')
-
-optional_policy(`
 	fail2ban_append_log(system_mail_t)
+	fail2ban_dontaudit_leaks(system_mail_t)
 ')
 
 optional_policy(`
@@ -146,6 +145,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	munin_dontaudit_leaks(system_mail_t)
+')
+
+optional_policy(`
 	nagios_read_tmp_files(system_mail_t)
 ')
 
@@ -158,18 +161,6 @@ optional_policy(`
 	files_etc_filetrans(system_mail_t, etc_aliases_t, { file lnk_file sock_file fifo_file })
 
 	domain_use_interactive_fds(system_mail_t)
-
-	# postfix needs this for newaliases
-	files_getattr_tmp_dirs(system_mail_t)
-
-	postfix_exec_master(system_mail_t)
-	postfix_read_config(system_mail_t)
-	postfix_search_spool(system_mail_t)
-
-	ifdef(`distro_redhat',`
-		# compatability for old default main.cf
-		postfix_config_filetrans(system_mail_t, etc_aliases_t, { dir file lnk_file sock_file fifo_file })
-	')
 ')
 
 optional_policy(`
@@ -186,6 +177,10 @@ optional_policy(`
 	optional_policy(`
 		cron_dontaudit_append_system_job_tmp_files(system_mail_t)
 	')
+')
+
+optional_policy(`
+	spamd_stream_connect(system_mail_t)
 ')
 
 optional_policy(`
@@ -220,7 +215,8 @@ append_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
 create_lnk_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
 read_lnk_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
 
-read_files_pattern(mailserver_delivery, mail_forward_t, mail_forward_t)
+userdom_search_admin_dir(mailserver_delivery)
+read_files_pattern(mailserver_delivery, mail_home_t, mail_home_t)
 
 read_files_pattern(mailserver_delivery, system_mail_tmp_t, system_mail_tmp_t)
 
@@ -249,10 +245,15 @@ optional_policy(`
 	mailman_read_data_symlinks(mailserver_delivery)
 ')
 
+optional_policy(`
+	uucp_domtrans_uux(mailserver_delivery)
+')
+
 ########################################
 #
 # User send mail local policy
 #
+
 
 domain_use_interactive_fds(user_mail_t)
 
@@ -291,4 +292,45 @@ optional_policy(`
 
 	postfix_read_config(user_mail_t)
 	postfix_list_spool(user_mail_t)
+')
+
+########################################
+#
+# Comman user_mail_domain policy
+#
+
+allow user_mail_domain self:fifo_file rw_fifo_file_perms;
+allow user_mail_domain mta_exec_type:file entrypoint;
+
+read_files_pattern(user_mail_domain, etc_aliases_t, etc_aliases_t)
+
+can_exec(user_mail_domain, mta_exec_type)
+
+allow system_mail_t user_mail_domain:file read_file_perms;
+
+read_files_pattern(user_mail_domain, etc_mail_t, etc_mail_t)
+
+kernel_read_system_state(user_mail_domain)
+kernel_read_network_state(user_mail_domain)
+kernel_request_load_module(user_mail_domain)
+
+
+
+optional_policy(`
+	# postfix needs this for newaliases
+	files_getattr_tmp_dirs(user_mail_domain)
+
+	postfix_exec_master(user_mail_domain)
+	postfix_read_config(user_mail_domain)
+	postfix_search_spool(user_mail_domain)
+
+	ifdef(`distro_redhat',`
+		# compatability for old default main.cf
+		postfix_config_filetrans(user_mail_domain, etc_aliases_t, { dir file lnk_file sock_file fifo_file })
+	')
+')
+
+optional_policy(`
+	exim_domtrans(user_mail_domain)
+	exim_manage_log(user_mail_domain)
 ')

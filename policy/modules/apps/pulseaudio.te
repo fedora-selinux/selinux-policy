@@ -44,6 +44,7 @@ allow pulseaudio_t self:netlink_kobject_uevent_socket create_socket_perms;
 manage_dirs_pattern(pulseaudio_t, pulseaudio_home_t, pulseaudio_home_t)
 manage_files_pattern(pulseaudio_t, pulseaudio_home_t, pulseaudio_home_t)
 userdom_search_user_home_dirs(pulseaudio_t)
+userdom_search_admin_dir(pulseaudio_t)
 
 manage_dirs_pattern(pulseaudio_t, pulseaudio_var_lib_t, pulseaudio_var_lib_t)
 manage_files_pattern(pulseaudio_t, pulseaudio_var_lib_t, pulseaudio_var_lib_t)
@@ -53,7 +54,7 @@ files_var_lib_filetrans(pulseaudio_t, pulseaudio_var_lib_t, { dir file })
 manage_dirs_pattern(pulseaudio_t, pulseaudio_var_run_t, pulseaudio_var_run_t)
 manage_files_pattern(pulseaudio_t, pulseaudio_var_run_t, pulseaudio_var_run_t)
 manage_sock_files_pattern(pulseaudio_t, pulseaudio_var_run_t, pulseaudio_var_run_t)
-files_pid_filetrans(pulseaudio_t, pulseaudio_var_run_t, { dir file })
+files_pid_filetrans(pulseaudio_t, pulseaudio_var_run_t, { file dir })
 
 can_exec(pulseaudio_t, pulseaudio_exec_t)
 
@@ -94,11 +95,6 @@ logging_send_syslog_msg(pulseaudio_t)
 
 miscfiles_read_localization(pulseaudio_t)
 
-# cjp: this seems excessive. need to confirm
-userdom_manage_user_home_content_files(pulseaudio_t)
-userdom_manage_user_tmp_files(pulseaudio_t)
-userdom_manage_user_tmpfs_files(pulseaudio_t)
-
 optional_policy(`
 	bluetooth_stream_connect(pulseaudio_t)
 ')
@@ -131,6 +127,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	mpd_read_tmpfs_files(pulseaudio_t)
+')
+
+optional_policy(`
 	policykit_domtrans_auth(pulseaudio_t)
 	policykit_read_lib(pulseaudio_t)
 	policykit_read_reload(pulseaudio_t)
@@ -147,4 +147,8 @@ optional_policy(`
 	xserver_read_xdm_lib_files(pulseaudio_t)
 	xserver_read_xdm_pid(pulseaudio_t)
 	xserver_user_x_domain_template(pulseaudio, pulseaudio_t, pulseaudio_tmpfs_t)
+')
+
+optional_policy(`
+	sandbox_manage_tmpfs_files(pulseaudio_t)
 ')

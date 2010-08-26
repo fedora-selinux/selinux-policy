@@ -17,6 +17,9 @@ type rgmanager_exec_t;
 domain_type(rgmanager_t)
 init_daemon_domain(rgmanager_t, rgmanager_exec_t)
 
+type rgmanager_initrc_exec_t;
+init_script_file(rgmanager_initrc_exec_t)
+
 type rgmanager_tmp_t;
 files_tmp_file(rgmanager_tmp_t)
 
@@ -55,11 +58,14 @@ fs_tmpfs_filetrans(rgmanager_t, rgmanager_tmpfs_t, { dir file })
 manage_files_pattern(rgmanager_t, rgmanager_var_log_t, rgmanager_var_log_t)
 logging_log_filetrans(rgmanager_t, rgmanager_var_log_t, { file })
 
+manage_dirs_pattern(rgmanager_t, rgmanager_var_run_t, rgmanager_var_run_t)
 manage_files_pattern(rgmanager_t, rgmanager_var_run_t, rgmanager_var_run_t)
 manage_sock_files_pattern(rgmanager_t, rgmanager_var_run_t, rgmanager_var_run_t)
-files_pid_filetrans(rgmanager_t, rgmanager_var_run_t, { file sock_file })
+files_pid_filetrans(rgmanager_t, rgmanager_var_run_t, { file sock_file dir })
 
+kernel_kill(rgmanager_t)
 kernel_read_kernel_sysctls(rgmanager_t)
+kernel_read_rpc_sysctls(rgmanager_t)
 kernel_read_system_state(rgmanager_t)
 kernel_rw_rpc_sysctls(rgmanager_t)
 kernel_search_debugfs(rgmanager_t)
@@ -78,14 +84,19 @@ domain_read_all_domains_state(rgmanager_t)
 domain_getattr_all_domains(rgmanager_t)
 domain_dontaudit_ptrace_all_domains(rgmanager_t)
 
-files_list_all(rgmanager_t)
+files_create_var_run_dirs(rgmanager_t)
 files_getattr_all_symlinks(rgmanager_t)
+files_list_all(rgmanager_t)
 files_manage_mnt_dirs(rgmanager_t)
+files_manage_mnt_files(rgmanager_t)
+files_manage_mnt_symlinks(rgmanager_t)
+files_manage_isid_type_files(rgmanager_t)
 files_manage_isid_type_dirs(rgmanager_t)
 
 fs_getattr_xattr_fs(rgmanager_t)
 fs_getattr_all_fs(rgmanager_t)
 
+storage_raw_read_fixed_disk(rgmanager_t)
 storage_getattr_fixed_disk_dev(rgmanager_t)
 
 term_getattr_pty_fs(rgmanager_t)
@@ -137,6 +148,11 @@ optional_policy(`
 
 optional_policy(`
 	lvm_domtrans(rgmanager_t)
+')
+
+optional_policy(`
+	ldap_initrc_domtrans(rgmanager_t)
+	ldap_domtrans(rgmanager_t)
 ')
 
 optional_policy(`
@@ -193,8 +209,12 @@ optional_policy(`
 	virt_stream_connect(rgmanager_t)
 ')
 
+ifdef(`enforcing',`
 optional_policy(`
 	unconfined_domain(rgmanager_t)
+')
+', `
+	permissive rgmanager_t;
 ')
 
 optional_policy(`

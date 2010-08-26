@@ -18,6 +18,24 @@ interface(`ricci_domtrans',`
 	domtrans_pattern($1, ricci_exec_t, ricci_t)
 ')
 
+#######################################
+## <summary>
+##  Execute ricci server in the ricci domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ricci_initrc_domtrans', `
+    gen_require(`
+        type ricci_initrc_exec_t;
+    ')
+
+    init_labeled_script_domtrans($1, ricci_initrc_exec_t)
+')
+
 ########################################
 ## <summary>
 ##	Execute a domain transition to run ricci_modcluster.
@@ -96,6 +114,24 @@ interface(`ricci_stream_connect_modclusterd',`
 
 ########################################
 ## <summary>
+##	Read and write to ricci_modcluserd temporary file system.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ricci_rw_modclusterd_tmpfs_files',`
+	gen_require(`
+		type ricci_modcluserd_tmpfs_t;
+	')
+
+	allow $1 ricci_modcluserd_tmpfs_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
 ##	Execute a domain transition to run ricci_modlog.
 ## </summary>
 ## <param name="domain">
@@ -164,4 +200,68 @@ interface(`ricci_domtrans_modstorage',`
 	')
 
 	domtrans_pattern($1, ricci_modstorage_exec_t, ricci_modstorage_t)
+')
+
+####################################
+## <summary>
+##      Allow the specified domain to manage ricci's lib files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`ricci_manage_lib_files',`
+    gen_require(`
+        type ricci_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    manage_dirs_pattern($1, ricci_var_lib_t, ricci_var_lib_t)
+    manage_files_pattern($1, ricci_var_lib_t, ricci_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ricci environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ricci_admin',`
+	gen_require(`
+		type ricci_t, ricci_initrc_exec_t, ricci_tmp_t;
+		type ricci_var_lib_t, ricci_var_log_t, ricci_var_run_t;
+	')
+
+	allow $1 ricci_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ricci_t)
+
+	ricci_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 ricci_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_tmp($1)
+	admin_pattern($1, ricci_tmp_t)
+	
+	files_search_var_lib($1)
+	admin_pattern($1, ricci_var_lib_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, ricci_var_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, ricci_var_run_t)
 ')

@@ -1,3 +1,4 @@
+
 policy_module(cobbler, 1.1.0)
 
 ########################################
@@ -7,11 +8,33 @@ policy_module(cobbler, 1.1.0)
 
 ## <desc>
 ## <p>
-## Allow Cobbler to modify public files
-## used for public file transfer services.
+##     Allow Cobbler to modify public files
+##     used for public file transfer services.
 ## </p>
 ## </desc>
 gen_tunable(cobbler_anon_write, false)
+  
+## <desc>
+## <p>
+##     Allow Cobbler to connect to the
+##     network using TCP.
+## </p>
+## </desc>
+gen_tunable(cobbler_can_network_connect, false)
+
+## <desc>
+## <p>
+##     Allow Cobbler to access cifs file systems.
+## </p>
+## </desc>
+gen_tunable(cobbler_use_cifs, false)
+
+## <desc>
+## <p>
+##     Allow Cobbler to access nfs file systems.
+## </p>
+## </desc>
+gen_tunable(cobbler_use_nfs, false)
 
 type cobblerd_t;
 type cobblerd_exec_t;
@@ -23,28 +46,46 @@ init_script_file(cobblerd_initrc_exec_t)
 type cobbler_etc_t;
 files_config_file(cobbler_etc_t)
 
+type cobbler_content_t;
+typealias cobbler_content_t alias cobbler_var_lib_t;
+files_type(cobbler_content_t)
+
 type cobbler_var_log_t;
 logging_log_file(cobbler_var_log_t)
 
-type cobbler_var_lib_t;
-files_type(cobbler_var_lib_t)
+type cobbler_tmp_t;
+files_tmp_file(cobbler_tmp_t)
+
+# Cobbler check is not supported and is silently ignored.
 
 ########################################
 #
-# Cobbler personal policy.
+# Cobbler local policy.
 #
 
-allow cobblerd_t self:capability { chown dac_override fowner sys_nice };
+allow cobblerd_t self:capability { chown dac_override fowner fsetid sys_nice };
+dontaudit cobblerd_t self:capability { sys_ptrace sys_tty_config };
+
 allow cobblerd_t self:process { getsched setsched signal };
 allow cobblerd_t self:fifo_file rw_fifo_file_perms;
+allow cobblerd_t self:netlink_route_socket create_netlink_socket_perms;
 allow cobblerd_t self:tcp_socket create_stream_socket_perms;
+allow cobblerd_t self:udp_socket create_socket_perms;
+allow cobblerd_t self:unix_dgram_socket create_socket_perms;
 
 list_dirs_pattern(cobblerd_t, cobbler_etc_t, cobbler_etc_t)
 read_files_pattern(cobblerd_t, cobbler_etc_t, cobbler_etc_t)
 
-manage_dirs_pattern(cobblerd_t, cobbler_var_lib_t, cobbler_var_lib_t)
-manage_files_pattern(cobblerd_t, cobbler_var_lib_t, cobbler_var_lib_t)
-files_var_lib_filetrans(cobblerd_t, cobbler_var_lib_t, { dir file })
+# Something that runs in the cobberd_t domain tries to relabelfrom cobbler_content_t dir to httpd_sys_content_t.
+dontaudit cobblerd_t cobbler_content_t:dir relabel_dir_perms;
+
+manage_dirs_pattern(cobblerd_t, cobbler_content_t, cobbler_content_t)
+manage_files_pattern(cobblerd_t, cobbler_content_t, cobbler_content_t)
+manage_lnk_files_pattern(cobblerd_t, cobbler_content_t, cobbler_content_t)
+files_var_lib_filetrans(cobblerd_t, cobbler_content_t, { dir file lnk_file })
+
+# Something really needs to write to cobbler.log. Ideally this should not be happening.
+allow cobblerd_t cobbler_var_log_t:file write;
 
 append_files_pattern(cobblerd_t, cobbler_var_log_t, cobbler_var_log_t)
 create_files_pattern(cobblerd_t, cobbler_var_log_t, cobbler_var_log_t)
@@ -52,37 +93,91 @@ read_files_pattern(cobblerd_t, cobbler_var_log_t, cobbler_var_log_t)
 setattr_files_pattern(cobblerd_t, cobbler_var_log_t, cobbler_var_log_t)
 logging_log_filetrans(cobblerd_t, cobbler_var_log_t, file)
 
+manage_dirs_pattern(cobblerd_t, cobbler_tmp_t, cobbler_tmp_t)
+manage_files_pattern(cobblerd_t, cobbler_tmp_t, cobbler_tmp_t)
+files_tmp_filetrans(cobblerd_t, cobbler_tmp_t, { dir file })
+
 kernel_read_system_state(cobblerd_t)
+kernel_dontaudit_search_network_state(cobblerd_t)
 
 corecmd_exec_bin(cobblerd_t)
 corecmd_exec_shell(cobblerd_t)
 
 corenet_all_recvfrom_netlabel(cobblerd_t)
 corenet_all_recvfrom_unlabeled(cobblerd_t)
-corenet_sendrecv_cobbler_server_packets(cobblerd_t)
-corenet_tcp_bind_cobbler_port(cobblerd_t)
 corenet_tcp_bind_generic_node(cobblerd_t)
 corenet_tcp_sendrecv_generic_if(cobblerd_t)
 corenet_tcp_sendrecv_generic_node(cobblerd_t)
 corenet_tcp_sendrecv_generic_port(cobblerd_t)
+corenet_tcp_bind_cobbler_port(cobblerd_t)
+corenet_tcp_sendrecv_cobbler_port(cobblerd_t)
+corenet_sendrecv_cobbler_server_packets(cobblerd_t)
+# sync and rsync to ftp and http are permitted by default, for any other media use cobbler_can_network_connect.
+corenet_tcp_connect_ftp_port(cobblerd_t)
+corenet_tcp_sendrecv_ftp_port(cobblerd_t)
+corenet_sendrecv_ftp_client_packets(cobblerd_t)
+corenet_tcp_connect_http_port(cobblerd_t)
+corenet_tcp_sendrecv_http_port(cobblerd_t)
+corenet_sendrecv_http_client_packets(cobblerd_t)
 
 dev_read_urand(cobblerd_t)
 
+domain_dontaudit_exec_all_entry_files(cobblerd_t)
+domain_dontaudit_read_all_domains_state(cobblerd_t)
+
+files_read_etc_files(cobblerd_t)
+# mtab
+files_read_etc_runtime_files(cobblerd_t)
 files_read_usr_files(cobblerd_t)
 files_list_boot(cobblerd_t)
+files_read_boot_files(cobblerd_t)
 files_list_tmp(cobblerd_t)
-# read /etc/nsswitch.conf
-files_read_etc_files(cobblerd_t)
+
+# read from mounted images (install media)
+fs_read_iso9660_files(cobblerd_t)
+
+init_dontaudit_read_all_script_files(cobblerd_t)
+
+term_use_console(cobblerd_t)
 
 miscfiles_read_localization(cobblerd_t)
 miscfiles_read_public_files(cobblerd_t)
+
+selinux_dontaudit_read_fs(cobblerd_t)
 
 sysnet_read_config(cobblerd_t)
 sysnet_rw_dhcp_config(cobblerd_t)
 sysnet_write_config(cobblerd_t)
 
+userdom_dontaudit_use_user_terminals(cobblerd_t)
+userdom_dontaudit_search_user_home_dirs(cobblerd_t)
+userdom_dontaudit_search_admin_dir(cobblerd_t)
+
 tunable_policy(`cobbler_anon_write',`
 	miscfiles_manage_public_files(cobblerd_t)
+')
+
+tunable_policy(`cobbler_can_network_connect',`
+	corenet_tcp_connect_all_ports(cobblerd_t)
+	corenet_tcp_sendrecv_all_ports(cobblerd_t)
+	corenet_sendrecv_all_client_packets(cobblerd_t)
+')
+
+tunable_policy(`cobbler_use_cifs',`
+	fs_manage_cifs_dirs(cobblerd_t)
+	fs_manage_cifs_files(cobblerd_t)
+	fs_manage_cifs_symlinks(cobblerd_t)
+')
+
+tunable_policy(`cobbler_use_nfs',`
+	fs_manage_nfs_dirs(cobblerd_t)
+	fs_manage_nfs_files(cobblerd_t)
+	fs_manage_nfs_symlinks(cobblerd_t)
+')
+
+optional_policy(`
+	# Cobbler traverses /var/www to get to /var/www/cobbler/*
+	apache_search_sys_content(cobblerd_t)
 ')
 
 optional_policy(`
@@ -92,6 +187,10 @@ optional_policy(`
 	bind_domtrans(cobblerd_t)
 	bind_initrc_domtrans(cobblerd_t)
 	bind_manage_zone(cobblerd_t)
+')
+
+optional_policy(`
+	certmaster_exec(cobblerd_t)
 ')
 
 optional_policy(`
@@ -106,16 +205,28 @@ optional_policy(`
 ')
 
 optional_policy(`
+	gnome_dontaudit_search_config(cobblerd_t)
+')
+
+optional_policy(`
 	rpm_exec(cobblerd_t)
 ')
 
 optional_policy(`
-	rsync_read_config(cobblerd_t)
-	rsync_write_config(cobblerd_t)
+	rsync_exec(cobblerd_t)
+	rsync_manage_config(cobblerd_t)
+	# cobbler creates /etc/rsync.conf if its not there.
+	rsync_filetrans_config(cobblerd_t, file)
 ')
 
 optional_policy(`
-	tftp_manage_rw_content(cobblerd_t)
+	# Cobbler puts objects in both /var/lib/tftpdir as well as /var/lib/tftpdir/images.
+	# tftp_manage_rw_content(cobblerd_t) can be used instead if:
+	# 1. cobbler package installs /var/lib/tftpdir/images.
+	# 2. no FILES in /var/lib/TFTPDIR are hard linked.
+	# Cobbler also creates other directories in /var/lib/tftpdir (etc, s390x, ppc, pxelinux.cfg)
+	# are any of those hard linked?
+	tftp_filetrans_tftpdir(cobblerd_t, cobbler_content_t, { dir file })
 ')
 
 ########################################
@@ -123,6 +234,18 @@ optional_policy(`
 # Cobbler web local policy.
 #
 
-apache_content_template(cobbler)
-manage_dirs_pattern(cobblerd_t, httpd_cobbler_content_rw_t, httpd_cobbler_content_rw_t)
-manage_files_pattern(cobblerd_t, httpd_cobbler_content_rw_t, httpd_cobbler_content_rw_t)
+# This should be removable when cobbler package installs /var/www/cobbler/rendered.
+optional_policy(`
+	gen_require(`
+		attribute httpdcontent;
+	')
+
+	apache_content_template(cobbler)
+	# To filetrans the /var/www/cobbler/rendered directory to cobbler_content_t.
+	# I added "file" to it for now because fenris02 reported that cobbler buildiso tried to create a file with type
+	# httpd_cobbler_content_t and i do not know where exaclty. Google reports it should be /var/www/cobbler/pub but
+	# that directory should have been labeled cobbler_content_t. 
+	filetrans_pattern(cobblerd_t, httpd_cobbler_content_t, cobbler_content_t, { dir file })
+	# Something that runs in the cobberd_t domain tries to relabelfrom cobbler_content_t dir to httpd_sys_content_t.
+	dontaudit cobblerd_t httpdcontent:dir relabel_dir_perms;
+')

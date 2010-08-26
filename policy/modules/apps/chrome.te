@@ -1,0 +1,86 @@
+policy_module(chrome,1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type chrome_sandbox_t;
+type chrome_sandbox_exec_t;
+application_domain(chrome_sandbox_t, chrome_sandbox_exec_t)
+role system_r types chrome_sandbox_t;
+
+type chrome_sandbox_tmp_t;
+files_tmp_file(chrome_sandbox_tmp_t)
+
+type chrome_sandbox_tmpfs_t;
+files_tmpfs_file(chrome_sandbox_tmpfs_t)
+ubac_constrained(chrome_sandbox_tmpfs_t)
+
+########################################
+#
+# chrome_sandbox local policy
+#
+allow chrome_sandbox_t self:capability { chown dac_override fsetid setgid setuid sys_admin sys_chroot sys_ptrace };
+allow chrome_sandbox_t self:process { signal_perms setrlimit execmem execstack };
+allow chrome_sandbox_t self:fifo_file manage_file_perms;
+allow chrome_sandbox_t self:unix_stream_socket create_stream_socket_perms;
+allow chrome_sandbox_t self:unix_dgram_socket { create_socket_perms sendto };
+allow chrome_sandbox_t self:shm create_shm_perms;
+
+manage_dirs_pattern(chrome_sandbox_t, chrome_sandbox_tmp_t, chrome_sandbox_tmp_t)
+manage_files_pattern(chrome_sandbox_t, chrome_sandbox_tmp_t, chrome_sandbox_tmp_t)
+files_tmp_filetrans(chrome_sandbox_t, chrome_sandbox_tmp_t, { dir file })
+
+manage_files_pattern(chrome_sandbox_t, chrome_sandbox_tmpfs_t, chrome_sandbox_tmpfs_t)
+fs_tmpfs_filetrans(chrome_sandbox_t, chrome_sandbox_tmpfs_t, file)
+
+kernel_read_system_state(chrome_sandbox_t)
+kernel_read_kernel_sysctls(chrome_sandbox_t)
+
+corecmd_exec_bin(chrome_sandbox_t)
+
+domain_dontaudit_read_all_domains_state(chrome_sandbox_t)
+
+dev_read_urand(chrome_sandbox_t)
+dev_read_sysfs(chrome_sandbox_t)
+dev_rwx_zero(chrome_sandbox_t)
+
+files_read_etc_files(chrome_sandbox_t)
+files_read_usr_files(chrome_sandbox_t)
+
+fs_dontaudit_getattr_all_fs(chrome_sandbox_t)
+
+userdom_rw_user_tmpfs_files(chrome_sandbox_t)
+userdom_use_user_ptys(chrome_sandbox_t)
+userdom_write_inherited_user_tmp_files(chrome_sandbox_t)
+userdom_read_inherited_user_home_content_files(chrome_sandbox_t)
+userdom_dontaudit_use_user_terminals(chrome_sandbox_t)
+
+miscfiles_read_localization(chrome_sandbox_t)
+miscfiles_read_fonts(chrome_sandbox_t)
+
+optional_policy(`
+	execmem_exec(chrome_sandbox_t)
+')
+
+optional_policy(`
+	gnome_rw_inherited_config(chrome_sandbox_t)
+	gnome_list_home_config(chrome_sandbox_t)
+')
+
+optional_policy(`
+	xserver_use_user_fonts(chrome_sandbox_t)
+	xserver_user_x_domain_template(chrome_sandbox, chrome_sandbox_t, chrome_sandbox_tmpfs_t)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_dontaudit_append_nfs_files(chrome_sandbox_t)
+	fs_dontaudit_read_nfs_files(chrome_sandbox_t)
+	fs_dontaudit_read_nfs_symlinks(chrome_sandbox_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_dontaudit_append_cifs_files(chrome_sandbox_t)
+	fs_dontaudit_read_cifs_files(chrome_sandbox_t)
+')

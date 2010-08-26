@@ -6,11 +6,24 @@ policy_module(gnome, 2.0.1)
 #
 
 attribute gnomedomain;
+attribute gnome_home_type;
 
 type gconf_etc_t;
 files_config_file(gconf_etc_t)
 
-type gconf_home_t;
+type data_home_t, gnome_home_type;
+userdom_user_home_content(data_home_t)
+
+type config_home_t, gnome_home_type;
+userdom_user_home_content(config_home_t)
+
+type cache_home_t, gnome_home_type;
+userdom_user_home_content(cache_home_t)
+
+type gstreamer_home_t, gnome_home_type;
+userdom_user_home_content(gstreamer_home_t)
+
+type gconf_home_t, gnome_home_type;
 typealias gconf_home_t alias { user_gconf_home_t staff_gconf_home_t sysadm_gconf_home_t };
 typealias gconf_home_t alias { auditadm_gconf_home_t secadm_gconf_home_t };
 typealias gconf_home_t alias unconfined_gconf_home_t;
@@ -30,11 +43,19 @@ typealias gconfd_t alias { auditadm_gconfd_t secadm_gconfd_t };
 application_domain(gconfd_t, gconfd_exec_t)
 ubac_constrained(gconfd_t)
 
-type gnome_home_t;
+type gnome_home_t, gnome_home_type;
 typealias gnome_home_t alias { user_gnome_home_t staff_gnome_home_t sysadm_gnome_home_t };
 typealias gnome_home_t alias { auditadm_gnome_home_t secadm_gnome_home_t };
 typealias gnome_home_t alias unconfined_gnome_home_t;
 userdom_user_home_content(gnome_home_t)
+
+type gconfdefaultsm_t;
+type gconfdefaultsm_exec_t;
+dbus_system_domain(gconfdefaultsm_t, gconfdefaultsm_exec_t)
+
+type gnomesystemmm_t;
+type gnomesystemmm_exec_t;
+dbus_system_domain(gnomesystemmm_t, gnomesystemmm_exec_t)
 
 ##############################
 #
@@ -74,4 +95,92 @@ optional_policy(`
 optional_policy(`
 	xserver_use_xdm_fds(gconfd_t)
 	xserver_rw_xdm_pipes(gconfd_t)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+        fs_manage_nfs_dirs(gconfdefaultsm_t)
+        fs_manage_nfs_files(gconfdefaultsm_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+        fs_manage_cifs_dirs(gconfdefaultsm_t)
+        fs_manage_cifs_files(gconfdefaultsm_t)
+')
+
+#######################################
+#
+# gconf-defaults-mechanisms local policy
+#
+
+allow gconfdefaultsm_t self:capability { dac_override sys_nice sys_ptrace };
+allow gconfdefaultsm_t self:process getsched;
+allow gconfdefaultsm_t self:fifo_file rw_fifo_file_perms;
+
+corecmd_search_bin(gconfdefaultsm_t)
+
+files_read_etc_files(gconfdefaultsm_t)
+files_read_usr_files(gconfdefaultsm_t)
+
+miscfiles_read_localization(gconfdefaultsm_t)
+
+gnome_manage_gconf_home_files(gconfdefaultsm_t)
+gnome_manage_gconf_config(gconfdefaultsm_t)
+
+userdom_read_all_users_state(gconfdefaultsm_t)
+userdom_search_user_home_dirs(gconfdefaultsm_t)
+
+userdom_dontaudit_search_admin_dir(gconfdefaultsm_t)
+
+optional_policy(`
+        consolekit_dbus_chat(gconfdefaultsm_t)
+')
+
+optional_policy(`
+        nscd_dontaudit_search_pid(gconfdefaultsm_t)
+')
+
+optional_policy(`
+        policykit_domtrans_auth(gconfdefaultsm_t)
+        policykit_dbus_chat(gconfdefaultsm_t)
+        policykit_read_lib(gconfdefaultsm_t)
+        policykit_read_reload(gconfdefaultsm_t)
+')
+
+#######################################
+#
+# gnome-system-monitor-mechanisms local policy
+#
+
+allow gnomesystemmm_t self:capability { sys_nice sys_ptrace };
+allow gnomesystemmm_t self:fifo_file rw_fifo_file_perms;
+
+corecmd_search_bin(gnomesystemmm_t)
+
+domain_kill_all_domains(gnomesystemmm_t)
+domain_search_all_domains_state(gnomesystemmm_t)
+domain_setpriority_all_domains(gnomesystemmm_t)
+domain_signal_all_domains(gnomesystemmm_t)
+domain_sigstop_all_domains(gnomesystemmm_t)
+
+files_read_etc_files(gnomesystemmm_t)
+files_read_usr_files(gnomesystemmm_t)
+
+miscfiles_read_localization(gnomesystemmm_t)
+
+userdom_read_all_users_state(gnomesystemmm_t)
+userdom_dontaudit_search_admin_dir(gnomesystemmm_t)
+
+optional_policy(`
+        consolekit_dbus_chat(gnomesystemmm_t)
+')
+
+optional_policy(`
+        nscd_dontaudit_search_pid(gnomesystemmm_t)
+')
+
+optional_policy(`
+        policykit_dbus_chat(gnomesystemmm_t)
+        policykit_domtrans_auth(gnomesystemmm_t)
+        policykit_read_lib(gnomesystemmm_t)
+        policykit_read_reload(gnomesystemmm_t)
 ')

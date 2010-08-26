@@ -4,6 +4,7 @@ policy_module(virt, 1.4.0)
 #
 # Declarations
 #
+attribute virsh_transition_domain;
 
 ## <desc>
 ## <p>
@@ -50,11 +51,11 @@ gen_tunable(virt_use_usb, true)
 virt_domain_template(svirt)
 role system_r types svirt_t;
 
-type svirt_cache_t;
-files_type(svirt_cache_t)
-
 attribute virt_domain;
 attribute virt_image_type;
+
+type virt_cache_t alias svirt_cache_t;
+files_type(virt_cache_t)
 
 type virt_etc_t;
 files_config_file(virt_etc_t)
@@ -65,20 +66,25 @@ files_type(virt_etc_rw_t)
 # virt Image files
 type virt_image_t; # customizable
 virt_image(virt_image_t)
+files_mountpoint(virt_image_t)
 
 # virt Image files
 type virt_content_t; # customizable
 virt_image(virt_content_t)
 userdom_user_home_content(virt_content_t)
 
+type virt_tmp_t;
+files_tmp_file(virt_tmp_t)
+
 type virt_log_t;
 logging_log_file(virt_log_t)
+mls_trusted_object(virt_log_t)
 
 type virt_var_run_t;
 files_pid_file(virt_var_run_t)
 
 type virt_var_lib_t;
-files_type(virt_var_lib_t)
+files_mountpoint(virt_var_lib_t)
 
 type virtd_t;
 type virtd_exec_t;
@@ -88,6 +94,11 @@ domain_subj_id_change_exemption(virtd_t)
 
 type virtd_initrc_exec_t;
 init_script_file(virtd_initrc_exec_t)
+
+type qemu_var_run_t;
+typealias qemu_var_run_t alias svirt_var_run_t;
+files_pid_file(qemu_var_run_t)
+mls_trusted_object(qemu_var_run_t)
 
 ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(virtd_t, virtd_exec_t, s0 - mcs_systemhigh)
@@ -104,15 +115,12 @@ ifdef(`enable_mls',`
 
 allow svirt_t self:udp_socket create_socket_perms;
 
-manage_dirs_pattern(svirt_t, svirt_cache_t, svirt_cache_t)
-manage_files_pattern(svirt_t, svirt_cache_t, svirt_cache_t)
-files_var_filetrans(svirt_t, svirt_cache_t, { file dir })
-
 read_lnk_files_pattern(svirt_t, virt_image_t, virt_image_t)
 
 allow svirt_t svirt_image_t:dir search_dir_perms;
 manage_dirs_pattern(svirt_t, svirt_image_t, svirt_image_t)
 manage_files_pattern(svirt_t, svirt_image_t, svirt_image_t)
+manage_fifo_files_pattern(svirt_t, svirt_image_t, svirt_image_t)
 fs_hugetlbfs_filetrans(svirt_t, svirt_image_t, file)
 
 list_dirs_pattern(svirt_t, virt_content_t, virt_content_t)
@@ -147,11 +155,15 @@ tunable_policy(`virt_use_fusefs',`
 tunable_policy(`virt_use_nfs',`
 	fs_manage_nfs_dirs(svirt_t)
 	fs_manage_nfs_files(svirt_t)
+	fs_manage_nfs_named_sockets(svirt_t)
+	fs_read_nfs_symlinks(svirt_t)
 ')
 
 tunable_policy(`virt_use_samba',`
 	fs_manage_cifs_dirs(svirt_t)
 	fs_manage_cifs_files(svirt_t)
+	fs_manage_cifs_named_sockets(svirt_t)
+	fs_read_cifs_symlinks(virtd_t)
 ')
 
 tunable_policy(`virt_use_sysfs',`
@@ -160,8 +172,13 @@ tunable_policy(`virt_use_sysfs',`
 
 tunable_policy(`virt_use_usb',`
 	dev_rw_usbfs(svirt_t)
+	dev_read_sysfs(svirt_t)
 	fs_manage_dos_dirs(svirt_t)
 	fs_manage_dos_files(svirt_t)
+')
+
+optional_policy(`
+	xen_rw_image_files(svirt_t)
 ')
 
 optional_policy(`
@@ -174,21 +191,28 @@ optional_policy(`
 #
 
 allow virtd_t self:capability { chown dac_override fowner ipc_lock kill mknod net_admin net_raw setpcap setuid setgid sys_admin sys_nice sys_ptrace };
-allow virtd_t self:process { getcap getsched setcap sigkill signal signull execmem setexec setfscreate setsched };
+allow virtd_t self:process { getcap getsched setcap sigkill signal signull execmem setexec setfscreate setsockcreate setsched };
 
 allow virtd_t self:fifo_file rw_fifo_file_perms;
 allow virtd_t self:unix_stream_socket create_stream_socket_perms;
 allow virtd_t self:tcp_socket create_stream_socket_perms;
 allow virtd_t self:tun_socket create_socket_perms;
+allow virtd_t self:rawip_socket create_socket_perms;
 allow virtd_t self:netlink_kobject_uevent_socket create_socket_perms;
 
-manage_dirs_pattern(virtd_t, svirt_cache_t, svirt_cache_t)
-manage_files_pattern(virtd_t, svirt_cache_t, svirt_cache_t)
+manage_dirs_pattern(virtd_t, virt_cache_t, virt_cache_t)
+manage_files_pattern(virtd_t, virt_cache_t, virt_cache_t)
 
 manage_dirs_pattern(virtd_t, virt_content_t, virt_content_t)
 manage_files_pattern(virtd_t, virt_content_t, virt_content_t)
 
 allow virtd_t virt_domain:process { getattr getsched setsched transition signal signull sigkill };
+
+allow virtd_t qemu_var_run_t:file relabel_file_perms;
+manage_dirs_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t)
+manage_files_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t)
+manage_sock_files_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t)
+stream_connect_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t, virt_domain)
 
 read_files_pattern(virtd_t, virt_etc_t, virt_etc_t)
 read_lnk_files_pattern(virtd_t, virt_etc_t, virt_etc_t)
@@ -200,8 +224,14 @@ filetrans_pattern(virtd_t, virt_etc_t, virt_etc_rw_t, dir)
 
 manage_files_pattern(virtd_t, virt_image_type, virt_image_type)
 manage_blk_files_pattern(virtd_t, virt_image_type, virt_image_type)
+manage_lnk_files_pattern(virtd_t, virt_image_type, virt_image_type)
 allow virtd_t virt_image_type:file { relabelfrom relabelto };
 allow virtd_t virt_image_type:blk_file { relabelfrom relabelto };
+
+manage_dirs_pattern(virtd_t, virt_tmp_t, virt_tmp_t)
+manage_files_pattern(virtd_t, virt_tmp_t, virt_tmp_t)
+files_tmp_filetrans(virtd_t, virt_tmp_t, { file dir })
+can_exec(virtd_t, virt_tmp_t)
 
 manage_dirs_pattern(virtd_t, virt_log_t, virt_log_t)
 manage_files_pattern(virtd_t, virt_log_t, virt_log_t)
@@ -220,6 +250,7 @@ files_pid_filetrans(virtd_t, virt_var_run_t, { file dir })
 kernel_read_system_state(virtd_t)
 kernel_read_network_state(virtd_t)
 kernel_rw_net_sysctls(virtd_t)
+kernel_read_kernel_sysctls(virtd_t)
 kernel_request_load_module(virtd_t)
 kernel_search_debugfs(virtd_t)
 
@@ -243,18 +274,25 @@ dev_read_rand(virtd_t)
 dev_rw_kvm(virtd_t)
 dev_getattr_all_chr_files(virtd_t)
 dev_rw_mtrr(virtd_t)
+dev_rw_vhost(virtd_t)
 
 # Init script handling
 domain_use_interactive_fds(virtd_t)
 domain_read_all_domains_state(virtd_t)
+domain_read_all_domains_state(virtd_t)
 
 files_read_usr_files(virtd_t)
 files_read_etc_files(virtd_t)
+files_read_usr_files(virtd_t)
 files_read_etc_runtime_files(virtd_t)
 files_search_all(virtd_t)
 files_read_kernel_modules(virtd_t)
 files_read_usr_src_files(virtd_t)
-files_manage_etc_files(virtd_t)
+
+# Manages /etc/sysconfig/system-config-firewall
+files_manage_system_conf_files(virtd_t)
+files_manage_system_conf_files(virtd_t)
+files_etc_filetrans_system_conf(virtd_t)
 
 fs_list_auto_mountpoints(virtd_t)
 fs_getattr_xattr_fs(virtd_t)
@@ -262,6 +300,17 @@ fs_rw_anon_inodefs_files(virtd_t)
 fs_list_inotifyfs(virtd_t)
 fs_manage_cgroup_dirs(virtd_t)
 fs_rw_cgroup_files(virtd_t)
+fs_manage_hugetlbfs_dirs(virtd_t)
+fs_rw_hugetlbfs_files(virtd_t)
+
+mls_fd_share_all_levels(virtd_t)
+mls_file_read_to_clearance(virtd_t)
+mls_file_write_to_clearance(virtd_t)
+mls_process_write_to_clearance(virtd_t)
+mls_net_write_within_range(virtd_t)
+mls_socket_write_to_clearance(virtd_t)
+mls_socket_read_to_clearance(virtd_t)
+mls_rangetrans_source(virtd_t)
 
 mcs_process_set_categories(virtd_t)
 
@@ -286,15 +335,22 @@ modutils_manage_module_config(virtd_t)
 
 logging_send_syslog_msg(virtd_t)
 
+selinux_validate_context(virtd_t)
+
+seutil_read_config(virtd_t)
 seutil_read_default_contexts(virtd_t)
+seutil_read_file_contexts(virtd_t)
 
 sysnet_domtrans_ifconfig(virtd_t)
 sysnet_read_config(virtd_t)
 
+userdom_list_admin_dir(virtd_t)
 userdom_getattr_all_users(virtd_t)
 userdom_list_user_home_content(virtd_t)
 userdom_read_all_users_state(virtd_t)
 userdom_read_user_home_content_files(virtd_t)
+userdom_relabel_user_home_files(virtd_t)
+userdom_setattr_user_home_content_files(virtd_t)
 
 tunable_policy(`virt_use_nfs',`
 	fs_manage_nfs_dirs(virtd_t)
@@ -365,6 +421,7 @@ optional_policy(`
 	qemu_signal(virtd_t)
 	qemu_kill(virtd_t)
 	qemu_setsched(virtd_t)
+	qemu_entry_type(virt_domain)
 ')
 
 optional_policy(`
@@ -385,8 +442,12 @@ optional_policy(`
 	udev_read_db(virtd_t)
 ')
 
+ifdef(`enforcing',`
 optional_policy(`
 	unconfined_domain(virtd_t)
+')
+', `
+   permissive virtd_t;
 ')
 
 ########################################
@@ -401,6 +462,19 @@ allow virt_domain self:shm create_shm_perms;
 allow virt_domain self:unix_stream_socket create_stream_socket_perms;
 allow virt_domain self:unix_dgram_socket { create_socket_perms sendto };
 allow virt_domain self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(virt_domain, virt_cache_t, virt_cache_t)
+manage_files_pattern(virt_domain, virt_cache_t, virt_cache_t)
+files_var_filetrans(virt_domain, virt_cache_t, { file dir })
+
+manage_dirs_pattern(virt_domain, qemu_var_run_t, qemu_var_run_t)
+manage_files_pattern(virt_domain, qemu_var_run_t, qemu_var_run_t)
+manage_sock_files_pattern(virt_domain, qemu_var_run_t, qemu_var_run_t)
+manage_lnk_files_pattern(virt_domain, qemu_var_run_t, qemu_var_run_t)
+files_pid_filetrans(virt_domain, qemu_var_run_t, { dir file })
+stream_connect_pattern(virt_domain, qemu_var_run_t, qemu_var_run_t, virtd_t)
+
+dontaudit virtd_t virt_domain:process  { siginh noatsecure rlimitinh };
 
 append_files_pattern(virt_domain, virt_log_t, virt_log_t)
 
@@ -422,6 +496,7 @@ corenet_rw_tun_tap_dev(virt_domain)
 corenet_tcp_bind_virt_migration_port(virt_domain)
 corenet_tcp_connect_virt_migration_port(virt_domain)
 
+dev_read_generic_symlinks(virt_domain)
 dev_read_rand(virt_domain)
 dev_read_sound(virt_domain)
 dev_read_urand(virt_domain)
@@ -429,10 +504,12 @@ dev_write_sound(virt_domain)
 dev_rw_ksm(virt_domain)
 dev_rw_kvm(virt_domain)
 dev_rw_qemu(virt_domain)
+dev_rw_vhost(virt_domain)
 
 domain_use_interactive_fds(virt_domain)
 
 files_read_etc_files(virt_domain)
+files_read_mnt_symlinks(virt_domain)
 files_read_usr_files(virt_domain)
 files_read_var_files(virt_domain)
 files_search_all(virt_domain)
@@ -440,6 +517,11 @@ files_search_all(virt_domain)
 fs_getattr_tmpfs(virt_domain)
 fs_rw_anon_inodefs_files(virt_domain)
 fs_rw_tmpfs_files(virt_domain)
+fs_getattr_hugetlbfs(virt_domain)
+
+# I think we need these for now.
+miscfiles_read_public_files(virt_domain)
+storage_raw_read_removable_device(virt_domain)
 
 term_use_all_terms(virt_domain)
 term_getattr_pty_fs(virt_domain)
@@ -457,8 +539,121 @@ optional_policy(`
 ')
 
 optional_policy(`
+	pulseaudio_dontaudit_exec(virt_domain)
+')
+
+optional_policy(`
 	virt_read_config(virt_domain)
 	virt_read_lib_files(virt_domain)
 	virt_read_content(virt_domain)
 	virt_stream_connect(virt_domain)
 ')
+
+########################################
+#
+# xm local policy
+#
+type virsh_t;
+type virsh_exec_t;
+domain_type(virsh_t)
+init_system_domain(virsh_t, virsh_exec_t)
+typealias virsh_t alias xm_t;
+typealias virsh_exec_t alias xm_exec_t;
+
+allow virsh_t self:capability { dac_override ipc_lock sys_tty_config };
+allow virsh_t self:process { getcap getsched setcap signal };
+
+# internal communication is often done using fifo and unix sockets.
+allow virsh_t self:fifo_file rw_fifo_file_perms;
+allow virsh_t self:unix_stream_socket { create_stream_socket_perms connectto };
+allow virsh_t self:tcp_socket create_stream_socket_perms;
+
+manage_files_pattern(virsh_t, virt_image_type, virt_image_type)
+manage_blk_files_pattern(virsh_t, virt_image_type, virt_image_type)
+manage_lnk_files_pattern(virsh_t, virt_image_type, virt_image_type)
+
+dontaudit virsh_t virt_var_lib_t:file read_inherited_file_perms;
+
+kernel_read_system_state(virsh_t)
+kernel_read_network_state(virsh_t)
+kernel_read_kernel_sysctls(virsh_t)
+kernel_read_sysctl(virsh_t)
+kernel_read_xen_state(virsh_t)
+kernel_write_xen_state(virsh_t)
+
+corecmd_exec_bin(virsh_t)
+corecmd_exec_shell(virsh_t)
+
+corenet_tcp_sendrecv_generic_if(virsh_t)
+corenet_tcp_sendrecv_generic_node(virsh_t)
+corenet_tcp_connect_soundd_port(virsh_t)
+
+dev_read_urand(virsh_t)
+dev_read_sysfs(virsh_t)
+
+files_read_etc_runtime_files(virsh_t)
+files_read_usr_files(virsh_t)
+files_list_mnt(virsh_t)
+# Some common macros (you might be able to remove some)
+files_read_etc_files(virsh_t)
+
+fs_getattr_all_fs(virsh_t)
+fs_manage_xenfs_dirs(virsh_t)
+fs_manage_xenfs_files(virsh_t)
+fs_search_auto_mountpoints(virsh_t)
+
+storage_raw_read_fixed_disk(virsh_t)
+
+term_use_all_terms(virsh_t)
+
+init_stream_connect_script(virsh_t)
+init_rw_script_stream_sockets(virsh_t)
+init_use_fds(virsh_t)
+
+miscfiles_read_localization(virsh_t)
+
+sysnet_dns_name_resolve(virsh_t)
+
+optional_policy(`
+	xen_manage_image_dirs(virsh_t)
+	xen_append_log(virsh_t)
+	xen_stream_connect(virsh_t)
+	xen_stream_connect_xenstore(virsh_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(virsh_t)
+
+	optional_policy(`
+		hal_dbus_chat(virsh_t)
+	')
+')
+
+optional_policy(`
+	vhostmd_rw_tmpfs_files(virsh_t)
+    	vhostmd_stream_connect(virsh_t)
+	vhostmd_dontaudit_rw_stream_connect(virsh_t)
+')
+
+optional_policy(`
+	virt_domtrans(virsh_t)
+	virt_manage_images(virsh_t)
+	virt_manage_config(virsh_t)
+	virt_stream_connect(virsh_t)
+')
+
+optional_policy(`
+	ssh_basic_client_template(virsh, virsh_t, system_r)
+
+	kernel_read_xen_state(virsh_ssh_t)
+	kernel_write_xen_state(virsh_ssh_t)
+
+	dontaudit virsh_ssh_t virsh_transition_domain:fifo_file rw_inherited_fifo_file_perms;
+	files_search_tmp(virsh_ssh_t)
+
+	fs_manage_xenfs_dirs(virsh_ssh_t)
+	fs_manage_xenfs_files(virsh_ssh_t)
+
+	userdom_search_admin_dir(virsh_ssh_t)
+')
+

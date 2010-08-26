@@ -42,8 +42,10 @@ template(`dbus_role_template',`
 	gen_require(`
 		class dbus { send_msg acquire_svc };
 
+		attribute dbusd_unconfined;
 		attribute session_bus_type;
 		type system_dbusd_t, session_dbusd_tmp_t, dbusd_exec_t, dbusd_etc_t;
+		type $1_t;
 	')
 
 	##############################
@@ -76,7 +78,7 @@ template(`dbus_role_template',`
 	allow $3 $1_dbusd_t:unix_stream_socket connectto;
 
 	# SE-DBus specific permissions
-	allow $3 $1_dbusd_t:dbus { send_msg acquire_svc };
+	allow { dbusd_unconfined $3 } $1_dbusd_t:dbus { send_msg acquire_svc };
 	allow $3 system_dbusd_t:dbus { send_msg acquire_svc };
 
 	allow $1_dbusd_t dbusd_etc_t:dir list_dir_perms;
@@ -91,7 +93,7 @@ template(`dbus_role_template',`
 	allow $3 $1_dbusd_t:process { signull sigkill signal };
 
 	# cjp: this seems very broken
-	corecmd_bin_domtrans($1_dbusd_t, $3)
+	corecmd_bin_domtrans($1_dbusd_t, $1_t)
 	allow $1_dbusd_t $3:process sigkill;
 	allow $3 $1_dbusd_t:fd use;
 	allow $3 $1_dbusd_t:fifo_file rw_fifo_file_perms;
@@ -149,10 +151,17 @@ template(`dbus_role_template',`
 
 	term_use_all_terms($1_dbusd_t)
 
-	userdom_read_user_home_content_files($1_dbusd_t)
+	userdom_dontaudit_search_admin_dir($1_dbusd_t)
+	userdom_manage_user_home_content_dirs($1_dbusd_t)
+	userdom_manage_user_home_content_files($1_dbusd_t)
+	userdom_user_home_dir_filetrans_user_home_content($1_dbusd_t, { dir file })
 
 	ifdef(`hide_broken_symptoms', `
 		dontaudit $3 $1_dbusd_t:netlink_selinux_socket { read write };
+	')
+
+	optional_policy(`
+		gnome_read_gconf_home_files($1_dbusd_t)
 	')
 
 	optional_policy(`
@@ -181,10 +190,12 @@ interface(`dbus_system_bus_client',`
 		type system_dbusd_t, system_dbusd_t;
 		type system_dbusd_var_run_t, system_dbusd_var_lib_t;
 		class dbus send_msg;
+		attribute dbusd_unconfined;
 	')
 
 	# SE-DBus specific permissions
 	allow $1 { system_dbusd_t self }:dbus send_msg;
+	allow { system_dbusd_t dbusd_unconfined } $1:dbus send_msg;
 
 	read_files_pattern($1, system_dbusd_var_lib_t, system_dbusd_var_lib_t)
 	files_search_var_lib($1)
@@ -434,9 +445,20 @@ interface(`dbus_system_domain',`
 	dbus_system_bus_client($1)
 	dbus_connect_system_bus($1)
 
+	init_stream_connect($1)
+
 	ps_process_pattern(system_dbusd_t, $1)
 
+	userdom_dontaudit_search_admin_dir($1)
 	userdom_read_all_users_state($1)
+
+	optional_policy(`
+		rpm_script_dbus_chat($1)
+	')
+
+	optional_policy(`
+		unconfined_dbus_send($1)
+	')
 
 	ifdef(`hide_broken_symptoms', `
 		dontaudit $1 system_dbusd_t:netlink_selinux_socket { read write };

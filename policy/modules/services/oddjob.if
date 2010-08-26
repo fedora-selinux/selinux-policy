@@ -22,6 +22,25 @@ interface(`oddjob_domtrans',`
 	domtrans_pattern($1, oddjob_exec_t, oddjob_t)
 ')
 
+#####################################
+## <summary>
+##      Do not audit attempts to read and write 
+##      oddjob fifo file.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`oddjob_dontaudit_rw_fifo_file',`
+        gen_require(`
+                type shutdown_t;
+        ')
+
+        dontaudit $1 oddjob_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
 ########################################
 ## <summary>
 ##	Make the specified program domain accessable
@@ -44,6 +63,7 @@ interface(`oddjob_system_entry',`
 	')
 
 	domtrans_pattern(oddjob_t, $2, $1)
+	domain_user_exemption_target($1)
 ')
 
 ########################################
@@ -65,6 +85,24 @@ interface(`oddjob_dbus_chat',`
 
 	allow $1 oddjob_t:dbus send_msg;
 	allow oddjob_t $1:dbus send_msg;
+')
+
+######################################
+## <summary>
+##      Send a SIGCHLD signal to oddjob.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`oddjob_sigchld',`
+        gen_require(`
+                type oddjob_t;
+        ')
+
+        allow $1 oddjob_t:process sigchld;
 ')
 
 ########################################

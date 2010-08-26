@@ -461,6 +461,24 @@ interface(`dev_getattr_generic_chr_files',`
 
 ########################################
 ## <summary>
+##	Allow relablefrom for generic character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_relabelfrom_generic_chr_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:chr_file relabelfrom;
+')
+
+########################################
+## <summary>
 ##	Dontaudit getattr for generic character device files.
 ## </summary>
 ## <param name="domain">
@@ -497,6 +515,24 @@ interface(`dev_dontaudit_setattr_generic_chr_files',`
 
 ########################################
 ## <summary>
+##	Read generic character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_generic_chr_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:chr_file read_chr_file_perms;
+')
+
+########################################
+## <summary>
 ##	Read and write generic character device files.
 ## </summary>
 ## <param name="domain">
@@ -511,6 +547,24 @@ interface(`dev_rw_generic_chr_files',`
 	')
 
 	allow $1 device_t:chr_file rw_chr_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write generic block device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_generic_blk_files',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:blk_file rw_chr_file_perms;
 ')
 
 ########################################
@@ -602,6 +656,24 @@ interface(`dev_delete_generic_symlinks',`
 	')
 
 	delete_lnk_files_pattern($1, device_t, device_t)
+')
+
+########################################
+## <summary>
+##	Read symbolic links in device directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_read_generic_symlinks',`
+	gen_require(`
+		type device_t;
+	')
+
+	allow $1 device_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
@@ -1015,6 +1087,42 @@ interface(`dev_create_all_chr_files',`
 
 ########################################
 ## <summary>
+##	rw all inherited character device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_all_inherited_chr_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	allow $1 device_node:chr_file rw_inherited_chr_file_perms;
+')
+
+########################################
+## <summary>
+##	rw all inherited blk device files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_rw_all_inherited_blk_files',`
+	gen_require(`
+		attribute device_node;
+	')
+
+	allow $1 device_node:blk_file rw_inherited_blk_file_perms;
+')
+
+########################################
+## <summary>
 ##	Delete all block device files.
 ## </summary>
 ## <param name="domain">
@@ -1273,6 +1381,24 @@ interface(`dev_getattr_autofs_dev',`
 	')
 
 	getattr_chr_files_pattern($1, device_t, autofs_device_t)
+')
+
+########################################
+## <summary>
+##	Relable the autofs device node.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_relabel_autofs_dev',`
+	gen_require(`
+		type autofs_device_t;
+	')
+
+	allow $1 autofs_device_t:chr_file relabel_chr_file_perms;
 ')
 
 ########################################
@@ -3540,6 +3666,24 @@ interface(`dev_manage_smartcard',`
 
 ########################################
 ## <summary>
+##	Associate a file to a sysfs filesystem.
+## </summary>
+## <param name="file_type">
+##	<summary>
+##	The type of the file to be associated to sysfs.
+##	</summary>
+## </param>
+#
+interface(`dev_associate_sysfs',`
+	gen_require(`
+		type sysfs_t;
+	')
+
+	allow $1 sysfs_t:filesystem associate;
+')
+
+########################################
+## <summary>
 ##	Get the attributes of sysfs directories.
 ## </summary>
 ## <param name="domain">
@@ -3847,6 +3991,24 @@ interface(`dev_read_usbmon_dev',`
 	')
 
 	read_chr_files_pattern($1, device_t, usbmon_device_t)
+')
+
+########################################
+## <summary>
+##	Write USB monitor devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dev_write_usbmon_dev',`
+	gen_require(`
+		type device_t, usbmon_device_t;
+	')
+
+	write_chr_files_pattern($1, device_t, usbmon_device_t)
 ')
 
 ########################################
@@ -4161,11 +4323,10 @@ interface(`dev_write_video_dev',`
 #
 interface(`dev_rw_vhost',`
 	gen_require(`
-		type vhost_device_t;
+		type device_t, vhost_device_t;
 	')
 
-	list_dirs_pattern($1, vhost_device_t, vhost_device_t)
-	rw_files_pattern($1, vhost_device_t, vhost_device_t)
+	rw_chr_files_pattern($1, device_t, vhost_device_t)
 ')
 
 ########################################

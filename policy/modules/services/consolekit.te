@@ -15,6 +15,9 @@ logging_log_file(consolekit_log_t)
 type consolekit_var_run_t;
 files_pid_file(consolekit_var_run_t)
 
+type consolekit_tmpfs_t;
+files_tmpfs_file(consolekit_tmpfs_t)
+
 ########################################
 #
 # consolekit local policy
@@ -69,7 +72,10 @@ logging_send_audit_msgs(consolekit_t)
 
 miscfiles_read_localization(consolekit_t)
 
+# consolekit needs to be able to ptrace all logged in users 
+userdom_ptrace_all_users(consolekit_t)
 userdom_dontaudit_read_user_home_content_files(consolekit_t)
+userdom_dontaudit_getattr_admin_home_files(consolekit_t)
 userdom_read_user_tmp_files(consolekit_t)
 
 hal_ptrace(consolekit_t)
@@ -80,6 +86,10 @@ tunable_policy(`use_nfs_home_dirs',`
 
 tunable_policy(`use_samba_home_dirs',`
 	fs_read_cifs_files(consolekit_t)
+')
+
+optional_policy(`
+	cron_read_system_job_lib_files(consolekit_t)
 ')
 
 optional_policy(`
@@ -99,16 +109,21 @@ optional_policy(`
 ')
 
 optional_policy(`
-	policykit_dbus_chat(consolekit_t)
+	networkmanager_append_log(consolekit_t)
+')
+
+optional_policy(`
+        policykit_dbus_chat(consolekit_t)
 	policykit_domtrans_auth(consolekit_t)
 	policykit_read_lib(consolekit_t)
 	policykit_read_reload(consolekit_t)
 ')
 
 optional_policy(`
-	type consolekit_tmpfs_t;
-	files_tmpfs_file(consolekit_tmpfs_t)
+	shutdown_domtrans(consolekit_t)
+')
 
+optional_policy(`
 	xserver_read_xdm_pid(consolekit_t)
 	xserver_read_user_xauth(consolekit_t)
 	xserver_non_drawing_client(consolekit_t)
@@ -125,5 +140,6 @@ optional_policy(`
 
 optional_policy(`
 	#reading .Xauthity
+	unconfined_ptrace(consolekit_t)
 	unconfined_stream_connect(consolekit_t)
 ')

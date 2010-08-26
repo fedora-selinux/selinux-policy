@@ -55,6 +55,7 @@ allow fsadm_t swapfile_t:file { rw_file_perms swapon };
 
 kernel_read_system_state(fsadm_t)
 kernel_read_kernel_sysctls(fsadm_t)
+kernel_request_load_module(fsadm_t)
 # Allow console log change (updfstab)
 kernel_change_ring_buffer_level(fsadm_t)
 # mkreiserfs needs this
@@ -117,6 +118,8 @@ fs_remount_xattr_fs(fsadm_t)
 fs_search_tmpfs(fsadm_t)
 fs_getattr_tmpfs_dirs(fsadm_t)
 fs_read_tmpfs_symlinks(fsadm_t)
+fs_manage_nfs_files(fsadm_t)
+fs_manage_cifs_files(fsadm_t)
 # Recreate /mnt/cdrom.
 files_manage_mnt_dirs(fsadm_t)
 # for tune2fs
@@ -147,12 +150,16 @@ modutils_read_module_deps(fsadm_t)
 
 seutil_read_config(fsadm_t)
 
-userdom_use_user_terminals(fsadm_t)
+term_use_all_terms(fsadm_t)
 
 ifdef(`distro_redhat',`
+ifdef(`enforcing',`
 	optional_policy(`
 		unconfined_domain(fsadm_t)
 	')
+', `
+   permissive fsadm_t;
+')
 ')
 
 optional_policy(`
@@ -163,6 +170,14 @@ optional_policy(`
 optional_policy(`
 	# for smartctl cron jobs
 	cron_system_entry(fsadm_t, fsadm_exec_t)
+')
+
+optional_policy(`
+	hal_dontaudit_write_log(fsadm_t)
+')
+
+optional_policy(`
+	livecd_rw_tmp_files(fsadm_t)
 ')
 
 optional_policy(`

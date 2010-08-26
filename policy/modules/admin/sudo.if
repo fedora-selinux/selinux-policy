@@ -76,6 +76,8 @@ template(`sudo_role_template',`
 	# By default, revert to the calling domain when a shell is executed.
 	corecmd_shell_domtrans($1_sudo_t, $3)
 	corecmd_bin_domtrans($1_sudo_t, $3)
+	userdom_domtrans_user_home($1_sudo_t, $3)
+	userdom_domtrans_user_tmp($1_sudo_t, $3)
 	allow $3 $1_sudo_t:fd use;
 	allow $3 $1_sudo_t:fifo_file rw_file_perms;
 	allow $3 $1_sudo_t:process signal_perms;
@@ -134,11 +136,15 @@ template(`sudo_role_template',`
 	userdom_manage_user_tmp_symlinks($1_sudo_t)
 	userdom_use_user_terminals($1_sudo_t)
 	# for some PAM modules and for cwd
-	userdom_dontaudit_search_user_home_content($1_sudo_t)
+	userdom_search_user_home_content($1_sudo_t)
+	userdom_search_admin_dir($1_sudo_t)
+	userdom_manage_all_users_keys($1_sudo_t)
 
 	ifdef(`hide_broken_symptoms', `
 		dontaudit $1_sudo_t $3:socket_class_set { read write };
 	')
+
+	mta_role($2, $1_sudo_t)
 
 	tunable_policy(`use_nfs_home_dirs',`
 		fs_manage_nfs_files($1_sudo_t)

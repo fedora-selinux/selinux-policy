@@ -75,10 +75,12 @@ manage_dirs_pattern(devicekit_disk_t, devicekit_var_lib_t, devicekit_var_lib_t)
 manage_files_pattern(devicekit_disk_t, devicekit_var_lib_t, devicekit_var_lib_t)
 files_var_lib_filetrans(devicekit_disk_t, devicekit_var_lib_t, dir)
 
+allow devicekit_disk_t devicekit_var_run_t:dir mounton;
 manage_dirs_pattern(devicekit_disk_t, devicekit_var_run_t, devicekit_var_run_t)
 manage_files_pattern(devicekit_disk_t, devicekit_var_run_t, devicekit_var_run_t)
 files_pid_filetrans(devicekit_disk_t, devicekit_var_run_t, { file dir })
 
+kernel_list_unlabeled(devicekit_disk_t)
 kernel_getattr_message_if(devicekit_disk_t)
 kernel_read_fs_sysctls(devicekit_disk_t)
 kernel_read_network_state(devicekit_disk_t)
@@ -105,8 +107,10 @@ domain_read_all_domains_state(devicekit_disk_t)
 
 files_dontaudit_read_all_symlinks(devicekit_disk_t)
 files_getattr_all_sockets(devicekit_disk_t)
-files_getattr_all_mountpoints(devicekit_disk_t)
+files_getattr_all_dirs(devicekit_disk_t)
 files_getattr_all_files(devicekit_disk_t)
+files_getattr_all_pipes(devicekit_disk_t)
+files_manage_boot_dirs(devicekit_disk_t)
 files_manage_isid_type_dirs(devicekit_disk_t)
 files_manage_mnt_dirs(devicekit_disk_t)
 files_read_etc_files(devicekit_disk_t)
@@ -178,13 +182,25 @@ optional_policy(`
 	virt_manage_images(devicekit_disk_t)
 ')
 
+ifdef(`enforcing',`
+optional_policy(`
+	unconfined_domain(devicekit_t)
+	unconfined_domain(devicekit_power_t)
+	unconfined_domain(devicekit_disk_t)
+')
+', `
+	permissive devicekit_t;
+	permissive devicekit_power_t;
+	permissive devicekit_disk_t;
+')
+
 ########################################
 #
 # DeviceKit-Power local policy
 #
 
 allow devicekit_power_t self:capability { dac_override net_admin sys_admin sys_tty_config sys_nice sys_ptrace };
-allow devicekit_power_t self:process getsched;
+allow devicekit_power_t self:process { getsched signal_perms };
 allow devicekit_power_t self:fifo_file rw_fifo_file_perms;
 allow devicekit_power_t self:unix_dgram_socket create_socket_perms;
 allow devicekit_power_t self:netlink_kobject_uevent_socket create_socket_perms;

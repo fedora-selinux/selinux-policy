@@ -21,6 +21,7 @@ template(`virt_domain_template',`
 	type $1_t, virt_domain;
 	domain_type($1_t)
 	domain_user_exemption_target($1_t)
+	mls_rangetrans_target($1_t)
 	role system_r types $1_t;
 
 	type $1_devpts_t;
@@ -35,17 +36,18 @@ template(`virt_domain_template',`
 	type $1_image_t, virt_image_type;
 	files_type($1_image_t)
 	dev_node($1_image_t)
-
-	type $1_var_run_t;
-	files_pid_file($1_var_run_t)
+	dev_associate_sysfs($1_image_t)
 
 	allow $1_t $1_devpts_t:chr_file { rw_chr_file_perms setattr };
 	term_create_pty($1_t, $1_devpts_t)
 
 	manage_dirs_pattern($1_t, $1_image_t, $1_image_t)
 	manage_files_pattern($1_t, $1_image_t, $1_image_t)
+	manage_fifo_files_pattern($1_t, $1_image_t, $1_image_t)
 	read_lnk_files_pattern($1_t, $1_image_t, $1_image_t)
+	rw_chr_files_pattern($1_t, $1_image_t, $1_image_t)
 	rw_blk_files_pattern($1_t, $1_image_t, $1_image_t)
+	fs_hugetlbfs_filetrans($1_t, $1_image_t, file)
 
 	manage_dirs_pattern($1_t, $1_tmp_t, $1_tmp_t)
 	manage_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
@@ -56,18 +58,6 @@ template(`virt_domain_template',`
 	manage_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
 	manage_lnk_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
 	fs_tmpfs_filetrans($1_t, $1_tmpfs_t, { dir file lnk_file })
-
-	stream_connect_pattern(virtd_t, $1_var_run_t, $1_var_run_t, virt_domain)
-	manage_dirs_pattern(virtd_t, $1_var_run_t, $1_var_run_t)
-	manage_files_pattern(virtd_t, $1_var_run_t, $1_var_run_t)
-	manage_sock_files_pattern(virtd_t, $1_var_run_t, $1_var_run_t)
-
-	manage_dirs_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	manage_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	manage_sock_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	manage_lnk_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	files_pid_filetrans($1_t, $1_var_run_t, { dir file })
-	stream_connect_pattern($1_t, $1_var_run_t, $1_var_run_t, virtd_t)
 
 	optional_policy(`
 		xserver_rw_shm($1_t)
@@ -171,6 +161,7 @@ interface(`virt_read_config',`
 	files_search_etc($1)
 	read_files_pattern($1, virt_etc_t, virt_etc_t)
 	read_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
+	read_lnk_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
 ')
 
 ########################################
@@ -192,6 +183,7 @@ interface(`virt_manage_config',`
 	files_search_etc($1)
 	manage_files_pattern($1, virt_etc_t, virt_etc_t)
 	manage_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
+	manage_lnk_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
 ')
 
 ########################################
@@ -227,6 +219,24 @@ interface(`virt_read_content',`
 		fs_read_cifs_files($1)
 		fs_read_cifs_symlinks($1)
 	')
+')
+
+########################################
+## <summary>
+##	Allow domain to write virt image files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`virt_write_content',`
+	gen_require(`
+		type virt_content_t;
+	')
+
+	allow $1 virt_content_t:file write_file_perms;
 ')
 
 ########################################
@@ -304,6 +314,24 @@ interface(`virt_read_lib_files',`
 	files_search_var_lib($1)
 	read_files_pattern($1, virt_var_lib_t, virt_var_lib_t)
 	read_lnk_files_pattern($1, virt_var_lib_t, virt_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Dontaudit inherited read virt lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_dontaudit_read_lib_files',`
+	gen_require(`
+		type virt_var_lib_t;
+	')
+
+	dontaudit $1 virt_var_lib_t:file read_inherited_file_perms;
 ')
 
 ########################################
@@ -433,15 +461,15 @@ interface(`virt_read_images',`
 ##	</summary>
 ## </param>
 #
-interface(`virt_manage_svirt_cache',`
+interface(`virt_manage_cache',`
 	gen_require(`
-		type svirt_cache_t;
+		type virt_cache_t;
 	')
 
 	files_search_var($1)
-	manage_dirs_pattern($1, svirt_cache_t, svirt_cache_t)
-	manage_files_pattern($1, svirt_cache_t, svirt_cache_t)
-	manage_lnk_files_pattern($1, svirt_cache_t, svirt_cache_t)
+	manage_dirs_pattern($1, virt_cache_t, virt_cache_t)
+	manage_files_pattern($1, virt_cache_t, virt_cache_t)
+	manage_lnk_files_pattern($1, virt_cache_t, virt_cache_t)
 ')
 
 ########################################
@@ -516,3 +544,51 @@ interface(`virt_admin',`
 
 	virt_manage_log($1)
 ')
+
+########################################
+## <summary>
+##	Execute qemu in the svirt domain, and
+##	allow the specified role the svirt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the sandbox domain.
+##	</summary>
+## </param>
+#
+interface(`virt_transition_svirt',`
+	gen_require(`
+		type svirt_t;
+	')
+
+	allow $1 svirt_t:process transition;
+	role $2 types svirt_t;
+
+	optional_policy(`
+		ptchown_run(svirt_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write virt daemon unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_dontaudit_write_pipes',`
+	gen_require(`
+		type virtd_t;
+	')
+
+	dontaudit $1 virtd_t:fifo_file write_fifo_file_perms;
+')
+

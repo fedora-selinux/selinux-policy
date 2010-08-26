@@ -74,9 +74,10 @@ files_tmp_filetrans(system_dbusd_t, system_dbusd_tmp_t, { file dir })
 
 read_files_pattern(system_dbusd_t, system_dbusd_var_lib_t, system_dbusd_var_lib_t)
 
+manage_dirs_pattern(system_dbusd_t, system_dbusd_var_run_t, system_dbusd_var_run_t)
 manage_files_pattern(system_dbusd_t, system_dbusd_var_run_t, system_dbusd_var_run_t)
 manage_sock_files_pattern(system_dbusd_t, system_dbusd_var_run_t, system_dbusd_var_run_t)
-files_pid_filetrans(system_dbusd_t, system_dbusd_var_run_t, file)
+files_pid_filetrans(system_dbusd_t, system_dbusd_var_run_t, { file dir })
 
 kernel_read_system_state(system_dbusd_t)
 kernel_read_kernel_sysctls(system_dbusd_t)
@@ -121,7 +122,9 @@ files_read_usr_files(system_dbusd_t)
 
 init_use_fds(system_dbusd_t)
 init_use_script_ptys(system_dbusd_t)
+init_bin_domtrans_spec(system_dbusd_t)
 init_domtrans_script(system_dbusd_t)
+init_rw_stream_sockets(system_dbusd_t)
 
 logging_send_audit_msgs(system_dbusd_t)
 logging_send_syslog_msg(system_dbusd_t)
@@ -141,7 +144,15 @@ optional_policy(`
 ')
 
 optional_policy(`
-	policykit_dbus_chat(system_dbusd_t)
+	gnome_exec_gconf(system_dbusd_t)
+')
+
+optional_policy(`
+	networkmanager_initrc_domtrans(system_dbusd_t)
+')
+
+optional_policy(`
+        policykit_dbus_chat(system_dbusd_t)
 	policykit_domtrans_auth(system_dbusd_t)
 	policykit_search_lib(system_dbusd_t)
 ')
@@ -158,5 +169,12 @@ optional_policy(`
 #
 # Unconfined access to this module
 #
-
 allow dbusd_unconfined session_bus_type:dbus all_dbus_perms;
+allow dbusd_unconfined dbusd_unconfined:dbus all_dbus_perms;
+allow session_bus_type dbusd_unconfined:dbus send_msg;
+
+optional_policy(`
+	xserver_use_xdm_fds(session_bus_type)
+	xserver_rw_xdm_pipes(session_bus_type)
+	xserver_append_xdm_home_files(session_bus_type)
+')

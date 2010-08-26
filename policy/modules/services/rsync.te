@@ -7,6 +7,13 @@ policy_module(rsync, 1.10.0)
 
 ## <desc>
 ## <p>
+## Allow rsync to run as a client
+## </p>
+## </desc>
+gen_tunable(rsync_client, false)
+
+## <desc>
+## <p>
 ## Allow rsync to export any files/directories read only.
 ## </p>
 ## </desc>
@@ -23,7 +30,6 @@ gen_tunable(allow_rsync_anon_write, false)
 
 type rsync_t;
 type rsync_exec_t;
-init_daemon_domain(rsync_t, rsync_exec_t)
 application_executable_file(rsync_exec_t)
 role system_r types rsync_t;
 
@@ -59,7 +65,7 @@ allow rsync_t self:udp_socket connected_socket_perms;
 allow rsync_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
 #end for identd
 
-allow rsync_t rsync_etc_t:file read_file_perms;
+read_files_pattern(rsync_t, rsync_etc_t, rsync_etc_t)
 
 allow rsync_t rsync_data_t:dir list_dir_perms;
 read_files_pattern(rsync_t, rsync_data_t, rsync_data_t)
@@ -122,6 +128,7 @@ optional_policy(`
 ')
 
 tunable_policy(`rsync_export_all_ro',`
+	files_getattr_all_pipes(rsync_t)
 	fs_read_noxattr_fs_files(rsync_t) 
 	fs_read_nfs_files(rsync_t)
 	fs_read_cifs_files(rsync_t)
@@ -130,4 +137,19 @@ tunable_policy(`rsync_export_all_ro',`
 	auth_read_all_symlinks_except_shadow(rsync_t)
 	auth_tunable_read_shadow(rsync_t)
 ')
+
+tunable_policy(`rsync_client',`
+	corenet_tcp_connect_rsync_port(rsync_t)
+	corenet_tcp_connect_ssh_port(rsync_t)
+	manage_dirs_pattern(rsync_t, rsync_data_t, rsync_data_t)
+	manage_files_pattern(rsync_t, rsync_data_t, rsync_data_t)
+	manage_lnk_files_pattern(rsync_t, rsync_data_t, rsync_data_t)
+')
+
+optional_policy(`
+	tunable_policy(`rsync_client',`
+		ssh_exec(rsync_t) 
+	')
+')
+
 auth_can_read_shadow_passwords(rsync_t)

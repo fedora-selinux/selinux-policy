@@ -27,17 +27,30 @@ ifndef(`enable_mls',`
 
 corecmd_exec_shell(sysadm_t)
 
+domain_dontaudit_read_all_domains_state(sysadm_t)
+
 mls_process_read_up(sysadm_t)
+mls_file_read_to_clearance(sysadm_t)
+mls_process_write_to_clearance(sysadm_t)
 
 ubac_process_exempt(sysadm_t)
 ubac_file_exempt(sysadm_t)
 ubac_fd_exempt(sysadm_t)
 
+application_exec(sysadm_t)
+
 init_exec(sysadm_t)
+init_exec_script_files(sysadm_t)
+init_dbus_chat(sysadm_t)
 
 # Add/remove user home directories
 userdom_manage_user_home_dirs(sysadm_t)
 userdom_home_filetrans_user_home_dir(sysadm_t)
+userdom_manage_user_tmp_dirs(sysadm_t)
+userdom_manage_user_tmp_files(sysadm_t)
+userdom_manage_user_tmp_symlinks(sysadm_t)
+userdom_manage_user_tmp_chr_files(sysadm_t)
+userdom_manage_user_tmp_blk_files(sysadm_t)
 
 ifdef(`direct_sysadm_daemon',`
 	optional_policy(`
@@ -55,6 +68,7 @@ ifndef(`enable_mls',`
 	logging_manage_audit_log(sysadm_t)
 	logging_manage_audit_config(sysadm_t)
 	logging_run_auditctl(sysadm_t, sysadm_r)
+	logging_stream_connect_syslog(sysadm_t)
 ')
 
 tunable_policy(`allow_ptrace',`
@@ -69,7 +83,9 @@ optional_policy(`
 	apache_run_helper(sysadm_t, sysadm_r)
 	#apache_run_all_scripts(sysadm_t, sysadm_r)
 	#apache_domtrans_sys_script(sysadm_t)
-	apache_role(sysadm_r, sysadm_t)
+	ifndef(`distro_redhat',`
+		apache_role(sysadm_r, sysadm_t)
+	')
 ')
 
 optional_policy(`
@@ -85,6 +101,12 @@ optional_policy(`
 	auditadm_role_change(sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
+optional_policy(`
+	auth_role(sysadm_r, sysadm_t)
+')
+')
+
 optional_policy(`
 	backup_run(sysadm_t, sysadm_r)
 ')
@@ -93,8 +115,24 @@ optional_policy(`
 	bind_run_ndc(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
+optional_policy(`
+	bluetooth_role(sysadm_r, sysadm_t)
+')
+')
+
 optional_policy(`
 	bootloader_run(sysadm_t, sysadm_r)
+')
+
+ifndef(`distro_redhat',`
+optional_policy(`
+	cdrecord_role(sysadm_r, sysadm_t)
+')
+')
+
+optional_policy(`
+	certmonger_dbus_chat(sysadm_t)
 ')
 
 optional_policy(`
@@ -113,8 +151,18 @@ optional_policy(`
 	consoletype_run(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
-	cvs_exec(sysadm_t)
+	cron_admin_role(sysadm_r, sysadm_t)
+')
+
+optional_policy(`
+	dbus_role_template(sysadm, sysadm_r, sysadm_t)
+')
+')
+
+optional_policy(`
+    daemonstools_run_start(sysadm_t, sysadm_r)
 ')
 
 optional_policy(`
@@ -139,12 +187,36 @@ optional_policy(`
 	dpkg_run(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
+optional_policy(`
+	evolution_role(sysadm_r, sysadm_t)
+')
+')
+
 optional_policy(`
 	firstboot_run(sysadm_t, sysadm_r)
 ')
 
 optional_policy(`
 	fstools_run(sysadm_t, sysadm_r)
+')
+
+ifndef(`distro_redhat',`
+optional_policy(`
+	games_role(sysadm_r, sysadm_t)
+')
+
+optional_policy(`
+	gift_role(sysadm_r, sysadm_t)
+')
+
+optional_policy(`
+	gnome_role(sysadm_r, sysadm_t)
+')
+
+optional_policy(`
+	gpg_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -159,10 +231,31 @@ optional_policy(`
 	ipsec_stream_connect(sysadm_t)
 	# for lsof
 	ipsec_getattr_key_sockets(sysadm_t)
+	ipsec_run_setkey(sysadm_t, sysadm_r)
+	ipsec_run_racoon(sysadm_t, sysadm_r)
+	ipsec_stream_connect_racoon(sysadm_t)
+
+	optional_policy(`
+		ipsec_mgmt_dbus_chat(sysadm_t)
+	')
 ')
 
 optional_policy(`
 	iptables_run(sysadm_t, sysadm_r)
+')
+
+optional_policy(`
+	kerberos_exec_kadmind(sysadm_t)
+')
+
+ifndef(`distro_redhat',`
+optional_policy(`
+	irc_role(sysadm_r, sysadm_t)
+')
+
+optional_policy(`
+	java_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -173,8 +266,10 @@ optional_policy(`
 	libs_run_ldconfig(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	lockdev_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -198,14 +293,17 @@ optional_policy(`
 
 optional_policy(`
 	mount_run(sysadm_t, sysadm_r)
+	mount_run_showmount(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	mozilla_role(sysadm_r, sysadm_t)
 ')
 
 optional_policy(`
 	mplayer_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -218,6 +316,10 @@ optional_policy(`
 
 optional_policy(`
 	mysql_stream_connect(sysadm_t)
+')
+
+optional_policy(`
+	ncftool_run(sysadm_t, sysadm_r)
 ')
 
 optional_policy(`
@@ -254,7 +356,13 @@ optional_policy(`
 ')
 
 optional_policy(`
+	prelink_run(sysadm_t, sysadm_r)
+')
+
+ifndef(`distro_redhat',`
+optional_policy(`
 	pyzor_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -265,8 +373,10 @@ optional_policy(`
 	raid_domtrans_mdadm(sysadm_t)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	razor_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -277,8 +387,10 @@ optional_policy(`
 	rpm_run(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	rssh_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -304,7 +416,13 @@ optional_policy(`
 ')
 
 optional_policy(`
+	shutdown_run(sysadm_t, sysadm_r)
+')
+
+ifndef(`distro_redhat',`
+optional_policy(`
 	spamassassin_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -328,8 +446,10 @@ optional_policy(`
 	sysnet_run_dhcpc(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	thunderbird_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -339,16 +459,20 @@ optional_policy(`
 	tripwire_run_twprint(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	tvtime_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
 	tzdata_domtrans(sysadm_t)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	uml_role(sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -363,8 +487,10 @@ optional_policy(`
 	usbmodules_run(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	userhelper_role_template(sysadm, sysadm_r, sysadm_t)
+')
 ')
 
 optional_policy(`
@@ -373,8 +499,14 @@ optional_policy(`
 	usermanage_run_useradd(sysadm_t, sysadm_r)
 ')
 
+ifndef(`distro_redhat',`
 optional_policy(`
 	vmware_role(sysadm_r, sysadm_t)
+')
+')
+
+optional_policy(`
+	vpn_run(sysadm_t, sysadm_r)
 ')
 
 optional_policy(`
@@ -386,64 +518,30 @@ optional_policy(`
 ')
 
 optional_policy(`
+	virt_stream_connect(sysadm_t)
+')
+
+ifndef(`distro_redhat',`
+optional_policy(`
 	wireshark_role(sysadm_r, sysadm_t)
 ')
 
 optional_policy(`
 	xserver_role(sysadm_r, sysadm_t)
 ')
+')
 
 optional_policy(`
 	yam_run(sysadm_t, sysadm_r)
 ')
 
-ifndef(`distro_redhat',`
-	optional_policy(`
-		auth_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		bluetooth_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		cdrecord_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		cron_admin_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		dbus_role_template(sysadm, sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		evolution_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		games_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		gift_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		gnome_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		gpg_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		irc_role(sysadm_r, sysadm_t)
-	')
-
-	optional_policy(`
-		java_role(sysadm_r, sysadm_t)
-	')
+optional_policy(`
+	zebra_stream_connect(sysadm_t)
 ')
 
+init_script_role_transition(sysadm_r)
+
+files_read_kernel_modules(sysadm_t)
+kernel_read_fs_sysctls(sysadm_t)
+modutils_read_module_deps(sysadm_t)
+miscfiles_read_hwdata(sysadm_t)

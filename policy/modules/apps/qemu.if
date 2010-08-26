@@ -275,6 +275,67 @@ interface(`qemu_domtrans_unconfined',`
 
 ########################################
 ## <summary>
+##	Execute qemu_exec_t 
+##	in the specified domain but do not
+##	do it automatically. This is an explicit
+##	transition, requiring the caller to use setexeccon().
+## </summary>
+## <desc>
+##	<p>
+##	Execute qemu_exec_t 
+##	in the specified domain.  This allows
+##	the specified domain to qemu programs
+##	on these filesystems in the specified
+##	domain.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`qemu_spec_domtrans',`
+	gen_require(`
+		type qemu_exec_t;
+	')
+  
+	read_lnk_files_pattern($1, qemu_exec_t, qemu_exec_t)
+	domain_transition_pattern($1, qemu_exec_t, $2)
+  	domain_entry_file($2,qemu_exec_t)
+	can_exec($1,qemu_exec_t)
+
+	allow $2 $1:fd use;
+	allow $2 $1:fifo_file rw_fifo_file_perms;
+	allow $2 $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute qemu unconfined programs in the role.
+## </summary>
+## <param name="role">
+##	<summary>
+##	The role to allow the PAM domain.
+##	</summary>
+## </param>
+#
+interface(`qemu_unconfined_role',`
+	gen_require(`
+		type unconfined_qemu_t;
+		type qemu_t;
+	')
+	role $1 types unconfined_qemu_t;
+	role $1 types qemu_t;
+')
+
+########################################
+## <summary>
 ##	Manage qemu temporary dirs.
 ## </summary>
 ## <param name="domain">
@@ -308,3 +369,24 @@ interface(`qemu_manage_tmp_files',`
 
 	manage_files_pattern($1, qemu_tmp_t, qemu_tmp_t)
 ')
+
+########################################
+## <summary>
+##     Make qemu_exec_t an entrypoint for
+##     the specified domain.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     The domain for which qemu_exec_t is an entrypoint.
+##     </summary>
+## </param>
+#
+interface(`qemu_entry_type',`
+	gen_require(`
+		type qemu_exec_t;
+	')
+
+	domain_entry_file($1, qemu_exec_t)
+')
+
+

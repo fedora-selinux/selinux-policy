@@ -1,0 +1,401 @@
+policy_module(sandbox,1.0.0)
+dbus_stub()
+attribute sandbox_domain;
+attribute sandbox_x_domain;
+attribute sandbox_file_type;
+attribute sandbox_web_type;
+attribute sandbox_tmpfs_type;
+attribute sandbox_x_type;
+
+########################################
+#
+# Declarations
+#
+
+sandbox_domain_template(sandbox)
+sandbox_x_domain_template(sandbox_min)
+sandbox_x_domain_template(sandbox_x)
+sandbox_x_domain_template(sandbox_web)
+sandbox_x_domain_template(sandbox_net)
+
+type sandbox_xserver_t;
+domain_type(sandbox_xserver_t)
+xserver_user_x_domain_template(sandbox_xserver, sandbox_xserver_t, sandbox_xserver_tmpfs_t)
+
+type sandbox_xserver_tmpfs_t;
+files_tmpfs_file(sandbox_xserver_tmpfs_t)
+
+type sandbox_devpts_t;
+term_pty(sandbox_devpts_t)
+files_type(sandbox_devpts_t)
+
+########################################
+#
+# sandbox xserver policy
+#
+allow sandbox_xserver_t self:process { execmem execstack };
+allow sandbox_xserver_t self:fifo_file manage_fifo_file_perms;
+allow sandbox_xserver_t self:shm create_shm_perms;
+allow sandbox_xserver_t self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+manage_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+manage_lnk_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+manage_fifo_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+manage_sock_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+fs_tmpfs_filetrans(sandbox_xserver_t, sandbox_xserver_tmpfs_t, { dir file lnk_file sock_file fifo_file })
+
+corecmd_exec_bin(sandbox_xserver_t)
+corecmd_exec_shell(sandbox_xserver_t)
+
+corenet_all_recvfrom_unlabeled(sandbox_xserver_t)
+corenet_all_recvfrom_netlabel(sandbox_xserver_t)
+corenet_tcp_sendrecv_all_if(sandbox_xserver_t)
+corenet_udp_sendrecv_all_if(sandbox_xserver_t)
+corenet_tcp_sendrecv_all_nodes(sandbox_xserver_t)
+corenet_udp_sendrecv_all_nodes(sandbox_xserver_t)
+corenet_tcp_sendrecv_all_ports(sandbox_xserver_t)
+corenet_udp_sendrecv_all_ports(sandbox_xserver_t)
+corenet_tcp_bind_all_nodes(sandbox_xserver_t)
+corenet_tcp_bind_xserver_port(sandbox_xserver_t)
+corenet_sendrecv_xserver_server_packets(sandbox_xserver_t)
+corenet_sendrecv_all_client_packets(sandbox_xserver_t)
+
+dev_rwx_zero(sandbox_xserver_t)
+
+files_read_config_files(sandbox_xserver_t)
+files_read_usr_files(sandbox_xserver_t)
+files_search_home(sandbox_xserver_t)
+fs_dontaudit_rw_tmpfs_files(sandbox_xserver_t)
+fs_list_inotifyfs(sandbox_xserver_t)
+
+miscfiles_read_fonts(sandbox_xserver_t)
+miscfiles_read_localization(sandbox_xserver_t)
+
+kernel_read_system_state(sandbox_xserver_t)
+
+selinux_validate_context(sandbox_xserver_t)
+selinux_compute_access_vector(sandbox_xserver_t)
+selinux_compute_create_context(sandbox_xserver_t)
+
+auth_use_nsswitch(sandbox_xserver_t)
+
+logging_send_syslog_msg(sandbox_xserver_t)
+logging_send_audit_msgs(sandbox_xserver_t)
+
+userdom_use_user_terminals(sandbox_xserver_t)
+userdom_dontaudit_search_user_home_content(sandbox_xserver_t)
+
+xserver_entry_type(sandbox_xserver_t)
+
+optional_policy(`
+	dbus_system_bus_client(sandbox_xserver_t)
+
+	optional_policy(`
+		hal_dbus_chat(sandbox_xserver_t)
+	')
+')
+
+########################################
+#
+# sandbox local policy
+#
+
+## internal communication is often done using fifo and unix sockets.
+allow sandbox_domain self:fifo_file manage_file_perms;
+allow sandbox_domain self:sem create_sem_perms;
+allow sandbox_domain self:shm create_shm_perms;
+allow sandbox_domain self:msgq create_msgq_perms;
+allow sandbox_domain self:unix_stream_socket create_stream_socket_perms;
+allow sandbox_domain self:unix_dgram_socket { sendto create_socket_perms };
+dontaudit sandbox_domain self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+
+dev_rw_all_inherited_chr_files(sandbox_domain)
+dev_rw_all_inherited_blk_files(sandbox_domain)
+
+gen_require(`
+	type usr_t, lib_t, locale_t;
+	type var_t, var_run_t, rpm_log_t, locale_t;
+	attribute exec_type, configfile;
+')
+
+files_rw_all_inherited_files(sandbox_domain, -exec_type -configfile -usr_t -lib_t -locale_t -var_t -var_run_t -device_t -rpm_log_t )
+files_entrypoint_all_files(sandbox_domain)
+
+files_read_config_files(sandbox_domain)
+files_read_usr_files(sandbox_domain)
+files_read_var_files(sandbox_domain)
+files_dontaudit_search_all_dirs(sandbox_domain)
+
+miscfiles_read_localization(sandbox_domain)
+
+kernel_dontaudit_read_system_state(sandbox_domain)
+corecmd_exec_all_executables(sandbox_domain)
+
+userdom_dontaudit_use_user_terminals(sandbox_domain)
+
+mta_dontaudit_read_spool_symlinks(sandbox_domain)
+
+########################################
+#
+# sandbox_x_domain local policy
+#
+allow sandbox_x_domain self:fifo_file manage_file_perms;
+allow sandbox_x_domain self:sem create_sem_perms;
+allow sandbox_x_domain self:shm create_shm_perms;
+allow sandbox_x_domain self:msgq create_msgq_perms;
+allow sandbox_x_domain self:unix_stream_socket create_stream_socket_perms;
+allow sandbox_x_domain self:unix_dgram_socket { sendto create_socket_perms };
+
+allow sandbox_x_domain self:unix_stream_socket create_stream_socket_perms;
+
+allow sandbox_x_domain self:process { signal_perms getsched setpgid execstack execmem };
+allow sandbox_x_domain self:shm create_shm_perms;
+allow sandbox_x_domain self:unix_stream_socket { connectto create_stream_socket_perms };
+allow sandbox_x_domain self:unix_dgram_socket { sendto create_socket_perms };
+allow sandbox_x_domain sandbox_xserver_t:unix_stream_socket connectto;
+dontaudit sandbox_x_domain self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+
+domain_dontaudit_read_all_domains_state(sandbox_x_domain)
+
+files_search_home(sandbox_x_domain)
+files_dontaudit_list_tmp(sandbox_x_domain)
+
+kernel_getattr_proc(sandbox_x_domain)
+kernel_read_network_state(sandbox_x_domain)
+kernel_read_system_state(sandbox_x_domain)
+
+corecmd_exec_all_executables(sandbox_x_domain)
+
+dev_read_urand(sandbox_x_domain)
+dev_dontaudit_read_rand(sandbox_x_domain)
+dev_read_sysfs(sandbox_x_domain)
+
+files_entrypoint_all_files(sandbox_x_domain)
+files_read_config_files(sandbox_x_domain)
+files_read_usr_files(sandbox_x_domain)
+files_read_usr_symlinks(sandbox_x_domain)
+
+fs_getattr_tmpfs(sandbox_x_domain)
+fs_getattr_xattr_fs(sandbox_x_domain)
+fs_list_inotifyfs(sandbox_x_domain)
+
+auth_dontaudit_read_login_records(sandbox_x_domain)
+auth_dontaudit_write_login_records(sandbox_x_domain)
+auth_use_nsswitch(sandbox_x_domain)
+auth_search_pam_console_data(sandbox_x_domain)
+
+init_read_utmp(sandbox_x_domain)
+init_dontaudit_write_utmp(sandbox_x_domain)
+
+miscfiles_read_localization(sandbox_x_domain)
+miscfiles_dontaudit_setattr_fonts_cache_dirs(sandbox_x_domain)
+
+term_getattr_pty_fs(sandbox_x_domain)
+term_use_ptmx(sandbox_x_domain)
+
+logging_send_syslog_msg(sandbox_x_domain)
+logging_dontaudit_search_logs(sandbox_x_domain)
+
+miscfiles_read_fonts(sandbox_x_domain)
+
+storage_dontaudit_rw_fuse(sandbox_x_domain)
+
+optional_policy(`
+	cups_stream_connect(sandbox_x_domain)
+	cups_read_rw_config(sandbox_x_domain)
+')
+
+optional_policy(`
+	dbus_system_bus_client(sandbox_x_domain)
+')
+
+optional_policy(`
+	gnome_read_gconf_config(sandbox_x_domain)
+')
+
+optional_policy(`
+	nscd_dontaudit_search_pid(sandbox_x_domain)
+')
+
+optional_policy(`
+	sssd_dontaudit_search_lib(sandbox_x_domain)
+')
+
+optional_policy(`
+	udev_read_db(sandbox_x_domain)
+')
+
+userdom_dontaudit_use_user_terminals(sandbox_x_domain)
+userdom_read_user_home_content_symlinks(sandbox_x_domain)
+userdom_search_user_home_content(sandbox_x_domain)
+
+#============= sandbox_x_t ==============
+files_search_home(sandbox_x_t)
+userdom_use_user_ptys(sandbox_x_t)
+
+########################################
+#
+# sandbox_x_client_t local policy
+#
+allow sandbox_x_client_t self:tcp_socket create_socket_perms;
+allow sandbox_x_client_t self:udp_socket create_socket_perms;
+allow sandbox_x_client_t self:dbus { acquire_svc send_msg };
+allow sandbox_x_client_t self:netlink_selinux_socket create_socket_perms;
+
+dev_read_rand(sandbox_x_client_t)
+
+corenet_tcp_connect_ipp_port(sandbox_x_client_t)
+
+auth_use_nsswitch(sandbox_x_client_t)
+
+selinux_get_fs_mount(sandbox_x_client_t)
+selinux_validate_context(sandbox_x_client_t)
+selinux_compute_access_vector(sandbox_x_client_t)
+selinux_compute_create_context(sandbox_x_client_t)
+selinux_compute_relabel_context(sandbox_x_client_t)
+selinux_compute_user_contexts(sandbox_x_client_t)
+seutil_read_default_contexts(sandbox_x_client_t)
+
+optional_policy(`
+	hal_dbus_chat(sandbox_x_client_t)
+')
+
+########################################
+#
+# sandbox_web_client_t local policy
+#
+typeattribute sandbox_web_client_t sandbox_web_type;
+
+allow sandbox_web_type self:capability { setuid setgid };
+allow sandbox_web_type self:netlink_audit_socket nlmsg_relay;
+allow sandbox_web_type self:process setsched;
+dontaudit sandbox_web_type self:process setrlimit;
+
+allow sandbox_web_type self:tcp_socket create_socket_perms;
+allow sandbox_web_type self:udp_socket create_socket_perms;
+allow sandbox_web_type self:dbus { acquire_svc send_msg };
+allow sandbox_web_type self:netlink_selinux_socket create_socket_perms;
+
+kernel_dontaudit_search_kernel_sysctl(sandbox_web_type)
+kernel_request_load_module(sandbox_web_type)
+
+dev_read_rand(sandbox_web_type)
+dev_write_sound(sandbox_web_type)
+dev_read_sound(sandbox_web_type)
+
+# Browse the web, connect to printer
+corenet_all_recvfrom_unlabeled(sandbox_web_type)
+corenet_all_recvfrom_netlabel(sandbox_web_type)
+corenet_tcp_sendrecv_all_if(sandbox_web_type)
+corenet_raw_sendrecv_all_if(sandbox_web_type)
+corenet_tcp_sendrecv_all_nodes(sandbox_web_type)
+corenet_raw_sendrecv_all_nodes(sandbox_web_type)
+corenet_tcp_sendrecv_http_port(sandbox_web_type)
+corenet_tcp_sendrecv_http_cache_port(sandbox_web_type)
+corenet_tcp_sendrecv_squid_port(sandbox_web_type)
+corenet_tcp_sendrecv_ftp_port(sandbox_web_type)
+corenet_tcp_sendrecv_ipp_port(sandbox_web_type)
+corenet_tcp_connect_http_port(sandbox_web_type)
+corenet_tcp_connect_http_cache_port(sandbox_web_type)
+corenet_tcp_connect_squid_port(sandbox_web_type)
+corenet_tcp_connect_flash_port(sandbox_web_type)
+corenet_tcp_connect_ftp_port(sandbox_web_type)
+corenet_tcp_connect_ipp_port(sandbox_web_type)
+corenet_tcp_connect_streaming_port(sandbox_web_type)
+corenet_tcp_connect_pulseaudio_port(sandbox_web_type)
+corenet_tcp_connect_speech_port(sandbox_web_type)
+corenet_tcp_connect_generic_port(sandbox_web_type)
+corenet_tcp_connect_soundd_port(sandbox_web_type)
+corenet_tcp_connect_speech_port(sandbox_web_type)
+corenet_sendrecv_http_client_packets(sandbox_web_type)
+corenet_sendrecv_http_cache_client_packets(sandbox_web_type)
+corenet_sendrecv_squid_client_packets(sandbox_web_type)
+corenet_sendrecv_ftp_client_packets(sandbox_web_type)
+corenet_sendrecv_ipp_client_packets(sandbox_web_type)
+corenet_sendrecv_generic_client_packets(sandbox_web_type)
+# Should not need other ports
+corenet_dontaudit_tcp_sendrecv_generic_port(sandbox_web_type)
+corenet_dontaudit_tcp_bind_generic_port(sandbox_web_type)
+
+files_dontaudit_getattr_all_dirs(sandbox_web_type)
+files_dontaudit_list_mnt(sandbox_web_type)
+
+fs_dontaudit_rw_anon_inodefs_files(sandbox_web_type)
+fs_dontaudit_getattr_all_fs(sandbox_web_type)
+
+storage_dontaudit_getattr_fixed_disk_dev(sandbox_web_type)
+
+auth_use_nsswitch(sandbox_web_type)
+
+dbus_system_bus_client(sandbox_web_type)
+dbus_read_config(sandbox_web_type)
+selinux_get_fs_mount(sandbox_web_type)
+selinux_validate_context(sandbox_web_type)
+selinux_compute_access_vector(sandbox_web_type)
+selinux_compute_create_context(sandbox_web_type)
+selinux_compute_relabel_context(sandbox_web_type)
+selinux_compute_user_contexts(sandbox_web_type)
+seutil_read_default_contexts(sandbox_web_type)
+
+userdom_rw_user_tmpfs_files(sandbox_web_type)
+userdom_delete_user_tmpfs_files(sandbox_web_type)
+
+optional_policy(`
+	bluetooth_dontaudit_dbus_chat(sandbox_web_type)
+')
+
+optional_policy(`
+	consolekit_dbus_chat(sandbox_web_type)
+')
+
+optional_policy(`
+	hal_dbus_chat(sandbox_web_type)
+')
+
+optional_policy(`
+	nsplugin_read_rw_files(sandbox_web_type)
+	nsplugin_rw_exec(sandbox_web_type)
+	nsplugin_manage_rw(sandbox_web_type)
+')
+
+optional_policy(`
+	pulseaudio_stream_connect(sandbox_web_type)
+	allow sandbox_web_type self:netlink_kobject_uevent_socket create_socket_perms;
+')
+
+optional_policy(`
+	rtkit_daemon_dontaudit_dbus_chat(sandbox_web_type)
+')
+
+optional_policy(`
+	networkmanager_dontaudit_dbus_chat(sandbox_web_type)
+')
+
+optional_policy(`
+	udev_read_state(sandbox_web_type)
+')
+
+########################################
+#
+# sandbox_net_client_t local policy
+#
+typeattribute sandbox_net_client_t sandbox_web_type;
+
+corenet_all_recvfrom_unlabeled(sandbox_net_client_t)
+corenet_all_recvfrom_netlabel(sandbox_net_client_t)
+corenet_tcp_sendrecv_all_if(sandbox_net_client_t)
+corenet_udp_sendrecv_all_if(sandbox_net_client_t)
+corenet_tcp_sendrecv_all_nodes(sandbox_net_client_t)
+corenet_udp_sendrecv_all_nodes(sandbox_net_client_t)
+corenet_tcp_sendrecv_all_ports(sandbox_net_client_t)
+corenet_udp_sendrecv_all_ports(sandbox_net_client_t)
+corenet_tcp_connect_all_ports(sandbox_net_client_t)
+corenet_sendrecv_all_client_packets(sandbox_net_client_t)
+
+optional_policy(`
+	mozilla_dontaudit_rw_user_home_files(sandbox_x_t)
+	mozilla_dontaudit_rw_user_home_files(sandbox_xserver_t)
+	mozilla_dontaudit_rw_user_home_files(sandbox_x_domain)
+')
+

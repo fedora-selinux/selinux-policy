@@ -135,9 +135,18 @@ lvm_domtrans(clvmd_t)
 lvm_read_config(clvmd_t)
 
 ifdef(`distro_redhat',`
+ifdef(`enforcing',`
 	optional_policy(`
 		unconfined_domain(clvmd_t)
 	')
+', `
+	permissive clvmd_t;
+')
+')
+
+optional_policy(`
+	aisexec_stream_connect(clvmd_t)
+	corosync_stream_connect(clvmd_t)
 ')
 
 optional_policy(`
@@ -170,6 +179,7 @@ dontaudit lvm_t self:capability sys_tty_config;
 allow lvm_t self:process { sigchld sigkill sigstop signull signal };
 # LVM will complain a lot if it cannot set its priority.
 allow lvm_t self:process setsched;
+allow lvm_t self:sem create_sem_perms;
 allow lvm_t self:file rw_file_perms;
 allow lvm_t self:fifo_file manage_fifo_file_perms;
 allow lvm_t self:unix_dgram_socket create_socket_perms;
@@ -210,12 +220,15 @@ filetrans_pattern(lvm_t, lvm_etc_t, lvm_metadata_t, file)
 files_etc_filetrans(lvm_t, lvm_metadata_t, file)
 files_search_mnt(lvm_t)
 
+kernel_get_sysvipc_info(lvm_t)
 kernel_read_system_state(lvm_t)
+kernel_read_kernel_sysctls(lvm_t)
 # Read system variables in /proc/sys
 kernel_read_kernel_sysctls(lvm_t)
 # it has no reason to need this
 kernel_dontaudit_getattr_core_if(lvm_t)
 kernel_use_fds(lvm_t)
+kernel_request_load_module(lvm_t)
 kernel_search_debugfs(lvm_t)
 
 corecmd_exec_bin(lvm_t)
@@ -242,6 +255,7 @@ dev_dontaudit_getattr_generic_chr_files(lvm_t)
 dev_dontaudit_getattr_generic_blk_files(lvm_t)
 dev_dontaudit_getattr_generic_pipes(lvm_t)
 dev_create_generic_dirs(lvm_t)
+dev_rw_generic_files(lvm_t)
 
 domain_use_interactive_fds(lvm_t)
 domain_read_all_domains_state(lvm_t)
@@ -251,8 +265,9 @@ files_read_etc_files(lvm_t)
 files_read_etc_runtime_files(lvm_t)
 # for when /usr is not mounted:
 files_dontaudit_search_isid_type_dirs(lvm_t)
+files_dontaudit_getattr_tmpfs_files(lvm_t)
 
-fs_getattr_xattr_fs(lvm_t)
+fs_getattr_all_fs(lvm_t)
 fs_search_auto_mountpoints(lvm_t)
 fs_list_tmpfs(lvm_t)
 fs_read_tmpfs_symlinks(lvm_t)
@@ -262,6 +277,7 @@ fs_rw_anon_inodefs_files(lvm_t)
 
 mls_file_read_all_levels(lvm_t)
 mls_file_write_to_clearance(lvm_t)
+mls_file_upgrade(lvm_t)
 
 selinux_get_fs_mount(lvm_t)
 selinux_validate_context(lvm_t)
@@ -303,9 +319,18 @@ ifdef(`distro_redhat',`
 	# this is from the initrd:
 	files_rw_isid_type_dirs(lvm_t)
 
+ifdef(`enforcing',`
 	optional_policy(`
 		unconfined_domain(lvm_t)
 	')
+', `
+	permissive lvm_t;
+')
+')
+
+optional_policy(`
+	aisexec_stream_connect(lvm_t)
+	corosync_stream_connect(lvm_t)
 ')
 
 optional_policy(`
@@ -326,6 +351,10 @@ optional_policy(`
 	optional_policy(`
 		hal_dbus_chat(lvm_t)
 	')
+')
+
+optional_policy(`
+	livecd_rw_semaphores(lvm_t)
 ')
 
 optional_policy(`

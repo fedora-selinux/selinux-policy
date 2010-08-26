@@ -4,6 +4,7 @@ policy_module(gpg, 2.3.1)
 #
 # Declarations
 #
+attribute gpgdomain;
 
 ## <desc>
 ## <p>
@@ -13,7 +14,15 @@ policy_module(gpg, 2.3.1)
 ## </desc>
 gen_tunable(gpg_agent_env_file, false)
 
-type gpg_t;
+## <desc>
+## <p>
+## Allow gpg web domain to modify public files
+## used for public file transfer services.
+## </p>
+## </desc>
+gen_tunable(gpg_web_anon_write, false)
+
+type gpg_t, gpgdomain;
 type gpg_exec_t;
 typealias gpg_t alias { user_gpg_t staff_gpg_t sysadm_gpg_t };
 typealias gpg_t alias { auditadm_gpg_t secadm_gpg_t };
@@ -62,17 +71,23 @@ type gpg_pinentry_tmpfs_t;
 files_tmpfs_file(gpg_pinentry_tmpfs_t)
 ubac_constrained(gpg_pinentry_tmpfs_t)
 
+type gpg_web_t;
+domain_type(gpg_web_t)
+gpg_entry_type(gpg_web_t)
+role system_r types gpg_web_t;
+
 ########################################
 #
 # GPG local policy
 #
 
-allow gpg_t self:capability { ipc_lock setuid };
-# setrlimit is for ulimit -c 0
-allow gpg_t self:process { signal signull setrlimit getcap setcap setpgid };
+allow gpgdomain self:capability { ipc_lock setuid };
+allow gpgdomain self:process { getsched setsched };
+#at setrlimit is for ulimit -c 0
+allow gpgdomain self:process { signal signull setrlimit getcap setcap setpgid };
 
-allow gpg_t self:fifo_file rw_fifo_file_perms;
-allow gpg_t self:tcp_socket create_stream_socket_perms;
+allow gpgdomain self:fifo_file rw_fifo_file_perms;
+allow gpgdomain self:tcp_socket create_stream_socket_perms;
 
 manage_dirs_pattern(gpg_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
 manage_files_pattern(gpg_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
@@ -128,6 +143,7 @@ userdom_use_user_terminals(gpg_t)
 userdom_manage_user_tmp_files(gpg_t)
 userdom_manage_user_home_content_files(gpg_t)
 userdom_user_home_dir_filetrans_user_home_content(gpg_t, file)
+userdom_stream_connect(gpg_t)
 
 mta_write_config(gpg_t)
 
@@ -142,6 +158,10 @@ tunable_policy(`use_samba_home_dirs',`
 ')
 
 optional_policy(`
+	gnome_read_config(gpg_t)
+')
+
+optional_policy(`
 	mozilla_read_user_home_files(gpg_t)
 	mozilla_write_user_home_files(gpg_t)
 ')
@@ -151,10 +171,10 @@ optional_policy(`
 	xserver_rw_xdm_pipes(gpg_t)
 ')
 
-optional_policy(`
-	cron_system_entry(gpg_t, gpg_exec_t)
-	cron_read_system_job_tmp_files(gpg_t)
-')
+#optional_policy(`
+#	cron_system_entry(gpg_t, gpg_exec_t)
+#	cron_read_system_job_tmp_files(gpg_t)
+#')
 
 ########################################
 #
@@ -205,6 +225,7 @@ tunable_policy(`use_samba_home_dirs',`
 #
 # GPG agent local policy
 #
+domtrans_pattern(gpg_t, gpg_agent_exec_t, gpg_agent_t)
 
 # rlimit: gpg-agent wants to prevent coredumps
 allow gpg_agent_t self:process setrlimit;
@@ -245,6 +266,7 @@ userdom_search_user_home_dirs(gpg_agent_t)
 
 ifdef(`hide_broken_symptoms',`
 	userdom_dontaudit_read_user_tmp_files(gpg_agent_t)
+	userdom_dontaudit_write_user_tmp_files(gpg_agent_t)
 ')
 
 tunable_policy(`gpg_agent_env_file',`
@@ -332,6 +354,9 @@ miscfiles_read_localization(gpg_pinentry_t)
 # for .Xauthority
 userdom_read_user_home_content_files(gpg_pinentry_t)
 userdom_read_user_tmpfs_files(gpg_pinentry_t)
+# Bug: user pulseaudio files need open,read and unlink:
+allow gpg_pinentry_t user_tmpfs_t:file unlink;
+userdom_signull_unpriv_users(gpg_pinentry_t)
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_read_nfs_files(gpg_pinentry_t)
@@ -347,6 +372,12 @@ optional_policy(`
 ')
 
 optional_policy(`
+	gnome_write_generic_cache_files(gpg_pinentry_t)
+	gnome_read_generic_cache_files(gpg_pinentry_t)
+	gnome_read_gconf_home_files(gpg_pinentry_t)
+')
+
+optional_policy(`
 	pulseaudio_exec(gpg_pinentry_t)
 	pulseaudio_rw_home_files(gpg_pinentry_t)
 	pulseaudio_setattr_home_dir(gpg_pinentry_t)
@@ -356,4 +387,28 @@ optional_policy(`
 
 optional_policy(`
 	xserver_user_x_domain_template(gpg_pinentry, gpg_pinentry_t, gpg_pinentry_tmpfs_t)
+
+')
+
+#############################
+#
+# gpg web local policy
+#
+
+allow gpg_web_t self:process setrlimit;
+
+dev_read_rand(gpg_web_t)
+dev_read_urand(gpg_web_t)
+
+can_exec(gpg_web_t, gpg_exec_t)
+
+files_read_usr_files(gpg_web_t)
+
+miscfiles_read_localization(gpg_web_t)
+
+apache_dontaudit_rw_tmp_files(gpg_web_t)
+apache_manage_sys_content_rw(gpg_web_t)
+
+tunable_policy(`gpg_web_anon_write',`
+    miscfiles_manage_public_files(gpg_web_t)
 ')

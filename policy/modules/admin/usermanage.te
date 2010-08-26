@@ -295,6 +295,7 @@ selinux_compute_user_contexts(passwd_t)
 
 term_use_all_ttys(passwd_t)
 term_use_all_ptys(passwd_t)
+term_use_generic_ptys(passwd_t)
 
 auth_domtrans_chk_passwd(passwd_t)
 auth_manage_shadow(passwd_t)
@@ -304,6 +305,9 @@ auth_use_nsswitch(passwd_t)
 
 # allow checking if a shell is executable
 corecmd_check_exec_shell(passwd_t)
+corecmd_exec_bin(passwd_t)
+
+corenet_tcp_connect_kerberos_password_port(passwd_t)
 
 domain_use_interactive_fds(passwd_t)
 
@@ -334,6 +338,7 @@ userdom_read_user_tmp_files(passwd_t)
 # user generally runs this from their home directory, so do not audit a search
 # on user home dir
 userdom_dontaudit_search_user_home_content(passwd_t)
+userdom_stream_connect(passwd_t)
 
 optional_policy(`
 	nscd_domtrans(passwd_t)
@@ -428,7 +433,7 @@ optional_policy(`
 # Useradd local policy
 #
 
-allow useradd_t self:capability { dac_override chown kill fowner fsetid setuid sys_resource };
+allow useradd_t self:capability { dac_override chown kill fowner fsetid setuid sys_resource sys_ptrace };
 dontaudit useradd_t self:capability sys_tty_config;
 allow useradd_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
 allow useradd_t self:process setfscreate;
@@ -500,12 +505,8 @@ seutil_domtrans_setfiles(useradd_t)
 
 userdom_use_unpriv_users_fds(useradd_t)
 # Add/remove user home directories
-userdom_manage_user_home_dirs(useradd_t)
 userdom_home_filetrans_user_home_dir(useradd_t)
-userdom_manage_user_home_content_dirs(useradd_t)
-userdom_manage_user_home_content_files(useradd_t)
-userdom_home_filetrans_user_home_dir(useradd_t)
-userdom_user_home_dir_filetrans_user_home_content(useradd_t, notdevfile_class_set)
+userdom_manage_home_role(system_r, useradd_t)
 
 mta_manage_spool(useradd_t)
 

@@ -13,6 +13,8 @@ policy_module(rhcs, 1.1.0)
 gen_tunable(fenced_can_network_connect, false)
 
 attribute cluster_domain;
+attribute cluster_tmpfs;
+attribute cluster_pid;
 
 rhcs_domain_template(dlm_controld)
 
@@ -55,17 +57,13 @@ fs_manage_configfs_dirs(dlm_controld_t)
 
 init_rw_script_tmp_files(dlm_controld_t)
 
-optional_policy(`
-	ccs_stream_connect(dlm_controld_t)
-')
-
 #######################################
 #
 # fenced local policy
 #
 
 allow fenced_t self:capability { sys_rawio sys_resource };
-allow fenced_t self:process getsched;
+allow fenced_t self:process { getsched signal_perms };
 
 allow fenced_t self:tcp_socket create_stream_socket_perms;
 allow fenced_t self:udp_socket create_socket_perms;
@@ -82,7 +80,10 @@ files_tmp_filetrans(fenced_t, fenced_tmp_t, { file fifo_file dir })
 
 stream_connect_pattern(fenced_t, groupd_var_run_t, groupd_var_run_t, groupd_t)
 
+kernel_read_system_state(fenced_t)
+
 corecmd_exec_bin(fenced_t)
+corecmd_exec_shell(fenced_t)
 
 corenet_tcp_connect_http_port(fenced_t)
 
@@ -106,7 +107,6 @@ tunable_policy(`fenced_can_network_connect',`
 
 optional_policy(`
 	ccs_read_config(fenced_t)
-	ccs_stream_connect(fenced_t)
 ')
 
 optional_policy(`
@@ -139,10 +139,6 @@ storage_getattr_removable_dev(gfs_controld_t)
 init_rw_script_tmp_files(gfs_controld_t)
 
 optional_policy(`
-	ccs_stream_connect(gfs_controld_t)
-')
-
-optional_policy(`
 	lvm_exec(gfs_controld_t)
 	dev_rw_lvm_control(gfs_controld_t)
 ')
@@ -168,7 +164,7 @@ init_rw_script_tmp_files(groupd_t)
 # qdiskd local policy
 #
 
-allow qdiskd_t self:capability ipc_lock;
+allow qdiskd_t self:capability { ipc_lock sys_boot };
 
 allow qdiskd_t self:tcp_socket create_stream_socket_perms;
 allow qdiskd_t self:udp_socket create_socket_perms;
@@ -207,10 +203,6 @@ storage_raw_write_fixed_disk(qdiskd_t)
 auth_use_nsswitch(qdiskd_t)
 
 optional_policy(`
-	ccs_stream_connect(qdiskd_t)
-')
-
-optional_policy(`
 	netutils_domtrans_ping(qdiskd_t)
 ')
 
@@ -234,6 +226,10 @@ allow cluster_domain self:unix_dgram_socket create_socket_perms;
 logging_send_syslog_msg(cluster_domain)
 
 miscfiles_read_localization(cluster_domain)
+
+optional_policy(`
+	ccs_stream_connect(cluster_domain)
+')
 
 optional_policy(`
 	corosync_stream_connect(cluster_domain)

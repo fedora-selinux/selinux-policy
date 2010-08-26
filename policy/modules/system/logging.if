@@ -545,6 +545,25 @@ interface(`logging_send_syslog_msg',`
 
 ########################################
 ## <summary>
+##	Connect to the syslog control unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_stream_connect_syslog',`
+	gen_require(`
+		type syslogd_t, syslogd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, syslogd_var_run_t, syslogd_var_run_t, syslogd_t)
+')
+
+########################################
+## <summary>
 ##	Read the auditd configuration files.
 ## </summary>
 ## <param name="domain">
@@ -715,7 +734,25 @@ interface(`logging_append_all_logs',`
 	')
 
 	files_search_var($1)
-	append_files_pattern($1, var_log_t, logfile)
+	append_files_pattern($1, logfile, logfile)
+')
+
+########################################
+## <summary>
+##	Append to all log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_inherit_append_all_logs',`
+	gen_require(`
+		attribute logfile;
+	')
+
+	allow $1 logfile:file { getattr append };
 ')
 
 ########################################
@@ -798,7 +835,7 @@ interface(`logging_manage_all_logs',`
 
 	files_search_var($1)
 	manage_files_pattern($1, logfile, logfile)
-	read_lnk_files_pattern($1, logfile, logfile)
+	manage_lnk_files_pattern($1, logfile, logfile)
 ')
 
 ########################################
@@ -996,6 +1033,8 @@ interface(`logging_admin_syslog',`
 	manage_files_pattern($1, syslogd_var_run_t, syslogd_var_run_t)
 
 	logging_manage_all_logs($1)
+	allow $1 logfile:dir  { relabelfrom relabelto };
+	allow $1 logfile:file  { relabelfrom relabelto };
 
 	init_labeled_script_domtrans($1, syslogd_initrc_exec_t)
 	domain_system_change_exemption($1)

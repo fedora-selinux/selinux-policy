@@ -1,0 +1,173 @@
+## <summary>Accountsservice D-Bus interfaces for querying and manipulating user account information.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to
+##	run Account Service daemon.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`accountsd_domtrans',`
+	gen_require(`
+		type accountsd_t, accountsd_exec_t;
+	')
+
+	domtrans_pattern($1, accountsd_exec_t, accountsd_t)
+	corecmd_search_bin($1)
+	files_search_usr($1)
+')
+
+########################################
+## <summary>
+##	Search Accounts Service daemon
+##	lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_search_lib',`
+	gen_require(`
+		type accountsd_var_lib_t;
+	')
+
+	allow $1 accountsd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read Accounts Service daemon
+##	lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_read_lib_files',`
+	gen_require(`
+		type accountsd_var_lib_t;
+	')
+
+	read_files_pattern($1, accountsd_var_lib_t, accountsd_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Manage Account Service daemon
+##	lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_manage_lib_files',`
+	gen_require(`
+		type accountsd_var_lib_t;
+	')
+
+	manage_files_pattern($1, accountsd_var_lib_t,  accountsd_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Manage Account Service daemon
+##	lib content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_manage_var_lib',`
+	gen_require(`
+		type accountsd_var_lib_t;
+	')
+
+	manage_dirs_pattern($1, accountsd_var_lib_t, accountsd_var_lib_t)
+	manage_files_pattern($1, accountsd_var_lib_t, accountsd_var_lib_t)
+	manage_lnk_files_pattern($1, accountsd_var_lib_t, accountsd_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	Account Service daemon over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_dbus_chat',`
+	gen_require(`
+		type accountsd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 accountsd_t:dbus send_msg;
+	allow accountsd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and 
+##	write Account Service daemon pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_dontaudit_rw_fifo_file',`
+	gen_require(`
+		type accountsd_t;
+	')
+
+	dontaudit $1 accountsd_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an Account Service daemon environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`accountsd_admin',`
+	gen_require(`
+		type accountsd_t, accountsd_var_lib_t;
+	')
+
+	allow $1 accountsd_t:process { ptrace signal_perms	};
+	read_files_pattern($1, accountsd_t, accountsd_t)
+
+	admin_pattern($1, accountsd_var_lib_t)
+	files_search_var_lib($1)
+')

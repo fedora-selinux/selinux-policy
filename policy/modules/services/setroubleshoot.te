@@ -32,6 +32,8 @@ files_pid_file(setroubleshoot_var_run_t)
 
 allow setroubleshootd_t self:capability { dac_override sys_nice sys_tty_config };
 allow setroubleshootd_t self:process { getattr getsched setsched sigkill signull signal };
+# if bad library causes setroubleshoot to require these, we want to give it so setroubleshoot can continue to run
+allow setroubleshootd_t self:process { execmem execstack };
 allow setroubleshootd_t self:fifo_file rw_fifo_file_perms;
 allow setroubleshootd_t self:tcp_socket create_stream_socket_perms;
 allow setroubleshootd_t self:unix_stream_socket { create_stream_socket_perms connectto };
@@ -49,14 +51,17 @@ manage_sock_files_pattern(setroubleshootd_t, setroubleshoot_var_log_t, setrouble
 logging_log_filetrans(setroubleshootd_t, setroubleshoot_var_log_t, { file dir })
 
 # pid file
+manage_dirs_pattern(setroubleshootd_t, setroubleshoot_var_run_t, setroubleshoot_var_run_t)
 manage_files_pattern(setroubleshootd_t, setroubleshoot_var_run_t, setroubleshoot_var_run_t)
 manage_sock_files_pattern(setroubleshootd_t, setroubleshoot_var_run_t, setroubleshoot_var_run_t)
-files_pid_filetrans(setroubleshootd_t, setroubleshoot_var_run_t, { file sock_file })
+files_pid_filetrans(setroubleshootd_t, setroubleshoot_var_run_t, { file sock_file dir })
 
 kernel_read_kernel_sysctls(setroubleshootd_t)
 kernel_read_system_state(setroubleshootd_t)
 kernel_read_net_sysctls(setroubleshootd_t)
 kernel_read_network_state(setroubleshootd_t)
+kernel_dontaudit_list_all_proc(setroubleshootd_t)
+kernel_read_unlabeled_state(setroubleshootd_t)
 
 corecmd_exec_bin(setroubleshootd_t)
 corecmd_exec_shell(setroubleshootd_t)
@@ -121,6 +126,10 @@ seutil_read_bin_policy(setroubleshootd_t)
 userdom_dontaudit_read_user_home_content_files(setroubleshootd_t)
 
 optional_policy(`
+	locate_read_lib_files(setroubleshootd_t)
+')
+
+optional_policy(`
 	dbus_system_domain(setroubleshootd_t, setroubleshootd_exec_t)
 ')
 
@@ -152,6 +161,7 @@ corecmd_exec_bin(setroubleshoot_fixit_t)
 corecmd_exec_shell(setroubleshoot_fixit_t)
 
 seutil_domtrans_setfiles(setroubleshoot_fixit_t)
+seutil_domtrans_setsebool(setroubleshoot_fixit_t)
 
 files_read_usr_files(setroubleshoot_fixit_t)
 files_read_etc_files(setroubleshoot_fixit_t)
@@ -163,6 +173,13 @@ logging_send_audit_msgs(setroubleshoot_fixit_t)
 logging_send_syslog_msg(setroubleshoot_fixit_t)
 
 miscfiles_read_localization(setroubleshoot_fixit_t)
+
+userdom_dontaudit_search_admin_dir(setroubleshoot_fixit_t)
+userdom_signull_unpriv_users(setroubleshoot_fixit_t)
+
+optional_policy(`
+	gnome_dontaudit_search_config(setroubleshoot_fixit_t)
+')
 
 optional_policy(`
 	rpm_signull(setroubleshoot_fixit_t)

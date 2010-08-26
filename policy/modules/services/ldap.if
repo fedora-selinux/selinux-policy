@@ -1,5 +1,43 @@
 ## <summary>OpenLDAP directory server</summary>
 
+#######################################
+## <summary>
+##      Execute OpenLDAP in the ldap domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`ldap_domtrans',`
+        gen_require(`
+                type slapd_t, slapd_exec_t;
+        ')
+
+        domtrans_pattern($1, slapd_exec_t, slapd_t)
+
+')
+
+#######################################
+## <summary>
+##      Execute OpenLDAP server in the ldap domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`ldap_initrc_domtrans',`
+        gen_require(`
+                type slapd_initrc_exec_t;
+        ')
+
+        init_labeled_script_domtrans($1, slapd_initrc_exec_t)
+')
+
+
 ########################################
 ## <summary>
 ##	Read the contents of the OpenLDAP
@@ -17,6 +55,25 @@ interface(`ldap_list_db',`
 	')
 
 	allow $1 slapd_db_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read the contents of the OpenLDAP
+##	database files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_read_db_files',`
+	gen_require(`
+		type slapd_db_t;
+	')
+
+	read_files_pattern($1, slapd_db_t, slapd_db_t)
 ')
 
 ########################################
@@ -71,6 +128,30 @@ interface(`ldap_stream_connect',`
 	files_search_pids($1)
 	allow $1 slapd_var_run_t:sock_file write;
 	allow $1 slapd_t:unix_stream_socket connectto;
+
+	optional_policy(`
+		ldap_stream_connect_dirsrv($1)	
+	')
+')
+
+########################################
+## <summary>
+##	Connect to dirsrv over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_stream_connect_dirsrv',`
+	gen_require(`
+		type dirsrv_t, dirsrv_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 dirsrv_var_run_t:sock_file write;
+	allow $1 dirsrv_t:unix_stream_socket connectto;
 ')
 
 ########################################

@@ -60,6 +60,24 @@ interface(`sysnet_run_dhcpc',`
 		netutils_run(dhcpc_t, $2)
 		netutils_run_ping(dhcpc_t, $2)
 	')
+
+	optional_policy(`
+		networkmanager_run(dhcpc_t, $2)
+	')
+
+	optional_policy(`
+		nis_run_ypbind(dhcpc_t, $2)
+	')
+
+	optional_policy(`
+		nscd_run(dhcpc_t, $2)
+	')
+
+	optional_policy(`
+		ntp_run(dhcpc_t, $2)
+	')
+
+	seutil_run_setfiles(dhcpc_t, $2)
 ')
 
 ########################################
@@ -249,6 +267,43 @@ interface(`sysnet_delete_dhcpc_state',`
 	delete_files_pattern($1, dhcpc_state_t, dhcpc_state_t)
 ')
 
+########################################
+## <summary>
+##	Allow caller to relabel dhcpc_state files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_relabelfrom_dhcpc_state',`
+
+	gen_require(`
+		type dhcpc_state_t;
+	')
+
+	allow $1 dhcpc_state_t:file relabelfrom;
+')
+
+#######################################
+## <summary>
+##	Manage the dhcp client state files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_manage_dhcpc_state',`
+	gen_require(`
+		type dhcpc_state_t;
+	')
+
+	manage_files_pattern($1, dhcpc_state_t, dhcpc_state_t)
+')
+
 #######################################
 ## <summary>
 ##	Set the attributes of network config files.
@@ -266,6 +321,44 @@ interface(`sysnet_setattr_config',`
 
 	files_search_etc($1)
 	allow $1 net_conf_t:file setattr;
+')
+
+#######################################
+## <summary>
+##      Allow caller to relabel net_conf files
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`sysnet_relabelfrom_net_conf',`
+
+        gen_require(`
+                type net_conf_t;
+        ')
+
+        allow $1 net_conf_t:file relabelfrom;
+')
+
+######################################
+## <summary>
+##      Allow caller to relabel net_conf files
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`sysnet_relabelto_net_conf',`
+
+        gen_require(`
+                type net_conf_t;
+        ')
+
+        allow $1 net_conf_t:file relabelto;
 ')
 
 #######################################
@@ -403,11 +496,8 @@ interface(`sysnet_manage_config',`
 		type net_conf_t;
 	')
 
-	allow $1 net_conf_t:file manage_file_perms;
-
-	ifdef(`distro_redhat',`
-		manage_files_pattern($1, net_conf_t, net_conf_t)
-	')
+	allow $1 net_conf_t:dir list_dir_perms;
+	manage_files_pattern($1, net_conf_t, net_conf_t)
 ')
 
 #######################################
@@ -444,6 +534,7 @@ interface(`sysnet_delete_dhcpc_pid',`
 		type dhcpc_var_run_t;
 	')
 
+	files_rw_pid_dirs($1)
 	allow $1 dhcpc_var_run_t:file unlink;
 ')
 
@@ -464,6 +555,10 @@ interface(`sysnet_domtrans_ifconfig',`
 
 	corecmd_search_bin($1)
 	domtrans_pattern($1, ifconfig_exec_t, ifconfig_t)
+	ifdef(`hide_broken_symptoms', `
+	        dontaudit ifconfig_t $1:socket_class_set { read write };
+	')
+
 ')
 
 ########################################
@@ -530,6 +625,25 @@ interface(`sysnet_signal_ifconfig',`
 	')
 
 	allow $1 ifconfig_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send a kill signal to iconfig.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sysnet_kill_ifconfig',`
+	gen_require(`
+		type ifconfig_t;
+	')
+
+	allow $1 ifconfig_t:process sigkill;
 ')
 
 ########################################
@@ -677,7 +791,10 @@ interface(`sysnet_use_ldap',`
 	corenet_tcp_connect_ldap_port($1)
 	corenet_sendrecv_ldap_client_packets($1)
 
-	sysnet_read_config($1)
+	files_search_etc($1)
+	allow $1 net_conf_t:file read_file_perms;
+	# LDAP Configuration using encrypted requires
+	dev_read_urand($1)
 ')
 
 ########################################
@@ -709,5 +826,52 @@ interface(`sysnet_use_portmap',`
 	corenet_tcp_connect_portmap_port($1)
 	corenet_sendrecv_portmap_client_packets($1)
 
-	sysnet_read_config($1)
+	files_search_etc($1)
+	allow $1 net_conf_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to use
+##	the dhcp file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain sending the SIGCHLD.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dontaudit_dhcpc_use_fds',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	dontaudit $1 dhcpc_t:fd use;
+')
+
+########################################
+## <summary>
+##	Transition to system_r when execute an dhclient script
+## </summary>
+## <desc>
+##      <p>
+##	Execute dhclient script in a specified role
+##      </p>
+##      <p>
+##      No interprocess communication (signals, pipes,
+##      etc.) is provided by this interface since
+##      the domains are not owned by this module.
+##      </p>
+## </desc>
+## <param name="source_role">
+##	<summary>
+##	Role to transition from.
+##	</summary>
+## </param>
+interface(`sysnet_role_transition_dhcpc',`
+	gen_require(`
+		type dhcpc_exec_t;
+	')
+
+	role_transition $1 dhcpc_exec_t system_r;
 ')

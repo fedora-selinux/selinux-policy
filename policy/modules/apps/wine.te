@@ -1,5 +1,13 @@
 policy_module(wine, 1.7.1)
 
+## <desc>
+## <p>
+## Ignore wine mmap_zero errors
+## </p>
+## </desc>
+#
+gen_tunable(wine_mmap_zero_ignore, false)
+
 ########################################
 #
 # Declarations
@@ -29,7 +37,13 @@ manage_dirs_pattern(wine_t, wine_tmp_t, wine_tmp_t)
 manage_files_pattern(wine_t, wine_tmp_t, wine_tmp_t)
 files_tmp_filetrans(wine_t, wine_tmp_t, { file dir })
 
-domain_mmap_low(wine_t)
+domain_mmap_low_type(wine_t)
+tunable_policy(`mmap_low_allowed',`
+	allow wine_t self:memprotect mmap_zero;
+')
+tunable_policy(`wine_mmap_zero_ignore',`
+	dontaudit wine_t self:memprotect mmap_zero;
+')
 
 files_execmod_all_files(wine_t)
 
@@ -40,7 +54,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-	unconfined_domain_noaudit(wine_t)
+	policykit_dbus_chat(wine_t)
+')
+
+optional_policy(`
+	unconfined_domain(wine_t)
 ')
 
 optional_policy(`

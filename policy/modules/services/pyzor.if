@@ -88,3 +88,50 @@ interface(`pyzor_exec',`
 	corecmd_search_bin($1)
 	can_exec($1, pyzor_exec_t)
 ')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an pyzor environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the pyzor domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`pyzor_admin',`
+	gen_require(`
+		type pyzord_t, pyzor_tmp_t, pyzord_log_t;
+		type pyzor_etc_t, pyzor_var_lib_t;
+		type pyzord_initrc_exec_t;
+	')
+
+	allow $1 pyzord_t:process { ptrace signal_perms };
+	ps_process_pattern($1, pyzord_t)
+	        
+	init_labeled_script_domtrans($1, pyzord_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 pyzord_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_tmp($1)
+	admin_pattern($1, pyzor_tmp_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, pyzord_log_t)
+
+	files_list_etc($1)
+	admin_pattern($1, pyzor_etc_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, pyzor_var_lib_t)
+')
+
+

@@ -77,6 +77,7 @@ template(`postfix_domain_template',`
 
 	files_read_etc_files(postfix_$1_t)
 	files_read_etc_runtime_files(postfix_$1_t)
+	files_read_usr_files(postfix_$1_t)
 	files_read_usr_symlinks(postfix_$1_t)
 	files_search_spool(postfix_$1_t)
 	files_getattr_tmp_dirs(postfix_$1_t)
@@ -376,6 +377,25 @@ interface(`postfix_domtrans_master',`
 	domtrans_pattern($1, postfix_master_exec_t, postfix_master_t)
 ')
 
+
+########################################
+## <summary>
+##	Execute the master postfix in the postfix master domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`postfix_initrc_domtrans', `
+	gen_require(`
+		type postfix_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, postfix_initrc_exec_t)
+')
+
 ########################################
 ## <summary>
 ##	Execute the master postfix program in the
@@ -529,6 +549,25 @@ interface(`postfix_domtrans_smtp',`
 
 ########################################
 ## <summary>
+##	Getattr postfix mail spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`postfix_getattr_spool_files',`
+	gen_require(`
+		attribute postfix_spool_type;
+	')
+
+	files_search_spool($1)
+	getattr_files_pattern($1, postfix_spool_type, postfix_spool_type)
+')
+
+########################################
+## <summary>
 ##	Search postfix mail spool directories.
 ## </summary>
 ## <param name="domain">
@@ -539,10 +578,10 @@ interface(`postfix_domtrans_smtp',`
 #
 interface(`postfix_search_spool',`
 	gen_require(`
-		type postfix_spool_t;
+		attribute postfix_spool_type;
 	')
 
-	allow $1 postfix_spool_t:dir search_dir_perms;
+	allow $1 postfix_spool_type:dir search_dir_perms;
 	files_search_spool($1)
 ')
 
@@ -558,10 +597,10 @@ interface(`postfix_search_spool',`
 #
 interface(`postfix_list_spool',`
 	gen_require(`
-		type postfix_spool_t;
+		attribute postfix_spool_type;
 	')
 
-	allow $1 postfix_spool_t:dir list_dir_perms;
+	allow $1 postfix_spool_type:dir list_dir_perms;
 	files_search_spool($1)
 ')
 
@@ -577,11 +616,11 @@ interface(`postfix_list_spool',`
 #
 interface(`postfix_read_spool_files',`
 	gen_require(`
-		type postfix_spool_t;
+		attribute postfix_spool_type;
 	')
 
 	files_search_spool($1)
-	read_files_pattern($1, postfix_spool_t, postfix_spool_t)
+	read_files_pattern($1, postfix_spool_type, postfix_spool_type)
 ')
 
 ########################################
@@ -596,11 +635,11 @@ interface(`postfix_read_spool_files',`
 #
 interface(`postfix_manage_spool_files',`
 	gen_require(`
-		type postfix_spool_t;
+		attribute postfix_spool_type;
 	')
 
 	files_search_spool($1)
-	manage_files_pattern($1, postfix_spool_t, postfix_spool_t)
+	manage_files_pattern($1, postfix_spool_type, postfix_spool_type)
 ')
 
 ########################################
@@ -621,3 +660,101 @@ interface(`postfix_domtrans_user_mail_handler',`
 
 	typeattribute $1 postfix_user_domtrans;
 ')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an postfix environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`postfix_admin', `
+	gen_require(`
+		type postfix_bounce_t, postfix_cleanup_t, postfix_local_t; 
+		type postfix_master_t, postfix_pickup_t, postfix_qmgr_t; 
+		type postfix_smtpd_t;
+
+		attribute postfix_spool_type;
+
+		type postfix_initrc_exec_t, postfix_data_t, postfix_etc_t;
+		type postfix_var_run_t;
+
+		type postfix_map_tmp_t, postfix_prng_t, postfix_public_t;
+	')
+
+	allow $1 postfix_bounce_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, postfix_bounce_t, postfix_bounce_t)
+
+	allow $1 postfix_cleanup_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, postfix_cleanup_t, postfix_cleanup_t)
+
+	allow $1 postfix_local_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, postfix_local_t, postfix_local_t)
+
+	allow $1 postfix_master_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, postfix_master_t, postfix_master_t)
+
+	allow $1 postfix_pickup_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, postfix_pickup_t, postfix_pickup_t)
+
+	allow $1 postfix_qmgr_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, postfix_qmgr_t, postfix_qmgr_t)
+
+	allow $1 postfix_smtpd_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, postfix_smtpd_t, postfix_smtpd_t)
+
+	postfix_run_map($1,$2)
+	postfix_run_postdrop($1,$2)
+		
+	postfix_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 postfix_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	admin_pattern($1, postfix_data_t) 
+
+	files_list_etc($1)
+	admin_pattern($1, postfix_etc_t)
+
+	files_search_spool($1)
+	admin_pattern($1,postfix_spool_type)	
+
+	admin_pattern($1, postfix_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, postfix_map_tmp_t)
+	
+	admin_pattern($1, postfix_prng_t)
+
+	admin_pattern($1, postfix_public_t)
+')
+
+########################################
+## <summary>
+##	Execute the master postdrop in the
+##	postfix_postdrop domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`postfix_run_postdrop',`
+	gen_require(`
+		type postfix_postdrop_t;
+	')
+
+	postfix_domtrans_postdrop($1)
+	role $2 types postfix_postdrop_t;
+')
+

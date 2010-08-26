@@ -220,6 +220,25 @@ interface(`mta_agent_executable',`
 	application_executable_file($1)
 ')
 
+######################################
+## <summary>
+##  Dontaudit read and write an leaked file descriptors
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`mta_dontaudit_leaks_system_mail',`
+    gen_require(`
+        type system_mail_t;
+    ')
+
+    dontaudit $1 system_mail_t:fifo_file write;
+    dontaudit $1 system_mail_t:tcp_socket { read write };
+')
+
 ########################################
 ## <summary>
 ##	Make the specified type by a system MTA.
@@ -330,12 +349,6 @@ interface(`mta_mailserver_user_agent',`
 	')
 
 	typeattribute $1 mta_user_agent;
-
-	optional_policy(`
-		# apache should set close-on-exec
-		apache_dontaudit_rw_stream_sockets($1)
-		apache_dontaudit_rw_sys_script_stream_sockets($1)
-	')
 ')
 
 ########################################
@@ -362,6 +375,10 @@ interface(`mta_send_mail',`
 	allow mta_user_agent $1:fd use;
 	allow mta_user_agent $1:process sigchld;
 	allow mta_user_agent $1:fifo_file rw_fifo_file_perms;
+
+	ifdef(`hide_broken_symptoms', `
+		dontaudit system_mail_t $1:socket_class_set { read write };
+	')
 ')
 
 ########################################
@@ -391,12 +408,15 @@ interface(`mta_send_mail',`
 #
 interface(`mta_sendmail_domtrans',`
 	gen_require(`
-		type sendmail_exec_t;
+		attribute mta_exec_type;
 	')
 
 	files_search_usr($1)
+	allow $1 mta_exec_type:lnk_file read_lnk_file_perms;
 	corecmd_read_bin_symlinks($1)
-	domain_auto_trans($1, sendmail_exec_t, $2)
+
+	allow $2 mta_exec_type:file entrypoint;
+	domtrans_pattern($1, mta_exec_type, $2)
 ')
 
 ########################################
@@ -474,7 +494,8 @@ interface(`mta_write_config',`
 		type etc_mail_t;
 	')
 
-	write_files_pattern($1, etc_mail_t, etc_mail_t)
+	manage_files_pattern($1, etc_mail_t, etc_mail_t)
+	allow $1 etc_mail_t:file setattr;
 ')
 
 ########################################
@@ -698,7 +719,7 @@ interface(`mta_rw_spool',`
 	files_search_spool($1)
 	allow $1 mail_spool_t:dir list_dir_perms;
 	allow $1 mail_spool_t:file setattr;
-	rw_files_pattern($1, mail_spool_t, mail_spool_t)
+	manage_files_pattern($1, mail_spool_t, mail_spool_t)
 	read_lnk_files_pattern($1, mail_spool_t, mail_spool_t)
 ')
 
@@ -898,4 +919,44 @@ interface(`mta_rw_user_mail_stream_sockets',`
 	')
 
 	allow $1 user_mail_domain:unix_stream_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Type transition files created in calling dir 
+##	to the mail address aliases type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Directory to transition on.
+##	</summary>
+## </param>
+#
+interface(`mta_filetrans_aliases',`
+	filetrans_pattern($1, $2, etc_aliases_t, file)
+')
+
+######################################
+## <summary>
+##  ALlow domain to read mail content in the homedir 
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`mta_read_home',`
+    gen_require(`
+        type mail_home_t;
+    ')
+
+    userdom_search_user_home_dirs($1)
+    userdom_search_admin_dir($1)
+    read_files_pattern($1, mail_home_t, mail_home_t)
 ')

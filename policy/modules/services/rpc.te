@@ -63,8 +63,9 @@ allow rpcd_t self:process { getcap setcap };
 allow rpcd_t self:fifo_file rw_fifo_file_perms;
 
 allow rpcd_t rpcd_var_run_t:dir setattr;
+manage_dirs_pattern(rpcd_t, rpcd_var_run_t, rpcd_var_run_t)
 manage_files_pattern(rpcd_t, rpcd_var_run_t, rpcd_var_run_t)
-files_pid_filetrans(rpcd_t, rpcd_var_run_t, file)
+files_pid_filetrans(rpcd_t, rpcd_var_run_t, { file dir })
 
 # rpc.statd executes sm-notify
 can_exec(rpcd_t, rpcd_exec_t)
@@ -97,13 +98,24 @@ miscfiles_read_certs(rpcd_t)
 
 seutil_dontaudit_search_config(rpcd_t)
 
+userdom_signal_unpriv_users(rpcd_t)
+userdom_read_user_home_content_files(rpcd_t)
+
 optional_policy(`
 	automount_signal(rpcd_t)
 	automount_dontaudit_write_pipes(rpcd_t)
 ')
 
 optional_policy(`
+	domain_unconfined_signal(rpcd_t)
+')
+
+optional_policy(`
 	nis_read_ypserv_config(rpcd_t)
+')
+
+optional_policy(`
+	rgmanager_manage_tmp_files(rpcd_t)
 ')
 
 ########################################
@@ -120,6 +132,7 @@ allow nfsd_t { nfsd_rw_t nfsd_ro_t }:dir list_dir_perms;
 kernel_read_system_state(nfsd_t)
 kernel_read_network_state(nfsd_t)
 kernel_dontaudit_getattr_core_if(nfsd_t)
+kernel_setsched(nfsd_t)
 
 corenet_tcp_bind_all_rpc_ports(nfsd_t)
 corenet_udp_bind_all_rpc_ports(nfsd_t)
@@ -160,6 +173,7 @@ tunable_policy(`nfs_export_all_rw',`
 	fs_read_noxattr_fs_files(nfsd_t)
 	auth_manage_all_files_except_shadow(nfsd_t)
 ')
+userdom_user_home_dir_filetrans_user_home_content(nfsd_t, { file dir })
 
 tunable_policy(`nfs_export_all_ro',`
 	dev_getattr_all_blk_files(nfsd_t)
@@ -218,6 +232,8 @@ tunable_policy(`allow_gssd_read_tmp',`
 	userdom_list_user_tmp(gssd_t)
 	userdom_read_user_tmp_files(gssd_t)
 	userdom_read_user_tmp_symlinks(gssd_t)
+	userdom_write_user_tmp_files(gssd_t)
+	files_read_generic_tmp_files(gssd_t)
 ')
 
 optional_policy(`

@@ -40,7 +40,7 @@ interface(`selinux_labeled_boolean',`
 
 	# because of this statement, any module which
 	# calls this interface must be in the base module:
-	genfscon selinuxfs /booleans/$2 gen_context(system_u:object_r:$1,s0)
+#	genfscon selinuxfs /booleans/$2 gen_context(system_u:object_r:$1,s0)
 ')
 
 ########################################
@@ -202,8 +202,29 @@ interface(`selinux_dontaudit_read_fs',`
 		type security_t;
 	')
 
+	selinux_dontaudit_getattr_fs($1)
 	dontaudit $1 security_t:dir search_dir_perms;
 	dontaudit $1 security_t:file read_file_perms;
+')
+
+
+########################################
+## <summary>
+##	Do not audit attempts to write
+##	generic selinuxfs entries
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`selinux_dontaudit_write_fs',`
+	gen_require(`
+		type security_t;
+	')
+
+	dontaudit $1 security_t:dir write;
 ')
 
 ########################################
@@ -223,6 +244,7 @@ interface(`selinux_get_enforce_mode',`
 		type security_t;
 	')
 
+	selinux_get_fs_mount($1)
 	allow $1 security_t:dir list_dir_perms;
 	allow $1 security_t:file read_file_perms;
 ')
@@ -404,6 +426,7 @@ interface(`selinux_set_all_booleans',`
 	')
 
 	allow $1 security_t:dir list_dir_perms;
+	allow $1 boolean_type:dir list_dir_perms;
 	allow $1 boolean_type:file rw_file_perms;
 
 	if(!secure_mode_policyload) {
@@ -622,3 +645,42 @@ interface(`selinux_unconfined',`
 
 	typeattribute $1 selinux_unconfined_type;
 ')
+
+########################################
+## <summary>
+##	Generate a file context for a boolean type
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`selinux_genbool',`
+	gen_require(`
+		attribute boolean_type;
+	')
+
+	type $1, boolean_type;
+	fs_type($1)
+	mls_trusted_object($1)
+')
+
+########################################
+## <summary>
+##	Unmount a security filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the domain unmounting the filesystem.
+##	</summary>
+## </param>
+#
+interface(`selinux_unmount_fs',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:filesystem unmount;
+')
+

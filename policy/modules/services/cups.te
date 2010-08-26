@@ -15,6 +15,7 @@ files_pid_file(cupsd_config_var_run_t)
 type cupsd_t;
 type cupsd_exec_t;
 init_daemon_domain(cupsd_t, cupsd_exec_t)
+mls_trusted_object(cupsd_t)
 
 type cupsd_etc_t;
 files_config_file(cupsd_etc_t)
@@ -123,6 +124,7 @@ read_lnk_files_pattern(cupsd_t, cupsd_etc_t, cupsd_etc_t)
 files_search_etc(cupsd_t)
 
 manage_files_pattern(cupsd_t, cupsd_interface_t, cupsd_interface_t)
+can_exec(cupsd_t, cupsd_interface_t)
 
 manage_dirs_pattern(cupsd_t, cupsd_etc_t, cupsd_rw_etc_t)
 manage_files_pattern(cupsd_t, cupsd_etc_t, cupsd_rw_etc_t)
@@ -137,6 +139,7 @@ allow cupsd_t cupsd_exec_t:lnk_file read_lnk_file_perms;
 allow cupsd_t cupsd_lock_t:file manage_file_perms;
 files_lock_filetrans(cupsd_t, cupsd_lock_t, file)
 
+manage_dirs_pattern(cupsd_t, cupsd_log_t, cupsd_log_t)
 manage_files_pattern(cupsd_t, cupsd_log_t, cupsd_log_t)
 allow cupsd_t cupsd_log_t:dir setattr;
 logging_log_filetrans(cupsd_t, cupsd_log_t, { file dir })
@@ -147,10 +150,11 @@ manage_fifo_files_pattern(cupsd_t, cupsd_tmp_t, cupsd_tmp_t)
 files_tmp_filetrans(cupsd_t, cupsd_tmp_t, { file dir fifo_file })
 
 allow cupsd_t cupsd_var_run_t:dir setattr;
+manage_dirs_pattern(cupsd_t, cupsd_var_run_t, cupsd_var_run_t)
 manage_files_pattern(cupsd_t, cupsd_var_run_t, cupsd_var_run_t)
 manage_sock_files_pattern(cupsd_t, cupsd_var_run_t, cupsd_var_run_t)
 manage_fifo_files_pattern(cupsd_t, cupsd_var_run_t, cupsd_var_run_t)
-files_pid_filetrans(cupsd_t, cupsd_var_run_t, { file fifo_file })
+files_pid_filetrans(cupsd_t, cupsd_var_run_t, { dir file fifo_file })
 
 allow cupsd_t hplip_t:process { signal sigkill };
 
@@ -297,8 +301,10 @@ optional_policy(`
 		hal_dbus_chat(cupsd_t)
 	')
 
+	# talk to processes that do not have policy
 	optional_policy(`
 		unconfined_dbus_chat(cupsd_t)
+		files_write_generic_pid_pipes(cupsd_t)
 	')
 ')
 
@@ -371,8 +377,9 @@ files_tmp_filetrans(cupsd_config_t, cupsd_tmp_t, { lnk_file file dir })
 
 allow cupsd_config_t cupsd_var_run_t:file read_file_perms;
 
+manage_dirs_pattern(cupsd_config_t, cupsd_config_var_run_t, cupsd_config_var_run_t)
 manage_files_pattern(cupsd_config_t, cupsd_config_var_run_t, cupsd_config_var_run_t)
-files_pid_filetrans(cupsd_config_t, cupsd_config_var_run_t, file)
+files_pid_filetrans(cupsd_config_t, cupsd_config_var_run_t, { dir file })
 
 domtrans_pattern(cupsd_config_t, hplip_exec_t, hplip_t)
 
@@ -425,6 +432,7 @@ seutil_dontaudit_search_config(cupsd_config_t)
 
 userdom_dontaudit_use_unpriv_user_fds(cupsd_config_t)
 userdom_dontaudit_search_user_home_dirs(cupsd_config_t)
+userdom_rw_user_tmp_files(cupsd_config_t)
 
 cups_stream_connect(cupsd_config_t)
 
@@ -450,6 +458,10 @@ optional_policy(`
 	optional_policy(`
 		hal_dbus_chat(cupsd_config_t)
 	')
+')
+
+optional_policy(`
+	gnome_dontaudit_search_config(cupsd_config_t)
 ')
 
 optional_policy(`
@@ -587,13 +599,19 @@ auth_use_nsswitch(cups_pdf_t)
 
 miscfiles_read_localization(cups_pdf_t)
 miscfiles_read_fonts(cups_pdf_t)
+miscfiles_setattr_fonts_cache_dirs(cups_pdf_t)
 
 userdom_home_filetrans_user_home_dir(cups_pdf_t)
+userdom_user_home_dir_filetrans_pattern(cups_pdf_t, { file dir })
 userdom_manage_user_home_content_dirs(cups_pdf_t)
 userdom_manage_user_home_content_files(cups_pdf_t)
+userdom_dontaudit_search_admin_dir(cups_pdf_t)
 
 lpd_manage_spool(cups_pdf_t)
 
+optional_policy(`
+	gnome_read_config(cups_pdf_t)
+')
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_search_auto_mountpoints(cups_pdf_t)

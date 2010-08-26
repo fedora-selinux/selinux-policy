@@ -25,6 +25,7 @@ files_config_file(mozilla_conf_t)
 type mozilla_home_t;
 typealias mozilla_home_t alias { user_mozilla_home_t staff_mozilla_home_t sysadm_mozilla_home_t };
 typealias mozilla_home_t alias { auditadm_mozilla_home_t secadm_mozilla_home_t };
+files_poly_member(mozilla_home_t)
 userdom_user_home_content(mozilla_home_t)
 
 type mozilla_tmpfs_t;
@@ -32,6 +33,13 @@ typealias mozilla_tmpfs_t alias { user_mozilla_tmpfs_t staff_mozilla_tmpfs_t sys
 typealias mozilla_tmpfs_t alias { auditadm_mozilla_tmpfs_t secadm_mozilla_tmpfs_t };
 files_tmpfs_file(mozilla_tmpfs_t)
 ubac_constrained(mozilla_tmpfs_t)
+
+type mozilla_plugin_t;
+type mozilla_plugin_exec_t;
+application_domain(mozilla_plugin_t, mozilla_plugin_exec_t)
+role system_r types mozilla_plugin_t;
+
+permissive mozilla_plugin_t;
 
 ########################################
 #
@@ -89,16 +97,20 @@ corenet_tcp_sendrecv_generic_node(mozilla_t)
 corenet_raw_sendrecv_generic_node(mozilla_t)
 corenet_tcp_sendrecv_http_port(mozilla_t)
 corenet_tcp_sendrecv_http_cache_port(mozilla_t)
+corenet_tcp_sendrecv_squid_port(mozilla_t)
+corenet_tcp_connect_flash_port(mozilla_t)
 corenet_tcp_sendrecv_ftp_port(mozilla_t)
 corenet_tcp_sendrecv_ipp_port(mozilla_t)
 corenet_tcp_connect_http_port(mozilla_t)
 corenet_tcp_connect_http_cache_port(mozilla_t)
+corenet_tcp_connect_squid_port(mozilla_t)
 corenet_tcp_connect_ftp_port(mozilla_t)
 corenet_tcp_connect_ipp_port(mozilla_t)
 corenet_tcp_connect_generic_port(mozilla_t)
 corenet_tcp_connect_soundd_port(mozilla_t)
 corenet_sendrecv_http_client_packets(mozilla_t)
 corenet_sendrecv_http_cache_client_packets(mozilla_t)
+corenet_sendrecv_squid_client_packets(mozilla_t)
 corenet_sendrecv_ftp_client_packets(mozilla_t)
 corenet_sendrecv_ipp_client_packets(mozilla_t)
 corenet_sendrecv_generic_client_packets(mozilla_t)
@@ -238,6 +250,7 @@ optional_policy(`
 optional_policy(`
 	gnome_stream_connect_gconf(mozilla_t)
 	gnome_manage_config(mozilla_t)
+	gnome_manage_gconf_home_files(mozilla_t)
 ')
 
 optional_policy(`
@@ -258,6 +271,11 @@ optional_policy(`
 ')
 
 optional_policy(`
+	nsplugin_manage_rw(mozilla_t)
+	nsplugin_manage_home_files(mozilla_t)
+')
+
+optional_policy(`
 	pulseaudio_exec(mozilla_t)
 	pulseaudio_stream_connect(mozilla_t)
 	pulseaudio_manage_home_files(mozilla_t)
@@ -265,4 +283,47 @@ optional_policy(`
 
 optional_policy(`
 	thunderbird_domtrans(mozilla_t)
+')
+
+########################################
+#
+# mozilla_plugin local policy
+#
+allow mozilla_plugin_t self:process setsched;
+
+allow mozilla_plugin_t self:sem create_sem_perms;
+allow mozilla_plugin_t self:shm create_shm_perms;
+allow mozilla_plugin_t self:fifo_file manage_fifo_file_perms;
+allow mozilla_plugin_t self:unix_stream_socket { connectto create_stream_socket_perms };
+
+read_files_pattern(mozilla_plugin_t, mozilla_home_t, mozilla_home_t)
+
+kernel_read_kernel_sysctls(mozilla_plugin_t)
+kernel_read_system_state(mozilla_plugin_t)
+kernel_request_load_module(mozilla_plugin_t)
+
+corecmd_exec_bin(mozilla_plugin_t)
+corecmd_exec_shell(mozilla_plugin_t)
+
+dev_read_urand(mozilla_plugin_t)
+
+domain_use_interactive_fds(mozilla_plugin_t)
+domain_dontaudit_read_all_domains_state(mozilla_plugin_t)
+
+files_read_config_files(mozilla_plugin_t)
+files_read_usr_files(mozilla_plugin_t)
+
+miscfiles_read_localization(mozilla_plugin_t)
+
+term_getattr_all_ttys(mozilla_plugin_t)
+term_getattr_all_ptys(mozilla_plugin_t)
+
+optional_policy(`
+	nsplugin_domtrans(mozilla_plugin_t)
+	nsplugin_rw_exec(mozilla_plugin_t)
+')
+
+optional_policy(`
+	xserver_read_xdm_pid(mozilla_plugin_t)
+	xserver_stream_connect(mozilla_plugin_t)
 ')

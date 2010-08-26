@@ -28,7 +28,7 @@ define(`devfile_class_set', `{ chr_file blk_file }')
 #
 # All socket classes.
 #
-define(`socket_class_set', `{ tcp_socket udp_socket rawip_socket netlink_socket packet_socket unix_stream_socket unix_dgram_socket appletalk_socket netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_ip6fw_socket netlink_dnrt_socket netlink_kobject_uevent_socket }')
+define(`socket_class_set', `{ socket tcp_socket udp_socket rawip_socket netlink_socket packet_socket unix_stream_socket unix_dgram_socket appletalk_socket netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_ip6fw_socket netlink_dnrt_socket netlink_kobject_uevent_socket tun_socket }')
 
 
 #
@@ -105,7 +105,7 @@ define(`mount_fs_perms', `{ mount remount unmount getattr }')
 #
 # Permissions for using sockets.
 # 
-define(`rw_socket_perms', `{ ioctl read getattr write setattr append bind connect getopt setopt shutdown }')
+define(`rw_socket_perms', `{ ioctl read getattr lock write setattr append bind connect getopt setopt shutdown }')
 
 #
 # Permissions for creating and using sockets.
@@ -199,12 +199,14 @@ define(`relabel_dir_perms',`{ getattr relabelfrom relabelto }')
 #
 define(`getattr_file_perms',`{ getattr }')
 define(`setattr_file_perms',`{ setattr }')
-define(`read_file_perms',`{ getattr open read lock ioctl }')
+define(`read_inherited_file_perms',`{ getattr read ioctl lock }')
+define(`read_file_perms',`{ open read_inherited_file_perms }')
 define(`mmap_file_perms',`{ getattr open read execute ioctl }')
 define(`exec_file_perms',`{ getattr open read execute ioctl execute_no_trans }')
 define(`append_file_perms',`{ getattr open append lock ioctl }')
 define(`write_file_perms',`{ getattr open write append lock ioctl }')
-define(`rw_file_perms',`{ getattr open read write append ioctl lock }')
+define(`rw_inherited_file_perms',`{ getattr read write append ioctl lock }')
+define(`rw_file_perms',`{ open rw_inherited_file_perms }')
 define(`create_file_perms',`{ getattr create open }')
 define(`rename_file_perms',`{ getattr rename }')
 define(`delete_file_perms',`{ getattr unlink }')
@@ -225,7 +227,7 @@ define(`rw_lnk_file_perms',`{ getattr read write lock ioctl }')
 define(`create_lnk_file_perms',`{ create getattr }')
 define(`rename_lnk_file_perms',`{ getattr rename }')
 define(`delete_lnk_file_perms',`{ getattr unlink }')
-define(`manage_lnk_file_perms',`{ create read write getattr setattr link unlink rename }')
+define(`manage_lnk_file_perms',`{ create getattr setattr read write append rename link unlink ioctl lock }')
 define(`relabelfrom_lnk_file_perms',`{ getattr relabelfrom }')
 define(`relabelto_lnk_file_perms',`{ getattr relabelto }')
 define(`relabel_lnk_file_perms',`{ getattr relabelfrom relabelto }')
@@ -238,7 +240,8 @@ define(`setattr_fifo_file_perms',`{ setattr }')
 define(`read_fifo_file_perms',`{ getattr open read lock ioctl }')
 define(`append_fifo_file_perms',`{ getattr open append lock ioctl }')
 define(`write_fifo_file_perms',`{ getattr open write append lock ioctl }')
-define(`rw_fifo_file_perms',`{ getattr open read write append ioctl lock }')
+define(`rw_inherited_fifo_file_perms',`{ getattr read write append ioctl lock }')
+define(`rw_fifo_file_perms',`{ open rw_inherited_fifo_file_perms }')
 define(`create_fifo_file_perms',`{ getattr create open }')
 define(`rename_fifo_file_perms',`{ getattr rename }')
 define(`delete_fifo_file_perms',`{ getattr unlink }')
@@ -254,7 +257,8 @@ define(`getattr_sock_file_perms',`{ getattr }')
 define(`setattr_sock_file_perms',`{ setattr }')
 define(`read_sock_file_perms',`{ getattr open read }')
 define(`write_sock_file_perms',`{ getattr write open append }')
-define(`rw_sock_file_perms',`{ getattr open read write append }')
+define(`rw_inherited_sock_file_perms',`{ getattr read write append }')
+define(`rw_sock_file_perms',`{ open rw_inherited_sock_file_perms }')
 define(`create_sock_file_perms',`{ getattr create open }')
 define(`rename_sock_file_perms',`{ getattr rename }')
 define(`delete_sock_file_perms',`{ getattr unlink }')
@@ -271,7 +275,8 @@ define(`setattr_blk_file_perms',`{ setattr }')
 define(`read_blk_file_perms',`{ getattr open read lock ioctl }')
 define(`append_blk_file_perms',`{ getattr open append lock ioctl }')
 define(`write_blk_file_perms',`{ getattr open write append lock ioctl }')
-define(`rw_blk_file_perms',`{ getattr open read write append ioctl lock }')
+define(`rw_inherited_blk_file_perms',`{ getattr read write append ioctl lock }')
+define(`rw_blk_file_perms',`{ open rw_inherited_blk_file_perms }')
 define(`create_blk_file_perms',`{ getattr create }')
 define(`rename_blk_file_perms',`{ getattr rename }')
 define(`delete_blk_file_perms',`{ getattr unlink }')
@@ -288,7 +293,8 @@ define(`setattr_chr_file_perms',`{ setattr }')
 define(`read_chr_file_perms',`{ getattr open read lock ioctl }')
 define(`append_chr_file_perms',`{ getattr open append lock ioctl }')
 define(`write_chr_file_perms',`{ getattr open write append lock ioctl }')
-define(`rw_chr_file_perms',`{ getattr open read write append ioctl lock }')
+define(`rw_inherited_chr_file_perms',`{ getattr read write append ioctl lock }')
+define(`rw_chr_file_perms',`{ open rw_inherited_chr_file_perms }')
 define(`create_chr_file_perms',`{ getattr create }')
 define(`rename_chr_file_perms',`{ getattr rename }')
 define(`delete_chr_file_perms',`{ getattr unlink }')
@@ -305,7 +311,8 @@ define(`relabel_chr_file_perms',`{ getattr relabelfrom relabelto }')
 #
 # Use (read and write) terminals
 #
-define(`rw_term_perms', `{ getattr open read write ioctl }')
+define(`rw_inherited_term_perms', `{ getattr open read write ioctl append }')
+define(`rw_term_perms', `{ open rw_inherited_term_perms }')
 
 #
 # Sockets
@@ -317,3 +324,14 @@ define(`server_stream_socket_perms', `{ client_stream_socket_perms listen accept
 # Keys
 #
 define(`manage_key_perms', `{ create link read search setattr view write } ')
+
+#
+# All 
+#
+define(`all_capabilities', `{ chown dac_override dac_read_search fowner fsetid kill setgid setuid setpcap linux_immutable net_bind_service net_broadcast net_admin net_raw ipc_lock ipc_owner sys_module sys_rawio sys_chroot sys_ptrace sys_pacct sys_admin sys_boot sys_nice sys_resource sys_time sys_tty_config mknod lease audit_write audit_control setfcap }
+')
+
+define(`all_nscd_perms', `{ getserv getpwd getgrp gethost getstat admin shmempwd shmemgrp shmemhost shmemserv } ')
+define(`all_dbus_perms', `{ acquire_svc send_msg } ')
+define(`all_passwd_perms', `{ passwd chfn chsh rootok crontab } ')
+define(`all_association_perms', `{ sendto recvfrom setcontext polmatch } ')

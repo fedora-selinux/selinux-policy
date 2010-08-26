@@ -62,6 +62,7 @@ allow apmd_t self:capability { sys_admin sys_nice sys_time kill mknod };
 dontaudit apmd_t self:capability { setuid dac_override dac_read_search sys_ptrace sys_tty_config };
 allow apmd_t self:process { signal_perms getsession };
 allow apmd_t self:fifo_file rw_fifo_file_perms;
+allow apmd_t self:netlink_socket create_socket_perms;
 allow apmd_t self:unix_dgram_socket create_socket_perms;
 allow apmd_t self:unix_stream_socket create_stream_socket_perms;
 
@@ -81,6 +82,7 @@ kernel_rw_all_sysctls(apmd_t)
 kernel_read_system_state(apmd_t)
 kernel_write_proc_files(apmd_t)
 
+dev_read_input(apmd_t)
 dev_read_realtime_clock(apmd_t)
 dev_read_urand(apmd_t)
 dev_rw_apm_bios(apmd_t)
@@ -143,6 +145,10 @@ ifdef(`distro_redhat',`
 	can_exec(apmd_t, apmd_var_run_t)
 
 	# ifconfig_exec_t needs to be run in its own domain for Red Hat
+	optional_policy(`
+		sssd_search_lib(apmd_t)
+	')
+
 	optional_policy(`
 		sysnet_domtrans_ifconfig(apmd_t)
 	')
@@ -218,8 +224,12 @@ optional_policy(`
 	udev_read_state(apmd_t) #necessary?
 ')
 
+ifdef(`enforcing',`
 optional_policy(`
 	unconfined_domain(apmd_t)
+')
+', `
+   permissive apmd_t;
 ')
 
 optional_policy(`

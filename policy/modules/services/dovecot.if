@@ -93,12 +93,14 @@ interface(`dovecot_dontaudit_unlink_lib_files',`
 #
 interface(`dovecot_admin',`
 	gen_require(`
-		type dovecot_t, dovecot_etc_t, dovecot_log_t;
+		type dovecot_t, dovecot_etc_t, dovecot_auth_tmp_t;
 		type dovecot_spool_t, dovecot_var_lib_t;
-		type dovecot_var_run_t;
+		type dovecot_var_run_t, dovecot_tmp_t;
+		type dovecot_var_log_t;
 
 		type dovecot_cert_t, dovecot_passwd_t;
 		type dovecot_initrc_exec_t;
+		type dovecot_keytab_t;
 	')
 
 	allow $1 dovecot_t:process { ptrace signal_perms };
@@ -112,14 +114,20 @@ interface(`dovecot_admin',`
 	files_list_etc($1)
 	admin_pattern($1, dovecot_etc_t)
 
-	logging_list_logs($1)
-	admin_pattern($1, dovecot_log_t)
+	files_list_tmp($1)
+	admin_pattern($1, dovecot_auth_tmp_t)
+	admin_pattern($1, dovecot_tmp_t)
+
+	admin_pattern($1, dovecot_keytab_t)
 
 	files_list_spool($1)
 	admin_pattern($1, dovecot_spool_t)
 
 	files_list_var_lib($1)
 	admin_pattern($1, dovecot_var_lib_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, dovecot_var_log_t)
 
 	files_list_pids($1)
 	admin_pattern($1, dovecot_var_run_t)

@@ -19,6 +19,9 @@ mta_sendmail_mailserver(sendmail_t)
 mta_mailserver_delivery(sendmail_t)
 mta_mailserver_sender(sendmail_t)
 
+type sendmail_initrc_exec_t;
+init_script_file(sendmail_initrc_exec_t)
+
 type unconfined_sendmail_t;
 application_domain(unconfined_sendmail_t, sendmail_exec_t)
 role system_r types unconfined_sendmail_t;
@@ -84,12 +87,14 @@ files_read_usr_files(sendmail_t)
 files_search_spool(sendmail_t)
 # for piping mail to a command
 files_read_etc_runtime_files(sendmail_t)
+files_read_all_tmp_files(sendmail_t)
 
 init_use_fds(sendmail_t)
 init_use_script_ptys(sendmail_t)
 # sendmail wants to read /var/run/utmp if the controlling tty is /dev/console
 init_read_utmp(sendmail_t)
 init_dontaudit_write_utmp(sendmail_t)
+init_rw_script_tmp_files(sendmail_t)
 
 auth_use_nsswitch(sendmail_t)
 
@@ -103,7 +108,7 @@ miscfiles_read_certs(sendmail_t)
 miscfiles_read_localization(sendmail_t)
 
 userdom_dontaudit_use_unpriv_user_fds(sendmail_t)
-userdom_dontaudit_search_user_home_dirs(sendmail_t)
+userdom_read_user_home_content_files(sendmail_t)
 
 mta_read_config(sendmail_t)
 mta_etc_filetrans_aliases(sendmail_t)
@@ -149,7 +154,9 @@ optional_policy(`
 ')
 
 optional_policy(`
+	postfix_domtrans_postdrop(sendmail_t)
 	postfix_domtrans_master(sendmail_t)
+	postfix_domtrans_postqueue(sendmail_t)
 	postfix_read_config(sendmail_t)
 	postfix_search_spool(sendmail_t)
 ')
@@ -168,6 +175,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	spamd_stream_connect(sendmail_t)
+')
+
+optional_policy(`
 	udev_read_db(sendmail_t)
 ')
 
@@ -183,5 +194,5 @@ optional_policy(`
 
 optional_policy(`
 	mta_etc_filetrans_aliases(unconfined_sendmail_t)
-	unconfined_domain(unconfined_sendmail_t)
+	unconfined_domain_noaudit(unconfined_sendmail_t)
 ')

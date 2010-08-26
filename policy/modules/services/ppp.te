@@ -70,7 +70,7 @@ files_pid_file(pptp_var_run_t)
 # PPPD Local policy
 #
 
-allow pppd_t self:capability { kill net_admin setuid setgid fsetid fowner net_raw dac_override };
+allow pppd_t self:capability { kill net_admin setuid setgid sys_admin fsetid fowner net_raw dac_override };
 dontaudit pppd_t self:capability sys_tty_config;
 allow pppd_t self:process { getsched signal };
 allow pppd_t self:fifo_file rw_fifo_file_perms;
@@ -104,8 +104,9 @@ manage_dirs_pattern(pppd_t, pppd_tmp_t, pppd_tmp_t)
 manage_files_pattern(pppd_t, pppd_tmp_t, pppd_tmp_t)
 files_tmp_filetrans(pppd_t, pppd_tmp_t, { file dir })
 
+manage_dirs_pattern(pppd_t, pppd_var_run_t, pppd_var_run_t)
 manage_files_pattern(pppd_t, pppd_var_run_t, pppd_var_run_t)
-files_pid_filetrans(pppd_t, pppd_var_run_t, file)
+files_pid_filetrans(pppd_t, pppd_var_run_t, { dir file })
 
 allow pppd_t pptp_t:process signal;
 
@@ -194,6 +195,8 @@ optional_policy(`
 
 optional_policy(`
 	mta_send_mail(pppd_t)
+	mta_system_content(pppd_etc_t)
+	mta_system_content(pppd_etc_rw_t)
 ')
 
 optional_policy(`
@@ -243,9 +246,10 @@ allow pptp_t pppd_log_t:file append_file_perms;
 allow pptp_t pptp_log_t:file manage_file_perms;
 logging_log_filetrans(pptp_t, pptp_log_t, file)
 
+manage_dirs_pattern(pptp_t, pptp_var_run_t, pptp_var_run_t)
 manage_files_pattern(pptp_t, pptp_var_run_t, pptp_var_run_t)
 manage_sock_files_pattern(pptp_t, pptp_var_run_t, pptp_var_run_t)
-files_pid_filetrans(pptp_t, pptp_var_run_t, file)
+files_pid_filetrans(pptp_t, pptp_var_run_t, { file dir })
 
 kernel_list_proc(pptp_t)
 kernel_read_kernel_sysctls(pptp_t)

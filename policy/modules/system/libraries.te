@@ -61,7 +61,7 @@ allow ldconfig_t self:capability { dac_override sys_chroot };
 
 manage_files_pattern(ldconfig_t, ldconfig_cache_t, ldconfig_cache_t)
 
-allow ldconfig_t ld_so_cache_t:file manage_file_perms;
+manage_files_pattern(ldconfig_t, ld_so_cache_t, ld_so_cache_t)
 files_etc_filetrans(ldconfig_t, ld_so_cache_t, file)
 
 manage_dirs_pattern(ldconfig_t, ldconfig_tmp_t, ldconfig_tmp_t)
@@ -79,6 +79,7 @@ corecmd_search_bin(ldconfig_t)
 
 domain_use_interactive_fds(ldconfig_t)
 
+files_search_home(ldconfig_t)
 files_search_var_lib(ldconfig_t)
 files_read_etc_files(ldconfig_t)
 files_read_usr_files(ldconfig_t)
@@ -94,6 +95,7 @@ miscfiles_read_localization(ldconfig_t)
 
 logging_send_syslog_msg(ldconfig_t)
 
+term_use_console(ldconfig_t)
 userdom_use_user_terminals(ldconfig_t)
 userdom_use_all_users_fds(ldconfig_t)
 
@@ -102,6 +104,10 @@ ifdef(`distro_ubuntu',`
 		unconfined_domain(ldconfig_t)
 	')
 ')
+
+userdom_manage_user_home_content_files(ldconfig_t)
+userdom_manage_user_tmp_files(ldconfig_t)
+userdom_manage_user_tmp_symlinks(ldconfig_t)
 
 ifdef(`hide_broken_symptoms',`
 	ifdef(`distro_gentoo',`
@@ -141,6 +147,10 @@ optional_policy(`
 	rpm_manage_script_tmp_files(ldconfig_t)
 ')
 
+ifdef(`enforcing',`
 optional_policy(`
 	unconfined_domain(ldconfig_t)
+')'
+, `
+	permissive ldconfig_t;
 ')

@@ -91,9 +91,12 @@ interface(`auth_use_pam',`
 interface(`auth_login_pgm_domain',`
 	gen_require(`
 		type var_auth_t, auth_cache_t;
+		attribute polydomain;
 	')
 
 	domain_type($1)
+	typeattribute $1 polydomain;
+
 	domain_subj_id_change_exemption($1)
 	domain_role_change_exemption($1)
 	domain_obj_id_change_exemption($1)
@@ -107,6 +110,7 @@ interface(`auth_login_pgm_domain',`
 	allow $1 self:capability ipc_lock;
 	allow $1 self:process setkeycreate;
 	allow $1 self:key manage_key_perms;
+	userdom_manage_all_users_keys($1)
 
 	files_list_var_lib($1)
 	manage_files_pattern($1, var_auth_t, var_auth_t)
@@ -126,6 +130,8 @@ interface(`auth_login_pgm_domain',`
 	files_read_etc_files($1)
 
 	fs_list_auto_mountpoints($1)
+	fs_manage_cgroup_dirs($1)
+	fs_manage_cgroup_files($1)
 
 	selinux_get_fs_mount($1)
 	selinux_validate_context($1)
@@ -141,6 +147,7 @@ interface(`auth_login_pgm_domain',`
 	mls_process_set_level($1)
 	mls_fd_share_all_levels($1)
 
+	auth_manage_pam_pid($1)
 	auth_use_pam($1)
 
 	init_rw_utmp($1)
@@ -151,8 +158,38 @@ interface(`auth_login_pgm_domain',`
 	seutil_read_config($1)
 	seutil_read_default_contexts($1)
 
-	tunable_policy(`allow_polyinstantiation',`
-		files_polyinstantiate_all($1)
+	userdom_set_rlimitnh($1)
+	userdom_read_user_home_content_symlinks($1)
+	userdom_delete_user_tmp_files($1)
+	userdom_search_admin_dir($1)
+
+	optional_policy(`
+		afs_rw_udp_sockets($1)
+	')
+
+	optional_policy(`
+		kerberos_read_config($1)
+	')
+
+	optional_policy(`
+		oddjob_dbus_chat($1)
+		oddjob_domtrans_mkhomedir($1)
+	')
+
+	optional_policy(`
+		corecmd_exec_bin($1)
+		storage_getattr_fixed_disk_dev($1)
+		mount_domtrans($1)
+	')
+
+	optional_policy(`
+		fprintd_dbus_chat($1)
+	')
+
+	optional_policy(`
+		ssh_agent_exec($1)
+		ssh_read_user_home_files($1)
+		userdom_read_user_home_content_files($1)
 	')
 ')
 
@@ -365,13 +402,15 @@ interface(`auth_domtrans_chk_passwd',`
 	')
 
 	optional_policy(`
-		pcscd_read_pub_files($1)
+		pcscd_manage_pub_files($1)
+		pcscd_manage_pub_pipes($1)
 		pcscd_stream_connect($1)
 	')
 
 	optional_policy(`
 		samba_stream_connect_winbind($1)
 	')
+	auth_domtrans_upd_passwd($1)
 ')
 
 ########################################
@@ -418,6 +457,7 @@ interface(`auth_run_chk_passwd',`
 
 	auth_domtrans_chk_passwd($1)
 	role $2 types chkpwd_t;
+	auth_run_upd_passwd($1, $2)
 ')
 
 ########################################
@@ -870,6 +910,26 @@ interface(`auth_exec_pam',`
 	')
 
 	can_exec($1, pam_exec_t)
+')
+
+########################################
+## <summary>
+##	Read var auth files. Used by various other applications
+##	and pam applets etc.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_read_var_auth',`
+	gen_require(`
+		type var_auth_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, var_auth_t, var_auth_t)
 ')
 
 ########################################
@@ -1500,6 +1560,8 @@ interface(`auth_manage_login_records',`
 #
 interface(`auth_use_nsswitch',`
 
+	allow $1 self:netlink_route_socket r_netlink_socket_perms;
+
 	files_list_var_lib($1)
 
 	# read /etc/nsswitch.conf
@@ -1531,7 +1593,15 @@ interface(`auth_use_nsswitch',`
 	')
 
 	optional_policy(`
-		nscd_socket_use($1)
+		nscd_use($1)
+	')
+
+	optional_policy(`
+		nslcd_stream_connect($1)
+	')
+
+	optional_policy(`
+		sssd_stream_connect($1)
 	')
 
 	optional_policy(`

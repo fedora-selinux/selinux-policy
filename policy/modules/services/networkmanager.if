@@ -137,6 +137,27 @@ interface(`networkmanager_dbus_chat',`
 
 ########################################
 ## <summary>
+##	Send and receive messages from
+##	NetworkManager over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_dontaudit_dbus_chat',`
+	gen_require(`
+		type NetworkManager_t;
+		class dbus send_msg;
+	')
+
+	dontaudit $1 NetworkManager_t:dbus send_msg;
+	dontaudit NetworkManager_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
 ##	Send a generic signal to NetworkManager
 ## </summary>
 ## <param name="domain">
@@ -190,4 +211,51 @@ interface(`networkmanager_read_pid_files',`
 
 	files_search_pids($1)
 	allow $1 NetworkManager_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute NetworkManager in the NetworkManager domain, and
+##	allow the specified role the NetworkManager domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the NetworkManager domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`networkmanager_run',`
+	gen_require(`
+		type NetworkManager_t, NetworkManager_exec_t;
+	')
+
+	networkmanager_domtrans($1)
+	role $2 types NetworkManager_t;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	to Network Manager log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_append_log',`
+	gen_require(`
+		type NetworkManager_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 NetworkManager_log_t:dir list_dir_perms;
+	append_files_pattern($1, NetworkManager_log_t, NetworkManager_log_t)
 ')

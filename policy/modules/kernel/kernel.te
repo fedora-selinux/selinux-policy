@@ -156,6 +156,7 @@ genfscon proc /sys/dev gen_context(system_u:object_r:sysctl_dev_t,s0)
 #
 type unlabeled_t;
 sid unlabeled gen_context(system_u:object_r:unlabeled_t,mls_systemhigh)
+fs_associate(unlabeled_t)
 
 # These initial sids are no longer used, and can be removed:
 sid any_socket		gen_context(system_u:object_r:unlabeled_t,mls_systemhigh)
@@ -255,7 +256,8 @@ fs_unmount_all_fs(kernel_t)
 
 selinux_load_policy(kernel_t)
 
-term_use_console(kernel_t)
+term_use_all_terms(kernel_t)
+term_use_ptmx(kernel_t)
 
 corecmd_exec_shell(kernel_t)
 corecmd_list_bin(kernel_t)
@@ -269,18 +271,28 @@ files_list_root(kernel_t)
 files_list_etc(kernel_t)
 files_list_home(kernel_t)
 files_read_usr_files(kernel_t)
+files_manage_mounttab(kernel_t)
+files_manage_generic_spool_dirs(kernel_t)
 
 mcs_process_set_categories(kernel_t)
+mcs_file_read_all(kernel_t)
+mcs_file_write_all(kernel_t)
 
 mls_process_read_up(kernel_t)
 mls_process_write_down(kernel_t)
 mls_file_write_all_levels(kernel_t)
 mls_file_read_all_levels(kernel_t)
+mls_socket_write_all_levels(kernel_t) 
+mls_fd_share_all_levels(kernel_t) 
+
+logging_manage_generic_logs(kernel_t)
 
 ifdef(`distro_redhat',`
 	# Bugzilla 222337
 	fs_rw_tmpfs_chr_files(kernel_t)
 ')
+
+userdom_user_home_dir_filetrans_user_home_content(kernel_t, { file dir })
 
 optional_policy(`
 	hotplug_search_config(kernel_t)
@@ -356,6 +368,10 @@ optional_policy(`
 
 optional_policy(`
 	unconfined_domain_noaudit(kernel_t)
+')
+
+optional_policy(`
+	xserver_xdm_manage_spool(kernel_t)
 ')
 
 ########################################

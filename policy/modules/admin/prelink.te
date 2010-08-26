@@ -59,6 +59,7 @@ manage_dirs_pattern(prelink_t, prelink_var_lib_t, prelink_var_lib_t)
 manage_files_pattern(prelink_t, prelink_var_lib_t, prelink_var_lib_t)
 relabel_files_pattern(prelink_t, prelink_var_lib_t, prelink_var_lib_t)
 files_var_lib_filetrans(prelink_t, prelink_var_lib_t, { dir file })
+files_search_var_lib(prelink_t)
 
 # prelink misc objects that are not system
 # libraries or entrypoints
@@ -73,6 +74,7 @@ corecmd_mmap_all_executables(prelink_t)
 corecmd_read_bin_symlinks(prelink_t)
 
 dev_read_urand(prelink_t)
+dev_getattr_all_chr_files(prelink_t)
 
 files_list_all(prelink_t)
 files_getattr_all_files(prelink_t)
@@ -85,6 +87,8 @@ files_manage_var_files(prelink_t)
 files_relabelfrom_usr_files(prelink_t)
 
 fs_getattr_xattr_fs(prelink_t)
+
+storage_getattr_fixed_disk_dev(prelink_t)
 
 selinux_get_enforce_mode(prelink_t)
 
@@ -99,6 +103,8 @@ libs_delete_lib_symlinks(prelink_t)
 miscfiles_read_localization(prelink_t)
 
 userdom_use_user_terminals(prelink_t)
+userdom_manage_user_home_content(prelink_t)
+userdom_execmod_user_home_files(prelink_t)
 
 optional_policy(`
 	amanda_manage_lib(prelink_t)
@@ -106,6 +112,10 @@ optional_policy(`
 
 optional_policy(`
 	cron_system_entry(prelink_t, prelink_exec_t)
+')
+
+optional_policy(`
+	nsplugin_manage_rw_files(prelink_t)
 ')
 
 optional_policy(`
@@ -129,6 +139,7 @@ optional_policy(`
 
 	read_files_pattern(prelink_cron_system_t, prelink_cache_t, prelink_cache_t)
 	allow prelink_cron_system_t prelink_cache_t:file unlink;
+	files_delete_etc_dir_entry(prelink_cron_system_t)
 
 	domtrans_pattern(prelink_cron_system_t, prelink_exec_t, prelink_t)
 	allow prelink_cron_system_t prelink_t:process noatsecure;
@@ -148,7 +159,7 @@ optional_policy(`
 	files_read_etc_files(prelink_cron_system_t)
 	files_search_var_lib(prelink_cron_system_t)
 
-	init_exec(prelink_cron_system_t)
+	init_telinit(prelink_cron_system_t)
 
 	libs_exec_ld_so(prelink_cron_system_t)
 
@@ -157,6 +168,8 @@ optional_policy(`
 	miscfiles_read_localization(prelink_cron_system_t)
 
 	cron_system_entry(prelink_cron_system_t, prelink_cron_system_exec_t)
+
+	userdom_dontaudit_list_admin_dir(prelink_cron_system_t)
 
 	optional_policy(`
 		rpm_read_db(prelink_cron_system_t)

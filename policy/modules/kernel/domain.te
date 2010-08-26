@@ -4,6 +4,21 @@ policy_module(domain, 1.8.0)
 #
 # Declarations
 #
+## <desc>
+## <p>
+## Allow all domains to use other domains file descriptors
+## </p>
+## </desc>
+#
+gen_tunable(allow_domain_fd_use, true)
+
+## <desc>
+## <p>
+## Allow all domains to have the kernel load modules
+## </p>
+## </desc>
+#
+gen_tunable(domain_kernel_load_modules, false)
 
 # Mark process types as domains
 attribute domain;
@@ -79,14 +94,17 @@ allow domain self:dir list_dir_perms;
 allow domain self:lnk_file { read_lnk_file_perms lock ioctl };
 allow domain self:file rw_file_perms;
 kernel_read_proc_symlinks(domain)
+kernel_read_crypto_sysctls(domain)
+
 # Every domain gets the key ring, so we should default
 # to no one allowed to look at it; afs kernel support creates
 # a keyring
 kernel_dontaudit_search_key(domain)
 kernel_dontaudit_link_key(domain)
+kernel_dontaudit_search_debugfs(domain)
 
 # create child processes in the domain
-allow domain self:process { fork sigchld };
+allow domain self:process { fork getsched sigchld };
 
 # Use trusted objects in /dev
 dev_rw_null(domain)
@@ -95,6 +113,13 @@ term_use_controlling_term(domain)
 
 # list the root directory
 files_list_root(domain)
+
+# All executables should be able to search the directory they are in
+corecmd_search_bin(domain)
+
+tunable_policy(`domain_kernel_load_modules',`
+	kernel_request_load_module(domain)
+')
 
 tunable_policy(`global_ssp',`
 	# enable reading of urandom for all domains:
@@ -105,8 +130,13 @@ tunable_policy(`global_ssp',`
 ')
 
 optional_policy(`
+	afs_rw_cache(domain)
+')
+
+optional_policy(`
 	libs_use_ld_so(domain)
 	libs_use_shared_libs(domain)
+	libs_read_lib_files(domain)
 ')
 
 optional_policy(`
@@ -117,6 +147,8 @@ optional_policy(`
 optional_policy(`
 	xserver_dontaudit_use_xdm_fds(domain)
 	xserver_dontaudit_rw_xdm_pipes(domain)
+	xserver_dontaudit_append_xdm_home_files(domain)
+	xserver_dontaudit_write_log(domain)
 ')
 
 ########################################
@@ -135,6 +167,8 @@ allow unconfined_domain_type domain:{ socket_class_set socket key_socket } *;
 allow unconfined_domain_type domain:fd use;
 allow unconfined_domain_type domain:fifo_file rw_file_perms;
 
+allow unconfined_domain_type unconfined_domain_type:dbus send_msg;
+
 # Act upon any other process.
 allow unconfined_domain_type domain:process ~{ transition dyntransition execmem execstack execheap };
 
@@ -152,3 +186,77 @@ allow unconfined_domain_type domain:key *;
 
 # receive from all domains over labeled networking
 domain_all_recvfrom_all_domains(unconfined_domain_type)
+
+selinux_getattr_fs(domain)
+selinux_search_fs(domain)
+selinux_dontaudit_read_fs(domain)
+
+seutil_dontaudit_read_config(domain)
+
+init_sigchld(domain)
+init_signull(domain)
+
+ifdef(`distro_redhat',`
+	files_search_mnt(domain)
+	optional_policy(`
+		unconfined_use_fds(domain)
+	')
+')
+
+# these seem questionable:
+
+optional_policy(`
+	abrt_domtrans_helper(domain)
+	abrt_read_pid_files(domain)
+	abrt_read_state(domain)
+	abrt_signull(domain)
+	abrt_stream_connect(domain)
+')
+
+optional_policy(`
+	rpm_use_fds(domain)
+	rpm_read_pipes(domain)
+	rpm_search_log(domain)
+	rpm_append_tmp_files(domain)
+	rpm_dontaudit_leaks(domain)
+	rpm_read_script_tmp_files(domain)
+	rpm_inherited_fifo(domain)
+')
+
+optional_policy(`
+	sosreport_append_tmp_files(domain)
+')
+
+tunable_policy(`allow_domain_fd_use',`
+	# Allow all domains to use fds past to them
+	allow domain domain:fd use;
+')
+
+optional_policy(`
+	cron_dontaudit_write_system_job_tmp_files(domain)
+	cron_rw_pipes(domain)
+	cron_rw_system_job_pipes(domain)
+')
+
+ifdef(`hide_broken_symptoms',`
+	dontaudit domain self:udp_socket listen;
+	allow domain domain:key { link search };
+')
+
+optional_policy(`
+	ifdef(`hide_broken_symptoms',`
+		afs_rw_udp_sockets(domain)
+	')
+')
+
+optional_policy(`
+	ssh_rw_pipes(domain)
+')
+
+optional_policy(`
+	unconfined_dontaudit_rw_pipes(domain)
+	unconfined_sigchld(domain)
+')
+
+# broken kernel
+dontaudit can_change_object_identity can_change_object_identity:key link;

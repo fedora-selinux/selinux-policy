@@ -1,0 +1,98 @@
+policy_module(mock,1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type mock_t;
+type mock_exec_t;
+application_domain(mock_t, mock_exec_t)
+domain_role_change_exemption(mock_t)
+domain_system_change_exemption(mock_t)
+role system_r types mock_t;
+
+permissive mock_t;
+
+type mock_cache_t;
+files_type(mock_cache_t)
+
+type mock_tmp_t;
+files_tmp_file(mock_tmp_t)
+
+type mock_var_lib_t;
+files_type(mock_var_lib_t)
+
+########################################
+#
+# mock local policy
+#
+allow mock_t self:capability { sys_admin setfcap setuid sys_ptrace sys_chroot chown audit_write dac_override sys_nice mknod fsetid setgid fowner };
+allow mock_t self:process { siginh noatsecure signull transition rlimitinh setsched setpgid sigkill };
+dontaudit mock_t self:process { siginh noatsecure rlimitinh };
+allow mock_t self:fifo_file manage_fifo_file_perms;
+allow mock_t self:unix_stream_socket create_stream_socket_perms;
+allow mock_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(mock_t, mock_cache_t, mock_cache_t)
+manage_files_pattern(mock_t, mock_cache_t, mock_cache_t)
+files_var_filetrans(mock_t, mock_cache_t, { dir file } )
+
+manage_dirs_pattern(mock_t, mock_tmp_t, mock_tmp_t)
+manage_files_pattern(mock_t, mock_tmp_t, mock_tmp_t)
+files_tmp_filetrans(mock_t, mock_tmp_t, { dir file } )
+can_exec(mock_t, mock_tmp_t)
+
+manage_dirs_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+manage_files_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+manage_lnk_files_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+manage_chr_files_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+files_var_lib_filetrans(mock_t, mock_var_lib_t, { dir file } )
+can_exec(mock_t, mock_var_lib_t)
+allow mock_t mock_var_lib_t:dir mounton;
+
+kernel_list_proc(mock_t)
+kernel_read_irq_sysctls(mock_t)
+kernel_read_system_state(mock_t)
+kernel_read_kernel_sysctls(mock_t)
+kernel_request_load_module(mock_t)
+
+corecmd_exec_bin(mock_t)
+corecmd_exec_shell(mock_t)
+
+corenet_tcp_connect_http_port(mock_t)
+
+dev_read_urand(mock_t)
+
+domain_read_all_domains_state(mock_t)
+domain_use_interactive_fds(mock_t)
+
+files_read_etc_files(mock_t)
+files_read_usr_files(mock_t)
+
+fs_getattr_all_fs(mock_t)
+
+selinux_get_enforce_mode(mock_t)
+
+auth_use_nsswitch(mock_t)
+
+init_exec(mock_t)
+
+libs_domtrans_ldconfig(mock_t)
+
+logging_send_audit_msgs(mock_t)
+logging_send_syslog_msg(mock_t)
+
+miscfiles_read_localization(mock_t)
+
+mount_domtrans(mock_t)
+
+optional_policy(`
+	rpm_exec(mock_t)
+	rpm_manage_db(mock_t)
+	rpm_entry_type(mock_t)
+')
+
+optional_policy(`
+	apache_read_sys_content_rw_files(mock_t)
+')

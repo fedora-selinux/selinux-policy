@@ -35,6 +35,13 @@ gen_tunable(allow_write_xshm, false)
 
 ## <desc>
 ## <p>
+## Allows XServer to execute writable memory
+## </p>
+## </desc>
+gen_tunable(allow_xserver_execmem, false)
+
+## <desc>
+## <p>
 ## Allow xdm logins as sysadm
 ## </p>
 ## </desc>
@@ -46,6 +53,16 @@ gen_tunable(xdm_sysadm_login, false)
 ## </p>
 ## </desc>
 gen_tunable(xserver_object_manager, false)
+
+## <desc>
+## <p>
+## Allow regular users direct dri device access
+## </p>
+## </desc>
+gen_tunable(user_direct_dri, false)
+
+attribute xdmhomewriter;
+attribute x_userdomain;
 
 attribute x_domain;
 
@@ -109,21 +126,26 @@ xserver_common_x_domain_template(remote,remote_t)
 type user_fonts_t;
 typealias user_fonts_t alias { staff_fonts_t sysadm_fonts_t };
 typealias user_fonts_t alias { auditadm_fonts_t secadm_fonts_t };
+typealias user_fonts_t alias { xguest_fonts_t unconfined_fonts_t  user_fonts_home_t };
 userdom_user_home_content(user_fonts_t)
 
 type user_fonts_cache_t;
 typealias user_fonts_cache_t alias { staff_fonts_cache_t sysadm_fonts_cache_t };
 typealias user_fonts_cache_t alias { auditadm_fonts_cache_t secadm_fonts_cache_t };
+typealias user_fonts_cache_t alias { xguest_fonts_cache_t unconfined_fonts_cache_t };
+;
 userdom_user_home_content(user_fonts_cache_t)
 
 type user_fonts_config_t;
 typealias user_fonts_config_t alias { staff_fonts_config_t sysadm_fonts_config_t };
 typealias user_fonts_config_t alias { auditadm_fonts_config_t secadm_fonts_config_t };
+typealias user_fonts_config_t alias { fonts_config_home_t xguest_fonts_config_t unconfined_fonts_config_t };
 userdom_user_home_content(user_fonts_config_t)
 
 type iceauth_t;
 type iceauth_exec_t;
 typealias iceauth_t alias { user_iceauth_t staff_iceauth_t sysadm_iceauth_t };
+typealias iceauth_t alias { xguest_iceauth_t };
 typealias iceauth_t alias { auditadm_iceauth_t secadm_iceauth_t };
 application_domain(iceauth_t, iceauth_exec_t)
 ubac_constrained(iceauth_t)
@@ -131,22 +153,28 @@ ubac_constrained(iceauth_t)
 type iceauth_home_t;
 typealias iceauth_home_t alias { user_iceauth_home_t staff_iceauth_home_t sysadm_iceauth_home_t };
 typealias iceauth_home_t alias { auditadm_iceauth_home_t secadm_iceauth_home_t };
+typealias iceauth_home_t alias {  xguest_iceauth_home_t };
+files_poly_member(iceauth_home_t)
 userdom_user_home_content(iceauth_home_t)
 
 type xauth_t;
 type xauth_exec_t;
 typealias xauth_t alias { user_xauth_t staff_xauth_t sysadm_xauth_t };
 typealias xauth_t alias { auditadm_xauth_t secadm_xauth_t };
+typealias xauth_t alias { xguest_xauth_t unconfined_xauth_t };
 application_domain(xauth_t, xauth_exec_t)
 ubac_constrained(xauth_t)
 
 type xauth_home_t;
 typealias xauth_home_t alias { user_xauth_home_t staff_xauth_home_t sysadm_xauth_home_t };
 typealias xauth_home_t alias { auditadm_xauth_home_t secadm_xauth_home_t };
+typealias xauth_home_t alias { xguest_xauth_home_t unconfined_xauth_home_t };
+files_poly_member(xauth_home_t)
 userdom_user_home_content(xauth_home_t)
 
 type xauth_tmp_t;
 typealias xauth_tmp_t alias { user_xauth_tmp_t staff_xauth_tmp_t sysadm_xauth_tmp_t };
+typealias xauth_tmp_t alias { xguest_xauth_tmp_t unconfined_xauth_tmp_t };
 typealias xauth_tmp_t alias { auditadm_xauth_tmp_t secadm_xauth_tmp_t };
 files_tmp_file(xauth_tmp_t)
 ubac_constrained(xauth_tmp_t)
@@ -161,15 +189,21 @@ type xdm_t;
 type xdm_exec_t;
 auth_login_pgm_domain(xdm_t)
 init_domain(xdm_t, xdm_exec_t)
-init_daemon_domain(xdm_t, xdm_exec_t)
+init_system_domain(xdm_t, xdm_exec_t)
 xserver_object_types_template(xdm)
 xserver_common_x_domain_template(xdm, xdm_t)
 
 type xdm_lock_t;
 files_lock_file(xdm_lock_t)
 
+type xdm_etc_t;
+files_config_file(xdm_etc_t)
+
 type xdm_rw_etc_t;
-files_type(xdm_rw_etc_t)
+files_config_file(xdm_rw_etc_t)
+
+type xdm_spool_t;
+files_type(xdm_spool_t)
 
 type xdm_var_lib_t;
 files_type(xdm_var_lib_t)
@@ -177,12 +211,26 @@ files_type(xdm_var_lib_t)
 type xdm_var_run_t;
 files_pid_file(xdm_var_run_t)
 
+type xserver_var_lib_t;
+files_type(xserver_var_lib_t)
+
+type xserver_var_run_t;
+files_pid_file(xserver_var_run_t)
+
 type xdm_tmp_t;
 files_tmp_file(xdm_tmp_t)
-typealias xdm_tmp_t alias ice_tmp_t;
+typealias xdm_tmp_t alias { xserver_tmp_t user_xserver_tmp_t staff_xserver_tmp_t sysadm_xserver_tmp_t ice_tmp_t };
+typealias xdm_tmp_t alias { auditadm_xserver_tmp_t secadm_xserver_tmp_t xdm_xserver_tmp_t };
+ubac_constrained(xdm_tmp_t)
 
 type xdm_tmpfs_t;
 files_tmpfs_file(xdm_tmpfs_t)
+
+type xdm_home_t;
+userdom_user_home_content(xdm_home_t)
+
+type xdm_log_t;
+logging_log_file(xdm_log_t)
 
 # type for /var/lib/xkb
 type xkb_var_lib_t;
@@ -196,15 +244,9 @@ typealias xserver_t alias { auditadm_xserver_t secadm_xserver_t xdm_xserver_t };
 init_system_domain(xserver_t, xserver_exec_t)
 ubac_constrained(xserver_t)
 
-type xserver_tmp_t;
-typealias xserver_tmp_t alias { user_xserver_tmp_t staff_xserver_tmp_t sysadm_xserver_tmp_t };
-typealias xserver_tmp_t alias { auditadm_xserver_tmp_t secadm_xserver_tmp_t xdm_xserver_tmp_t };
-files_tmp_file(xserver_tmp_t)
-ubac_constrained(xserver_tmp_t)
-
 type xserver_tmpfs_t;
-typealias xserver_tmpfs_t alias { user_xserver_tmpfs_t staff_xserver_tmpfs_t sysadm_xserver_tmpfs_t };
-typealias xserver_tmpfs_t alias { auditadm_xserver_tmpfs_t secadm_xserver_tmpfs_t xdm_xserver_tmpfs_t };
+typealias xserver_tmpfs_t alias { user_xserver_tmpfs_t staff_xserver_tmpfs_t sysadm_xserver_tmpfs_t xguest_xserver_tmpfs_t unconfined_xserver_tmpfs_t xdm_xserver_tmpfs_t };
+typealias xserver_tmpfs_t alias { auditadm_xserver_tmpfs_t secadm_xserver_tmpfs_t };
 files_tmpfs_file(xserver_tmpfs_t)
 ubac_constrained(xserver_tmpfs_t)
 
@@ -234,9 +276,13 @@ userdom_user_home_dir_filetrans(iceauth_t, iceauth_home_t, file)
 
 allow xdm_t iceauth_home_t:file read_file_perms;
 
+dev_read_rand(iceauth_t)
+
 fs_search_auto_mountpoints(iceauth_t)
 
 userdom_use_user_terminals(iceauth_t)
+userdom_read_user_tmp_files(iceauth_t)
+userdom_read_all_users_state(iceauth_t)
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_files(iceauth_t)
@@ -246,30 +292,64 @@ tunable_policy(`use_samba_home_dirs',`
 	fs_manage_cifs_files(iceauth_t)
 ')
 
+ifdef(`hide_broken_symptoms', `
+	dev_dontaudit_read_urand(iceauth_t)
+	dev_dontaudit_rw_dri(iceauth_t)
+	dev_dontaudit_rw_generic_dev_nodes(iceauth_t)
+	fs_dontaudit_list_inotifyfs(iceauth_t)
+	fs_dontaudit_rw_anon_inodefs_files(iceauth_t)
+        term_dontaudit_use_unallocated_ttys(iceauth_t)
+
+	userdom_dontaudit_read_user_home_content_files(iceauth_t)
+	userdom_dontaudit_write_user_home_content_files(iceauth_t)
+	userdom_dontaudit_write_user_tmp_files(iceauth_t)
+
+	optional_policy(`
+		mozilla_dontaudit_rw_user_home_files(iceauth_t)
+	')
+')
+
 ########################################
 #
 # Xauth local policy
 #
 
+allow xauth_t self:capability dac_override;
 allow xauth_t self:process signal;
 allow xauth_t self:unix_stream_socket create_stream_socket_perms;
 
+allow xauth_t xdm_t:process sigchld;
+allow xauth_t xserver_t:unix_stream_socket connectto;
+
+corenet_tcp_connect_xserver_port(xauth_t)
+
 allow xauth_t xauth_home_t:file manage_file_perms;
 userdom_user_home_dir_filetrans(xauth_t, xauth_home_t, file)
+userdom_admin_home_dir_filetrans(xauth_t, xauth_home_t, file)
+
+manage_dirs_pattern(xauth_t, xdm_var_run_t, xdm_var_run_t)
+manage_files_pattern(xauth_t, xdm_var_run_t, xdm_var_run_t)
 
 manage_dirs_pattern(xauth_t, xauth_tmp_t, xauth_tmp_t)
 manage_files_pattern(xauth_t, xauth_tmp_t, xauth_tmp_t)
 files_tmp_filetrans(xauth_t, xauth_tmp_t, { file dir })
 
-allow xdm_t xauth_home_t:file manage_file_perms;
-userdom_user_home_dir_filetrans(xdm_t, xauth_home_t, file)
+stream_connect_pattern(xauth_t, xserver_tmp_t, xserver_tmp_t, xserver_t)
+
+kernel_read_system_state(xauth_t)
 
 domain_use_interactive_fds(xauth_t)
+domain_dontaudit_leaks(xauth_t)
 
 files_read_etc_files(xauth_t)
+files_read_usr_files(xauth_t)
 files_search_pids(xauth_t)
+files_dontaudit_getattr_all_dirs(xauth_t)
+files_dontaudit_leaks(xauth_t)
+files_var_lib_filetrans(xauth_t, xauth_home_t, file)
 
-fs_getattr_xattr_fs(xauth_t)
+fs_dontaudit_leaks(xauth_t)
+fs_getattr_all_fs(xauth_t)
 fs_search_auto_mountpoints(xauth_t)
 
 # cjp: why?
@@ -279,15 +359,35 @@ auth_use_nsswitch(xauth_t)
 
 userdom_use_user_terminals(xauth_t)
 userdom_read_user_tmp_files(xauth_t)
+userdom_read_all_users_state(xauth_t)
+
+ifdef(`hide_broken_symptoms', `
+     fs_dontaudit_rw_anon_inodefs_files(xauth_t)
+     fs_dontaudit_list_inotifyfs(xauth_t)
+     userdom_manage_user_home_content_files(xauth_t)
+     userdom_manage_user_tmp_files(xauth_t)
+     dev_dontaudit_rw_generic_dev_nodes(xauth_t)
+     miscfiles_read_fonts(xauth_t)
+')
 
 xserver_rw_xdm_tmp_files(xauth_t)
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_files(xauth_t)
+	fs_read_nfs_symlinks(xauth_t)
 ')
 
 tunable_policy(`use_samba_home_dirs',`
 	fs_manage_cifs_files(xauth_t)
+')
+
+ifdef(`hide_broken_symptoms', `
+        term_dontaudit_use_unallocated_ttys(xauth_t)
+	dev_dontaudit_rw_dri(xauth_t)
+')
+
+optional_policy(`
+	nx_var_lib_filetrans(xauth_t, xauth_home_t, file)
 ')
 
 optional_policy(`
@@ -301,20 +401,33 @@ optional_policy(`
 # XDM Local policy
 #
 
-allow xdm_t self:capability { setgid setuid sys_resource kill sys_tty_config mknod chown dac_override dac_read_search fowner fsetid ipc_owner sys_nice sys_rawio net_bind_service };
-allow xdm_t self:process { setexec setpgid getsched setsched setrlimit signal_perms setkeycreate };
+allow xdm_t self:capability { setgid setuid sys_resource kill sys_tty_config mknod chown dac_override dac_read_search fowner fsetid ipc_owner sys_nice sys_rawio net_bind_service sys_ptrace };
+allow xdm_t self:process { setexec setpgid getsched setsched setrlimit signal_perms setkeycreate ptrace };
+allow xdm_t self:process { getattr getcap setcap };
 allow xdm_t self:fifo_file rw_fifo_file_perms;
 allow xdm_t self:shm create_shm_perms;
 allow xdm_t self:sem create_sem_perms;
 allow xdm_t self:unix_stream_socket { connectto create_stream_socket_perms };
-allow xdm_t self:unix_dgram_socket create_socket_perms;
+allow xdm_t self:unix_dgram_socket { create_socket_perms sendto };
 allow xdm_t self:tcp_socket create_stream_socket_perms;
 allow xdm_t self:udp_socket create_socket_perms;
+allow xdm_t self:netlink_kobject_uevent_socket create_socket_perms;
 allow xdm_t self:socket create_socket_perms;
 allow xdm_t self:appletalk_socket create_socket_perms;
 allow xdm_t self:key { search link write };
 
+allow xdm_t xauth_home_t:file manage_file_perms;
+
 allow xdm_t xconsole_device_t:fifo_file { getattr setattr };
+manage_dirs_pattern(xdm_t, xkb_var_lib_t, xkb_var_lib_t)
+manage_files_pattern(xdm_t, xkb_var_lib_t, xkb_var_lib_t)
+
+manage_files_pattern(xdm_t, xdm_home_t, xdm_home_t)
+userdom_user_home_dir_filetrans(xdm_t, xdm_home_t, file)
+#Handle mislabeled files in homedir
+userdom_delete_user_home_content_files(xdm_t)
+userdom_signull_unpriv_users(xdm_t)
+userdom_dontaudit_read_admin_home_lnk_files(xdm_t)
 
 # Allow gdm to run gdm-binary
 can_exec(xdm_t, xdm_exec_t)
@@ -322,32 +435,55 @@ can_exec(xdm_t, xdm_exec_t)
 allow xdm_t xdm_lock_t:file manage_file_perms;
 files_lock_filetrans(xdm_t, xdm_lock_t, file)
 
+read_lnk_files_pattern(xdm_t, xdm_etc_t, xdm_etc_t)
+read_files_pattern(xdm_t, xdm_etc_t, xdm_etc_t)
 # wdm has its own config dir /etc/X11/wdm
 # this is ugly, daemons should not create files under /etc!
 manage_files_pattern(xdm_t, xdm_rw_etc_t, xdm_rw_etc_t)
 
 manage_dirs_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
 manage_files_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
+manage_lnk_files_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
 manage_sock_files_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
-files_tmp_filetrans(xdm_t, xdm_tmp_t, { file dir sock_file })
+files_tmp_filetrans(xdm_t, xdm_tmp_t, { file dir sock_file lnk_file })
+relabelfrom_dirs_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
+relabelfrom_files_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
 
 manage_dirs_pattern(xdm_t, xdm_tmpfs_t, xdm_tmpfs_t)
 manage_files_pattern(xdm_t, xdm_tmpfs_t, xdm_tmpfs_t)
 manage_lnk_files_pattern(xdm_t, xdm_tmpfs_t, xdm_tmpfs_t)
 manage_fifo_files_pattern(xdm_t, xdm_tmpfs_t, xdm_tmpfs_t)
 manage_sock_files_pattern(xdm_t, xdm_tmpfs_t, xdm_tmpfs_t)
-fs_tmpfs_filetrans(xdm_t, xdm_tmpfs_t,{ dir file lnk_file sock_file fifo_file })
+
+fs_getattr_all_fs(xdm_t)
+fs_list_inotifyfs(xdm_t)
+fs_read_noxattr_fs_files(xdm_t)
+fs_dontaudit_list_fusefs(xdm_t)
+fs_manage_cgroup_dirs(xdm_t)
+fs_manage_cgroup_files(xdm_t)
+
+manage_files_pattern(xdm_t, user_fonts_t, user_fonts_t)
+
+files_search_spool(xdm_t)
+manage_dirs_pattern(xdm_t, xdm_spool_t, xdm_spool_t)
+manage_files_pattern(xdm_t, xdm_spool_t, xdm_spool_t)
+files_spool_filetrans(xdm_t, xdm_spool_t, { file dir })
 
 manage_dirs_pattern(xdm_t, xdm_var_lib_t, xdm_var_lib_t)	
 manage_files_pattern(xdm_t, xdm_var_lib_t, xdm_var_lib_t)
-files_var_lib_filetrans(xdm_t, xdm_var_lib_t, file)
+manage_lnk_files_pattern(xdm_t, xdm_var_lib_t, xdm_var_lib_t)
+manage_sock_files_pattern(xdm_t, xdm_var_lib_t, xdm_var_lib_t)
+files_var_lib_filetrans(xdm_t, xdm_var_lib_t, { file dir })
+# Read machine-id
+files_read_var_lib_files(xdm_t)
 
 manage_dirs_pattern(xdm_t, xdm_var_run_t, xdm_var_run_t)
 manage_files_pattern(xdm_t, xdm_var_run_t, xdm_var_run_t)
 manage_fifo_files_pattern(xdm_t, xdm_var_run_t, xdm_var_run_t)
-files_pid_filetrans(xdm_t, xdm_var_run_t, { dir file fifo_file })
+manage_sock_files_pattern(xdm_t, xdm_var_run_t, xdm_var_run_t)
+files_pid_filetrans(xdm_t, xdm_var_run_t, { dir file fifo_file sock_file })
 
-allow xdm_t xserver_t:process signal;
+allow xdm_t xserver_t:process { signal signull };
 allow xdm_t xserver_t:unix_stream_socket connectto;
 
 allow xdm_t xserver_tmp_t:sock_file rw_sock_file_perms;
@@ -355,10 +491,13 @@ allow xdm_t xserver_tmp_t:dir { setattr list_dir_perms };
 
 # transition to the xdm xserver
 domtrans_pattern(xdm_t, xserver_exec_t, xserver_t)
+
+ps_process_pattern(xserver_t, xdm_t)
 allow xserver_t xdm_t:process signal;
 allow xdm_t xserver_t:process { noatsecure siginh rlimitinh signal sigkill };
 
 allow xdm_t xserver_t:shm rw_shm_perms;
+read_files_pattern(xdm_t, xserver_t, xserver_t)
 
 # connect to xdm xserver over stream socket
 stream_connect_pattern(xdm_t, xserver_tmp_t, xserver_tmp_t, xserver_t)
@@ -367,15 +506,22 @@ stream_connect_pattern(xdm_t, xserver_tmp_t, xserver_tmp_t, xserver_t)
 delete_files_pattern(xdm_t, xserver_tmp_t, xserver_tmp_t)
 delete_sock_files_pattern(xdm_t, xserver_tmp_t, xserver_tmp_t)
 
+manage_dirs_pattern(xdm_t, xdm_log_t, xdm_log_t)
+manage_files_pattern(xdm_t, xdm_log_t, xdm_log_t)
+manage_fifo_files_pattern(xdm_t, xdm_log_t, xdm_log_t)
+logging_log_filetrans(xdm_t, xdm_log_t, { dir file })
+
 manage_dirs_pattern(xdm_t, xserver_log_t, xserver_log_t)
 manage_files_pattern(xdm_t, xserver_log_t, xserver_log_t)
 manage_fifo_files_pattern(xdm_t, xserver_log_t, xserver_log_t)
-logging_log_filetrans(xdm_t, xserver_log_t, file)
 
 kernel_read_system_state(xdm_t)
+kernel_read_device_sysctls(xdm_t)
 kernel_read_kernel_sysctls(xdm_t)
 kernel_read_net_sysctls(xdm_t)
 kernel_read_network_state(xdm_t)
+kernel_request_load_module(xdm_t)
+kernel_stream_connect(xdm_t)
 
 corecmd_exec_shell(xdm_t)
 corecmd_exec_bin(xdm_t)
@@ -390,11 +536,14 @@ corenet_tcp_sendrecv_all_ports(xdm_t)
 corenet_udp_sendrecv_all_ports(xdm_t)
 corenet_tcp_bind_generic_node(xdm_t)
 corenet_udp_bind_generic_node(xdm_t)
+corenet_udp_bind_ipp_port(xdm_t)
+corenet_udp_bind_xdmcp_port(xdm_t)
 corenet_tcp_connect_all_ports(xdm_t)
 corenet_sendrecv_all_client_packets(xdm_t)
 # xdm tries to bind to biff_port_t
 corenet_dontaudit_tcp_bind_all_ports(xdm_t)
 
+dev_rwx_zero(xdm_t)
 dev_read_rand(xdm_t)
 dev_read_sysfs(xdm_t)
 dev_getattr_framebuffer_dev(xdm_t)
@@ -402,6 +551,7 @@ dev_setattr_framebuffer_dev(xdm_t)
 dev_getattr_mouse_dev(xdm_t)
 dev_setattr_mouse_dev(xdm_t)
 dev_rw_apm_bios(xdm_t)
+dev_rw_input_dev(xdm_t)
 dev_setattr_apm_bios_dev(xdm_t)
 dev_rw_dri(xdm_t)
 dev_rw_agp(xdm_t)
@@ -410,18 +560,22 @@ dev_setattr_xserver_misc_dev(xdm_t)
 dev_getattr_misc_dev(xdm_t)
 dev_setattr_misc_dev(xdm_t)
 dev_dontaudit_rw_misc(xdm_t)
-dev_getattr_video_dev(xdm_t)
+dev_read_video_dev(xdm_t)
+dev_write_video_dev(xdm_t)
 dev_setattr_video_dev(xdm_t)
 dev_getattr_scanner_dev(xdm_t)
 dev_setattr_scanner_dev(xdm_t)
-dev_getattr_sound_dev(xdm_t)
-dev_setattr_sound_dev(xdm_t)
+dev_read_sound(xdm_t)
+dev_write_sound(xdm_t)
 dev_getattr_power_mgmt_dev(xdm_t)
 dev_setattr_power_mgmt_dev(xdm_t)
+dev_getattr_null_dev(xdm_t)
+dev_setattr_null_dev(xdm_t)
 
 domain_use_interactive_fds(xdm_t)
 # Do not audit denied probes of /proc.
 domain_dontaudit_read_all_domains_state(xdm_t)
+domain_dontaudit_ptrace_all_domains(xdm_t)
 
 files_read_etc_files(xdm_t)
 files_read_var_files(xdm_t)
@@ -432,9 +586,17 @@ files_list_mnt(xdm_t)
 files_read_usr_files(xdm_t)
 # Poweroff wants to create the /poweroff file when run from xdm
 files_create_boot_flag(xdm_t)
+files_dontaudit_getattr_boot_dirs(xdm_t)
+files_dontaudit_write_usr_files(xdm_t)
+files_dontaudit_getattr_all_dirs(xdm_t)
+files_dontaudit_getattr_all_symlinks(xdm_t)
 
 fs_getattr_all_fs(xdm_t)
 fs_search_auto_mountpoints(xdm_t)
+fs_rw_anon_inodefs_files(xdm_t)
+fs_mount_tmpfs(xdm_t)
+
+mls_socket_write_to_clearance(xdm_t)
 
 storage_dontaudit_read_fixed_disk(xdm_t)
 storage_dontaudit_write_fixed_disk(xdm_t)
@@ -443,28 +605,36 @@ storage_dontaudit_raw_read_removable_device(xdm_t)
 storage_dontaudit_raw_write_removable_device(xdm_t)
 storage_dontaudit_setattr_removable_dev(xdm_t)
 storage_dontaudit_rw_scsi_generic(xdm_t)
+storage_dontaudit_rw_fuse(xdm_t)
 
 term_setattr_console(xdm_t)
+term_use_console(xdm_t)
 term_use_unallocated_ttys(xdm_t)
 term_setattr_unallocated_ttys(xdm_t)
+term_relabel_all_ttys(xdm_t)
+term_relabel_unallocated_ttys(xdm_t)
 
 auth_domtrans_pam_console(xdm_t)
 auth_manage_pam_pid(xdm_t)
 auth_manage_pam_console_data(xdm_t)
+auth_signal_pam(xdm_t)
 auth_rw_faillog(xdm_t)
 auth_write_login_records(xdm_t)
 
 # Run telinit->init to shutdown.
 init_telinit(xdm_t)
+init_dbus_chat(xdm_t)
 
 libs_exec_lib_files(xdm_t)
 
 logging_read_generic_logs(xdm_t)
 
+miscfiles_search_man_pages(xdm_t)
 miscfiles_read_localization(xdm_t)
 miscfiles_read_fonts(xdm_t)
-
-sysnet_read_config(xdm_t)
+miscfiles_manage_fonts_cache(xdm_t)
+miscfiles_manage_localization(xdm_t)
+miscfiles_read_hwdata(xdm_t)
 
 userdom_dontaudit_use_unpriv_user_fds(xdm_t)
 userdom_create_all_users_keys(xdm_t)
@@ -473,6 +643,13 @@ userdom_read_user_home_content_files(xdm_t)
 # Search /proc for any user domain processes.
 userdom_read_all_users_state(xdm_t)
 userdom_signal_all_users(xdm_t)
+userdom_stream_connect(xdm_t)
+userdom_manage_user_tmp_dirs(xdm_t)
+userdom_manage_user_tmp_files(xdm_t)
+userdom_manage_user_tmp_sockets(xdm_t)
+userdom_manage_tmpfs_role(system_r, xdm_t)
+
+application_signal(xdm_t)
 
 xserver_rw_session(xdm_t, xdm_tmpfs_t)
 xserver_unconfined(xdm_t)
@@ -504,11 +681,17 @@ tunable_policy(`xdm_sysadm_login',`
 ')
 
 optional_policy(`
+	accountsd_read_lib_files(xdm_t)
+')
+
+optional_policy(`
 	alsa_domtrans(xdm_t)
+	alsa_read_rw_config(xdm_t)
 ')
 
 optional_policy(`
 	consolekit_dbus_chat(xdm_t)
+	consolekit_read_log(xdm_t)
 ')
 
 optional_policy(`
@@ -516,9 +699,48 @@ optional_policy(`
 ')
 
 optional_policy(`
+	# Use dbus to start other processes as xdm_t
+	dbus_role_template(xdm, system_r, xdm_t)
+
+	dontaudit xdm_dbusd_t xdm_var_lib_t:dir search_dir_perms;
+	xserver_xdm_append_log(xdm_dbusd_t)
+	xserver_read_xdm_pid(xdm_dbusd_t)
+
+	corecmd_bin_entry_type(xdm_t)
+
+	dbus_system_bus_client(xdm_t)
+
+	optional_policy(`
+		bluetooth_dbus_chat(xdm_t)
+	')
+
+	optional_policy(`
+		devicekit_dbus_chat_disk(xdm_t)
+		devicekit_dbus_chat_power(xdm_t)
+	')
+
+	optional_policy(`
+		hal_dbus_chat(xdm_t)
+	')
+
+	optional_policy(`
+		networkmanager_dbus_chat(xdm_t)
+	')
+
+')
+
+
+optional_policy(`
 	# Talk to the console mouse server.
 	gpm_stream_connect(xdm_t)
 	gpm_setattr_gpmctl(xdm_t)
+')
+
+optional_policy(`
+	gnome_manage_config(xdm_t)
+	gnome_manage_gconf_home_files(xdm_t)
+	gnome_read_config(xdm_t)
+	gnome_read_gconf_config(xdm_t)
 ')
 
 optional_policy(`
@@ -539,7 +761,41 @@ optional_policy(`
 ')
 
 optional_policy(`
+        policykit_dbus_chat(xdm_t)
+	policykit_domtrans_auth(xdm_t)
+	policykit_read_lib(xdm_t)
+	policykit_read_reload(xdm_t)
+	policykit_signal_auth(xdm_t)
+')
+
+optional_policy(`
+	pcscd_stream_connect(xdm_t)
+')
+
+optional_policy(`
+	plymouthd_search_spool(xdm_t)
+	plymouthd_exec_plymouth(xdm_t)
+')
+
+optional_policy(`
+	pulseaudio_exec(xdm_t)
+	pulseaudio_dbus_chat(xdm_t)
+	pulseaudio_stream_connect(xdm_t)
+')
+
+optional_policy(`
 	resmgr_stream_connect(xdm_t)
+')
+
+# On crash gdm execs gdb to dump stack
+optional_policy(`
+	rpm_exec(xdm_t)
+	rpm_read_db(xdm_t)
+	rpm_dontaudit_manage_db(xdm_t)
+')
+
+optional_policy(`
+	rtkit_scheduled(xdm_t)
 ')
 
 optional_policy(`
@@ -547,12 +803,21 @@ optional_policy(`
 ')
 
 optional_policy(`
+	ssh_signull(xdm_t)
+')
+
+optional_policy(`
+	shutdown_domtrans(xdm_t)
+')
+
+optional_policy(`
 	udev_read_db(xdm_t)
 ')
 
 optional_policy(`
-	unconfined_domain(xdm_t)
-	unconfined_domtrans(xdm_t)
+	unconfined_shell_domtrans(xdm_t)
+	unconfined_signal(xdm_t)
+')
 
 	ifndef(`distro_redhat',`
 		allow xdm_t self:process { execheap execmem };
@@ -561,7 +826,6 @@ optional_policy(`
 	ifdef(`distro_rhel4',`
 		allow xdm_t self:process { execheap execmem };
 	')
-')
 
 optional_policy(`
 	userhelper_dontaudit_search_config(xdm_t)
@@ -569,6 +833,10 @@ optional_policy(`
 
 optional_policy(`
 	usermanage_read_crack_db(xdm_t)
+')
+
+optional_policy(`
+	wm_exec(xdm_t)
 ')
 
 optional_policy(`
@@ -596,10 +864,9 @@ allow xserver_t input_xevent_t:x_event send;
 # execheap needed until the X module loader is fixed.
 # NVIDIA Needs execstack
 
-allow xserver_t self:capability { dac_override fowner fsetid setgid setuid ipc_owner sys_rawio sys_admin sys_nice sys_tty_config mknod net_bind_service };
+allow xserver_t self:capability { dac_override fowner fsetid setgid setuid ipc_owner sys_ptrace sys_rawio sys_admin sys_nice sys_tty_config mknod net_bind_service };
 dontaudit xserver_t self:capability chown;
 allow xserver_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
-allow xserver_t self:memprotect mmap_zero;
 allow xserver_t self:fd use;
 allow xserver_t self:fifo_file rw_fifo_file_perms;
 allow xserver_t self:sock_file read_sock_file_perms;
@@ -611,6 +878,18 @@ allow xserver_t self:unix_dgram_socket { create_socket_perms sendto };
 allow xserver_t self:unix_stream_socket { create_stream_socket_perms connectto };
 allow xserver_t self:tcp_socket create_stream_socket_perms;
 allow xserver_t self:udp_socket create_socket_perms;
+allow xserver_t self:netlink_selinux_socket create_socket_perms;
+allow xserver_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+# Device rules
+allow x_domain xserver_t:x_device { read getattr use setattr setfocus grab bell };
+allow x_domain xserver_t:x_screen getattr;
+
+allow xserver_t { input_xevent_t input_xevent_type }:x_event send;
+
+domtrans_pattern(xserver_t, xauth_exec_t, xauth_t)
+
+allow xserver_t xauth_home_t:file read_file_perms;
 
 manage_dirs_pattern(xserver_t, xserver_tmp_t, xserver_tmp_t)
 manage_files_pattern(xserver_t, xserver_tmp_t, xserver_tmp_t)
@@ -630,12 +909,19 @@ manage_files_pattern(xserver_t, xkb_var_lib_t, xkb_var_lib_t)
 manage_lnk_files_pattern(xserver_t, xkb_var_lib_t, xkb_var_lib_t)
 files_search_var_lib(xserver_t)
 
-domtrans_pattern(xserver_t, xauth_exec_t, xauth_t)
-allow xserver_t xauth_home_t:file read_file_perms;
+manage_dirs_pattern(xserver_t, xserver_var_lib_t, xserver_var_lib_t)	
+manage_files_pattern(xserver_t, xserver_var_lib_t, xserver_var_lib_t)
+files_var_lib_filetrans(xserver_t, xserver_var_lib_t, dir)
+
+manage_dirs_pattern(xserver_t, xserver_var_run_t, xserver_var_run_t)	
+manage_files_pattern(xserver_t, xserver_var_run_t, xserver_var_run_t)
+manage_sock_files_pattern(xserver_t, xdm_var_run_t, xdm_var_run_t)
+files_pid_filetrans(xserver_t, xserver_var_run_t, { file dir })
 
 # Create files in /var/log with the xserver_log_t type.
 manage_files_pattern(xserver_t, xserver_log_t, xserver_log_t)
 logging_log_filetrans(xserver_t, xserver_log_t, file)
+manage_files_pattern(xserver_t, xdm_log_t, xdm_log_t)
 
 kernel_read_system_state(xserver_t)
 kernel_read_device_sysctls(xserver_t)
@@ -643,6 +929,7 @@ kernel_read_modprobe_sysctls(xserver_t)
 # Xorg wants to check if kernel is tainted
 kernel_read_kernel_sysctls(xserver_t)
 kernel_write_proc_files(xserver_t)
+kernel_request_load_module(xserver_t)
 
 # Run helper programs in xserver_t.
 corecmd_exec_bin(xserver_t)
@@ -669,7 +956,6 @@ dev_rw_apm_bios(xserver_t)
 dev_rw_agp(xserver_t)
 dev_rw_framebuffer(xserver_t)
 dev_manage_dri_dev(xserver_t)
-dev_filetrans_dri(xserver_t)
 dev_create_generic_dirs(xserver_t)
 dev_setattr_generic_dirs(xserver_t)
 # raw memory access is needed if not using the frame buffer
@@ -679,9 +965,12 @@ dev_wx_raw_memory(xserver_t)
 dev_rw_xserver_misc(xserver_t)
 # read events - the synaptics touchpad driver reads raw events
 dev_rw_input_dev(xserver_t)
+dev_read_raw_memory(xserver_t)
+dev_write_raw_memory(xserver_t)
 dev_rwx_zero(xserver_t)
 
-domain_mmap_low(xserver_t)
+domain_dontaudit_read_all_domains_state(xserver_t)
+domain_signal_all_domains(xserver_t)
 
 files_read_etc_files(xserver_t)
 files_read_etc_runtime_files(xserver_t)
@@ -696,8 +985,13 @@ fs_getattr_xattr_fs(xserver_t)
 fs_search_nfs(xserver_t)
 fs_search_auto_mountpoints(xserver_t)
 fs_search_ramfs(xserver_t)
+fs_rw_tmpfs_files(xserver_t)
 
 mls_xwin_read_to_clearance(xserver_t)
+mls_process_write_to_clearance(xserver_t)
+mls_file_read_to_clearance(xserver_t)
+mls_file_write_all_levels(xserver_t)
+mls_file_upgrade(xserver_t)
 
 selinux_validate_context(xserver_t)
 selinux_compute_access_vector(xserver_t)
@@ -719,11 +1013,14 @@ logging_send_audit_msgs(xserver_t)
 
 miscfiles_read_localization(xserver_t)
 miscfiles_read_fonts(xserver_t)
+miscfiles_read_hwdata(xserver_t)
 
 modutils_domtrans_insmod(xserver_t)
 
 # read x_contexts
 seutil_read_default_contexts(xserver_t)
+seutil_read_config(xserver_t)
+seutil_read_file_contexts(xserver_t)
 
 userdom_search_user_home_dirs(xserver_t)
 userdom_use_user_ttys(xserver_t)
@@ -775,13 +1072,33 @@ optional_policy(`
 ')
 
 optional_policy(`
+	devicekit_signal_power(xserver_t)
+')
+
+optional_policy(`
 	rhgb_getpgid(xserver_t)
 	rhgb_signal(xserver_t)
 ')
 
 optional_policy(`
-	unconfined_domain_noaudit(xserver_t)
+	setrans_translate_context(xserver_t)
+')
+
+optional_policy(`
+	sandbox_rw_xserver_tmpfs_files(xserver_t)
+')
+
+optional_policy(`
+	udev_read_db(xserver_t)
+')
+
+ifdef(`enforcing',`
+optional_policy(`
+	unconfined_domain(xserver_t)
 	unconfined_domtrans(xserver_t)
+')
+', `
+   permissive xserver_t;
 ')
 
 optional_policy(`
@@ -804,10 +1121,10 @@ allow xserver_t xdm_t:shm rw_shm_perms;
 
 # NB we do NOT allow xserver_t xdm_var_lib_t:dir, only access to an open
 # handle of a file inside the dir!!!
-allow xserver_t xdm_var_lib_t:file { getattr read };
+allow xserver_t xdm_var_lib_t:file read_file_perms;
 dontaudit xserver_t xdm_var_lib_t:dir search;
 
-allow xserver_t xdm_var_run_t:file read_file_perms;
+read_files_pattern(xserver_t, xdm_var_run_t, xdm_var_run_t)
 
 # Label pid and temporary files with derived types.
 manage_files_pattern(xserver_t, xdm_tmp_t, xdm_tmp_t)
@@ -828,6 +1145,13 @@ init_use_fds(xserver_t)
 # to read ROLE_home_t - examine this in more detail
 # (xauth?)
 userdom_read_user_home_content_files(xserver_t)
+userdom_read_all_users_state(xserver_t)
+
+xserver_use_user_fonts(xserver_t)
+
+optional_policy(`
+	userhelper_search_config(xserver_t)
+')
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_dirs(xserver_t)
@@ -843,11 +1167,14 @@ tunable_policy(`use_samba_home_dirs',`
 
 optional_policy(`
 	dbus_system_bus_client(xserver_t)
-	hal_dbus_chat(xserver_t)
+
+	optional_policy(`
+		hal_dbus_chat(xserver_t)
+	')
 ')
 
 optional_policy(`
-	resmgr_stream_connect(xdm_t)
+	mono_rw_shm(xserver_t)
 ')
 
 optional_policy(`
@@ -993,3 +1320,33 @@ allow xserver_unconfined_type { x_domain xserver_t }:x_keyboard *;
 allow xserver_unconfined_type xextension_type:x_extension *;
 allow xserver_unconfined_type { x_domain xserver_t }:x_resource *;
 allow xserver_unconfined_type xevent_type:{ x_event x_synthetic_event } *;
+
+optional_policy(`
+	unconfined_rw_shm(xserver_t)
+	unconfined_execmem_rw_shm(xserver_t)
+
+	# xserver signals unconfined user on startx
+	unconfined_signal(xserver_t)
+	unconfined_getpgid(xserver_t)
+')
+
+tunable_policy(`allow_xserver_execmem',`
+	allow xserver_t self:process { execheap execmem execstack };
+')
+
+# Hack to handle the problem of using the nvidia blobs
+tunable_policy(`allow_execmem',`
+	allow xdm_t self:process execmem;
+')
+
+tunable_policy(`allow_execstack',`
+	allow xdm_t self:process { execstack execmem };
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_append_nfs_files(xdmhomewriter)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_append_cifs_files(xdmhomewriter)
+')

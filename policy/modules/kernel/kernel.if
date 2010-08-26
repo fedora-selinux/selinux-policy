@@ -698,6 +698,26 @@ interface(`kernel_read_debugfs',`
 
 ########################################
 ## <summary>
+##	Read/Write information from the debugging filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_rw_debugfs',`
+	gen_require(`
+		type debugfs_t;
+	')
+
+	rw_files_pattern($1, debugfs_t, debugfs_t)
+	read_lnk_files_pattern($1, debugfs_t, debugfs_t)
+	list_dirs_pattern($1, debugfs_t, debugfs_t)
+')
+
+########################################
+## <summary>
 ##	Mount a kernel VM filesystem.
 ## </summary>
 ## <param name="domain">
@@ -1977,7 +1997,7 @@ interface(`kernel_dontaudit_list_all_sysctls',`
 	')
 
 	dontaudit $1 sysctl_type:dir list_dir_perms;
-	dontaudit $1 sysctl_type:file getattr;
+	dontaudit $1 sysctl_type:file read_file_perms;
 ')
 
 ########################################
@@ -2845,6 +2865,24 @@ interface(`kernel_relabelfrom_unlabeled_database',`
 
 ########################################
 ## <summary>
+##      Relabel to unlabeled context .
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`kernel_relabelto_unlabeled',`
+	gen_require(`
+		type unlabeled_t;
+	')
+
+	allow $1 unlabeled_t:dir_file_class_set relabelto;
+')
+
+########################################
+## <summary>
 ##	Unconfined access to kernel module resources.
 ## </summary>
 ## <param name="domain">
@@ -2860,3 +2898,23 @@ interface(`kernel_unconfined',`
 
 	typeattribute $1 kern_unconfined;
 ')
+
+########################################
+## <summary>
+##	Allow the specified domain to connect to
+##	the kernel with a unix socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_stream_connect',`
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_stream_socket connectto;
+')
+

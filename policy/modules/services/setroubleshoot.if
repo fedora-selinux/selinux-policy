@@ -105,6 +105,25 @@ interface(`setroubleshoot_dbus_chat_fixit',`
 
 ########################################
 ## <summary>
+##	Dontaudit read/write to a setroubleshoot leaked sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`setroubleshoot_fixit_dontaudit_leaks',`
+	gen_require(`
+		type setroubleshoot_fixit_t;
+	')
+
+	dontaudit $1 setroubleshoot_fixit_t:unix_dgram_socket { read write };
+	dontaudit $1 setroubleshoot_fixit_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an setroubleshoot environment
 ## </summary>
@@ -117,7 +136,7 @@ interface(`setroubleshoot_dbus_chat_fixit',`
 #
 interface(`setroubleshoot_admin',`
 	gen_require(`
-		type setroubleshootd_t, setroubleshoot_log_t;
+		type setroubleshootd_t, setroubleshoot_var_log_t;
 		type setroubleshoot_var_lib_t, setroubleshoot_var_run_t;
 	')
 
@@ -125,7 +144,7 @@ interface(`setroubleshoot_admin',`
 	ps_process_pattern($1, setroubleshootd_t)
 
 	logging_list_logs($1)
-	admin_pattern($1, setroubleshoot_log_t)
+	admin_pattern($1, setroubleshoot_var_log_t)
 
 	files_list_var_lib($1)
 	admin_pattern($1, setroubleshoot_var_lib_t)

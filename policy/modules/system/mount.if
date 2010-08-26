@@ -16,6 +16,14 @@ interface(`mount_domtrans',`
 	')
 
 	domtrans_pattern($1, mount_exec_t, mount_t)
+	mount_domtrans_fusermount($1)
+
+ifdef(`hide_broken_symptoms', `
+	dontaudit mount_t $1:unix_stream_socket { read write };
+	dontaudit mount_t $1:tcp_socket  { read write };
+	dontaudit mount_t $1:udp_socket { read write };
+')
+
 ')
 
 ########################################
@@ -45,8 +53,54 @@ interface(`mount_run',`
 	role $2 types mount_t;
 
 	optional_policy(`
-		samba_run_smbmount($1, $2)
+		fstools_run(mount_t, $2)
 	')
+
+	# Needed for mount crypt https://bugzilla.redhat.com/show_bug.cgi?id=418711
+	optional_policy(`
+		lvm_run(mount_t, $2)
+	')
+
+	optional_policy(`
+		modutils_run_insmod(mount_t, $2)
+	')
+
+	optional_policy(`
+		rpc_run_rpcd(mount_t, $2)
+	')
+
+	optional_policy(`
+		samba_run_smbmount(mount_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Execute fusermount in the mount domain, and
+##	allow the specified role the mount domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the mount domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mount_run_fusermount',`
+	gen_require(`
+		type mount_t;
+	')
+
+	mount_domtrans_fusermount($1)
+	role $2 types mount_t;
+
+	fstools_run(mount_t, $2)
 ')
 
 ########################################
@@ -84,9 +138,11 @@ interface(`mount_exec',`
 interface(`mount_signal',`
 	gen_require(`
 		type mount_t;
+		type unconfined_mount_t;
 	')
 
 	allow $1 mount_t:process signal;
+	allow $1 unconfined_mount_t:process signal;
 ')
 
 ########################################
@@ -95,7 +151,7 @@ interface(`mount_signal',`
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	The type of the process performing this action.
+##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
@@ -176,4 +232,109 @@ interface(`mount_run_unconfined',`
 
 	mount_domtrans_unconfined($1)
 	role $2 types unconfined_mount_t;
+
+	optional_policy(`
+		rpc_run_rpcd(unconfined_mount_t, $2)
+	')
+
+	optional_policy(`
+		samba_run_smbmount(unconfined_mount_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Execute fusermount in the mount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_domtrans_fusermount',`
+	gen_require(`
+		type mount_t, fusermount_exec_t;
+	')
+
+	domtrans_pattern($1, fusermount_exec_t, mount_t)
+')
+
+########################################
+## <summary>
+##	Execute fusermount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_exec_fusermount',`
+	gen_require(`
+		type fusermount_exec_t;
+	')
+
+	can_exec($1, fusermount_exec_t)
+')
+
+########################################
+## <summary>
+##	dontaudit Execute fusermount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_dontaudit_exec_fusermount',`
+	gen_require(`
+		type fusermount_exec_t;
+	')
+
+	dontaudit $1 fusermount_exec_t:file exec_file_perms;
+')
+
+######################################
+## <summary>
+##  Execute a domain transition to run showmount.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mount_domtrans_showmount',`
+    gen_require(`
+        type showmount_t, showmount_exec_t;
+    ')
+
+    domtrans_pattern($1, showmount_exec_t, showmount_t)
+')
+
+######################################
+## <summary>
+##  Execute showmount in the showmount domain, and
+##  allow the specified role the showmount domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  The role to be allowed the showmount domain.
+##  </summary>
+## </param>
+#
+interface(`mount_run_showmount',`
+    gen_require(`
+        type showmount_t;
+    ')
+
+    mount_domtrans_showmount($1)
+    role $2 types showmount_t;
 ')

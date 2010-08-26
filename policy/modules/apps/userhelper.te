@@ -6,9 +6,54 @@ policy_module(userhelper, 1.5.1)
 #
 
 attribute userhelper_type;
+attribute consolehelper_domain;
 
 type userhelper_conf_t;
 files_type(userhelper_conf_t)
 
 type userhelper_exec_t;
 application_executable_file(userhelper_exec_t)
+
+type consolehelper_exec_t;
+application_executable_file(consolehelper_exec_t)
+
+########################################
+#
+# consolehelper local policy
+#
+
+allow consolehelper_domain self:capability { setgid setuid }; 
+
+dontaudit consolehelper_domain  userhelper_conf_t:file write;
+read_files_pattern(consolehelper_domain, userhelper_conf_t, userhelper_conf_t)
+
+# Init script handling
+domain_use_interactive_fds(consolehelper_domain)
+
+# internal communication is often done using fifo and unix sockets.
+allow consolehelper_domain self:fifo_file rw_fifo_file_perms;
+allow consolehelper_domain self:unix_stream_socket create_stream_socket_perms;
+
+kernel_read_kernel_sysctls(consolehelper_domain)
+
+corecmd_exec_bin(consolehelper_domain)
+
+files_read_config_files(consolehelper_domain)
+files_read_usr_files(consolehelper_domain)
+
+auth_search_pam_console_data(consolehelper_domain)
+auth_read_pam_pid(consolehelper_domain)
+
+init_read_utmp(consolehelper_domain)
+
+miscfiles_read_localization(consolehelper_domain)
+
+userhelper_exec(consolehelper_domain)
+
+userdom_use_user_ptys(consolehelper_domain)
+userdom_use_user_ttys(consolehelper_domain)
+userdom_search_user_home_content(consolehelper_domain)
+
+optional_policy(`
+	xserver_stream_connect(consolehelper_domain)
+')

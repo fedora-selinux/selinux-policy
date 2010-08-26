@@ -12,14 +12,13 @@
 #
 interface(`unconfined_domain_noaudit',`
 	gen_require(`
-		type unconfined_t;
 		class dbus all_dbus_perms;
 		class nscd all_nscd_perms;
 		class passwd all_passwd_perms;
 	')
 
 	# Use any Linux capability.
-	allow $1 self:capability *;
+	allow $1 self:capability all_capabilities;
 	allow $1 self:fifo_file manage_fifo_file_perms;
 
 	# Transition to myself, to make get_ordered_context_list happy.
@@ -27,12 +26,14 @@ interface(`unconfined_domain_noaudit',`
 
 	# Write access is for setting attributes under /proc/self/attr.
 	allow $1 self:file rw_file_perms;
+	allow $1 self:dir rw_dir_perms;
 
 	# Userland object managers
-	allow $1 self:nscd *;
-	allow $1 self:dbus *;
-	allow $1 self:passwd *;
-	allow $1 self:association *;
+	allow $1 self:nscd all_nscd_perms;
+	allow $1 self:dbus all_dbus_perms;
+	allow $1 self:passwd all_passwd_perms;
+	allow $1 self:association all_association_perms;
+	allow $1 self:socket_class_set create_socket_perms;
 
 	kernel_unconfined($1)
 	corenet_unconfined($1)
@@ -43,6 +44,16 @@ interface(`unconfined_domain_noaudit',`
 	files_unconfined($1)
 	fs_unconfined($1)
 	selinux_unconfined($1)
+
+	domain_mmap_low_type($1)
+
+	mls_file_read_all_levels($1)
+
+	ubac_process_exempt($1)
+
+	tunable_policy(`mmap_low_allowed',`
+		allow $1 self:memprotect mmap_zero;
+	')
 
 	tunable_policy(`allow_execheap',`
 		# Allow making the stack executable via mprotect.
@@ -57,8 +68,8 @@ interface(`unconfined_domain_noaudit',`
 
 	tunable_policy(`allow_execstack',`
 		# Allow making the stack executable via mprotect;
-		# execstack implies execmem;
-		allow $1 self:process { execstack execmem };
+		# execstack implies execmem; Bugzilla #211271
+		allow $1 self:process { execmem execstack };
 #		auditallow $1 self:process execstack;
 	')
 
@@ -69,6 +80,7 @@ interface(`unconfined_domain_noaudit',`
 	optional_policy(`
 		# Communicate via dbusd.
 		dbus_system_bus_unconfined($1)
+		dbus_unconfined($1)
 	')
 
 	optional_policy(`
@@ -122,6 +134,10 @@ interface(`unconfined_domain_noaudit',`
 ## </param>
 #
 interface(`unconfined_domain',`
+	gen_require(`
+		attribute unconfined_services;
+	')	
+
 	unconfined_domain_noaudit($1)
 
 	tunable_policy(`allow_execheap',`
@@ -177,413 +193,4 @@ interface(`unconfined_alias_domain',`
 #
 interface(`unconfined_execmem_alias_program',`
 	refpolicywarn(`$0($1) has been deprecated.')
-')
-
-########################################
-## <summary>
-##	Transition to the unconfined domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed to transition.
-##	</summary>
-## </param>
-#
-interface(`unconfined_domtrans',`
-	gen_require(`
-		type unconfined_t, unconfined_exec_t;
-	')
-
-	domtrans_pattern($1, unconfined_exec_t, unconfined_t)
-')
-
-########################################
-## <summary>
-##	Execute specified programs in the unconfined domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed to transition.
-##	</summary>
-## </param>
-## <param name="role">
-##	<summary>
-##	The role to allow the unconfined domain.
-##	</summary>
-## </param>
-#
-interface(`unconfined_run',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	unconfined_domtrans($1)
-	role $2 types unconfined_t;
-')
-
-########################################
-## <summary>
-##	Transition to the unconfined domain by executing a shell.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed to transition.
-##	</summary>
-## </param>
-#
-interface(`unconfined_shell_domtrans',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	corecmd_shell_domtrans($1, unconfined_t)
-	allow unconfined_t $1:fd use;
-	allow unconfined_t $1:fifo_file rw_file_perms;
-	allow unconfined_t $1:process sigchld;
-')
-
-########################################
-## <summary>
-##	Allow unconfined to execute the specified program in
-##	the specified domain.
-## </summary>
-## <desc>
-##	<p>
-##	Allow unconfined to execute the specified program in
-##	the specified domain.
-##	</p>
-##	<p>
-##	This is a interface to support third party modules
-##	and its use is not allowed in upstream reference
-##	policy.
-##	</p>
-## </desc>
-## <param name="domain">
-##	<summary>
-##	Domain to execute in.
-##	</summary>
-## </param>
-## <param name="entry_file">
-##	<summary>
-##	Domain entry point file.
-##	</summary>
-## </param>
-#
-interface(`unconfined_domtrans_to',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	domtrans_pattern(unconfined_t,$2,$1)
-')
-
-########################################
-## <summary>
-##	Allow unconfined to execute the specified program in
-##	the specified domain.  Allow the specified domain the
-##	unconfined role and use of unconfined user terminals.
-## </summary>
-## <desc>
-##	<p>
-##	Allow unconfined to execute the specified program in
-##	the specified domain.  Allow the specified domain the
-##	unconfined role and use of unconfined user terminals.
-##	</p>
-##	<p>
-##	This is a interface to support third party modules
-##	and its use is not allowed in upstream reference
-##	policy.
-##	</p>
-## </desc>
-## <param name="domain">
-##	<summary>
-##	Domain to execute in.
-##	</summary>
-## </param>
-## <param name="entry_file">
-##	<summary>
-##	Domain entry point file.
-##	</summary>
-## </param>
-#
-interface(`unconfined_run_to',`
-	gen_require(`
-		type unconfined_t;
-		role unconfined_r;
-	')
-
-	domtrans_pattern(unconfined_t,$2,$1)
-	role unconfined_r types $1;
-	userdom_use_user_terminals($1)
-')
-
-########################################
-## <summary>
-##	Inherit file descriptors from the unconfined domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_use_fds',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	allow $1 unconfined_t:fd use;
-')
-
-########################################
-## <summary>
-##	Send a SIGCHLD signal to the unconfined domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_sigchld',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	allow $1 unconfined_t:process sigchld;
-')
-
-########################################
-## <summary>
-##	Send a SIGNULL signal to the unconfined domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_signull',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	allow $1 unconfined_t:process signull;
-')
-
-########################################
-## <summary>
-##	Send generic signals to the unconfined domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_signal',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	allow $1 unconfined_t:process signal;
-')
-
-########################################
-## <summary>
-##	Read unconfined domain unnamed pipes.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_read_pipes',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	allow $1 unconfined_t:fifo_file read_fifo_file_perms;
-')
-
-########################################
-## <summary>
-##	Do not audit attempts to read unconfined domain unnamed pipes.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain to not audit.
-##	</summary>
-## </param>
-#
-interface(`unconfined_dontaudit_read_pipes',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	dontaudit $1 unconfined_t:fifo_file read;
-')
-
-########################################
-## <summary>
-##	Read and write unconfined domain unnamed pipes.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_rw_pipes',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	allow $1 unconfined_t:fifo_file rw_fifo_file_perms;
-')
-
-########################################
-## <summary>
-##	Do not audit attempts to read and write
-##	unconfined domain unnamed pipes.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain to not audit.
-##	</summary>
-## </param>
-#
-interface(`unconfined_dontaudit_rw_pipes',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	dontaudit $1 unconfined_t:fifo_file rw_file_perms;
-')
-
-########################################
-## <summary>
-##	Connect to the unconfined domain using
-##	a unix domain stream socket.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_stream_connect',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	allow $1 unconfined_t:unix_stream_socket connectto;
-')
-
-########################################
-## <summary>
-##	Do not audit attempts to read or write
-##	unconfined domain tcp sockets.
-## </summary>
-## <desc>
-##	<p>
-##	Do not audit attempts to read or write
-##	unconfined domain tcp sockets.
-##	</p>
-##	<p>
-##	This interface was added due to a broken
-##	symptom in ldconfig.
-##	</p>
-## </desc>
-## <param name="domain">
-##	<summary>
-##	Domain to not audit.
-##	</summary>
-## </param>
-#
-interface(`unconfined_dontaudit_rw_tcp_sockets',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	dontaudit $1 unconfined_t:tcp_socket { read write };
-')
-
-########################################
-## <summary>
-##	Create keys for the unconfined domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_create_keys',`
-	gen_require(`
-		type unconfined_t;
-	')
-
-	allow $1 unconfined_t:key create;
-')
-
-########################################
-## <summary>
-##	Send messages to the unconfined domain over dbus.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_dbus_send',`
-	gen_require(`
-		type unconfined_t;
-		class dbus send_msg;
-	')
-
-	allow $1 unconfined_t:dbus send_msg;
-')
-
-########################################
-## <summary>
-##	Send and receive messages from
-##	unconfined_t over dbus.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_dbus_chat',`
-	gen_require(`
-		type unconfined_t;
-		class dbus send_msg;
-	')
-
-	allow $1 unconfined_t:dbus send_msg;
-	allow unconfined_t $1:dbus send_msg;
-')
-
-########################################
-## <summary>
-##	Connect to the the unconfined DBUS
-##	for service (acquire_svc).
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`unconfined_dbus_connect',`
-	gen_require(`
-		type unconfined_t;
-		class dbus acquire_svc;
-	')
-
-	allow $1 unconfined_t:dbus acquire_svc;
 ')

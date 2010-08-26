@@ -54,6 +54,9 @@ files_pid_file(hald_var_run_t)
 type hald_var_lib_t;
 files_type(hald_var_lib_t)
 
+typealias hald_log_t alias pmtools_log_t;
+typealias hald_var_run_t alias pmtools_var_run_t;
+
 ########################################
 #
 # Local policy
@@ -99,7 +102,7 @@ kernel_read_fs_sysctls(hald_t)
 kernel_rw_irq_sysctls(hald_t)
 kernel_rw_vm_sysctls(hald_t)
 kernel_write_proc_files(hald_t)
-kernel_search_network_sysctl(hald_t)
+kernel_rw_net_sysctls(hald_t)
 kernel_setsched(hald_t)
 kernel_request_load_module(hald_t)
 
@@ -125,6 +128,7 @@ dev_rw_printer(hald_t)
 dev_read_lvm_control(hald_t)
 dev_getattr_all_chr_files(hald_t)
 dev_manage_generic_chr_files(hald_t)
+dev_manage_generic_blk_files(hald_t)
 dev_rw_generic_usb_dev(hald_t)
 dev_setattr_generic_usb_dev(hald_t)
 dev_setattr_usbfs_files(hald_t)
@@ -211,10 +215,13 @@ seutil_read_config(hald_t)
 seutil_read_default_contexts(hald_t)
 seutil_read_file_contexts(hald_t)
 
-sysnet_read_config(hald_t)
+sysnet_delete_dhcpc_pid(hald_t)
 sysnet_domtrans_dhcpc(hald_t)
 sysnet_domtrans_ifconfig(hald_t)
+sysnet_read_config(hald_t)
 sysnet_read_dhcp_config(hald_t)
+sysnet_read_dhcpc_pid(hald_t)
+sysnet_signal_dhcpc(hald_t)
 
 userdom_dontaudit_use_unpriv_user_fds(hald_t)
 userdom_dontaudit_search_user_home_dirs(hald_t)
@@ -268,6 +275,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	gnome_read_config(hald_t)
+')
+
+optional_policy(`
 	gpm_dontaudit_getattr_gpmctl(hald_t)
 ')
 
@@ -318,6 +329,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	shutdown_domtrans(hald_t)
+')    
+
+optional_policy(`
 	udev_domtrans(hald_t)
 	udev_read_db(hald_t)
 ')
@@ -336,6 +351,10 @@ optional_policy(`
 
 optional_policy(`
 	virt_manage_images(hald_t)
+')
+
+optional_policy(`
+	xserver_read_pid(hald_t)
 ')
 
 ########################################
@@ -358,6 +377,7 @@ files_search_var_lib(hald_acl_t)
 manage_dirs_pattern(hald_acl_t, hald_var_run_t, hald_var_run_t)
 manage_files_pattern(hald_acl_t, hald_var_run_t, hald_var_run_t)
 files_pid_filetrans(hald_acl_t, hald_var_run_t, { dir file })
+allow hald_t hald_var_run_t:dir mounton;
 
 corecmd_exec_bin(hald_acl_t)
 
@@ -469,6 +489,10 @@ files_read_etc_files(hald_keymap_t)
 files_read_usr_files(hald_keymap_t)
 
 miscfiles_read_localization(hald_keymap_t)
+
+# This is caused by a bug in hald and PolicyKit.  
+# Should be removed when this is fixed
+cron_read_system_job_lib_files(hald_t)
 
 ########################################
 #

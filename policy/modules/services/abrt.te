@@ -5,6 +5,14 @@ policy_module(abrt, 1.1.1)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow ABRT to modify public files
+## used for public file transfer services.
+## </p>
+## </desc>
+gen_tunable(abrt_anon_write, false)
+
 type abrt_t;
 type abrt_exec_t;
 init_daemon_domain(abrt_t, abrt_exec_t)
@@ -50,7 +58,7 @@ ifdef(`enable_mcs',`
 
 allow abrt_t self:capability { chown kill setuid setgid sys_nice dac_override };
 dontaudit abrt_t self:capability sys_rawio;
-allow abrt_t self:process { signal signull setsched getsched };
+allow abrt_t self:process { sigkill signal signull setsched getsched };
 
 allow abrt_t self:fifo_file rw_fifo_file_perms;
 allow abrt_t self:tcp_socket create_stream_socket_perms;
@@ -69,6 +77,7 @@ logging_log_filetrans(abrt_t, abrt_var_log_t, file)
 manage_dirs_pattern(abrt_t, abrt_tmp_t, abrt_tmp_t)
 manage_files_pattern(abrt_t, abrt_tmp_t, abrt_tmp_t)
 files_tmp_filetrans(abrt_t, abrt_tmp_t, { file dir })
+can_exec(abrt_t, abrt_tmp_t)
 
 # abrt var/cache files
 manage_files_pattern(abrt_t, abrt_var_cache_t, abrt_var_cache_t)
@@ -82,7 +91,7 @@ manage_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
 manage_dirs_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
 manage_sock_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
 manage_lnk_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
-files_pid_filetrans(abrt_t, abrt_var_run_t, { file dir })
+files_pid_filetrans(abrt_t, abrt_var_run_t, { file dir sock_file })
 
 kernel_read_ring_buffer(abrt_t)
 kernel_read_system_state(abrt_t)
@@ -121,6 +130,8 @@ files_read_generic_tmp_files(abrt_t)
 files_read_kernel_modules(abrt_t)
 files_dontaudit_list_default(abrt_t)
 files_dontaudit_read_default_files(abrt_t)
+files_dontaudit_read_all_symlinks(abrt_t)
+files_dontaudit_getattr_all_sockets(abrt_t)
 
 fs_list_inotifyfs(abrt_t)
 fs_getattr_all_fs(abrt_t)
@@ -131,7 +142,7 @@ fs_read_nfs_files(abrt_t)
 fs_read_nfs_symlinks(abrt_t)
 fs_search_all(abrt_t)
 
-sysnet_read_config(abrt_t)
+sysnet_dns_name_resolve(abrt_t)
 
 logging_read_generic_logs(abrt_t)
 logging_send_syslog_msg(abrt_t)
@@ -140,6 +151,15 @@ miscfiles_read_certs(abrt_t)
 miscfiles_read_localization(abrt_t)
 
 userdom_dontaudit_read_user_home_content_files(abrt_t)
+userdom_dontaudit_read_admin_home_files(abrt_t)
+
+tunable_policy(`abrt_anon_write',`
+        miscfiles_manage_public_files(abrt_t)
+')
+
+optional_policy(`
+	apache_read_modules(abrt_t)
+')
 
 optional_policy(`
 	dbus_system_domain(abrt_t, abrt_exec_t)
@@ -150,7 +170,12 @@ optional_policy(`
 ')
 
 optional_policy(`
-	policykit_dbus_chat(abrt_t)
+	nsplugin_read_rw_files(abrt_t)
+	nsplugin_read_home(abrt_t)
+')
+
+optional_policy(`
+        policykit_dbus_chat(abrt_t)
 	policykit_domtrans_auth(abrt_t)
 	policykit_read_lib(abrt_t)
 	policykit_read_reload(abrt_t)
@@ -175,6 +200,12 @@ optional_policy(`
 # to run mailx plugin
 optional_policy(`
 	sendmail_domtrans(abrt_t)
+')
+
+optional_policy(`
+	sosreport_domtrans(abrt_t)
+	sosreport_read_tmp_files(abrt_t)
+	sosreport_delete_tmp_files(abrt_t)
 ')
 
 optional_policy(`
@@ -203,6 +234,7 @@ read_lnk_files_pattern(abrt_helper_t, abrt_var_run_t, abrt_var_run_t)
 domain_read_all_domains_state(abrt_helper_t)
 
 files_read_etc_files(abrt_helper_t)
+files_dontaudit_all_non_security_leaks(abrt_helper_t)
 
 fs_list_inotifyfs(abrt_helper_t)
 fs_getattr_all_fs(abrt_helper_t)
@@ -217,11 +249,26 @@ term_dontaudit_use_all_ttys(abrt_helper_t)
 term_dontaudit_use_all_ptys(abrt_helper_t)
 
 ifdef(`hide_broken_symptoms', `
+	domain_dontaudit_leaks(abrt_helper_t)
 	userdom_dontaudit_read_user_home_content_files(abrt_helper_t)
 	userdom_dontaudit_read_user_tmp_files(abrt_helper_t)
+	optional_policy(`
+		rpm_dontaudit_leaks(abrt_helper_t)
+	')
 	dev_dontaudit_read_all_blk_files(abrt_helper_t)
 	dev_dontaudit_read_all_chr_files(abrt_helper_t)
 	dev_dontaudit_write_all_chr_files(abrt_helper_t)
 	dev_dontaudit_write_all_blk_files(abrt_helper_t)
 	fs_dontaudit_rw_anon_inodefs_files(abrt_helper_t)
+')
+
+
+ifdef(`hide_broken_symptoms', `
+	gen_require(`
+        attribute domain;
+	')
+
+	allow abrt_t self:capability sys_resource;    
+	allow abrt_t domain:file write;
+	allow abrt_t domain:process setrlimit;
 ')

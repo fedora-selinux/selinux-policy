@@ -29,6 +29,8 @@ interface(`mozilla_role',`
 	allow mozilla_t $2:process { sigchld signull };
 	allow mozilla_t $2:unix_stream_socket connectto;
 
+	mozilla_plugin_run(mozilla_t, $2)
+
 	# Allow the user domain to signal/ps.
 	ps_process_pattern($2, mozilla_t)
 	allow $2 mozilla_t:process signal_perms;
@@ -47,6 +49,12 @@ interface(`mozilla_role',`
 	relabel_lnk_files_pattern($2, mozilla_home_t, mozilla_home_t)
 
 	mozilla_dbus_chat($2)
+
+	userdom_manage_tmp_role($1, mozilla_t)
+
+	optional_policy(`
+		nsplugin_role($1, mozilla_t)
+	')
 
 	optional_policy(`
 		pulseaudio_role($1, mozilla_t)
@@ -108,7 +116,7 @@ interface(`mozilla_dontaudit_rw_user_home_files',`
 		type mozilla_home_t;
 	')
 
-	dontaudit $1 mozilla_home_t:file rw_file_perms;
+	dontaudit $1 mozilla_home_t:file rw_inherited_file_perms;
 ')
 
 ########################################
@@ -164,6 +172,50 @@ interface(`mozilla_domtrans',`
 	')
 
 	domtrans_pattern($1, mozilla_exec_t, mozilla_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run mozilla_plugin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`mozilla_domtrans_plugin',`
+	gen_require(`
+		type mozilla_plugin_t, mozilla_plugin_exec_t;
+	')
+
+	domtrans_pattern($1, mozilla_plugin_exec_t, mozilla_plugin_t)
+')
+
+
+########################################
+## <summary>
+##	Execute mozilla_plugin in the mozilla_plugin domain, and
+##	allow the specified role the mozilla_plugin domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the mozilla_plugin domain.
+##	</summary>
+## </param>
+#
+interface(`mozilla_run_plugin',`
+	gen_require(`
+		type mozilla_plugin_t;
+	')
+
+	mozilla_domtrans_plugin($1)
+	role $2 types mozilla_plugin_t;
 ')
 
 ########################################

@@ -20,6 +20,24 @@ interface(`exim_domtrans',`
 
 ########################################
 ## <summary>
+##	Execute exim in the exim domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`exim_initrc_domtrans', `
+	gen_require(`
+		type exim_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, exim_initrc_exec_t)
+')
+
+########################################
+## <summary>
 ##	Do not audit attempts to read, 
 ##	exim tmp files
 ## </summary>
@@ -193,4 +211,47 @@ interface(`exim_manage_spool_files',`
 
 	manage_files_pattern($1, exim_spool_t, exim_spool_t)
 	files_search_spool($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an exim environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`exim_admin', `
+	gen_require(`
+		type exim_t, exim_initrc_exec_t, exim_log_t; 
+		type exim_tmp_t, exim_spool_t,  exim_var_run_t;
+	')
+
+	allow $1 exim_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, exim_t, exim_t)	
+
+	exim_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 exim_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, exim_log_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, exim_tmp_t)
+
+	files_search_spool($1)
+	admin_pattern($1, exim_spool_t)
+
+	files_search_pids($1)
+	admin_pattern($1, exim_var_run_t)
 ')

@@ -130,6 +130,10 @@ interface(`abrt_domtrans_helper',`
 	')
 
 	domtrans_pattern($1, abrt_helper_exec_t, abrt_helper_t)
+
+ifdef(`hide_broken_symptoms', `
+	dontaudit abrt_helper_t $1:socket_class_set { read write };
+')
 ')
 
 ########################################
@@ -160,8 +164,7 @@ interface(`abrt_run_helper',`
 
 ########################################
 ## <summary>
-##	Send and receive messages from
-##	abrt over dbus.
+##	Append abrt cache
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -169,7 +172,25 @@ interface(`abrt_run_helper',`
 ##	</summary>
 ## </param>
 #
-interface(`abrt_cache_manage',`
+interface(`abrt_append_cache_files',`
+	gen_require(`
+		type abrt_var_cache_t;
+	')
+
+	append_files_pattern($1, abrt_var_cache_t, abrt_var_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage abrt cache
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_manage_cache_files',`
 	gen_require(`
 		type abrt_var_cache_t;
 	')
@@ -251,6 +272,24 @@ interface(`abrt_manage_pid_files',`
 
 	files_search_pids($1)
 	manage_files_pattern($1, abrt_var_run_t, abrt_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read and write abrt fifo files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_rw_fifo_file',`
+	gen_require(`
+		type abrt_t;
+	')
+
+	allow $1 abrt_t:fifo_file rw_inherited_fifo_file_perms;
 ')
 
 #####################################

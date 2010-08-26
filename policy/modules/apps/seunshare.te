@@ -5,40 +5,45 @@ policy_module(seunshare, 1.1.0)
 # Declarations
 #
 
-type seunshare_t;
+attribute seunshare_domain;
 type seunshare_exec_t;
-application_domain(seunshare_t, seunshare_exec_t)
-role system_r types seunshare_t;
 
 ########################################
 #
 # seunshare local policy
 #
+allow seunshare_domain self:capability { fowner setuid dac_override setpcap sys_admin sys_nice };
+allow seunshare_domain self:process { fork setexec signal getcap setcap setsched };
 
-allow seunshare_t self:capability { setuid dac_override setpcap sys_admin };
-allow seunshare_t self:process { setexec signal getcap setcap };
+allow seunshare_domain self:fifo_file rw_file_perms;
+allow seunshare_domain self:unix_stream_socket create_stream_socket_perms;
 
-allow seunshare_t self:fifo_file rw_file_perms;
-allow seunshare_t self:unix_stream_socket create_stream_socket_perms;
+kernel_read_system_state(seunshare_domain)
 
-corecmd_exec_shell(seunshare_t)
-corecmd_exec_bin(seunshare_t)
+corecmd_exec_shell(seunshare_domain)
+corecmd_exec_bin(seunshare_domain)
 
-files_read_etc_files(seunshare_t)
-files_mounton_all_poly_members(seunshare_t)
+files_search_all(seunshare_domain)
+files_read_etc_files(seunshare_domain)
+files_mounton_all_poly_members(seunshare_domain)
 
-auth_use_nsswitch(seunshare_t)
+fs_manage_cgroup_dirs(seunshare_domain)
+fs_manage_cgroup_files(seunshare_domain)
 
-logging_send_syslog_msg(seunshare_t)
+auth_use_nsswitch(seunshare_domain)
 
-miscfiles_read_localization(seunshare_t)
+logging_send_syslog_msg(seunshare_domain)
 
-userdom_use_user_terminals(seunshare_t)
+miscfiles_read_localization(seunshare_domain)
+
+userdom_use_user_terminals(seunshare_domain)
 
 ifdef(`hide_broken_symptoms', `
-	fs_dontaudit_rw_anon_inodefs_files(seunshare_t)
+	fs_dontaudit_rw_anon_inodefs_files(seunshare_domain)
+ 	fs_dontaudit_list_inotifyfs(seunshare_domain)
 
 	optional_policy(`
-		mozilla_dontaudit_manage_user_home_files(seunshare_t)
+		mozilla_dontaudit_manage_user_home_files(seunshare_domain)
 	')
 ')
+

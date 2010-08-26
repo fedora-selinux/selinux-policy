@@ -29,7 +29,7 @@ files_pid_file(pegasus_var_run_t)
 # Local policy
 #
 
-allow pegasus_t self:capability { chown sys_nice setuid setgid dac_override net_bind_service };
+allow pegasus_t self:capability { chown ipc_lock sys_nice setuid setgid dac_override net_bind_service };
 dontaudit pegasus_t self:capability sys_tty_config;
 allow pegasus_t self:process signal;
 allow pegasus_t self:fifo_file rw_fifo_file_perms;
@@ -57,14 +57,17 @@ manage_files_pattern(pegasus_t, pegasus_tmp_t, pegasus_tmp_t)
 files_tmp_filetrans(pegasus_t, pegasus_tmp_t, { file dir })
 
 allow pegasus_t pegasus_var_run_t:sock_file { create setattr unlink };
+manage_dirs_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
 manage_files_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
-files_pid_filetrans(pegasus_t, pegasus_var_run_t, file)
+files_pid_filetrans(pegasus_t, pegasus_var_run_t, { file dir })
 
 kernel_read_kernel_sysctls(pegasus_t)
 kernel_read_fs_sysctls(pegasus_t)
 kernel_read_system_state(pegasus_t)
 kernel_search_vm_sysctl(pegasus_t)
 kernel_read_net_sysctls(pegasus_t)
+kernel_read_xen_state(pegasus_t)
+kernel_write_xen_state(pegasus_t)
 
 corenet_all_recvfrom_unlabeled(pegasus_t)
 corenet_all_recvfrom_netlabel(pegasus_t)
@@ -95,13 +98,12 @@ files_getattr_all_dirs(pegasus_t)
 
 auth_use_nsswitch(pegasus_t)
 auth_domtrans_chk_passwd(pegasus_t)
+auth_read_shadow(pegasus_t)
 
 domain_use_interactive_fds(pegasus_t)
 domain_read_all_domains_state(pegasus_t)
 
-files_read_etc_files(pegasus_t)
-files_list_var_lib(pegasus_t)
-files_read_var_lib_files(pegasus_t)
+files_read_all_files(pegasus_t)
 files_read_var_lib_symlinks(pegasus_t)
 
 hostname_exec(pegasus_t)
@@ -114,7 +116,6 @@ logging_send_syslog_msg(pegasus_t)
 
 miscfiles_read_localization(pegasus_t)
 
-sysnet_read_config(pegasus_t)
 sysnet_domtrans_ifconfig(pegasus_t)
 
 userdom_dontaudit_use_unpriv_user_fds(pegasus_t)
@@ -122,6 +123,14 @@ userdom_dontaudit_search_user_home_dirs(pegasus_t)
 
 optional_policy(`
 	rpm_exec(pegasus_t)
+')
+
+optional_policy(`
+	samba_manage_config(pegasus_t)
+')
+
+optional_policy(`
+	ssh_exec(pegasus_t)
 ')
 
 optional_policy(`
@@ -135,4 +144,14 @@ optional_policy(`
 
 optional_policy(`
 	unconfined_signull(pegasus_t)
+')
+
+optional_policy(`
+	virt_domtrans(pegasus_t)
+	virt_manage_config(pegasus_t)
+')
+
+optional_policy(`
+	xen_stream_connect(pegasus_t)
+	xen_stream_connect_xenstore(pegasus_t)
 ')

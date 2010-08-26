@@ -28,9 +28,10 @@ files_pid_file(sssd_var_run_t)
 #
 # sssd local policy
 #
-allow sssd_t self:capability { dac_read_search dac_override kill sys_nice setgid setuid };
+allow sssd_t self:capability { chown dac_read_search dac_override kill sys_nice setgid setuid };
 allow sssd_t self:process { setfscreate setsched sigkill signal getsched };
 allow sssd_t self:fifo_file rw_file_perms;
+allow sssd_t self:key manage_key_perms;
 allow sssd_t self:unix_stream_socket { create_stream_socket_perms connectto };
 
 manage_dirs_pattern(sssd_t, sssd_public_t, sssd_public_t)
@@ -48,6 +49,7 @@ manage_dirs_pattern(sssd_t, sssd_var_run_t, sssd_var_run_t)
 manage_files_pattern(sssd_t, sssd_var_run_t, sssd_var_run_t)
 files_pid_filetrans(sssd_t, sssd_var_run_t, { file dir })
 
+kernel_read_network_state(sssd_t)
 kernel_read_system_state(sssd_t)
 
 corecmd_exec_bin(sssd_t)
@@ -79,6 +81,8 @@ logging_send_syslog_msg(sssd_t)
 logging_send_audit_msgs(sssd_t)
 
 miscfiles_read_localization(sssd_t)
+
+userdom_manage_tmp_role(system_r, sssd_t)
 
 optional_policy(`
 	dbus_system_bus_client(sssd_t)

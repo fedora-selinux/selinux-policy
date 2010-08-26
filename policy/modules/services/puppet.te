@@ -63,7 +63,7 @@ manage_dirs_pattern(puppet_t, puppet_var_lib_t, puppet_var_lib_t)
 manage_files_pattern(puppet_t, puppet_var_lib_t, puppet_var_lib_t)
 files_search_var_lib(puppet_t)
 
-setattr_dirs_pattern(puppet_t, puppet_var_run_t, puppet_var_run_t)
+manage_dirs_pattern(puppet_t, puppet_var_run_t, puppet_var_run_t)
 manage_files_pattern(puppet_t, puppet_var_run_t, puppet_var_run_t)
 files_pid_filetrans(puppet_t, puppet_var_run_t, { file dir })
 
@@ -179,21 +179,26 @@ read_files_pattern(puppetmaster_t, puppet_etc_t, puppet_etc_t)
 allow puppetmaster_t puppet_log_t:dir { rw_dir_perms setattr };
 allow puppetmaster_t puppet_log_t:file { rw_file_perms create setattr };
 logging_log_filetrans(puppetmaster_t, puppet_log_t, { file dir })
+allow puppetmaster_t puppet_log_t:file { relabelfrom relabelto };
 
 manage_dirs_pattern(puppetmaster_t, puppet_var_lib_t, puppet_var_lib_t)
 manage_files_pattern(puppetmaster_t, puppet_var_lib_t, puppet_var_lib_t)
+allow puppetmaster_t puppet_var_lib_t:dir { relabelfrom relabelto };
 
 setattr_dirs_pattern(puppetmaster_t, puppet_var_run_t, puppet_var_run_t)
 manage_files_pattern(puppetmaster_t, puppet_var_run_t, puppet_var_run_t)
 files_pid_filetrans(puppetmaster_t, puppet_var_run_t, { file dir })
+allow puppetmaster_t puppet_var_run_t:dir { relabelfrom relabelto };
 
 manage_dirs_pattern(puppetmaster_t, puppetmaster_tmp_t, puppetmaster_tmp_t)
 manage_files_pattern(puppetmaster_t, puppetmaster_tmp_t, puppetmaster_tmp_t)
 files_tmp_filetrans(puppetmaster_t, puppetmaster_tmp_t, { file dir })
+allow puppetmaster_t puppet_tmp_t:dir { relabelfrom relabelto };
 
 kernel_dontaudit_search_kernel_sysctl(puppetmaster_t)
 kernel_read_system_state(puppetmaster_t)
 kernel_read_crypto_sysctls(puppetmaster_t)
+kernel_read_kernel_sysctls(puppetmaster_t)
 
 corecmd_exec_bin(puppetmaster_t)
 corecmd_exec_shell(puppetmaster_t)
@@ -214,12 +219,18 @@ domain_read_all_domains_state(puppetmaster_t)
 files_read_etc_files(puppetmaster_t)
 files_search_var_lib(puppetmaster_t)
 
+selinux_validate_context(puppetmaster_t)
+
 logging_send_syslog_msg(puppetmaster_t)
 
 miscfiles_read_localization(puppetmaster_t)
 
+seutil_read_file_contexts(puppetmaster_t)
+
 sysnet_dns_name_resolve(puppetmaster_t)
 sysnet_run_ifconfig(puppetmaster_t, system_r)
+
+mta_send_mail(puppetmaster_t)
 
 optional_policy(`
 	hostname_exec(puppetmaster_t)

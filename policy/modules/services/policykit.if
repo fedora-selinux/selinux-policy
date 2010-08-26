@@ -17,8 +17,33 @@ interface(`policykit_dbus_chat',`
 		class dbus send_msg;
 	')
 
+	ps_process_pattern(policykit_t, $1)
+
 	allow $1 policykit_t:dbus send_msg;
 	allow policykit_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	policykit over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`policykit_dbus_chat_auth',`
+	gen_require(`
+		type policykit_auth_t;
+		class dbus send_msg;
+	')
+
+	ps_process_pattern(policykit_auth_t, $1)
+
+	allow $1 policykit_auth_t:dbus send_msg;
+	allow policykit_auth_t $1:dbus send_msg;
 ')
 
 ########################################
@@ -62,6 +87,9 @@ interface(`policykit_run_auth',`
 
 	policykit_domtrans_auth($1)
 	role $2 types policykit_auth_t;
+
+	allow $1 policykit_auth_t:process signal;
+	ps_process_pattern(policykit_auth_t, $1)
 ')
 
 ########################################
@@ -206,4 +234,47 @@ interface(`policykit_read_lib',`
 
 	files_search_var_lib($1)
 	read_files_pattern($1, policykit_var_lib_t, policykit_var_lib_t)
+
+	# Broken placement
+	cron_read_system_job_lib_files($1)
+')
+
+#######################################
+## <summary>
+##	The per role template for the policykit module.
+## </summary>
+## <param name="user_role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+template(`policykit_role',`
+	policykit_run_auth($2, $1)
+	policykit_run_grant($2, $1)
+	policykit_read_lib($2)
+	policykit_read_reload($2)
+	policykit_dbus_chat($2)
+')
+########################################
+## <summary>
+##	Send generic signal to policy_auth
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`policykit_signal_auth',`
+	gen_require(`
+		type policykit_auth_t;
+	')
+
+	allow $1 policykit_auth_t:process signal;
 ')

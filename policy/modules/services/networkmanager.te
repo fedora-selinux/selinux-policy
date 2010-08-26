@@ -35,7 +35,7 @@ init_system_domain(wpa_cli_t, wpa_cli_exec_t)
 
 # networkmanager will ptrace itself if gdb is installed
 # and it receives a unexpected signal (rh bug #204161)
-allow NetworkManager_t self:capability { chown fsetid kill setgid setuid sys_nice sys_ptrace dac_override net_admin net_raw net_bind_service ipc_lock };
+allow NetworkManager_t self:capability { chown fsetid kill setgid setuid sys_admin sys_nice sys_ptrace dac_override net_admin net_raw net_bind_service ipc_lock };
 dontaudit NetworkManager_t self:capability { sys_tty_config sys_ptrace };
 allow NetworkManager_t self:process { ptrace getcap setcap setpgid getsched setsched signal_perms };
 allow NetworkManager_t self:fifo_file rw_fifo_file_perms;
@@ -44,7 +44,7 @@ allow NetworkManager_t self:unix_stream_socket create_stream_socket_perms;
 allow NetworkManager_t self:netlink_route_socket create_netlink_socket_perms;
 allow NetworkManager_t self:netlink_kobject_uevent_socket create_socket_perms;
 allow NetworkManager_t self:tcp_socket create_stream_socket_perms;
-allow NetworkManager_t self:tun_socket { create_socket_perms relabelfrom };
+allow NetworkManager_t self:tun_socket { create_socket_perms relabelfrom relabelto };
 allow NetworkManager_t self:udp_socket create_socket_perms;
 allow NetworkManager_t self:packet_socket create_socket_perms;
 
@@ -55,6 +55,7 @@ can_exec(NetworkManager_t, NetworkManager_exec_t)
 manage_files_pattern(NetworkManager_t, NetworkManager_log_t, NetworkManager_log_t)
 logging_log_filetrans(NetworkManager_t, NetworkManager_log_t, file)
 
+can_exec(NetworkManager_t, NetworkManager_tmp_t)
 manage_files_pattern(NetworkManager_t, NetworkManager_tmp_t, NetworkManager_tmp_t)
 manage_sock_files_pattern(NetworkManager_t, NetworkManager_tmp_t, NetworkManager_tmp_t)
 files_tmp_filetrans(NetworkManager_t, NetworkManager_tmp_t, { sock_file file })
@@ -141,22 +142,32 @@ sysnet_domtrans_ifconfig(NetworkManager_t)
 sysnet_domtrans_dhcpc(NetworkManager_t)
 sysnet_signal_dhcpc(NetworkManager_t)
 sysnet_read_dhcpc_pid(NetworkManager_t)
+sysnet_read_dhcp_config(NetworkManager_t)
 sysnet_delete_dhcpc_pid(NetworkManager_t)
+sysnet_kill_dhcpc(NetworkManager_t)
+sysnet_read_dhcpc_state(NetworkManager_t)
+sysnet_delete_dhcpc_state(NetworkManager_t)
 sysnet_search_dhcp_state(NetworkManager_t)
 # in /etc created by NetworkManager will be labelled net_conf_t.
 sysnet_manage_config(NetworkManager_t)
 sysnet_etc_filetrans_config(NetworkManager_t)
 
+userdom_stream_connect(NetworkManager_t)
 userdom_dontaudit_use_unpriv_user_fds(NetworkManager_t)
 userdom_dontaudit_use_user_ttys(NetworkManager_t)
 # Read gnome-keyring
+userdom_read_home_certs(NetworkManager_t)
 userdom_read_user_home_content_files(NetworkManager_t)
+userdom_dgram_send(NetworkManager_t)
+
+cron_read_system_job_lib_files(NetworkManager_t)
 
 optional_policy(`
 	avahi_domtrans(NetworkManager_t)
 	avahi_kill(NetworkManager_t)
 	avahi_signal(NetworkManager_t)
 	avahi_signull(NetworkManager_t)
+	avahi_dbus_chat(NetworkManager_t)
 ')
 
 optional_policy(`
@@ -172,7 +183,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	consoletype_exec(NetworkManager_t)
+	consoletype_domtrans(NetworkManager_t)
 ')
 
 optional_policy(`
@@ -199,6 +210,13 @@ optional_policy(`
 
 optional_policy(`
 	howl_signal(NetworkManager_t)
+')
+
+optional_policy(`
+	ipsec_domtrans_mgmt(NetworkManager_t)
+	ipsec_kill_mgmt(NetworkManager_t)
+	ipsec_signal_mgmt(NetworkManager_t)
+	ipsec_signull_mgmt(NetworkManager_t)
 ')
 
 optional_policy(`
@@ -263,6 +281,7 @@ optional_policy(`
 	vpn_kill(NetworkManager_t)
 	vpn_signal(NetworkManager_t)
 	vpn_signull(NetworkManager_t)
+	vpn_relabelfrom_tun_socket(NetworkManager_t)
 ')
 
 ########################################

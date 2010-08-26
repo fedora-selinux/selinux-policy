@@ -79,6 +79,25 @@ interface(`samba_domtrans_net',`
 
 ########################################
 ## <summary>
+##	Execute samba net in the samba_unconfined_net domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`samba_domtrans_unconfined_net',`
+	gen_require(`
+		type samba_unconfined_net_t, samba_net_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, samba_net_exec_t, samba_unconfined_net_t)
+')
+
+########################################
+## <summary>
 ##	Execute samba net in the samba_net domain, and
 ##	allow the specified role the samba_net domain.
 ## </summary>
@@ -101,6 +120,50 @@ interface(`samba_run_net',`
 
 	samba_domtrans_net($1)
 	role $2 types samba_net_t;
+')
+
+#######################################
+## <summary>
+##	The role for the samba module.
+## </summary>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the samba_net domain.
+##	</summary>
+## </param>
+#
+template(`samba_role_notrans',`
+	gen_require(`
+		type smbd_t;
+	')
+
+	role $1 types smbd_t;
+')
+
+########################################
+## <summary>
+##	Execute samba net in the samba_unconfined_net domain, and
+##	allow the specified role the samba_unconfined_net domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the samba_unconfined_net domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`samba_run_unconfined_net',`
+	gen_require(`
+		type samba_unconfined_net_t;
+	')
+
+	samba_domtrans_unconfined_net($1)
+	role $2 types samba_unconfined_net_t;
 ')
 
 ########################################
@@ -412,6 +475,7 @@ interface(`samba_manage_var_files',`
 	files_search_var($1)
 	files_search_var_lib($1)
 	manage_files_pattern($1, samba_var_t, samba_var_t)
+	manage_lnk_files_pattern($1, samba_var_t, samba_var_t)
 ')
 
 ########################################
@@ -564,6 +628,7 @@ interface(`samba_domtrans_winbind_helper',`
 	')
 
 	domtrans_pattern($1, winbind_helper_exec_t, winbind_helper_t)
+	allow $1 winbind_helper_t:process signal;
 ')
 
 ########################################
@@ -644,6 +709,36 @@ interface(`samba_stream_connect_winbind',`
 
 ########################################
 ## <summary>
+##	Create a set of derived types for apache
+##	web content.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix to be used for deriving type names.
+##	</summary>
+## </param>
+#
+template(`samba_helper_template',`
+	gen_require(`
+		type smbd_t;
+	')
+	#This type is for samba helper scripts
+	type samba_$1_script_t;
+	domain_type(samba_$1_script_t)
+	role system_r types samba_$1_script_t;
+
+	# This type is used for executable scripts files
+	type samba_$1_script_exec_t;
+	corecmd_shell_entry_type(samba_$1_script_t)
+	domain_entry_file(samba_$1_script_t, samba_$1_script_exec_t)
+
+	domtrans_pattern(smbd_t, samba_$1_script_exec_t, samba_$1_script_t)
+	allow smbd_t samba_$1_script_exec_t:file ioctl;
+
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate 
 ##	an samba environment
 ## </summary>
@@ -664,7 +759,7 @@ interface(`samba_admin',`
 		type nmbd_t, nmbd_var_run_t;
 		type smbd_t, smbd_tmp_t;
 		type smbd_var_run_t;
-		type smbd_spool_t;
+		type samba_initrc_exec_t;
 
 		type samba_log_t, samba_var_t;
 		type samba_etc_t, samba_share_t;
@@ -675,7 +770,7 @@ interface(`samba_admin',`
 		type winbind_var_run_t, winbind_tmp_t;
 		type winbind_log_t;
 
-		type samba_initrc_exec_t;
+		type samba_unconfined_script_t, samba_unconfined_script_exec_t;
 	')
 
 	allow $1 smbd_t:process { ptrace signal_perms };
@@ -684,6 +779,9 @@ interface(`samba_admin',`
 	allow $1 nmbd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, nmbd_t)
 
+	allow $1 samba_unconfined_script_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, samba_unconfined_script_t, samba_unconfined_script_t)
+	        
 	samba_run_smbcontrol($1, $2, $3)
 	samba_run_winbind_helper($1, $2, $3)
 	samba_run_smbmount($1, $2, $3)
@@ -709,9 +807,6 @@ interface(`samba_admin',`
 	admin_pattern($1, samba_var_t)
 	files_list_var($1)
 
-	admin_pattern($1, smbd_spool_t)
-	files_list_spool($1)
-
 	admin_pattern($1, smbd_var_run_t)
 	files_list_pids($1)
 
@@ -727,4 +822,5 @@ interface(`samba_admin',`
 	admin_pattern($1, winbind_tmp_t)
 
 	admin_pattern($1, winbind_var_run_t)
+	admin_pattern($1, samba_unconfined_script_exec_t)
 ')

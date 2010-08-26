@@ -41,10 +41,30 @@ interface(`livecd_run',`
 
 	livecd_domtrans($1)
 	role $2 types livecd_t;
+	
+	seutil_run_setfiles_mac(livecd_t, $2)
 
 	optional_policy(`
 		mount_run(livecd_t, $2)
 	')
+')
+
+########################################
+## <summary>
+##	Dontaudit read/write to a livecd leaks
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`livecd_dontaudit_leaks',`
+	gen_require(`
+		type livecd_t;
+	')
+
+	dontaudit $1 livecd_t:unix_dgram_socket { read write };
 ')
 
 ########################################
@@ -82,7 +102,7 @@ interface(`livecd_rw_tmp_files',`
 	')
 
 	files_search_tmp($1)
-	allow $1 livecd_tmp_t:file rw_file_perms;
+	rw_files_pattern($1, livecd_tmp_t, livecd_tmp_t)
 ')
 
 ########################################

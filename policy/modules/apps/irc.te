@@ -24,6 +24,30 @@ userdom_user_home_content(irc_tmp_t)
 
 ########################################
 #
+# Irssi personal declarations.
+#
+
+## <desc>
+## <p>
+## Allow the Irssi IRC Client to connect to any port,
+## and to bind to any unreserved port.
+## </p>
+## </desc>
+gen_tunable(irssi_use_full_network, false)
+
+type irssi_t;
+type irssi_exec_t;
+application_domain(irssi_t, irssi_exec_t)
+ubac_constrained(irssi_t)
+
+type irssi_etc_t;
+files_config_file(irssi_etc_t)
+
+type irssi_home_t;
+userdom_user_home_content(irssi_home_t)
+
+########################################
+#
 # Local policy
 #
 
@@ -101,3 +125,83 @@ tunable_policy(`use_samba_home_dirs',`
 optional_policy(`
 	nis_use_ypbind(irc_t)
 ')
+
+########################################
+#
+# Irssi personal declarations.
+#
+
+allow irssi_t self:process { signal sigkill };
+allow irssi_t self:fifo_file rw_fifo_file_perms;
+allow irssi_t self:netlink_route_socket create_netlink_socket_perms;
+allow irssi_t self:tcp_socket create_stream_socket_perms;
+allow irssi_t self:udp_socket create_socket_perms;
+
+read_files_pattern(irssi_t, irssi_etc_t, irssi_etc_t)
+
+manage_dirs_pattern(irssi_t, irssi_home_t, irssi_home_t)
+manage_files_pattern(irssi_t, irssi_home_t, irssi_home_t)
+manage_lnk_files_pattern(irssi_t, irssi_home_t, irssi_home_t)
+userdom_user_home_dir_filetrans(irssi_t, irssi_home_t, { dir file lnk_file })
+userdom_search_user_home_dirs(irssi_t)
+
+corecmd_search_bin(irssi_t)
+corecmd_read_bin_symlinks(irssi_t)
+
+corenet_tcp_connect_ircd_port(irssi_t)
+corenet_sendrecv_ircd_client_packets(irssi_t)
+
+# Privoxy
+corenet_tcp_connect_http_cache_port(irssi_t)
+corenet_sendrecv_http_cache_client_packets(irssi_t)
+
+corenet_all_recvfrom_netlabel(irssi_t)
+corenet_all_recvfrom_unlabeled(irssi_t)
+corenet_tcp_sendrecv_generic_if(irssi_t)
+corenet_tcp_sendrecv_generic_node(irssi_t)
+corenet_tcp_sendrecv_generic_port(irssi_t)
+corenet_tcp_bind_generic_node(irssi_t)
+corenet_udp_bind_generic_node(irssi_t)
+
+dev_read_urand(irssi_t)
+# irssi-otr genkey.
+dev_read_rand(irssi_t)
+
+files_read_etc_files(irssi_t)
+files_read_usr_files(irssi_t)
+
+fs_search_auto_mountpoints(irssi_t)
+
+miscfiles_read_localization(irssi_t)
+
+sysnet_read_config(irssi_t)
+
+userdom_use_user_terminals(irssi_t)
+
+tunable_policy(`irssi_use_full_network', `
+	corenet_tcp_bind_all_unreserved_ports(irssi_t)
+	corenet_tcp_connect_all_ports(irssi_t)
+	corenet_sendrecv_generic_server_packets(irssi_t)
+	corenet_sendrecv_all_client_packets(irssi_t)
+')
+
+tunable_policy(`use_nfs_home_dirs', `
+	fs_manage_nfs_dirs(irssi_t)
+	fs_manage_nfs_files(irssi_t)
+	fs_manage_nfs_symlinks(irssi_t)
+')
+
+tunable_policy(`use_samba_home_dirs', `
+	fs_manage_cifs_dirs(irssi_t)
+	fs_manage_cifs_files(irssi_t)
+	fs_manage_cifs_symlinks(irssi_t)
+')
+
+optional_policy(`
+	automount_dontaudit_getattr_tmp_dirs(irssi_t)
+')
+
+optional_policy(`
+	nis_use_ypbind(irssi_t)
+')
+

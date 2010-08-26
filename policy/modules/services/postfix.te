@@ -5,6 +5,15 @@ policy_module(postfix, 1.12.0)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow postfix_local domain full write access to mail_spool directories
+## 
+## </p>
+## </desc>
+gen_tunable(allow_postfix_local_write_mail_spool, false)
+
+attribute postfix_spool_type;
 attribute postfix_user_domains;
 # domains that transition to the
 # postfix user domains
@@ -12,7 +21,7 @@ attribute postfix_user_domtrans;
 
 postfix_server_domain_template(bounce)
 
-type postfix_spool_bounce_t;
+type postfix_spool_bounce_t,  postfix_spool_type;
 files_type(postfix_spool_bounce_t)
 
 postfix_server_domain_template(cleanup)
@@ -26,12 +35,21 @@ application_executable_file(postfix_exec_t)
 postfix_server_domain_template(local)
 mta_mailserver_delivery(postfix_local_t)
 
+# Handle vacation script
+mta_send_mail(postfix_local_t)
+
+userdom_read_user_home_content_files(postfix_local_t)
+
+tunable_policy(`allow_postfix_local_write_mail_spool',`
+	mta_manage_spool(postfix_local_t)
+')
+
 # Program for creating database files
 type postfix_map_t;
 type postfix_map_exec_t;
 application_domain(postfix_map_t, postfix_map_exec_t)
 role system_r types postfix_map_t;
-
+     
 type postfix_map_tmp_t;
 files_tmp_file(postfix_map_tmp_t)
 
@@ -41,6 +59,9 @@ typealias postfix_master_t alias postfix_t;
 # generation macro work
 mta_mailserver(postfix_t, postfix_master_exec_t)
 
+type postfix_initrc_exec_t;
+init_script_file(postfix_initrc_exec_t)
+
 postfix_server_domain_template(pickup)
 
 postfix_server_domain_template(pipe)
@@ -49,6 +70,7 @@ postfix_user_domain_template(postdrop)
 mta_mailserver_user_agent(postfix_postdrop_t)
 
 postfix_user_domain_template(postqueue)
+mta_mailserver_user_agent(postfix_postqueue_t)
 
 type postfix_private_t;
 files_type(postfix_private_t)
@@ -65,13 +87,13 @@ mta_mailserver_sender(postfix_smtp_t)
 
 postfix_server_domain_template(smtpd)
 
-type postfix_spool_t;
+type postfix_spool_t, postfix_spool_type;
 files_type(postfix_spool_t)
 
-type postfix_spool_maildrop_t;
+type postfix_spool_maildrop_t, postfix_spool_type;
 files_type(postfix_spool_maildrop_t)
 
-type postfix_spool_flush_t;
+type postfix_spool_flush_t, postfix_spool_type;
 files_type(postfix_spool_flush_t)
 
 type postfix_public_t;
@@ -99,7 +121,9 @@ allow postfix_master_t self:tcp_socket create_stream_socket_perms;
 allow postfix_master_t self:udp_socket create_socket_perms;
 allow postfix_master_t self:process setrlimit;
 
+allow postfix_master_t postfix_etc_t:dir rw_dir_perms;
 allow postfix_master_t postfix_etc_t:file rw_file_perms;
+mta_filetrans_aliases(postfix_master_t, postfix_etc_t)
 
 can_exec(postfix_master_t, postfix_exec_t)
 
@@ -150,6 +174,9 @@ corenet_tcp_sendrecv_generic_node(postfix_master_t)
 corenet_udp_sendrecv_generic_node(postfix_master_t)
 corenet_tcp_sendrecv_all_ports(postfix_master_t)
 corenet_udp_sendrecv_all_ports(postfix_master_t)
+corenet_udp_bind_generic_node(postfix_master_t)
+corenet_udp_bind_all_unreserved_ports(postfix_master_t)
+corenet_dontaudit_udp_bind_all_ports(postfix_master_t)
 corenet_tcp_bind_generic_node(postfix_master_t)
 corenet_tcp_bind_amavisd_send_port(postfix_master_t)
 corenet_tcp_bind_smtp_port(postfix_master_t)
@@ -167,6 +194,8 @@ corecmd_exec_bin(postfix_master_t)
 domain_use_interactive_fds(postfix_master_t)
 
 files_read_usr_files(postfix_master_t)
+files_search_var_lib(postfix_master_t)
+files_search_tmp(postfix_master_t)
 
 term_dontaudit_search_ptys(postfix_master_t)
 
@@ -304,7 +333,15 @@ optional_policy(`
 ')
 
 optional_policy(`
+	nagios_search_spool(postfix_local_t)
+')
+
+optional_policy(`
 	procmail_domtrans(postfix_local_t)
+')
+
+optional_policy(`
+	zarafa_deliver_domtrans(postfix_local_t)
 ')
 
 ########################################
@@ -401,6 +438,8 @@ rw_files_pattern(postfix_pipe_t, postfix_spool_t, postfix_spool_t)
 
 domtrans_pattern(postfix_pipe_t, postfix_postdrop_exec_t, postfix_postdrop_t)
 
+corecmd_exec_bin(postfix_pipe_t)
+
 optional_policy(`
 	dovecot_domtrans_deliver(postfix_pipe_t)
 ')
@@ -420,6 +459,7 @@ optional_policy(`
 
 optional_policy(`
 	spamassassin_domtrans_client(postfix_pipe_t)
+	spamassassin_kill_client(postfix_pipe_t)
 ')
 
 optional_policy(`
@@ -588,6 +628,11 @@ corecmd_exec_bin(postfix_smtpd_t)
 
 # for OpenSSL certificates
 files_read_usr_files(postfix_smtpd_t)
+
+# postfix checks the size of all mounted file systems
+fs_getattr_all_dirs(postfix_smtpd_t)
+fs_getattr_all_fs(postfix_smtpd_t)
+
 mta_read_aliases(postfix_smtpd_t)
 
 optional_policy(`
@@ -630,3 +675,8 @@ mta_delete_spool(postfix_virtual_t)
 # For reading spamassasin
 mta_read_config(postfix_virtual_t)
 mta_manage_spool(postfix_virtual_t)
+
+userdom_manage_user_home_dirs(postfix_virtual_t)
+userdom_manage_user_home_content(postfix_virtual_t)
+userdom_home_filetrans_user_home_dir(postfix_virtual_t)
+userdom_user_home_dir_filetrans_user_home_content(postfix_virtual_t, {file dir })

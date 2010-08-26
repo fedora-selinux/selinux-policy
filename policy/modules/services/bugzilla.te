@@ -1,0 +1,56 @@
+policy_module(bugzilla, 1.0)
+
+########################################
+#
+# Declarations
+#
+
+apache_content_template(bugzilla)
+
+type httpd_bugzilla_tmp_t;
+files_tmp_file(httpd_bugzilla_tmp_t)
+
+########################################
+#
+# bugzilla local policy
+#
+
+allow httpd_bugzilla_script_t self:netlink_route_socket r_netlink_socket_perms;
+allow httpd_bugzilla_script_t self:tcp_socket create_stream_socket_perms;
+allow httpd_bugzilla_script_t self:udp_socket create_socket_perms;
+
+corenet_all_recvfrom_unlabeled(httpd_bugzilla_script_t)
+corenet_all_recvfrom_netlabel(httpd_bugzilla_script_t)
+corenet_tcp_sendrecv_all_if(httpd_bugzilla_script_t)
+corenet_udp_sendrecv_all_if(httpd_bugzilla_script_t)
+corenet_tcp_sendrecv_all_nodes(httpd_bugzilla_script_t)
+corenet_udp_sendrecv_all_nodes(httpd_bugzilla_script_t)
+corenet_tcp_sendrecv_all_ports(httpd_bugzilla_script_t)
+corenet_udp_sendrecv_all_ports(httpd_bugzilla_script_t)
+corenet_tcp_connect_postgresql_port(httpd_bugzilla_script_t)
+corenet_tcp_connect_mysqld_port(httpd_bugzilla_script_t)
+corenet_tcp_connect_http_port(httpd_bugzilla_script_t)
+corenet_tcp_connect_smtp_port(httpd_bugzilla_script_t)
+corenet_sendrecv_postgresql_client_packets(httpd_bugzilla_script_t)
+corenet_sendrecv_mysqld_client_packets(httpd_bugzilla_script_t)
+
+manage_dirs_pattern(httpd_bugzilla_script_t, httpd_bugzilla_tmp_t, httpd_bugzilla_tmp_t)
+manage_files_pattern(httpd_bugzilla_script_t, httpd_bugzilla_tmp_t, httpd_bugzilla_tmp_t)
+files_tmp_filetrans(httpd_bugzilla_script_t, httpd_bugzilla_tmp_t, { file dir })
+
+files_search_var_lib(httpd_bugzilla_script_t)
+
+mta_send_mail(httpd_bugzilla_script_t)
+
+sysnet_read_config(httpd_bugzilla_script_t)
+sysnet_use_ldap(httpd_bugzilla_script_t)
+
+optional_policy(`
+	mysql_search_db(httpd_bugzilla_script_t)
+	mysql_stream_connect(httpd_bugzilla_script_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(httpd_bugzilla_script_t)
+')
+

@@ -105,7 +105,11 @@ interface(`init_domain',`
 
 	role system_r types $1;
 
-	domtrans_pattern(init_t,$2,$1)
+	tunable_policy(`init_systemd',`', `
+		domtrans_pattern(init_t,$2,$1)
+		allow init_t $1:unix_stream_socket create_stream_socket_perms;
+		allow $1 init_t:unix_dgram_socket sendto;
+	')
 
 	ifdef(`hide_broken_symptoms',`
 		# RHEL4 systems seem to have a stray
@@ -193,8 +197,10 @@ interface(`init_daemon_domain',`
 	gen_require(`
 		attribute direct_run_init, direct_init, direct_init_entry;
 		type initrc_t;
+		type init_t;
 		role system_r;
 		attribute daemon;
+		attribute initrc_transition_domain;
 	')
 
 	typeattribute $1 daemon;
@@ -205,6 +211,20 @@ interface(`init_daemon_domain',`
 	role system_r types $1;
 
 	domtrans_pattern(initrc_t,$2,$1)
+	allow initrc_t $1:process siginh;
+	allow $1 initrc_transition_domain:fifo_file rw_inherited_fifo_file_perms;
+	allow $1 initrc_transition_domain:fd use;
+
+	tunable_policy(`init_upstart || init_systemd',`
+		# Handle upstart direct transition to a executable
+		domtrans_pattern(init_t,$2,$1)
+		allow init_t $1:process siginh;
+	')
+
+	tunable_policy(`init_systemd',`
+		allow init_t $1:unix_stream_socket create_stream_socket_perms;
+		allow $1 init_t:unix_dgram_socket sendto;
+	')
 
 	# daemons started from init will
 	# inherit fds from init for the console
@@ -285,7 +305,7 @@ interface(`init_ranged_daemon_domain',`
 		type initrc_t;
 	')
 
-	init_daemon_domain($1,$2)
+#	init_daemon_domain($1,$2)
 
 	ifdef(`enable_mcs',`
 		range_transition initrc_t $2:process $3;
@@ -336,8 +356,10 @@ interface(`init_ranged_daemon_domain',`
 #
 interface(`init_system_domain',`
 	gen_require(`
+		type init_t;
 		type initrc_t;
 		role system_r;
+		attribute initrc_transition_domain;
 	')
 
 	application_domain($1,$2)
@@ -345,6 +367,17 @@ interface(`init_system_domain',`
 	role system_r types $1;
 
 	domtrans_pattern(initrc_t,$2,$1)
+	allow initrc_t $1:process siginh;
+	allow $1 initrc_transition_domain:fifo_file rw_inherited_fifo_file_perms;
+	allow $1 initrc_transition_domain:fd use;
+
+	tunable_policy(`init_systemd',`
+		# Handle upstart/systemd direct transition to a executable
+		domtrans_pattern(init_t,$2,$1)
+		allow init_t $1:process siginh;
+		allow init_t $1:unix_stream_socket create_stream_socket_perms;
+		allow $1 init_t:unix_dgram_socket sendto;
+	')
 
 	ifdef(`hide_broken_symptoms',`
 		# RHEL4 systems seem to have a stray
@@ -353,6 +386,37 @@ interface(`init_system_domain',`
 			kernel_dontaudit_use_fds($1)
 		')
 	')
+
+	userdom_dontaudit_search_user_home_dirs($1)
+	userdom_dontaudit_rw_stream($1)
+	userdom_dontaudit_write_user_tmp_files($1)
+
+	tunable_policy(`allow_daemons_use_tty',`
+	   term_use_all_ttys($1)
+	   term_use_all_ptys($1)
+	',`
+	   term_dontaudit_use_all_ttys($1)
+	   term_dontaudit_use_all_ptys($1)
+	')
+
+	# these apps are often redirect output to random log files
+	logging_inherit_append_all_logs($1)
+
+	optional_policy(`
+		cron_rw_pipes($1)
+	')
+
+	optional_policy(`
+		xserver_dontaudit_append_xdm_home_files($1)
+	')
+
+	optional_policy(`
+		unconfined_dontaudit_rw_pipes($1)
+		unconfined_dontaudit_rw_stream($1)
+		userdom_dontaudit_read_user_tmp_files($1)
+	')
+
+	init_rw_script_stream_sockets($1)
 ')
 
 ########################################
@@ -669,12 +733,14 @@ interface(`init_telinit',`
 		type initctl_t;
 	')
 
+	corecmd_exec_bin($1)
+
 	dev_list_all_dev_nodes($1)
 	allow $1 initctl_t:fifo_file rw_fifo_file_perms;
 
 	init_exec($1)
 
-	tunable_policy(`init_upstart',`
+	tunable_policy(`init_upstart || init_systemd',`
 		gen_require(`
 			type init_t;
 		')
@@ -682,6 +748,8 @@ interface(`init_telinit',`
 		# upstart uses a datagram socket instead of initctl pipe
 		allow $1 self:unix_dgram_socket create_socket_perms;
 		allow $1 init_t:unix_dgram_socket sendto;
+		#576913
+		allow $1 init_t:unix_stream_socket connectto;
 	')
 ')
 
@@ -754,18 +822,19 @@ interface(`init_script_file_entry_type',`
 #
 interface(`init_spec_domtrans_script',`
 	gen_require(`
-		type initrc_t, initrc_exec_t;
+		type initrc_t;
+		attribute init_script_file_type;
 	')
 
 	files_list_etc($1)
-	spec_domtrans_pattern($1, initrc_exec_t, initrc_t)
+	spec_domtrans_pattern($1, init_script_file_type, initrc_t)
 
 	ifdef(`enable_mcs',`
-		range_transition $1 initrc_exec_t:process s0;
+		range_transition $1 init_script_file_type:process s0;
 	')
 
 	ifdef(`enable_mls',`
-		range_transition $1 initrc_exec_t:process s0 - mls_systemhigh;
+		range_transition $1 init_script_file_type:process s0 - mls_systemhigh;
 	')
 ')
 
@@ -781,19 +850,41 @@ interface(`init_spec_domtrans_script',`
 #
 interface(`init_domtrans_script',`
 	gen_require(`
-		type initrc_t, initrc_exec_t;
+		type initrc_t;
+		attribute init_script_file_type;
+		attribute initrc_transition_domain;
 	')
+	typeattribute $1 initrc_transition_domain;
 
 	files_list_etc($1)
-	domtrans_pattern($1, initrc_exec_t, initrc_t)
+	domtrans_pattern($1, init_script_file_type, initrc_t)
 
 	ifdef(`enable_mcs',`
-		range_transition $1 initrc_exec_t:process s0;
+		range_transition $1 init_script_file_type:process s0;
 	')
 
 	ifdef(`enable_mls',`
-		range_transition $1 initrc_exec_t:process s0 - mls_systemhigh;
+		range_transition $1 init_script_file_type:process s0 - mls_systemhigh;
 	')
+')
+
+########################################
+## <summary>
+##	Execute a file in a bin directory
+##	in the initrc_t domain 
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`init_bin_domtrans_spec',`
+	gen_require(`
+		type initrc_t;
+	')
+
+	corecmd_bin_domtrans($1, initrc_t)
 ')
 
 ########################################
@@ -849,8 +940,10 @@ interface(`init_script_file_domtrans',`
 interface(`init_labeled_script_domtrans',`
 	gen_require(`
 		type initrc_t;
+		attribute initrc_transition_domain;
 	')
 
+	typeattribute $1 initrc_transition_domain;
 	domtrans_pattern($1, $2, initrc_t)
 	files_search_etc($1)
 ')
@@ -1338,6 +1431,27 @@ interface(`init_dbus_send_script',`
 ########################################
 ## <summary>
 ##	Send and receive messages from
+##	init over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`init_dbus_chat',`
+	gen_require(`
+		type init_t;
+		class dbus send_msg;
+	')
+
+	allow $1 init_t:dbus send_msg;
+	allow init_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
 ##	init scripts over dbus.
 ## </summary>
 ## <param name="domain">
@@ -1637,7 +1751,7 @@ interface(`init_dontaudit_rw_utmp',`
 		type initrc_var_run_t;
 	')
 
-	dontaudit $1 initrc_var_run_t:file { getattr read write append lock };
+	dontaudit $1 initrc_var_run_t:file rw_file_perms;
 ')
 
 ########################################
@@ -1711,4 +1825,95 @@ interface(`init_udp_recvfrom_all_daemons',`
 		attribute daemon;
 	')
 	corenet_udp_recvfrom_labeled($1, daemon)
+')
+
+########################################
+## <summary>
+##	Transition to system_r when execute an init script
+## </summary>
+## <desc>
+##      <p>
+##	Execute a init script in a specified role
+##      </p>
+##      <p>
+##      No interprocess communication (signals, pipes,
+##      etc.) is provided by this interface since
+##      the domains are not owned by this module.
+##      </p>
+## </desc>
+## <param name="source_role">
+##	<summary>
+##	Role to transition from.
+##	</summary>
+## </param>
+#
+interface(`init_script_role_transition',`
+	gen_require(`
+		attribute init_script_file_type;
+	')
+
+	role_transition $1 init_script_file_type system_r;
+')
+
+########################################
+## <summary>
+##	dontaudit read and write an leaked init scrip file descriptors
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`init_dontaudit_script_leaks',`
+	gen_require(`
+		type initrc_t;
+	')
+
+	dontaudit $1 initrc_t:tcp_socket { read write };
+	dontaudit $1 initrc_t:udp_socket { read write };
+	dontaudit $1 initrc_t:unix_dgram_socket { read write };
+	dontaudit $1 initrc_t:unix_stream_socket { read write };
+	dontaudit $1 initrc_t:shm rw_shm_perms;
+	init_dontaudit_use_script_ptys($1)
+	init_dontaudit_use_script_fds($1)
+')
+
+
+########################################
+## <summary>
+##	Allow the specified domain to connect to
+##	the init process with a unix socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`init_stream_connect',`
+	gen_require(`
+		type init_t;
+	')
+
+	allow $1 init_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read/write to
+##	init with a unix domain stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`init_rw_stream_sockets',`
+	gen_require(`
+		type init_t;
+	')
+
+	allow $1 init_t:unix_stream_socket rw_stream_socket_perms;
 ')

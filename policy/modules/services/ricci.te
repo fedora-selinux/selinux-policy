@@ -10,6 +10,9 @@ type ricci_exec_t;
 domain_type(ricci_t)
 init_daemon_domain(ricci_t, ricci_exec_t)
 
+type ricci_initrc_exec_t;
+init_script_file(ricci_initrc_exec_t)
+
 type ricci_tmp_t;
 files_tmp_file(ricci_tmp_t)
 
@@ -41,6 +44,9 @@ type ricci_modclusterd_t;
 type ricci_modclusterd_exec_t;
 domain_type(ricci_modclusterd_t)
 init_daemon_domain(ricci_modclusterd_t, ricci_modclusterd_exec_t)
+
+type ricci_modclusterd_tmpfs_t;
+files_tmpfs_file(ricci_modclusterd_tmpfs_t)
 
 type ricci_modlog_t;
 type ricci_modlog_exec_t;
@@ -105,6 +111,7 @@ manage_sock_files_pattern(ricci_t, ricci_var_run_t, ricci_var_run_t)
 files_pid_filetrans(ricci_t, ricci_var_run_t, { file sock_file })
 
 kernel_read_kernel_sysctls(ricci_t)
+kernel_read_system_state(ricci_t)
 
 corecmd_exec_bin(ricci_t)
 
@@ -167,6 +174,10 @@ optional_policy(`
 
 optional_policy(`
 	sasl_connect(ricci_t)
+')
+
+optional_policy(`
+	shutdown_domtrans(ricci_t)
 ')
 
 optional_policy(`
@@ -241,8 +252,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# XXX This has got to go.
-	unconfined_domain(ricci_modcluster_t)
+	rgmanager_stream_connect(ricci_modclusterd_t)
 ')
 
 ########################################
@@ -261,6 +271,10 @@ allow ricci_modclusterd_t self:socket create_socket_perms;
 allow ricci_modclusterd_t ricci_modcluster_t:unix_stream_socket connectto;
 allow ricci_modclusterd_t ricci_modcluster_t:fifo_file rw_file_perms;
 
+manage_dirs_pattern(ricci_modclusterd_t, ricci_modclusterd_tmpfs_t, ricci_modclusterd_tmpfs_t)
+manage_files_pattern(ricci_modclusterd_t, ricci_modclusterd_tmpfs_t, ricci_modclusterd_tmpfs_t)
+fs_tmpfs_filetrans(ricci_modclusterd_t, ricci_modclusterd_tmpfs_t, { dir file })
+
 allow ricci_modclusterd_t ricci_modcluster_var_log_t:dir setattr;
 manage_files_pattern(ricci_modclusterd_t, ricci_modcluster_var_log_t, ricci_modcluster_var_log_t)
 manage_sock_files_pattern(ricci_modclusterd_t, ricci_modcluster_var_log_t, ricci_modcluster_var_log_t)
@@ -272,6 +286,7 @@ files_pid_filetrans(ricci_modclusterd_t, ricci_modcluster_var_run_t, { file sock
 
 kernel_read_kernel_sysctls(ricci_modclusterd_t)
 kernel_read_system_state(ricci_modclusterd_t)
+kernel_request_load_module(ricci_modclusterd_t)
 
 corecmd_exec_bin(ricci_modclusterd_t)
 
@@ -443,6 +458,12 @@ files_manage_etc_files(ricci_modstorage_t)
 files_read_etc_runtime_files(ricci_modstorage_t)
 files_read_usr_files(ricci_modstorage_t)
 files_read_kernel_modules(ricci_modstorage_t)
+
+files_create_default_dir(ricci_modstorage_t)
+files_root_filetrans_default(ricci_modstorage_t, dir)
+files_mounton_default(ricci_modstorage_t)
+files_manage_default_dirs(ricci_modstorage_t)
+files_manage_default_files(ricci_modstorage_t)
 
 storage_raw_read_fixed_disk(ricci_modstorage_t)
 

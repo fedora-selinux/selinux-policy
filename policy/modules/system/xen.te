@@ -4,6 +4,7 @@ policy_module(xen, 1.10.0)
 #
 # Declarations
 #
+attribute xm_transition_domain;
 
 ## <desc>
 ## <p>
@@ -34,6 +35,7 @@ type xen_image_t; # customizable
 files_type(xen_image_t)
 # xen_image_t can be assigned to blk devices
 dev_node(xen_image_t)
+virt_image(xen_image_t)
 
 type xenctl_t;
 files_type(xenctl_t)
@@ -88,11 +90,6 @@ init_daemon_domain(xenconsoled_t, xenconsoled_exec_t)
 # pid files
 type xenconsoled_var_run_t;
 files_pid_file(xenconsoled_var_run_t)
-
-type xm_t;
-type xm_exec_t;
-domain_type(xm_t)
-init_system_domain(xm_t, xm_exec_t)
 
 #######################################
 #
@@ -317,9 +314,10 @@ manage_dirs_pattern(xenstored_t, xenstored_tmp_t, xenstored_tmp_t)
 files_tmp_filetrans(xenstored_t, xenstored_tmp_t, { file dir })
 
 # pid file
+manage_dirs_pattern(xenstored_t, xenstored_var_run_t, xenstored_var_run_t)
 manage_files_pattern(xenstored_t, xenstored_var_run_t, xenstored_var_run_t)
 manage_sock_files_pattern(xenstored_t, xenstored_var_run_t, xenstored_var_run_t)
-files_pid_filetrans(xenstored_t, xenstored_var_run_t, { file sock_file })
+files_pid_filetrans(xenstored_t, xenstored_var_run_t, { file sock_file dir })
 
 # log files
 manage_dirs_pattern(xenstored_t, xenstored_var_log_t, xenstored_var_log_t)
@@ -346,6 +344,7 @@ dev_read_sysfs(xenstored_t)
 
 files_read_usr_files(xenstored_t)
 
+fs_search_xenfs(xenstored_t)
 fs_manage_xenfs_files(xenstored_t)
 
 storage_raw_read_fixed_disk(xenstored_t)
@@ -353,6 +352,7 @@ storage_raw_write_fixed_disk(xenstored_t)
 storage_raw_read_removable_device(xenstored_t)
 
 term_use_generic_ptys(xenstored_t)
+term_use_console(xenconsoled_t)
 
 init_use_fds(xenstored_t)
 init_use_script_ptys(xenstored_t)
@@ -365,98 +365,9 @@ xen_append_log(xenstored_t)
 
 ########################################
 #
-# xm local policy
-#
-
-allow xm_t self:capability { dac_override ipc_lock sys_tty_config };
-allow xm_t self:process { getsched signal };
-
-# internal communication is often done using fifo and unix sockets.
-allow xm_t self:fifo_file rw_fifo_file_perms;
-allow xm_t self:unix_stream_socket { create_stream_socket_perms connectto };
-allow xm_t self:tcp_socket create_stream_socket_perms;
-
-manage_files_pattern(xm_t, xend_var_lib_t, xend_var_lib_t)
-manage_fifo_files_pattern(xm_t, xend_var_lib_t, xend_var_lib_t)
-manage_sock_files_pattern(xm_t, xend_var_lib_t, xend_var_lib_t)
-files_search_var_lib(xm_t)
-
-allow xm_t xen_image_t:dir rw_dir_perms;
-allow xm_t xen_image_t:file read_file_perms;
-allow xm_t xen_image_t:blk_file read_blk_file_perms;
-
-kernel_read_system_state(xm_t)
-kernel_read_kernel_sysctls(xm_t)
-kernel_read_sysctl(xm_t)
-kernel_read_xen_state(xm_t)
-kernel_write_xen_state(xm_t)
-
-corecmd_exec_bin(xm_t)
-corecmd_exec_shell(xm_t)
-
-corenet_tcp_sendrecv_generic_if(xm_t)
-corenet_tcp_sendrecv_generic_node(xm_t)
-corenet_tcp_connect_soundd_port(xm_t)
-
-dev_read_urand(xm_t)
-dev_read_sysfs(xm_t)
-
-files_read_etc_runtime_files(xm_t)
-files_read_usr_files(xm_t)
-files_list_mnt(xm_t)
-# Some common macros (you might be able to remove some)
-files_read_etc_files(xm_t)
-
-fs_getattr_all_fs(xm_t)
-fs_manage_xenfs_dirs(xm_t)
-fs_manage_xenfs_files(xm_t)
-
-storage_raw_read_fixed_disk(xm_t)
-
-term_use_all_terms(xm_t)
-
-init_stream_connect_script(xm_t)
-init_rw_script_stream_sockets(xm_t)
-init_use_fds(xm_t)
-
-miscfiles_read_localization(xm_t)
-
-sysnet_dns_name_resolve(xm_t)
-
-xen_append_log(xm_t)
-xen_stream_connect(xm_t)
-xen_stream_connect_xenstore(xm_t)
-
-optional_policy(`
-	dbus_system_bus_client(xm_t)
-
-	optional_policy(`
-		hal_dbus_chat(xm_t)
-	')
-')
-
-optional_policy(`
-	virt_domtrans(xm_t)
-	virt_manage_images(xm_t)
-	virt_manage_config(xm_t)
-	virt_stream_connect(xm_t)
-')
-
-########################################
-#
 # SSH component local policy
 #
 optional_policy(`
-	ssh_basic_client_template(xm, xm_t, system_r)
-
-	kernel_read_xen_state(xm_ssh_t)
-	kernel_write_xen_state(xm_ssh_t)
-
-	files_search_tmp(xm_ssh_t)
-
-	fs_manage_xenfs_dirs(xm_ssh_t)
-	fs_manage_xenfs_files(xm_ssh_t)
-
 	#Should have a boolean wrapping these
 	fs_list_auto_mountpoints(xend_t)
 	files_search_mnt(xend_t)
@@ -468,9 +379,5 @@ optional_policy(`
 	tunable_policy(`xen_use_nfs',`
 		fs_manage_nfs_files(xend_t)
 		fs_read_nfs_symlinks(xend_t)
-	')
-
-	optional_policy(`
-		unconfined_domain(xend_t)
 	')
 ')

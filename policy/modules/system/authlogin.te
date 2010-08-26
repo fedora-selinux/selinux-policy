@@ -8,6 +8,7 @@ policy_module(authlogin, 2.2.0)
 attribute can_read_shadow_passwords;
 attribute can_write_shadow_passwords;
 attribute can_relabelto_shadow_passwords;
+attribute polydomain;
 
 type auth_cache_t;
 logging_log_file(auth_cache_t)
@@ -83,7 +84,7 @@ logging_log_file(wtmp_t)
 
 allow chkpwd_t self:capability { dac_override setuid };
 dontaudit chkpwd_t self:capability sys_tty_config;
-allow chkpwd_t self:process getattr;
+allow chkpwd_t self:process { getattr signal };
 
 allow chkpwd_t shadow_t:file read_file_perms;
 files_list_etc(chkpwd_t)
@@ -393,4 +394,12 @@ optional_policy(`
 optional_policy(`
 	xserver_use_xdm_fds(utempter_t)
 	xserver_rw_xdm_pipes(utempter_t)
+')
+
+tunable_policy(`allow_polyinstantiation',`
+	files_polyinstantiate_all(polydomain)
+	userdom_manage_user_home_content_dirs(polydomain)
+	userdom_manage_user_home_content_files(polydomain)
+	userdom_relabelto_user_home_dirs(polydomain)
+	userdom_relabelto_user_home_files(polydomain)
 ')

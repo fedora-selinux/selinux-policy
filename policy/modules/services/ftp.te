@@ -40,6 +40,13 @@ gen_tunable(allow_ftpd_use_nfs, false)
 
 ## <desc>
 ## <p>
+## Allow ftp servers to use connect to mysql database
+## </p>
+## </desc>
+gen_tunable(ftpd_connect_db, false)
+
+## <desc>
+## <p>
 ## Allow ftp to read and write files in the user home directories
 ## </p>
 ## </desc>
@@ -69,6 +76,14 @@ gen_tunable(sftpd_enable_homedirs, false)
 ## </p>
 ## </desc>
 gen_tunable(sftpd_full_access, false)
+
+## <desc>
+## <p>
+## Allow interlnal-sftp to read and write files 
+## in the user ssh home directories.
+## </p>
+## </desc>
+gen_tunable(sftpd_write_ssh_home, false)
 
 type anon_sftpd_t;
 typealias anon_sftpd_t alias sftpd_anon_t;
@@ -115,6 +130,10 @@ ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(ftpd_t, ftpd_exec_t, s0 - mcs_systemhigh)
 ')
 
+ifdef(`enable_mls',`
+	init_ranged_daemon_domain(ftpd_t, ftpd_exec_t, mls_systemhigh)
+')
+
 ########################################
 #
 # anon-sftp local policy
@@ -133,7 +152,7 @@ tunable_policy(`sftpd_anon_write',`
 # ftpd local policy
 #
 
-allow ftpd_t self:capability { chown fowner fsetid setgid setuid sys_chroot sys_nice sys_resource };
+allow ftpd_t self:capability { chown fowner fsetid ipc_lock setgid setuid sys_chroot sys_admin sys_nice sys_resource };
 dontaudit ftpd_t self:capability sys_tty_config;
 allow ftpd_t self:process { getcap getpgid setcap setsched setrlimit signal_perms };
 allow ftpd_t self:fifo_file rw_fifo_file_perms;
@@ -151,7 +170,6 @@ files_lock_filetrans(ftpd_t, ftpd_lock_t, file)
 
 manage_dirs_pattern(ftpd_t, ftpd_tmp_t, ftpd_tmp_t)
 manage_files_pattern(ftpd_t, ftpd_tmp_t, ftpd_tmp_t)
-files_tmp_filetrans(ftpd_t, ftpd_tmp_t, { file dir })
 
 manage_dirs_pattern(ftpd_t, ftpd_tmpfs_t, ftpd_tmpfs_t)
 manage_files_pattern(ftpd_t, ftpd_tmpfs_t, ftpd_tmpfs_t)
@@ -270,10 +288,13 @@ tunable_policy(`ftp_home_dir',`
 	# allow access to /home
 	files_list_home(ftpd_t)
 	userdom_read_user_home_content_files(ftpd_t)
-	userdom_manage_user_home_content_dirs(ftpd_t)
-	userdom_manage_user_home_content_files(ftpd_t)
-	userdom_manage_user_home_content_symlinks(ftpd_t)
-	userdom_user_home_dir_filetrans_user_home_content(ftpd_t, { dir file lnk_file })
+	userdom_manage_user_home_content(ftpd_t)
+	userdom_manage_user_tmp_files(ftpd_t)
+	userdom_tmp_filetrans_user_tmp(ftpd_t, file)
+', `
+   # Needed for permissive mode, to make sure everything gets labeled correctly
+   userdom_user_home_dir_filetrans_pattern(ftpd_t, { dir file lnk_file })
+   files_tmp_filetrans(ftpd_t, ftpd_tmp_t, { file dir })
 ')
 
 tunable_policy(`ftp_home_dir && use_nfs_home_dirs',`
@@ -313,6 +334,23 @@ optional_policy(`
 
 	kerberos_keytab_template(ftpd, ftpd_t)
 	kerberos_manage_host_rcache(ftpd_t)
+')
+
+optional_policy(`
+	tunable_policy(`ftpd_connect_db',`
+		mysql_stream_connect(ftpd_t)
+	')
+')
+
+optional_policy(`
+	tunable_policy(`ftpd_connect_db',`
+		postgresql_stream_connect(ftpd_t)
+	')
+')
+
+tunable_policy(`ftpd_connect_db',`
+	corenet_tcp_connect_mysqld_port(ftpd_t)
+	corenet_tcp_connect_postgresql_port(ftpd_t)
 ')
 
 optional_policy(`
@@ -362,21 +400,33 @@ userdom_use_user_terminals(ftpdctl_t)
 #
 # sftpd local policy
 #
-
 files_read_etc_files(sftpd_t)
 
 # allow read access to /home by default
 userdom_read_user_home_content_files(sftpd_t)
 userdom_read_user_home_content_symlinks(sftpd_t)
+userdom_dontaudit_list_admin_dir(sftpd_t)
+
+tunable_policy(`sftpd_full_access',`
+    allow sftpd_t self:capability { dac_override dac_read_search };
+    fs_read_noxattr_fs_files(sftpd_t)
+    auth_manage_all_files_except_shadow(sftpd_t)
+')
+
+tunable_policy(`sftpd_write_ssh_home',`
+    ssh_manage_home_files(sftpd_t)
+')
 
 tunable_policy(`sftpd_enable_homedirs',`
 	allow sftpd_t self:capability { dac_override dac_read_search };
 
 	# allow access to /home
 	files_list_home(sftpd_t)
-	userdom_manage_user_home_content_files(sftpd_t)
-	userdom_manage_user_home_content_dirs(sftpd_t)
-	userdom_user_home_dir_filetrans_user_home_content(sftpd_t, { dir file })
+	userdom_read_user_home_content_files(sftpd_t)
+	userdom_manage_user_home_content(sftpd_t)
+', `
+   # Needed for permissive mode, to make sure everything gets labeled correctly
+   userdom_user_home_dir_filetrans_pattern(sftpd_t, { dir file lnk_file })
 ')
 
 tunable_policy(`sftpd_enable_homedirs && use_nfs_home_dirs',`

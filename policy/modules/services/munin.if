@@ -13,10 +13,11 @@
 #
 template(`munin_plugin_template',`
 	gen_require(`
-		type munin_t, munin_exec_t, munin_etc_t;
+		type munin_t;
+		attribute munin_plugin_domain;
 	')
 
-	type $1_munin_plugin_t;
+	type $1_munin_plugin_t, munin_plugin_domain;
 	type $1_munin_plugin_exec_t;
 	typealias $1_munin_plugin_t alias munin_$1_plugin_t;
 	typealias $1_munin_plugin_exec_t alias munin_$1_plugin_exec_t;
@@ -36,17 +37,8 @@ template(`munin_plugin_template',`
 	# automatic transition rules from munin domain
 	# to specific munin plugin domain
 	domtrans_pattern(munin_t, $1_munin_plugin_exec_t, $1_munin_plugin_t)
+	allow munin_t $1_munin_plugin_t:process signal;    
 
-	allow $1_munin_plugin_t munin_exec_t:file read_file_perms;
-	allow $1_munin_plugin_t munin_t:tcp_socket rw_socket_perms;
-
-	read_lnk_files_pattern($1_munin_plugin_t, munin_etc_t, munin_etc_t)
-
-	kernel_read_system_state($1_munin_plugin_t)
-
-	corecmd_exec_bin($1_munin_plugin_t)
-
-	miscfiles_read_localization($1_munin_plugin_t)
 ')
 
 ########################################
@@ -90,6 +82,24 @@ interface(`munin_read_config',`
 	allow $1 munin_etc_t:file read_file_perms;
 	allow $1 munin_etc_t:lnk_file { getattr read };
 	files_search_etc($1)
+')
+
+######################################
+## <summary>
+##  dontaudit read and write an leaked file descriptors
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`munin_dontaudit_leaks',`
+    gen_require(`
+        type munin_t;
+    ')
+
+    dontaudit $1 munin_t:tcp_socket { read write };
 ')
 
 #######################################

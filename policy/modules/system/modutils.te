@@ -18,6 +18,7 @@ type insmod_t;
 type insmod_exec_t;
 application_domain(insmod_t, insmod_exec_t)
 mls_file_write_all_levels(insmod_t)
+mls_process_write_down(insmod_t)
 role system_r types insmod_t;
 
 # module loading config
@@ -55,12 +56,14 @@ corecmd_search_bin(depmod_t)
 
 domain_use_interactive_fds(depmod_t)
 
+files_delete_kernel_modules(depmod_t)
 files_read_kernel_symbol_table(depmod_t)
 files_read_kernel_modules(depmod_t)
 files_read_etc_runtime_files(depmod_t)
 files_read_etc_files(depmod_t)
 files_read_usr_src_files(depmod_t)
 files_list_usr(depmod_t)
+files_read_boot_files(depmod_t)
 
 fs_getattr_xattr_fs(depmod_t)
 
@@ -74,6 +77,7 @@ userdom_use_user_terminals(depmod_t)
 # Read System.map from home directories.
 files_list_home(depmod_t)
 userdom_read_user_home_content_files(depmod_t)
+userdom_manage_user_tmp_files(depmod_t)
 
 ifdef(`distro_ubuntu',`
 	optional_policy(`
@@ -94,9 +98,13 @@ optional_policy(`
 	rpm_manage_script_tmp_files(depmod_t)
 ')
 
+ifdef(`enforcing',`
 optional_policy(`
 	# Read System.map from home directories.
 	unconfined_domain(depmod_t)
+')
+', `
+	permissive depmod_t;
 ')
 
 ########################################
@@ -104,7 +112,7 @@ optional_policy(`
 # insmod local policy
 #
 
-allow insmod_t self:capability { dac_override net_raw sys_nice sys_tty_config };
+allow insmod_t self:capability { dac_override mknod net_raw sys_nice sys_tty_config };
 allow insmod_t self:process { execmem sigchld sigkill sigstop signull signal };
 
 allow insmod_t self:udp_socket create_socket_perms;
@@ -125,6 +133,7 @@ kernel_write_proc_files(insmod_t)
 kernel_mount_debugfs(insmod_t)
 kernel_mount_kvmfs(insmod_t)
 kernel_read_debugfs(insmod_t)
+kernel_request_load_module(insmod_t)
 # Rules for /proc/sys/kernel/tainted
 kernel_read_kernel_sysctls(insmod_t)
 kernel_rw_kernel_sysctl(insmod_t)
@@ -142,6 +151,7 @@ dev_rw_agp(insmod_t)
 dev_read_sound(insmod_t)
 dev_write_sound(insmod_t)
 dev_rw_apm_bios(insmod_t)
+dev_create_generic_chr_files(insmod_t)
 
 domain_signal_all_domains(insmod_t)
 domain_use_interactive_fds(insmod_t)
@@ -160,11 +170,15 @@ files_write_kernel_modules(insmod_t)
 
 fs_getattr_xattr_fs(insmod_t)
 fs_dontaudit_use_tmpfs_chr_dev(insmod_t)
+fs_mount_rpc_pipefs(insmod_t)
+fs_search_rpc(insmod_t)
 
 init_rw_initctl(insmod_t)
 init_use_fds(insmod_t)
 init_use_script_fds(insmod_t)
 init_use_script_ptys(insmod_t)
+init_spec_domtrans_script(insmod_t)
+init_rw_script_tmp_files(insmod_t)
 
 logging_send_syslog_msg(insmod_t)
 logging_search_logs(insmod_t)
@@ -173,8 +187,7 @@ miscfiles_read_localization(insmod_t)
 
 seutil_read_file_contexts(insmod_t)
 
-userdom_use_user_terminals(insmod_t)
-
+term_use_all_terms(insmod_t)
 userdom_dontaudit_search_user_home_dirs(insmod_t)
 
 if( ! secure_mode_insmod ) {
@@ -229,9 +242,17 @@ optional_policy(`
 	rpm_rw_pipes(insmod_t)
 ')
 
+ifdef(`enforcing',`
 optional_policy(`
 	unconfined_domain(insmod_t)
 	unconfined_dontaudit_rw_pipes(insmod_t)
+')
+', `
+	permissive insmod_t;
+')
+
+optional_policy(`
+	virt_dontaudit_write_pipes(insmod_t)
 ')
 
 optional_policy(`

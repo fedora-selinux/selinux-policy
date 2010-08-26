@@ -10,6 +10,9 @@ type procmail_exec_t;
 application_domain(procmail_t, procmail_exec_t)
 role system_r types procmail_t;
 
+type procmail_home_t;
+userdom_user_home_content(procmail_home_t)
+
 type procmail_log_t;
 logging_log_file(procmail_log_t) 
 
@@ -76,8 +79,14 @@ files_search_pids(procmail_t)
 files_read_usr_files(procmail_t)
 
 logging_send_syslog_msg(procmail_t)
+logging_append_all_logs(procmail_t)
 
 miscfiles_read_localization(procmail_t)
+
+list_dirs_pattern(procmail_t, procmail_home_t, procmail_home_t)
+read_files_pattern(procmail_t, procmail_home_t, procmail_home_t)
+userdom_search_user_home_dirs(procmail_t)
+userdom_search_admin_dir(procmail_t)
 
 # only works until we define a different type for maildir
 userdom_manage_user_home_content_dirs(procmail_t)
@@ -87,8 +96,8 @@ userdom_manage_user_home_content_pipes(procmail_t)
 userdom_manage_user_home_content_sockets(procmail_t)
 userdom_user_home_dir_filetrans_user_home_content(procmail_t, { dir file lnk_file fifo_file sock_file })
 
-# Do not audit attempts to access /root.
-userdom_dontaudit_search_user_home_dirs(procmail_t)
+# Execute user executables
+userdom_exec_user_bin_files(procmail_t)
 
 mta_manage_spool(procmail_t)
 mta_read_queue(procmail_t)
@@ -125,6 +134,10 @@ optional_policy(`
 	postfix_read_spool_files(procmail_t)
 	postfix_read_local_state(procmail_t)
 	postfix_read_master_state(procmail_t)
+')
+
+optional_policy(`
+	nagios_search_spool(procmail_t)
 ')
 
 optional_policy(`

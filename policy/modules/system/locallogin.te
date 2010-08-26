@@ -32,9 +32,8 @@ role system_r types sulogin_t;
 # Local login local policy
 #
 
-allow local_login_t self:capability { dac_override chown fowner fsetid kill setgid setuid sys_nice sys_resource sys_tty_config };
-allow local_login_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
-allow local_login_t self:process { setrlimit setexec };
+allow local_login_t self:capability { dac_override chown fowner fsetid kill setgid setuid sys_admin sys_nice sys_ptrace sys_resource sys_tty_config };
+allow local_login_t self:process ~{ ptrace setcurrent setfscreate execmem execstack execheap };
 allow local_login_t self:fd use;
 allow local_login_t self:fifo_file rw_fifo_file_perms;
 allow local_login_t self:sock_file read_sock_file_perms;
@@ -73,6 +72,8 @@ dev_getattr_power_mgmt_dev(local_login_t)
 dev_setattr_power_mgmt_dev(local_login_t)
 dev_getattr_sound_dev(local_login_t)
 dev_setattr_sound_dev(local_login_t)
+dev_rw_generic_usb_dev(local_login_t)
+dev_read_video_dev(local_login_t)
 dev_dontaudit_getattr_apm_bios_dev(local_login_t)
 dev_dontaudit_setattr_apm_bios_dev(local_login_t)
 dev_dontaudit_read_framebuffer(local_login_t)
@@ -125,6 +126,7 @@ auth_manage_pam_console_data(local_login_t)
 auth_domtrans_pam_console(local_login_t)
 
 init_dontaudit_use_fds(local_login_t)
+init_stream_connect(local_login_t)
 
 miscfiles_read_localization(local_login_t)
 
@@ -149,6 +151,12 @@ tunable_policy(`use_nfs_home_dirs',`
 tunable_policy(`use_samba_home_dirs',`
 	fs_read_cifs_files(local_login_t)
 	fs_read_cifs_symlinks(local_login_t)
+')
+
+tunable_policy(`allow_console_login',`
+     term_use_console(local_login_t)
+     term_relabel_console(local_login_t)
+     term_setattr_console(local_login_t)
 ')
 
 optional_policy(`
@@ -180,7 +188,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	unconfined_domain(local_login_t)
+	unconfined_shell_domtrans(local_login_t)
 ')
 
 optional_policy(`
@@ -197,9 +205,10 @@ optional_policy(`
 # Sulogin local policy
 #
 
+allow sulogin_t self:capability dac_override;
 allow sulogin_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
 allow sulogin_t self:fd use;
-allow sulogin_t self:fifo_file rw_file_perms;
+allow sulogin_t self:fifo_file rw_fifo_file_perms;
 allow sulogin_t self:unix_dgram_socket create_socket_perms;
 allow sulogin_t self:unix_stream_socket create_stream_socket_perms;
 allow sulogin_t self:unix_dgram_socket sendto;
@@ -219,6 +228,7 @@ files_read_etc_files(sulogin_t)
 files_dontaudit_search_isid_type_dirs(sulogin_t)
 
 auth_read_shadow(sulogin_t)
+auth_use_nsswitch(sulogin_t)
 
 init_getpgid_script(sulogin_t)
 
@@ -232,14 +242,23 @@ userdom_use_unpriv_users_fds(sulogin_t)
 userdom_search_user_home_dirs(sulogin_t)
 userdom_use_user_ptys(sulogin_t)
 
-sysadm_shell_domtrans(sulogin_t)
+term_use_console(sulogin_t)
+term_use_unallocated_ttys(sulogin_t)
+
+ifdef(`enable_mls',`
+	sysadm_shell_domtrans(sulogin_t)
+',`
+	optional_policy(`
+		unconfined_shell_domtrans(sulogin_t)
+	')
+')
 
 # suse and debian do not use pam with sulogin...
 ifdef(`distro_suse', `define(`sulogin_no_pam')')
 ifdef(`distro_debian', `define(`sulogin_no_pam')')
 
+allow sulogin_t self:capability sys_tty_config;
 ifdef(`sulogin_no_pam', `
-	allow sulogin_t self:capability sys_tty_config;
 	init_getpgid(sulogin_t)
 ', `
 	allow sulogin_t self:process setexec;
@@ -249,12 +268,4 @@ ifdef(`sulogin_no_pam', `
 	selinux_compute_create_context(sulogin_t)
 	selinux_compute_relabel_context(sulogin_t)
 	selinux_compute_user_contexts(sulogin_t)
-')
-
-optional_policy(`
-	nis_use_ypbind(sulogin_t)
-')
-
-optional_policy(`
-	nscd_socket_use(sulogin_t)
 ')

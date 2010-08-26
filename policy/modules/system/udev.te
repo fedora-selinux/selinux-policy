@@ -52,6 +52,7 @@ allow udev_t self:unix_dgram_socket sendto;
 allow udev_t self:unix_stream_socket connectto;
 allow udev_t self:netlink_kobject_uevent_socket create_socket_perms;
 allow udev_t self:rawip_socket create_socket_perms;
+allow udev_t self:netlink_socket create_socket_perms;
 
 allow udev_t udev_exec_t:file write;
 can_exec(udev_t, udev_exec_t)
@@ -72,7 +73,7 @@ read_files_pattern(udev_t, udev_rules_t, udev_rules_t)
 manage_dirs_pattern(udev_t, udev_var_run_t, udev_var_run_t)
 manage_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
 manage_lnk_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
-files_pid_filetrans(udev_t, udev_var_run_t, { dir file })
+files_pid_filetrans(udev_t, udev_var_run_t, { file dir })
 
 kernel_read_system_state(udev_t)
 kernel_request_load_module(udev_t)
@@ -116,10 +117,13 @@ files_exec_etc_files(udev_t)
 files_dontaudit_search_isid_type_dirs(udev_t)
 files_getattr_generic_locks(udev_t)
 files_search_mnt(udev_t)
+files_list_tmp(udev_t)
 
 fs_getattr_all_fs(udev_t)
 fs_list_inotifyfs(udev_t)
 fs_rw_anon_inodefs_files(udev_t)
+fs_list_auto_mountpoints(udev_t)
+fs_list_hugetlbfs(udev_t)
 
 mcs_ptrace_all(udev_t)
 
@@ -192,8 +196,12 @@ ifdef(`distro_redhat',`
 	# for arping used for static IP addresses on PCMCIA ethernet
 	netutils_domtrans(udev_t)
 
+	ifdef(`enforcing',`
 	optional_policy(`
 		unconfined_domain(udev_t)
+	')
+	', `
+	   permissive udev_t;
 	')
 ')
 
@@ -213,6 +221,10 @@ optional_policy(`
 
 optional_policy(`
 	clock_domtrans(udev_t)
+')
+
+optional_policy(`
+	consolekit_read_pid_files(udev_t)
 ')
 
 optional_policy(`
@@ -259,6 +271,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	networkmanager_dbus_chat(udev_t)
+')
+
+optional_policy(`
 	openct_read_pid_files(udev_t)
 	openct_domtrans(udev_t)
 ')
@@ -270,6 +286,10 @@ optional_policy(`
 
 optional_policy(`
 	raid_domtrans_mdadm(udev_t)
+')
+
+optional_policy(`
+	usbmuxd_domtrans(udev_t)
 ')
 
 optional_policy(`
