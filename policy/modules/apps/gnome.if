@@ -37,69 +37,11 @@ interface(`gnome_role',`
 
 ########################################
 ## <summary>
-##	Execute gconf programs in
-##	in the caller domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_exec_gconf',`
-	gen_require(`
-		type gconfd_exec_t;
-	')
-
-	can_exec($1, gconfd_exec_t)
-')
-
-########################################
-## <summary>
-##	Read gconf config files.
-## </summary>
-## <param name="user_domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-template(`gnome_read_gconf_config',`
-	gen_require(`
-		type gconf_etc_t;
-	')
-
-	allow $1 gconf_etc_t:dir list_dir_perms;
-	read_files_pattern($1, gconf_etc_t, gconf_etc_t)
-	files_search_etc($1)
-')
-
-#######################################
-## <summary>
-##	Create, read, write, and delete gconf config files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_manage_gconf_config',`
-	gen_require(`
-		type gconf_etc_t;
-	')
-
-	manage_files_pattern($1, gconf_etc_t, gconf_etc_t)
-	files_search_etc($1)
-')
-
-########################################
-## <summary>
 ##	gconf connection template.
 ## </summary>
 ## <param name="user_domain">
 ##	<summary>
-##	Domain allowed access.
+##	The type of the user domain.
 ##	</summary>
 ## </param>
 #
@@ -132,22 +74,41 @@ interface(`gnome_domtrans_gconfd',`
 
 ########################################
 ## <summary>
-##	Read gnome homedir content (.config)
+##	Dontaudit search gnome homedir content (.config)
 ## </summary>
 ## <param name="user_domain">
 ##	<summary>
-##	Domain allowed access.
+##	The type of the user domain.
 ##	</summary>
 ## </param>
 #
-template(`gnome_read_config',`
+interface(`gnome_dontaudit_search_config',`
 	gen_require(`
 		attribute gnome_home_type;
 	')
 
-	list_dirs_pattern($1, gnome_home_type, gnome_home_type)
-	read_files_pattern($1, gnome_home_type, gnome_home_type)
-	read_lnk_files_pattern($1, gnome_home_type, gnome_home_type)
+	dontaudit $1 gnome_home_type:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	manage gnome homedir content (.config)
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+interface(`gnome_manage_config',`
+	gen_require(`
+		attribute gnome_home_type;
+	')
+
+	allow $1 gnome_home_type:dir manage_dir_perms;
+	allow $1 gnome_home_type:file manage_file_perms;
+	allow $1 gnome_home_type:lnk_file manage_lnk_file_perms;
+	userdom_search_user_home_dirs($1)
 ')
 
 ########################################
@@ -254,6 +215,45 @@ interface(`gnome_write_generic_cache_files',`
 
 	write_files_pattern($1, cache_home_t, cache_home_t)
 	userdom_search_user_home_dirs($1)
+')
+
+########################################
+## <summary>
+##	read gnome homedir content (.config)
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+template(`gnome_read_config',`
+	gen_require(`
+		attribute gnome_home_type;
+	')
+
+	list_dirs_pattern($1, gnome_home_type, gnome_home_type)
+	read_files_pattern($1, gnome_home_type, gnome_home_type)
+	read_lnk_files_pattern($1, gnome_home_type, gnome_home_type)
+')
+
+########################################
+## <summary>
+##	Set attributes of Gnome config dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gnome_setattr_config_dirs',`
+	gen_require(`
+		type gnome_home_t;
+	')
+
+	setattr_dirs_pattern($1, gnome_home_t, gnome_home_t)
+	files_search_home($1)
 ')
 
 ########################################
@@ -525,62 +525,3 @@ interface(`gnome_dbus_chat_gconfdefault',`
 	allow $1 gconfdefaultsm_t:dbus send_msg;
 	allow gconfdefaultsm_t $1:dbus send_msg;
 ')
-
-########################################
-## <summary>
-##	Dontaudit search gnome homedir content (.config)
-## </summary>
-## <param name="user_domain">
-##	<summary>
-##	The type of the user domain.
-##	</summary>
-## </param>
-#
-interface(`gnome_dontaudit_search_config',`
-	gen_require(`
-		attribute gnome_home_type;
-	')
-
-	dontaudit $1 gnome_home_type:dir search_dir_perms;
-')
-
-########################################
-## <summary>
-##	Set attributes of Gnome config dirs.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_setattr_config_dirs',`
-	gen_require(`
-		type gnome_home_t;
-	')
-
-	setattr_dirs_pattern($1, gnome_home_t, gnome_home_t)
-	files_search_home($1)
-')
-
-########################################
-## <summary>
-##	manage gnome homedir content (.config)
-## </summary>
-## <param name="user_domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_manage_config',`
-	gen_require(`
-		attribute gnome_home_type;
-	')
-
-	allow $1 gnome_home_type:dir manage_dir_perms;
-	allow $1 gnome_home_type:file manage_file_perms;
-	allow $1 gnome_home_type:lnk_file manage_lnk_file_perms;
-	userdom_search_user_home_dirs($1)
-')
-
