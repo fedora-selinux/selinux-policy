@@ -1,4 +1,3 @@
-
 policy_module(cobbler, 1.1.0)
 
 ########################################
@@ -8,8 +7,8 @@ policy_module(cobbler, 1.1.0)
 
 ## <desc>
 ## <p>
-##     Allow Cobbler to modify public files
-##     used for public file transfer services.
+## Allow Cobbler to modify public files
+## used for public file transfer services.
 ## </p>
 ## </desc>
 gen_tunable(cobbler_anon_write, false)
@@ -46,21 +45,18 @@ init_script_file(cobblerd_initrc_exec_t)
 type cobbler_etc_t;
 files_config_file(cobbler_etc_t)
 
-type cobbler_content_t;
-typealias cobbler_content_t alias cobbler_var_lib_t;
-files_type(cobbler_content_t)
-
 type cobbler_var_log_t;
 logging_log_file(cobbler_var_log_t)
+
+type cobbler_var_lib_t alias cobbler_content_t;
+files_type(cobbler_var_lib_t)
 
 type cobbler_tmp_t;
 files_tmp_file(cobbler_tmp_t)
 
-# Cobbler check is not supported and is silently ignored.
-
 ########################################
 #
-# Cobbler local policy.
+# Cobbler personal policy.
 #
 
 allow cobblerd_t self:capability { chown dac_override fowner fsetid sys_nice };
@@ -76,13 +72,13 @@ allow cobblerd_t self:unix_dgram_socket create_socket_perms;
 list_dirs_pattern(cobblerd_t, cobbler_etc_t, cobbler_etc_t)
 read_files_pattern(cobblerd_t, cobbler_etc_t, cobbler_etc_t)
 
-# Something that runs in the cobberd_t domain tries to relabelfrom cobbler_content_t dir to httpd_sys_content_t.
-dontaudit cobblerd_t cobbler_content_t:dir relabel_dir_perms;
+# Something that runs in the cobberd_t domain tries to relabelfrom cobbler_var_lib_t dir to httpd_sys_content_t.
+dontaudit cobblerd_t cobbler_var_lib_t:dir relabel_dir_perms;
 
-manage_dirs_pattern(cobblerd_t, cobbler_content_t, cobbler_content_t)
-manage_files_pattern(cobblerd_t, cobbler_content_t, cobbler_content_t)
-manage_lnk_files_pattern(cobblerd_t, cobbler_content_t, cobbler_content_t)
-files_var_lib_filetrans(cobblerd_t, cobbler_content_t, { dir file lnk_file })
+manage_dirs_pattern(cobblerd_t, cobbler_var_lib_t, cobbler_var_lib_t)
+manage_files_pattern(cobblerd_t, cobbler_var_lib_t, cobbler_var_lib_t)
+manage_lnk_files_pattern(cobblerd_t, cobbler_var_lib_t, cobbler_var_lib_t)
+files_var_lib_filetrans(cobblerd_t, cobbler_var_lib_t, { dir file lnk_file })
 
 # Something really needs to write to cobbler.log. Ideally this should not be happening.
 allow cobblerd_t cobbler_var_log_t:file write;
@@ -105,13 +101,13 @@ corecmd_exec_shell(cobblerd_t)
 
 corenet_all_recvfrom_netlabel(cobblerd_t)
 corenet_all_recvfrom_unlabeled(cobblerd_t)
+corenet_sendrecv_cobbler_server_packets(cobblerd_t)
+corenet_tcp_bind_cobbler_port(cobblerd_t)
 corenet_tcp_bind_generic_node(cobblerd_t)
 corenet_tcp_sendrecv_generic_if(cobblerd_t)
 corenet_tcp_sendrecv_generic_node(cobblerd_t)
 corenet_tcp_sendrecv_generic_port(cobblerd_t)
-corenet_tcp_bind_cobbler_port(cobblerd_t)
 corenet_tcp_sendrecv_cobbler_port(cobblerd_t)
-corenet_sendrecv_cobbler_server_packets(cobblerd_t)
 # sync and rsync to ftp and http are permitted by default, for any other media use cobbler_can_network_connect.
 corenet_tcp_connect_ftp_port(cobblerd_t)
 corenet_tcp_sendrecv_ftp_port(cobblerd_t)
@@ -226,7 +222,7 @@ optional_policy(`
 	# 2. no FILES in /var/lib/TFTPDIR are hard linked.
 	# Cobbler also creates other directories in /var/lib/tftpdir (etc, s390x, ppc, pxelinux.cfg)
 	# are any of those hard linked?
-	tftp_filetrans_tftpdir(cobblerd_t, cobbler_content_t, { dir file })
+	tftp_filetrans_tftpdir(cobblerd_t, cobbler_var_lib_t, { dir file })
 ')
 
 ########################################
@@ -234,18 +230,6 @@ optional_policy(`
 # Cobbler web local policy.
 #
 
-# This should be removable when cobbler package installs /var/www/cobbler/rendered.
-optional_policy(`
-	gen_require(`
-		attribute httpdcontent;
-	')
-
-	apache_content_template(cobbler)
-	# To filetrans the /var/www/cobbler/rendered directory to cobbler_content_t.
-	# I added "file" to it for now because fenris02 reported that cobbler buildiso tried to create a file with type
-	# httpd_cobbler_content_t and i do not know where exaclty. Google reports it should be /var/www/cobbler/pub but
-	# that directory should have been labeled cobbler_content_t. 
-	filetrans_pattern(cobblerd_t, httpd_cobbler_content_t, cobbler_content_t, { dir file })
-	# Something that runs in the cobberd_t domain tries to relabelfrom cobbler_content_t dir to httpd_sys_content_t.
-	dontaudit cobblerd_t httpdcontent:dir relabel_dir_perms;
-')
+apache_content_template(cobbler)
+manage_dirs_pattern(cobblerd_t, httpd_cobbler_content_rw_t, httpd_cobbler_content_rw_t)
+manage_files_pattern(cobblerd_t, httpd_cobbler_content_rw_t, httpd_cobbler_content_rw_t)

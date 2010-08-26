@@ -1,4 +1,14 @@
 ## <summary>Cobbler installation server.</summary>
+## <desc>
+##	<p>
+##		Cobbler is a Linux installation server that allows for
+##		rapid setup of network installation environments. It
+##		glues together and automates many associated Linux
+##		tasks so you do not have to hop between lots of various
+##		commands and applications when rolling out new systems,
+##		and, in some cases, changing existing ones.
+##	</p>
+## </desc>
 
 ########################################
 ## <summary>
@@ -52,7 +62,7 @@ interface(`cobbler_list_config',`
 		type cobbler_etc_t;
 	')
 
-	list_dirs_pattern($1, cobbler_content_t, cobbler_content_t)
+	list_dirs_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
 	files_search_etc($1)
 ')
 
@@ -77,7 +87,7 @@ interface(`cobbler_read_config',`
 
 ########################################
 ## <summary>
-##	Manage cobbler content.
+##	Search cobbler dirs in /var/lib
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -85,20 +95,19 @@ interface(`cobbler_read_config',`
 ##	</summary>
 ## </param>
 #
-interface(`cobbler_manage_content',`
+interface(`cobbler_search_lib',`
 	gen_require(`
-		type cobbler_content_t;
+		type cobbler_var_lib_t;
 	')
 
-	manage_dirs_pattern($1, cobbler_content_t, cobbler_content_t)
-	manage_files_pattern($1, cobbler_content_t, cobbler_content_t)
-	manage_lnk_files_pattern($1, cobbler_content_t, cobbler_content_t)
+	search_dirs_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
+	read_lnk_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
 	files_search_var_lib($1)
 ')
 
 ########################################
 ## <summary>
-##	Read cobbler content.
+##	Read cobbler files in /var/lib
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -106,19 +115,19 @@ interface(`cobbler_manage_content',`
 ##	</summary>
 ## </param>
 #
-interface(`cobbler_read_content',`
+interface(`cobbler_read_lib_files',`
 	gen_require(`
-		type cobbler_content_t;
+		type cobbler_var_lib_t;
 	')
 
-	read_files_pattern($1, cobbler_content_t, cobbler_content_t)
-	read_lnk_files_pattern($1, cobbler_content_t, cobbler_content_t)
+	read_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
+	read_lnk_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
 	files_search_var_lib($1)
 ')
 
 ########################################
 ## <summary>
-##	Search cobbler content.
+##	Manage cobbler files in /var/lib
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -126,13 +135,14 @@ interface(`cobbler_read_content',`
 ##	</summary>
 ## </param>
 #
-interface(`cobbler_search_content',`
+interface(`cobbler_manage_lib_files',`
 	gen_require(`
-		type cobbler_content_t;
+		type cobbler_var_lib_t;
 	')
 
-	search_dirs_pattern($1, cobbler_content_t, cobbler_content_t)
-	read_lnk_files_pattern($1, cobbler_content_t, cobbler_content_t)
+	manage_dirs_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
+	manage_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
+	manage_lnk_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
 	files_search_var_lib($1)
 ')
 
@@ -193,44 +203,37 @@ interface(`cobbler_dontaudit_rw_log',`
 #
 interface(`cobblerd_admin',`
 	gen_require(`
-		type cobblerd_t, cobbler_var_log_t;
-		type cobbler_etc_t, cobblerd_initrc_exec_t, cobbler_content_t;
+		type cobblerd_t, cobbler_var_lib_t, cobbler_var_log_t;
+		type cobbler_etc_t, cobblerd_initrc_exec_t;
+		type httpd_cobbler_content_t;
+		type httpd_cobbler_content_ra_t;
+		type httpd_cobbler_content_rw_t;
 	')
 
 	allow $1 cobblerd_t:process { ptrace signal_perms getattr };
 	read_files_pattern($1, cobblerd_t, cobblerd_t)
+
+	files_search_etc($1)
+	admin_pattern($1, cobbler_etc_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, cobbler_var_lib_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, cobbler_var_log_t)
+
+	apache_search_sys_content($1)
+	admin_pattern($1, httpd_cobbler_content_t)
+	admin_pattern($1, httpd_cobbler_content_ra_t)
+	admin_pattern($1, httpd_cobbler_content_rw_t)
 
 	cobblerd_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 cobblerd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	admin_pattern($1, cobbler_etc_t)
-	files_search_etc($1)
-
-	admin_pattern($1, cobbler_content_t)
-	files_list_var_lib($1)
-
-	admin_pattern($1, cobbler_var_log_t)
-	logging_search_logs($1)
-
-	# below may want to be removed.
-	tunable_policy(`cobbler_anon_write',`
-		miscfiles_manage_public_files($1)
-	')
-
 	optional_policy(`
-		gen_require(`
-			type httpd_cobbler_content_t;
-		')
-
-		# manage /var/www/cobbler
-		admin_pattern($1, httpd_cobbler_content_t)
-		apache_search_sys_content($1)
-	')
-
-	optional_policy(`
-		# traverse /var/lib/tftpdir to get to cobbler_content_t there.
+		# traverse /var/lib/tftpdir to get to cobbler_var_lib_t there.
 		tftp_search_rw_content($1)
 	')
 ')
