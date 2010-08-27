@@ -220,7 +220,7 @@ storage_raw_rw_fixed_disk(init_t)
 modutils_domtrans_insmod(init_t)
 
 tunable_policy(`init_systemd',`
-	allow init_t self:unix_dgram_socket create_socket_perms;
+	allow init_t self:unix_dgram_socket { create_socket_perms sendto };
 	allow init_t self:process { setsockcreate setfscreate };
 	allow init_t self:unix_stream_socket { create_stream_socket_perms connectto };
 	allow init_t self:netlink_kobject_uevent_socket create_socket_perms; 
@@ -239,6 +239,7 @@ tunable_policy(`init_systemd',`
 	dev_read_generic_chr_files(init_t)
 	dev_relabelfrom_generic_chr_files(init_t)
 	dev_relabel_autofs_dev(init_t)
+	dev_manage_sysfs_dirs(init_t)
 
 	files_mounton_all_mountpoints(init_t)
 	files_manage_all_pids_dirs(init_t)
@@ -249,16 +250,17 @@ tunable_policy(`init_systemd',`
 	fs_list_auto_mountpoints(init_t)
 	fs_read_cgroup_files(init_t)
 	fs_write_cgroup_files(init_t)
+	fs_search_cgroup_dirs(daemon)
 
 	selinux_compute_create_context(init_t)
 	selinux_validate_context(init_t)
 	selinux_unmount_fs(init_t)
 
+	storage_getattr_removable_dev(init_t)
+
 	init_read_script_state(init_t)
 
 	seutil_read_file_contexts(init_t)
-
-	storage_getattr_removable_dev(init_t)
 ')
 
 optional_policy(`
@@ -284,6 +286,11 @@ optional_policy(`
 
 optional_policy(`
 	nscd_socket_use(init_t)
+')
+
+optional_policy(`
+	plymouthd_stream_connect(init_t)
+	plymouthd_exec_plymouth(init_t)
 ')
 
 optional_policy(`
