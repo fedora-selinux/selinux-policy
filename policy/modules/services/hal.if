@@ -391,8 +391,7 @@ interface(`hal_dontaudit_read_pid_files',`
 		type hald_var_run_t;
 	')
 
-	files_search_pids($1)
-	allow $1 hald_var_run_t:file read_inherited_file_perms;
+	dontaudit $1 hald_var_run_t:file read_inherited_file_perms;
 ')
 
 ########################################
@@ -450,4 +449,28 @@ interface(`hal_manage_pid_files',`
 
 	files_search_pids($1)
 	manage_files_pattern($1, hald_var_run_t, hald_var_run_t)
+')
+
+########################################
+## <summary>
+##	dontaudit read and write an leaked file descriptors
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dontaudit_leaks',`
+	gen_require(`
+		type hald_log_t;
+		type hald_t;
+		type hald_var_run_t;
+	')
+
+	dontaudit $1 hald_t:fd use; 
+	dontaudit $1 hald_log_t:file rw_inherited_files_perms;
+	dontaudit $1 hald_t:fifo_file rw_fifo_file_perms; 
+	dontaudit hald_t $1:socket_class_set { read write };
+	dontaudit $1 hald_var_run_t:file read_inherited_file_perms;
 ')
