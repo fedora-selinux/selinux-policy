@@ -1,3 +1,4 @@
+
 policy_module(jabber, 1.8.0)
 
 ########################################
@@ -5,12 +6,18 @@ policy_module(jabber, 1.8.0)
 # Declarations
 #
 
-type jabberd_t;
+attribute jabberd_domain;
+
+type jabberd_t, jabberd_domain;
 type jabberd_exec_t;
 init_daemon_domain(jabberd_t, jabberd_exec_t)
 
 type jabberd_initrc_exec_t;
 init_script_file(jabberd_initrc_exec_t)
+
+type jabberd_router_t, jabberd_domain;
+type jabberd_router_exec_t;
+init_daemon_domain(jabberd_router_t, jabberd_router_exec_t)
 
 type jabberd_log_t;
 logging_log_file(jabberd_log_t)
@@ -21,40 +28,78 @@ files_type(jabberd_var_lib_t)
 type jabberd_var_run_t;
 files_pid_file(jabberd_var_run_t)
 
+permissive jabberd_router_t;
+permissive jabberd_t;
+
+#######################################
+#
+# Local policy for jabberd domains
+#
+
+allow jabberd_domain self:process signal_perms;
+allow jabberd_domain self:fifo_file read_fifo_file_perms;
+allow jabberd_domain self:tcp_socket create_stream_socket_perms;
+allow jabberd_domain self:udp_socket create_socket_perms;
+
+manage_files_pattern(jabberd_domain, jabberd_var_lib_t, jabberd_var_lib_t)
+manage_dirs_pattern(jabberd_domain, jabberd_var_lib_t, jabberd_var_lib_t)
+
+# log and pid files are moved into /var/lib/jabberd in the newer version of jabberd
+manage_files_pattern(jabberd_domain, jabberd_log_t, jabberd_log_t)
+logging_log_filetrans(jabberd_domain, jabberd_log_t, { file dir })
+
+manage_files_pattern(jabberd_domain, jabberd_var_run_t, jabberd_var_run_t)
+files_pid_filetrans(jabberd_domain, jabberd_var_run_t, file)
+
+corenet_all_recvfrom_unlabeled(jabberd_domain)
+corenet_all_recvfrom_netlabel(jabberd_domain)
+corenet_tcp_sendrecv_generic_if(jabberd_domain)
+corenet_udp_sendrecv_generic_if(jabberd_domain)
+corenet_tcp_sendrecv_generic_node(jabberd_domain)
+corenet_udp_sendrecv_generic_node(jabberd_domain)
+corenet_tcp_sendrecv_all_ports(jabberd_domain)
+corenet_udp_sendrecv_all_ports(jabberd_domain)
+corenet_tcp_bind_generic_node(jabberd_domain)
+
+dev_read_urand(jabberd_domain)
+dev_read_urand(jabberd_domain)
+
+files_read_etc_files(jabberd_domain)
+files_read_etc_runtime_files(jabberd_domain)
+
+logging_send_syslog_msg(jabberd_domain)
+
+miscfiles_read_localization(jabberd_domain)
+
+sysnet_read_config(jabberd_domain)
+
+######################################
+#
+# Local policy for jabberd-router
+#
+
+allow jabberd_router_t self:netlink_route_socket r_netlink_socket_perms;
+
+corenet_tcp_bind_jabber_router_port(jabberd_router_t)
+corenet_sendrecv_jabber_router_server_packets(jabberd_router_t)
+
+optional_policy(`
+        kerberos_use(jabberd_router_t)
+')
+
 ########################################
 #
-# Local policy
+# Local policy for jabberd
 #
 
 allow jabberd_t self:capability dac_override;
 dontaudit jabberd_t self:capability sys_tty_config;
-allow jabberd_t self:process signal_perms;
-allow jabberd_t self:fifo_file read_fifo_file_perms;
-allow jabberd_t self:tcp_socket create_stream_socket_perms;
-allow jabberd_t self:udp_socket create_socket_perms;
-
-manage_files_pattern(jabberd_t, jabberd_var_lib_t, jabberd_var_lib_t)
-files_var_lib_filetrans(jabberd_t, jabberd_var_lib_t, file)
-
-manage_files_pattern(jabberd_t, jabberd_log_t, jabberd_log_t)
-logging_log_filetrans(jabberd_t, jabberd_log_t, { file dir })
-
-manage_files_pattern(jabberd_t, jabberd_var_run_t, jabberd_var_run_t)
-files_pid_filetrans(jabberd_t, jabberd_var_run_t, file)
 
 kernel_read_kernel_sysctls(jabberd_t)
-kernel_list_proc(jabberd_t)
 kernel_read_proc_symlinks(jabberd_t)
+kernel_read_system_state(jabberd_t)
 
-corenet_all_recvfrom_unlabeled(jabberd_t)
-corenet_all_recvfrom_netlabel(jabberd_t)
-corenet_tcp_sendrecv_generic_if(jabberd_t)
-corenet_udp_sendrecv_generic_if(jabberd_t)
-corenet_tcp_sendrecv_generic_node(jabberd_t)
-corenet_udp_sendrecv_generic_node(jabberd_t)
-corenet_tcp_sendrecv_all_ports(jabberd_t)
-corenet_udp_sendrecv_all_ports(jabberd_t)
-corenet_tcp_bind_generic_node(jabberd_t)
+corenet_tcp_connect_jabber_router_port(jabberd_t)
 corenet_tcp_bind_jabber_client_port(jabberd_t)
 corenet_tcp_bind_jabber_interserver_port(jabberd_t)
 corenet_sendrecv_jabber_client_server_packets(jabberd_t)
@@ -66,17 +111,8 @@ dev_read_rand(jabberd_t)
 
 domain_use_interactive_fds(jabberd_t)
 
-files_read_etc_files(jabberd_t)
-files_read_etc_runtime_files(jabberd_t)
-
 fs_getattr_all_fs(jabberd_t)
 fs_search_auto_mountpoints(jabberd_t)
-
-logging_send_syslog_msg(jabberd_t)
-
-miscfiles_read_localization(jabberd_t)
-
-sysnet_read_config(jabberd_t)
 
 userdom_dontaudit_use_unpriv_user_fds(jabberd_t)
 userdom_dontaudit_search_user_home_dirs(jabberd_t)
