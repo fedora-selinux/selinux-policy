@@ -9,6 +9,13 @@ policy_module(milter, 1.2.1)
 attribute milter_domains;
 attribute milter_data_type;
 
+# support for dkim-milter - domainKeys Identified Mail sender authentication sendmail milter
+milter_template(dkim)
+
+# type for the private key of dkim-milter
+type dkim_milter_private_key_t;
+files_type(dkim_milter_private_key_t)
+
 # currently-supported milters are milter-greylist, milter-regex and spamass-milter
 milter_template(greylist)
 milter_template(regex)
@@ -19,6 +26,23 @@ milter_template(spamass)
 # use per-user configuration
 type spamass_milter_state_t;
 files_type(spamass_milter_state_t)
+
+#######################################
+#
+# dkim-milter local policy
+#
+
+allow dkim_milter_t self:capability { kill setgid setuid };
+
+allow dkim_milter_t self:unix_stream_socket create_stream_socket_perms;
+
+read_files_pattern(dkim_milter_t, dkim_milter_private_key_t, dkim_milter_private_key_t)
+
+auth_use_nsswitch(dkim_milter_t)
+
+sysnet_dns_name_resolve(dkim_milter_t)
+
+mta_read_config(dkim_milter_t)
 
 ########################################
 #
