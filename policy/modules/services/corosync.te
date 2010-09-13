@@ -5,13 +5,6 @@ policy_module(corosync, 1.0.0)
 # Declarations
 #
 
-## <desc>
-## <p>
-## Allow corosync to read and write generic tmpfs files.
-## </p>
-## </desc>
-gen_tunable(allow_corosync_rw_tmpfs, false)
-
 type corosync_t;
 type corosync_exec_t;
 init_daemon_domain(corosync_t, corosync_exec_t)
@@ -98,8 +91,13 @@ miscfiles_read_localization(corosync_t)
 userdom_delete_user_tmpfs_files(corosync_t)
 userdom_rw_user_tmpfs_files(corosync_t)
 
-tunable_policy(`allow_corosync_rw_tmpfs',`
-    fs_rw_tmpfs_files(corosync_t)
+optional_policy(`
+	gen_require(`
+		attribute unconfined_services;
+	')	
+
+	fs_manage_tmpfs_files(corosync_t)
+	init_manage_script_status_files(corosync_t)
 ')
 
 optional_policy(`
