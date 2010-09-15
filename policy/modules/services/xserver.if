@@ -59,10 +59,6 @@ interface(`xserver_restricted_role',`
 
 	domtrans_pattern($2, iceauth_exec_t, iceauth_t)
 
-ifdef(`hide_broken_symptoms', `
-	dontaudit iceauth_t $2:socket_class_set { read write };
-')
-
 	allow $2 iceauth_home_t:file read_file_perms;
 
 	domtrans_pattern($2, xauth_exec_t, xauth_t)
@@ -100,9 +96,6 @@ ifdef(`hide_broken_symptoms', `
 	dev_write_misc($2)
 	# open office is looking for the following
 	dev_getattr_agp_dev($2)
-	tunable_policy(`user_direct_dri',`
-		dev_rw_dri($2)
-	')
 
 	# GNOME checks for usb and other devices:
 	dev_rw_usbfs($2)
@@ -121,10 +114,18 @@ ifdef(`hide_broken_symptoms', `
 	# Needed for escd, remove if we get escd policy
 	xserver_manage_xdm_tmp_files($2)
 
+	ifdef(`hide_broken_symptoms', `
+		dontaudit iceauth_t $2:socket_class_set { read write };
+	')
+
 	# Client write xserver shm
 	tunable_policy(`allow_write_xshm',`
 		allow $2 xserver_t:shm rw_shm_perms;
 		allow $2 xserver_tmpfs_t:file rw_file_perms;
+	')
+
+	tunable_policy(`user_direct_dri',`
+		dev_rw_dri($2)
 	')
 ')
 
@@ -513,14 +514,14 @@ template(`xserver_user_x_domain_template',`
 	xserver_object_types_template($1)
 	xserver_common_x_domain_template($1,$2)
 
-	tunable_policy(`user_direct_dri',`
-		dev_rw_dri($2)
-	')
-
 	# Client write xserver shm
 	tunable_policy(`allow_write_xshm',`
 		allow $2 xserver_t:shm rw_shm_perms;
 		allow $2 xserver_tmpfs_t:file rw_file_perms;
+	')
+
+	tunable_policy(`user_direct_dri',`
+		dev_rw_dri($2)
 	')
 ')
 
@@ -582,6 +583,7 @@ interface(`xserver_domtrans_xauth',`
 	')
 
 	domtrans_pattern($1, xauth_exec_t, xauth_t)
+
 	ifdef(`hide_broken_symptoms', `
 		dontaudit xauth_t $1:socket_class_set { read write };
 	')
