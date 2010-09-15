@@ -312,10 +312,8 @@ interface(`postgresql_stream_connect',`
 	')
 
 	files_search_pids($1)
-	allow $1 postgresql_t:unix_stream_socket connectto;
-	allow $1 postgresql_var_run_t:sock_file write;
-	# Some versions of postgresql put the sock file in /tmp
-	allow $1 postgresql_tmp_t:sock_file write;
+	files_search_tmp($1)
+	stream_connect_pattern($1, { postgresql_var_run_t postgresql_tmp_t}, { postgresql_var_run_t postgresql_tmp_t}, postgresql_t)
 ')
 
 ########################################
@@ -441,10 +439,13 @@ interface(`postgresql_admin',`
 
 	admin_pattern($1, postgresql_var_run_t)
 
+	files_search_var_lib($1)
 	admin_pattern($1, postgresql_db_t)
 
+	files_search_etc($1)
 	admin_pattern($1, postgresql_etc_t)
 
+	logging_search_logs($1)
 	admin_pattern($1, postgresql_log_t)
 
 	admin_pattern($1, postgresql_tmp_t)
