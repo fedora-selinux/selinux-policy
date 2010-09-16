@@ -32,7 +32,6 @@
 ## </param>
 #
 template(`ssh_basic_client_template',`
-
 	gen_require(`
 		attribute ssh_server;
 		type ssh_exec_t, sshd_key_t, sshd_tmp_t;
@@ -167,7 +166,7 @@ template(`ssh_basic_client_template',`
 ##	</summary>
 ## </param>
 #
-template(`ssh_server_template', `
+template(`ssh_server_template',`
 	type $1_t, ssh_server;
 	auth_login_pgm_domain($1_t)
 
@@ -189,7 +188,7 @@ template(`ssh_server_template', `
 	allow $1_t self:unix_stream_socket create_stream_socket_perms;
 	allow $1_t self:shm create_shm_perms;
 
-	allow $1_t $1_devpts_t:chr_file { rw_chr_file_perms setattr getattr relabelfrom };
+	allow $1_t $1_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms getattr_chr_file_perms relabelfrom };
 	term_create_pty($1_t, $1_devpts_t)
 
 	manage_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
@@ -248,7 +247,6 @@ template(`ssh_server_template', `
 	miscfiles_read_localization($1_t)
 
 	userdom_dontaudit_relabelfrom_user_ptys($1_t)
-	userdom_search_user_home_dirs($1_t)
 	userdom_read_user_home_content_files($1_t)
 
 	# Allow checking users mail at login
@@ -302,11 +300,11 @@ template(`ssh_server_template', `
 ##	User domain for the role
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 template(`ssh_role_template',`
 	gen_require(`
 		attribute ssh_server, ssh_agent_type;
-
 		type ssh_t, ssh_exec_t, ssh_tmpfs_t, ssh_home_t;
 		type ssh_agent_exec_t, ssh_keysign_t, ssh_tmpfs_t;
 		type ssh_agent_tmp_t;
@@ -339,7 +337,7 @@ template(`ssh_role_template',`
 
 	# allow ps to show ssh
 	ps_process_pattern($3, ssh_t)
-	allow $3 ssh_t:process signal;
+	allow $3 ssh_t:process { ptrace signal_perms };
 
 	# for rsync
 	allow ssh_t $3:unix_stream_socket rw_socket_perms;
@@ -372,7 +370,7 @@ template(`ssh_role_template',`
 	stream_connect_pattern($3, ssh_agent_tmp_t, ssh_agent_tmp_t, $1_ssh_agent_t)
 
 	# Allow the user shell to signal the ssh program.
-	allow $3 $1_ssh_agent_t:process signal;
+	allow $3 $1_ssh_agent_t:process { ptrace signal_perms };
 
 	# allow ps to show ssh
 	ps_process_pattern($3, $1_ssh_agent_t)
@@ -394,7 +392,6 @@ template(`ssh_role_template',`
 
 	files_read_etc_files($1_ssh_agent_t)
 	files_read_etc_runtime_files($1_ssh_agent_t)
-	files_search_home($1_ssh_agent_t)
 
 	libs_read_lib_files($1_ssh_agent_t)
 
@@ -411,9 +408,6 @@ template(`ssh_role_template',`
 	# for the transition back to normal privs upon exec
 	userdom_search_user_home_content($1_ssh_agent_t)
 	userdom_user_home_domtrans($1_ssh_agent_t, $3)
-	allow $3 $1_ssh_agent_t:fd use;
-	allow $3 $1_ssh_agent_t:fifo_file rw_file_perms;
-	allow $3 $1_ssh_agent_t:process sigchld;
 
 	tunable_policy(`use_nfs_home_dirs',`
 		fs_manage_nfs_files($1_ssh_agent_t)
@@ -490,8 +484,9 @@ interface(`ssh_read_pipes',`
 		type sshd_t;
 	')
 
-	allow $1 sshd_t:fifo_file { getattr read };
+	allow $1 sshd_t:fifo_file read_fifo_file_perms;
 ')
+
 ########################################
 ## <summary>
 ##	Read and write a ssh server unnamed pipe.
@@ -507,7 +502,7 @@ interface(`ssh_rw_pipes',`
 		type sshd_t;
 	')
 
-	allow $1 sshd_t:fifo_file { write read getattr ioctl };
+	allow $1 sshd_t:fifo_file rw_inherited_fifo_file_perms;
 ')
 
 ########################################
@@ -597,7 +592,6 @@ interface(`ssh_domtrans',`
 	domtrans_pattern($1, sshd_exec_t, sshd_t)
 ')
 
-
 ########################################
 ## <summary>
 ##	Execute sshd server in the sshd domain.
@@ -650,7 +644,7 @@ interface(`ssh_setattr_key_files',`
 		type sshd_key_t;
 	')
 
-	allow $1 sshd_key_t:file setattr;
+	allow $1 sshd_key_t:file setattr_file_perms;
 	files_search_pids($1)
 ')
 
@@ -727,7 +721,7 @@ interface(`ssh_dontaudit_read_server_keys',`
 		type sshd_key_t;
 	')
 
-	dontaudit $1 sshd_key_t:file { getattr read };
+	dontaudit $1 sshd_key_t:file read_file_perms;
 ')
 
 ######################################
@@ -785,4 +779,3 @@ interface(`ssh_signull',`
 
 	allow $1 sshd_t:process signull;
 ')
-

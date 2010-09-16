@@ -5,9 +5,9 @@
 ##	Execute a domain transition to run sssd.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`sssd_domtrans',`
@@ -89,6 +89,7 @@ interface(`sssd_manage_pids',`
 		type sssd_var_run_t;
 	')
 
+	files_search_pids($1)
 	manage_dirs_pattern($1, sssd_var_run_t, sssd_var_run_t)
 	manage_files_pattern($1, sssd_var_run_t, sssd_var_run_t)
 ')
@@ -128,7 +129,6 @@ interface(`sssd_dontaudit_search_lib',`
 	')
 
 	dontaudit $1 sssd_var_lib_t:dir search_dir_perms;
-	files_search_var_lib($1)
 ')
 
 ########################################
@@ -225,21 +225,15 @@ interface(`sssd_stream_connect',`
 ##	The role to be allowed to manage the sssd domain.
 ##	</summary>
 ## </param>
-## <param name="terminal">
-##	<summary>
-##	The type of the user terminal.
-##	</summary>
-## </param>
 ## <rolecap/>
 #
 interface(`sssd_admin',`
 	gen_require(`
-		type sssd_t, sssd_public_t;
-		type sssd_initrc_exec_t;
+		type sssd_t, sssd_public_t, sssd_initrc_exec_t;
 	')
 
-	allow $1 sssd_t:process { ptrace signal_perms getattr };
-	read_files_pattern($1, sssd_t, sssd_t)
+	allow $1 sssd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, sssd_t)
 
 	# Allow sssd_t to restart the apache service
 	sssd_initrc_domtrans($1)

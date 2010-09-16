@@ -14,6 +14,7 @@
 ##	User domain for the role
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`spamassassin_role',`
 	gen_require(`
@@ -25,9 +26,13 @@ interface(`spamassassin_role',`
 	role $1 types { spamc_t spamassassin_t };
 
 	domtrans_pattern($2, spamassassin_exec_t, spamassassin_t)
+
+	allow $2 spamassassin_t:process { ptrace signal_perms };
 	ps_process_pattern($2, spamassassin_t)
 
 	domtrans_pattern($2, spamc_exec_t, spamc_t)
+
+	allow $2 spamc_t:process { ptrace signal_perms };
 	ps_process_pattern($2, spamc_t)
 
 	manage_dirs_pattern($2, spamassassin_home_t, spamassassin_home_t)
@@ -55,7 +60,6 @@ interface(`spamassassin_exec',`
 	')
 
 	can_exec($1, spamassassin_exec_t)
-
 ')
 
 ########################################
@@ -147,6 +151,7 @@ interface(`spamassassin_manage_home_client',`
 		type spamc_home_t;
 	')
 
+	userdom_search_user_home_dirs($1)
 	manage_dirs_pattern($1, spamc_home_t, spamc_home_t)
 	manage_files_pattern($1, spamc_home_t, spamc_home_t)
 	manage_lnk_files_pattern($1, spamc_home_t, spamc_home_t)
@@ -245,6 +250,7 @@ interface(`spamassassin_read_spamd_tmp_files',`
 		type spamd_tmp_t;
 	')
 
+	files_search_tmp($1)
 	allow $1 spamd_tmp_t:file read_file_perms;
 ')
 
@@ -264,7 +270,7 @@ interface(`spamassassin_dontaudit_getattr_spamd_tmp_sockets',`
 		type spamd_tmp_t;
 	')
 
-	dontaudit $1 spamd_tmp_t:sock_file getattr;
+	dontaudit $1 spamd_tmp_t:sock_file getattr_sock_file_perms;
 ')
 
 ########################################
@@ -279,9 +285,10 @@ interface(`spamassassin_dontaudit_getattr_spamd_tmp_sockets',`
 #
 interface(`spamd_stream_connect',`
 	gen_require(`
-		type spamd_t, spamd_var_run_t, spamd_spool_t;
+		type spamd_t, spamd_var_run_t;
 	')
 
+	files_search_pids($1)
 	stream_connect_pattern($1, spamd_var_run_t, spamd_var_run_t, spamd_t)
 ')
 
@@ -311,7 +318,7 @@ interface(`spamassassin_spamd_admin',`
 
 	allow $1 spamd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, spamd_t)
-		
+
 	init_labeled_script_domtrans($1, spamd_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 spamd_initrc_exec_t system_r;

@@ -131,6 +131,7 @@ interface(`samba_run_net',`
 ##	The role to be allowed the samba_net domain.
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 template(`samba_role_notrans',`
 	gen_require(`
@@ -483,15 +484,14 @@ interface(`samba_manage_var_files',`
 ##	Execute a domain transition to run smbcontrol.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`samba_domtrans_smbcontrol',`
 	gen_require(`
-		type smbcontrol_t;
-		type smbcontrol_exec_t;
+		type smbcontrol_t, smbcontrol_exec_t;
 	')
 
 	domtrans_pattern($1, smbcontrol_exec_t, smbcontrol_t)
@@ -721,7 +721,9 @@ interface(`samba_stream_connect_winbind',`
 template(`samba_helper_template',`
 	gen_require(`
 		type smbd_t;
+		role system_r;
 	')
+
 	#This type is for samba helper scripts
 	type samba_$1_script_t;
 	domain_type(samba_$1_script_t)
@@ -734,7 +736,6 @@ template(`samba_helper_template',`
 
 	domtrans_pattern(smbd_t, samba_$1_script_exec_t, samba_$1_script_t)
 	allow smbd_t samba_$1_script_exec_t:file ioctl;
-
 ')
 
 ########################################
@@ -756,20 +757,12 @@ template(`samba_helper_template',`
 #
 interface(`samba_admin',`
 	gen_require(`
-		type nmbd_t, nmbd_var_run_t;
-		type smbd_t, smbd_tmp_t;
-		type smbd_var_run_t;
-		type samba_initrc_exec_t;
-
-		type samba_log_t, samba_var_t;
-		type samba_etc_t, samba_share_t;
-		type samba_secrets_t;
-
+		type nmbd_t, nmbd_var_run_t, smbd_var_run_t;
+		type smbd_t, smbd_tmp_t, samba_secrets_t;
+		type samba_initrc_exec_t, samba_log_t, samba_var_t;
+		type samba_etc_t, samba_share_t, winbind_log_t;
 		type swat_var_run_t, swat_tmp_t;
-
 		type winbind_var_run_t, winbind_tmp_t;
-		type winbind_log_t;
-
 		type samba_unconfined_script_t, samba_unconfined_script_exec_t;
 	')
 
@@ -779,9 +772,9 @@ interface(`samba_admin',`
 	allow $1 nmbd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, nmbd_t)
 
-	allow $1 samba_unconfined_script_t:process { ptrace signal_perms getattr };
-	read_files_pattern($1, samba_unconfined_script_t, samba_unconfined_script_t)
-	        
+	allow $1 samba_unconfined_script_t:process { ptrace signal_perms };
+	ps_process_pattern($1, samba_unconfined_script_t)
+
 	samba_run_smbcontrol($1, $2, $3)
 	samba_run_winbind_helper($1, $2, $3)
 	samba_run_smbmount($1, $2, $3)

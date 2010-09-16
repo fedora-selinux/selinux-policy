@@ -51,10 +51,6 @@ interface(`sendmail_domtrans',`
 	')
 
 	mta_sendmail_domtrans($1, sendmail_t)
-
-	allow sendmail_t $1:fd use;
-	allow sendmail_t $1:fifo_file rw_file_perms;
-	allow sendmail_t $1:process sigchld;
 ')
 
 #######################################
@@ -62,17 +58,17 @@ interface(`sendmail_domtrans',`
 ##  Execute sendmail in the sendmail domain.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
-interface(`sendmail_initrc_domtrans', `
-    gen_require(`
-        type sendmail_initrc_exec_t;
-    ')
+interface(`sendmail_initrc_domtrans',`
+	gen_require(`
+		type sendmail_initrc_exec_t;
+	')
 
-    init_labeled_script_domtrans($1, sendmail_initrc_exec_t)
+	init_labeled_script_domtrans($1, sendmail_initrc_exec_t)
 ')
 
 ########################################
@@ -170,7 +166,7 @@ interface(`sendmail_rw_unix_stream_sockets',`
 		type sendmail_t;
 	')
 
-	allow $1 sendmail_t:unix_stream_socket { getattr read write ioctl };
+	allow $1 sendmail_t:unix_stream_socket rw_socket_perms;
 ')
 
 ########################################
@@ -189,7 +185,7 @@ interface(`sendmail_dontaudit_rw_unix_stream_sockets',`
 		type sendmail_t;
 	')
 
-	dontaudit $1 sendmail_t:unix_stream_socket { getattr read write ioctl };
+	dontaudit $1 sendmail_t:unix_stream_socket rw_socket_perms;
 ')
 
 ########################################
@@ -338,11 +334,11 @@ interface(`sendmail_admin',`
 		type mail_spool_t;
 	')
 
-	allow $1 sendmail_t:process { ptrace signal_perms getattr };
-	read_files_pattern($1, sendmail_t, sendmail_t)
+	allow $1 sendmail_t:process { ptrace signal_perms };
+	ps_process_pattern($1, sendmail_t)
 
-	allow $1 unconfined_sendmail_t:process { ptrace signal_perms getattr };
-	read_files_pattern($1, unconfined_sendmail_t, unconfined_sendmail_t)
+	allow $1 unconfined_sendmail_t:process { ptrace signal_perms };
+	ps_process_pattern($1, unconfined_sendmail_t)
 
 	sendmail_initrc_domtrans($1)
 	domain_system_change_exemption($1)

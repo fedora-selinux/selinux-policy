@@ -59,10 +59,6 @@ interface(`xserver_restricted_role',`
 
 	domtrans_pattern($2, iceauth_exec_t, iceauth_t)
 
-ifdef(`hide_broken_symptoms', `
-	dontaudit iceauth_t $2:socket_class_set { read write };
-')
-
 	allow $2 iceauth_home_t:file read_file_perms;
 
 	domtrans_pattern($2, xauth_exec_t, xauth_t)
@@ -77,11 +73,11 @@ ifdef(`hide_broken_symptoms', `
 
 	# for when /tmp/.X11-unix is created by the system
 	allow $2 xdm_t:fd use;
-	allow $2 xdm_t:fifo_file { getattr read write ioctl };
+	allow $2 xdm_t:fifo_file rw_inherited_fifo_file_perms;
 	allow $2 xdm_tmp_t:dir search_dir_perms;
-	allow $2 xdm_tmp_t:sock_file { read write };
+	allow $2 xdm_tmp_t:sock_file rw_inherited_sock_file_perms;
 	dontaudit $2 xdm_t:tcp_socket { read write };
-	dontaudit $2 xdm_tmp_t:dir setattr;
+	dontaudit $2 xdm_tmp_t:dir setattr_dir_perms;
 
 	allow $2 xdm_t:dbus send_msg;
 	allow xdm_t  $2:dbus send_msg;
@@ -91,7 +87,7 @@ ifdef(`hide_broken_symptoms', `
 	allow $2 xserver_tmpfs_t:file read_file_perms;
 
 	# Read /tmp/.X0-lock
-	allow $2 xserver_tmp_t:file { getattr read };
+	allow $2 xserver_tmp_t:file read_inherited_file_perms;
 
 	dev_rw_xserver_misc($2)
 	dev_rw_power_management($2)
@@ -100,9 +96,6 @@ ifdef(`hide_broken_symptoms', `
 	dev_write_misc($2)
 	# open office is looking for the following
 	dev_getattr_agp_dev($2)
-	tunable_policy(`user_direct_dri',`
-		dev_rw_dri($2)
-	')
 
 	# GNOME checks for usb and other devices:
 	dev_rw_usbfs($2)
@@ -121,10 +114,18 @@ ifdef(`hide_broken_symptoms', `
 	# Needed for escd, remove if we get escd policy
 	xserver_manage_xdm_tmp_files($2)
 
+	ifdef(`hide_broken_symptoms',`
+		dontaudit iceauth_t $2:socket_class_set { read write };
+	')
+
 	# Client write xserver shm
 	tunable_policy(`allow_write_xshm',`
 		allow $2 xserver_t:shm rw_shm_perms;
 		allow $2 xserver_tmpfs_t:file rw_file_perms;
+	')
+
+	tunable_policy(`user_direct_dri',`
+		dev_rw_dri($2)
 	')
 ')
 
@@ -157,10 +158,10 @@ interface(`xserver_role',`
 	allow $2 xserver_tmpfs_t:file rw_file_perms;
 
 	allow $2 iceauth_home_t:file manage_file_perms;
-	allow $2 iceauth_home_t:file { relabelfrom relabelto };
+	allow $2 iceauth_home_t:file relabel_file_perms;
 
 	allow $2 xauth_home_t:file manage_file_perms;
-	allow $2 xauth_home_t:file { relabelfrom relabelto };
+	allow $2 xauth_home_t:file relabel_file_perms;
 
 	mls_xwin_read_to_clearance($2)
 	manage_dirs_pattern($2, user_fonts_t, user_fonts_t)
@@ -178,7 +179,6 @@ interface(`xserver_role',`
 	manage_files_pattern($2, user_fonts_config_t, user_fonts_config_t)
 	relabel_dirs_pattern($2, user_fonts_config_t, user_fonts_config_t)
 	relabel_files_pattern($2, user_fonts_config_t, user_fonts_config_t)
-
 ')
 
 #######################################
@@ -363,9 +363,8 @@ template(`xserver_common_x_domain_template',`
 		type xevent_t, client_xevent_t;
 		type input_xevent_t, $1_input_xevent_t;
 
-		attribute x_domain;
+		attribute x_domain, input_xevent_type;
 		attribute xdrawable_type, xcolormap_type;
-		attribute input_xevent_type;
 
 		class x_drawable all_x_drawable_perms;
 		class x_property all_x_property_perms;
@@ -489,9 +488,9 @@ template(`xserver_user_x_domain_template',`
 
 	# for when /tmp/.X11-unix is created by the system
 	allow $2 xdm_t:fd use;
-	allow $2 xdm_t:fifo_file { getattr read write ioctl };
+	allow $2 xdm_t:fifo_file rw_inherited_fifo_file_perms;
 	allow $2 xdm_tmp_t:dir search_dir_perms;
-	allow $2 xdm_tmp_t:sock_file { read write };
+	allow $2 xdm_tmp_t:sock_file rw_inherited_sock_file_perms;
 	dontaudit $2 xdm_t:tcp_socket { read write };
 
 	# Allow connections to X server.
@@ -503,7 +502,7 @@ template(`xserver_user_x_domain_template',`
 	# for .xsession-errors
 	userdom_dontaudit_write_user_home_content_files($2)
 
-	xserver_ro_session($2,$3)
+	xserver_ro_session($2, $3)
 	xserver_use_user_fonts($2)
 
 	xserver_read_xdm_tmp_files($2)
@@ -511,16 +510,16 @@ template(`xserver_user_x_domain_template',`
 
 	# X object manager
 	xserver_object_types_template($1)
-	xserver_common_x_domain_template($1,$2)
-
-	tunable_policy(`user_direct_dri',`
-		dev_rw_dri($2)
-	')
+	xserver_common_x_domain_template($1, $2)
 
 	# Client write xserver shm
 	tunable_policy(`allow_write_xshm',`
 		allow $2 xserver_t:shm rw_shm_perms;
 		allow $2 xserver_tmpfs_t:file rw_file_perms;
+	')
+
+	tunable_policy(`user_direct_dri',`
+		dev_rw_dri($2)
 	')
 ')
 
@@ -582,7 +581,8 @@ interface(`xserver_domtrans_xauth',`
 	')
 
 	domtrans_pattern($1, xauth_exec_t, xauth_t)
-	ifdef(`hide_broken_symptoms', `
+
+	ifdef(`hide_broken_symptoms',`
 		dontaudit xauth_t $1:socket_class_set { read write };
 	')
 ')
@@ -674,7 +674,7 @@ interface(`xserver_setattr_console_pipes',`
 		type xconsole_device_t;
 	')
 
-	allow $1 xconsole_device_t:fifo_file setattr;
+	allow $1 xconsole_device_t:fifo_file setattr_fifo_file_perms;
 ')
 
 ########################################
@@ -710,7 +710,7 @@ interface(`xserver_use_xdm_fds',`
 		type xdm_t;
 	')
 
-	allow $1 xdm_t:fd use; 
+	allow $1 xdm_t:fd use;
 ')
 
 ########################################
@@ -729,7 +729,7 @@ interface(`xserver_dontaudit_use_xdm_fds',`
 		type xdm_t;
 	')
 
-	dontaudit $1 xdm_t:fd use; 
+	dontaudit $1 xdm_t:fd use;
 ')
 
 ########################################
@@ -747,7 +747,7 @@ interface(`xserver_rw_xdm_pipes',`
 		type xdm_t;
 	')
 
-	allow $1 xdm_t:fifo_file { getattr read write }; 
+	allow $1 xdm_t:fifo_file rw_inherited_fifo_file_perms;
 ')
 
 ########################################
@@ -762,12 +762,11 @@ interface(`xserver_rw_xdm_pipes',`
 ## </param>
 #
 interface(`xserver_dontaudit_rw_xdm_pipes',`
-
 	gen_require(`
 		type xdm_t;
 	')
 
-	dontaudit $1 xdm_t:fifo_file rw_fifo_file_perms; 
+	dontaudit $1 xdm_t:fifo_file rw_fifo_file_perms;
 ')
 
 ########################################
@@ -783,11 +782,11 @@ interface(`xserver_dontaudit_rw_xdm_pipes',`
 #
 interface(`xserver_stream_connect_xdm',`
 	gen_require(`
-		type xdm_t, xdm_tmp_t;
-		type xdm_var_run_t;
+		type xdm_t, xdm_tmp_t, xdm_var_run_t;
 	')
 
 	files_search_tmp($1)
+	files_search_pids($1)
 	stream_connect_pattern($1, xdm_tmp_t, xdm_tmp_t, xdm_t)
 	stream_connect_pattern($1, xdm_var_run_t, xdm_var_run_t, xdm_t)
 ')
@@ -826,7 +825,7 @@ interface(`xserver_setattr_xdm_tmp_dirs',`
 		type xdm_tmp_t;
 	')
 
-	allow $1 xdm_tmp_t:dir setattr;
+	allow $1 xdm_tmp_t:dir setattr_dir_perms;
 ')
 
 ########################################
@@ -958,7 +957,7 @@ interface(`xserver_getattr_log',`
 	')
 
 	logging_search_logs($1)
-	allow $1 xserver_log_t:file getattr;
+	allow $1 xserver_log_t:file getattr_file_perms;
 ')
 
 ########################################
@@ -1037,7 +1036,7 @@ interface(`xserver_read_xdm_etc_files',`
 		type xdm_etc_t;
 	')
 
- 	files_search_etc($1)
+	files_search_etc($1)
 	read_files_pattern($1, xdm_etc_t, xdm_etc_t)
 ')
 
@@ -1056,7 +1055,7 @@ interface(`xserver_manage_xdm_etc_files',`
 		type xdm_etc_t;
 	')
 
- 	files_search_etc($1)
+	files_search_etc($1)
 	manage_files_pattern($1, xdm_etc_t, xdm_etc_t)
 ')
 
@@ -1075,7 +1074,7 @@ interface(`xserver_read_xdm_tmp_files',`
 		type xdm_tmp_t;
 	')
 
- 	files_search_tmp($1)
+	files_search_tmp($1)
 	read_files_pattern($1, xdm_tmp_t, xdm_tmp_t)
 ')
 
@@ -1151,7 +1150,7 @@ interface(`xserver_dontaudit_getattr_xdm_tmp_sockets',`
 		type xdm_tmp_t;
 	')
 
-	dontaudit $1 xdm_tmp_t:sock_file getattr;
+	dontaudit $1 xdm_tmp_t:sock_file getattr_sock_file_perms;
 ')
 
 ########################################
@@ -1169,7 +1168,7 @@ interface(`xserver_domtrans',`
 		type xserver_t, xserver_exec_t;
 	')
 
- 	allow $1 xserver_t:process siginh;
+	allow $1 xserver_t:process siginh;
 	domtrans_pattern($1, xserver_exec_t, xserver_t)
 
 	allow xserver_t $1:process getpgid;
@@ -1312,7 +1311,7 @@ interface(`xserver_read_tmp_files',`
 ## <summary>
 ##	Interface to provide X object permissions on a given X server to
 ##	an X client domain.  Gives the domain permission to read the
-##      virtual core keyboard and virtual core pointer devices.
+##	virtual core keyboard and virtual core pointer devices.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1322,13 +1321,12 @@ interface(`xserver_read_tmp_files',`
 #
 interface(`xserver_manage_core_devices',`
 	gen_require(`
-		type xserver_t;
+		type xserver_t, root_xdrawable_t;
 		class x_device all_x_device_perms;
 		class x_pointer all_x_pointer_perms;
 		class x_keyboard all_x_keyboard_perms;
 		class x_screen all_x_screen_perms;
 		class x_drawable { manage };
-		type root_xdrawable_t;
 		attribute x_domain;
 		class x_drawable { read manage setattr show };
 		class x_resource { write read };
@@ -1356,8 +1354,7 @@ interface(`xserver_manage_core_devices',`
 #
 interface(`xserver_unconfined',`
 	gen_require(`
-		attribute x_domain;
-		attribute xserver_unconfined_type;
+		attribute x_domain, xserver_unconfined_type;
 	')
 
 	typeattribute $1 x_domain;
@@ -1376,8 +1373,7 @@ interface(`xserver_unconfined',`
 #
 interface(`xserver_dontaudit_append_xdm_home_files',`
 	gen_require(`
-		type xdm_home_t;
-		type xserver_tmp_t;
+		type xdm_home_t, xserver_tmp_t;
 	')
 
 	dontaudit $1 xdm_home_t:file rw_inherited_file_perms;
@@ -1404,8 +1400,7 @@ interface(`xserver_dontaudit_append_xdm_home_files',`
 #
 interface(`xserver_append_xdm_home_files',`
 	gen_require(`
-		type xdm_home_t;
-		type xserver_tmp_t;
+		type xdm_home_t, xserver_tmp_t;
 	')
 
 	allow $1 xdm_home_t:file append_file_perms;
@@ -1566,12 +1561,10 @@ template(`xserver_read_user_iceauth',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-## <rolecap/>
 #
 interface(`xserver_rw_inherited_user_fonts',`
 	gen_require(`
-		type user_fonts_t;
-		type user_fonts_config_t;
+		type user_fonts_t, user_fonts_config_t;
 	')
 
 	allow $1 user_fonts_t:file rw_inherited_file_perms;
@@ -1597,7 +1590,6 @@ interface(`xserver_search_xdm_lib',`
 
 	allow $1 xdm_var_lib_t:dir search_dir_perms;
 ')
-
 
 ########################################
 ## <summary>
@@ -1632,6 +1624,7 @@ interface(`xserver_entry_type',`
 ##	The role to be allowed the xserver domain.
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`xserver_run',`
 	gen_require(`
@@ -1657,6 +1650,7 @@ interface(`xserver_run',`
 ##	The role to be allowed the xserver domain.
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`xserver_run_xauth',`
 	gen_require(`
@@ -1679,8 +1673,7 @@ interface(`xserver_run_xauth',`
 #
 interface(`xserver_manage_home_fonts',`
 	gen_require(`
-		type user_fonts_t;
-		type user_fonts_config_t;
+		type user_fonts_t, user_fonts_config_t;
 	')
 
 	manage_dirs_pattern($1, user_fonts_t, user_fonts_t)
