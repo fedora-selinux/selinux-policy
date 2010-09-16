@@ -35,6 +35,10 @@ rhcs_domain_template(qdiskd)
 type qdiskd_var_lib_t;
 files_type(qdiskd_var_lib_t)
 
+# type for cluster lib files
+type cluster_var_lib_t;
+files_type(cluster_var_lib_t)
+
 #####################################
 #
 # dlm_controld local policy
@@ -103,6 +107,11 @@ auth_use_nsswitch(fenced_t)
 
 tunable_policy(`fenced_can_network_connect',`
 	corenet_tcp_connect_all_ports(fenced_t)
+')
+
+# needed by fence_scsi
+optional_policy(`
+       corosync_exec(fenced_t)
 ')
 
 optional_policy(`
@@ -222,6 +231,9 @@ allow cluster_domain self:sem create_sem_perms;
 allow cluster_domain self:fifo_file rw_fifo_file_perms;
 allow cluster_domain self:unix_stream_socket create_stream_socket_perms;
 allow cluster_domain self:unix_dgram_socket create_socket_perms;
+
+manage_files_pattern(cluster_domain, cluster_var_lib_t, cluster_var_lib_t)
+manage_dirs_pattern(cluster_domain, cluster_var_lib_t, cluster_var_lib_t)
 
 logging_send_syslog_msg(cluster_domain)
 
