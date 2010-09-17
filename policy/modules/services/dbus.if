@@ -90,14 +90,15 @@ template(`dbus_role_template',`
 	files_tmp_filetrans($1_dbusd_t, session_dbusd_tmp_t, { file dir })
 
 	domtrans_pattern($3, dbusd_exec_t, $1_dbusd_t)
-	allow $3 $1_dbusd_t:process { signull sigkill signal };
+
+	ps_process_pattern($3, $1_dbusd_t)
+	allow $3 $1_dbusd_t:process { ptrace signal_perms };
 
 	# cjp: this seems very broken
 	corecmd_bin_domtrans($1_dbusd_t, $1_t)
 	allow $1_dbusd_t $3:process sigkill;
 	allow $3 $1_dbusd_t:fd use;
 	allow $3 $1_dbusd_t:fifo_file rw_fifo_file_perms;
-	allow $3 $1_dbusd_t:process sigchld;
 
 	kernel_read_system_state($1_dbusd_t)
 	kernel_read_kernel_sysctls($1_dbusd_t)
