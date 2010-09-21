@@ -47,7 +47,7 @@ interface(`xserver_restricted_role',`
 	manage_files_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
 
 	stream_connect_pattern($2, xserver_tmp_t, xserver_tmp_t, xserver_t)
-	allow $2 xserver_tmp_t:sock_file unlink;
+	allow $2 xserver_tmp_t:sock_file delete_sock_file_perms;
 	files_search_tmp($2)
 
 	# Communicate via System V shared memory.
@@ -243,7 +243,7 @@ interface(`xserver_rw_session',`
 		type xserver_t, xserver_tmpfs_t;
 	')
 
-	xserver_ro_session($1,$2)
+	xserver_ro_session($1, $2)
 	allow $1 xserver_t:shm rw_shm_perms;
 	allow $1 xserver_tmpfs_t:file rw_file_perms;
 ')
@@ -271,7 +271,7 @@ interface(`xserver_non_drawing_client',`
 
 	allow $1 self:x_gc { create setattr };
 
-	allow $1 xdm_var_run_t:dir search;
+	allow $1 xdm_var_run_t:dir search_dir_perms;
 	allow $1 xserver_t:unix_stream_socket connectto;
 
 	allow $1 xextension_t:x_extension { query use };
@@ -313,7 +313,7 @@ interface(`xserver_user_client',`
 	# for when /tmp/.X11-unix is created by the system
 	allow $1 xdm_t:fd use;
 	allow $1 xdm_t:fifo_file rw_inherited_fifo_file_perms;
-	allow $1 xdm_tmp_t:dir search;
+	allow $1 xdm_tmp_t:dir search_dir_perms;
 	allow $1 xdm_tmp_t:sock_file { read write };
 	dontaudit $1 xdm_t:tcp_socket { read write };
 
@@ -358,7 +358,7 @@ interface(`xserver_user_client',`
 #
 template(`xserver_common_x_domain_template',`
 	gen_require(`
-		type root_xdrawable_t;
+		type root_xdrawable_t, xdm_t, xserver_t;
 		type xproperty_t, $1_xproperty_t;
 		type xevent_t, client_xevent_t;
 		type input_xevent_t, $1_input_xevent_t;
@@ -375,7 +375,6 @@ template(`xserver_common_x_domain_template',`
 		class x_screen { saver_setattr saver_hide saver_show };
 		class x_pointer { get_property set_property manage };
 		class x_keyboard { read manage };
-		type xdm_t, xserver_t;
 	')
 
 	##############################
@@ -474,8 +473,8 @@ template(`xserver_object_types_template',`
 #
 template(`xserver_user_x_domain_template',`
 	gen_require(`
-		type xdm_t, xdm_tmp_t;
-		type xauth_home_t, iceauth_home_t, xserver_t, xserver_tmpfs_t;
+		type xdm_t, xdm_tmp_t, xserver_tmpfs_t;
+		type xauth_home_t, iceauth_home_t, xserver_t;
 	')
 
 	allow $2 self:shm create_shm_perms;
@@ -787,8 +786,7 @@ interface(`xserver_stream_connect_xdm',`
 
 	files_search_tmp($1)
 	files_search_pids($1)
-	stream_connect_pattern($1, xdm_tmp_t, xdm_tmp_t, xdm_t)
-	stream_connect_pattern($1, xdm_var_run_t, xdm_var_run_t, xdm_t)
+	stream_connect_pattern($1, { xdm_tmp_t xdm_var_run_t }, { xdm_tmp_t xdm_var_run_t }, xdm_t)
 ')
 
 ########################################

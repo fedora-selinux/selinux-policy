@@ -13,9 +13,7 @@
 #
 template(`rhcs_domain_template',`
 	gen_require(`
-		attribute cluster_domain;
-		attribute cluster_tmpfs;
-		attribute cluster_pid;
+		attribute cluster_domain, cluster_tmpfs, cluster_pid;
 	')
 
 	##############################
@@ -53,7 +51,6 @@ template(`rhcs_domain_template',`
 	manage_fifo_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
 	manage_sock_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
 	files_pid_filetrans($1_t, $1_var_run_t, { file fifo_file })
-
 ')
 
 ######################################
@@ -61,9 +58,9 @@ template(`rhcs_domain_template',`
 ##	Execute a domain transition to run dlm_controld.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`rhcs_domtrans_dlm_controld',`
@@ -171,9 +168,8 @@ interface(`rhcs_stream_connect_fenced',`
 		type fenced_var_run_t, fenced_t;
 	')
 
-	allow $1 fenced_t:unix_stream_socket connectto;
-	allow $1 fenced_var_run_t:sock_file { getattr write };
 	files_search_pids($1)
+	stream_connect_pattern($1, fenced_var_run_t, fenced_var_run_t, fenced_t)
 ')
 
 #####################################
@@ -349,8 +345,7 @@ interface(`rhcs_rw_groupd_shm',`
 #
 interface(`rhcs_rw_cluster_shm',`
 	gen_require(`
-		attribute cluster_domain;
-		attribute cluster_tmpfs;
+		attribute cluster_domain, cluster_tmpfs;
 	')
 
 	allow $1 cluster_domain:shm { rw_shm_perms destroy };
@@ -361,41 +356,40 @@ interface(`rhcs_rw_cluster_shm',`
 
 ####################################
 ## <summary>
-##      Read and write access to cluster domains semaphores.
+##	Read and write access to cluster domains semaphores.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`rhcs_rw_cluster_semaphores',`
-        gen_require(`
+	gen_require(`
 		attribute cluster_domain;
-        ')
+	')
 
-        allow $1 cluster_domain:sem { rw_sem_perms destroy };
+	allow $1 cluster_domain:sem { rw_sem_perms destroy };
 ')
 
 ####################################
 ## <summary>
-##  Connect to cluster domains over a unix domain
-##  stream socket.
+##	Connect to cluster domains over a unix domain
+##	stream socket.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`rhcs_stream_connect_cluster',`
-    gen_require(`
-        attribute cluster_domain;
-        attribute cluster_pid;
-    ')
+	gen_require(`
+		attribute cluster_domain, cluster_pid;
+	')
 
-    files_search_pids($1)
-    stream_connect_pattern($1, cluster_pid, cluster_pid, cluster_domain)
+	files_search_pids($1)
+	stream_connect_pattern($1, cluster_pid, cluster_pid, cluster_domain)
 ')
 
 ######################################
@@ -432,24 +426,25 @@ interface(`rhcs_read_qdiskd_tmpfs_files',`
 		type qdiskd_tmpfs_t;
 	')
 
+	fs_search_tmpfs($1)
 	allow $1 qdiskd_tmpfs_t:file read_file_perms;
 ')
 
 ######################################
 ## <summary>
-##      Allow domain to read cluster lib files
+##	Allow domain to read cluster lib files
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`rhcs_read_cluster_lib_files',`
-    gen_require(`
-        type cluster_var_lib_t;
-    ')
+	gen_require(`
+		type cluster_var_lib_t;
+	')
 
-    files_search_var_lib($1)
-    read_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
+	files_search_var_lib($1)
+	read_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
 ')

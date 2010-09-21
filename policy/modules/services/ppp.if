@@ -66,7 +66,6 @@ interface(`ppp_sigchld',`
 ##	</summary>
 ## </param>
 #
-#
 interface(`ppp_kill',`
 	gen_require(`
 		type pppd_t;
@@ -180,8 +179,7 @@ interface(`ppp_run',`
 	')
 
 	ppp_domtrans($1)
-	role $2 types pppd_t;
-	role $2 types pptp_t;
+	role $2 types { pppd_t pptp_t };
 
 	optional_policy(`
 		ddclient_run(pppd_t, $2)
@@ -281,6 +279,7 @@ interface(`ppp_read_pid_files',`
 		type pppd_var_run_t;
 	')
 
+	files_search_pids($1)
 	allow $1 pppd_var_run_t:file read_file_perms;
 ')
 
@@ -299,6 +298,7 @@ interface(`ppp_manage_pid_files',`
 		type pppd_var_run_t;
 	')
 
+	files_search_pids($1)
 	allow $1 pppd_var_run_t:file manage_file_perms;
 ')
 
@@ -353,15 +353,16 @@ interface(`ppp_initrc_domtrans',`
 interface(`ppp_admin',`
 	gen_require(`
 		type pppd_t, pppd_tmp_t, pppd_log_t, pppd_lock_t;
-		type pppd_etc_t, pppd_secret_t;
-		type pppd_etc_rw_t, pppd_var_run_t;
-
+		type pppd_etc_t, pppd_secret_t, pppd_var_run_t;
 		type pptp_t, pptp_log_t, pptp_var_run_t;
- 		type pppd_initrc_exec_t;
+		type pppd_initrc_exec_t, pppd_etc_rw_t;
 	')
 
 	allow $1 pppd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, pppd_t)
+
+	allow $1 pptp_t:process { ptrace signal_perms };
+	ps_process_pattern($1, pptp_t)
 
 	ppp_initrc_domtrans($1)
 	domain_system_change_exemption($1)
@@ -374,6 +375,7 @@ interface(`ppp_admin',`
 	logging_list_logs($1)
 	admin_pattern($1, pppd_log_t)
 
+	files_list_locks($1)
 	admin_pattern($1, pppd_lock_t)
 
 	files_list_etc($1)
@@ -385,9 +387,6 @@ interface(`ppp_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, pppd_var_run_t)
-
-	allow $1 pptp_t:process { ptrace signal_perms };
-	ps_process_pattern($1, pptp_t)
 
 	admin_pattern($1, pptp_log_t)
 
