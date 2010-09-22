@@ -14,6 +14,7 @@
 ##	User domain for the role
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`bluetooth_role',`
 	gen_require(`
@@ -27,7 +28,7 @@ interface(`bluetooth_role',`
 
 	# allow ps to show cdrecord and allow the user to kill it
 	ps_process_pattern($2, bluetooth_helper_t)
-	allow $2 bluetooth_helper_t:process signal;
+	allow $2 bluetooth_helper_t:process { ptrace signal_perms };
 
 	manage_dirs_pattern($2, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
 	manage_files_pattern($2, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
@@ -91,7 +92,7 @@ interface(`bluetooth_read_config',`
 		type bluetooth_conf_t;
 	')
 
-	allow $1 bluetooth_conf_t:file { getattr read ioctl };
+	allow $1 bluetooth_conf_t:file read_file_perms;
 ')
 
 ########################################
@@ -178,7 +179,7 @@ interface(`bluetooth_run_helper',`
 
 ########################################
 ## <summary>
-##	Read bluetooth helper state files.
+##	Do not audit attempts to read bluetooth helper state files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -191,8 +192,8 @@ interface(`bluetooth_dontaudit_read_helper_state',`
 		type bluetooth_helper_t;
 	')
 
-	dontaudit $1 bluetooth_helper_t:dir search;
-	dontaudit $1 bluetooth_helper_t:file { read getattr };
+	dontaudit $1 bluetooth_helper_t:dir search_dir_perms;
+	dontaudit $1 bluetooth_helper_t:file read_file_perms;
 ')
 
 ########################################
@@ -215,9 +216,8 @@ interface(`bluetooth_dontaudit_read_helper_state',`
 interface(`bluetooth_admin',`
 	gen_require(`
 		type bluetooth_t, bluetooth_tmp_t, bluetooth_lock_t;
-		type bluetooth_var_lib_t, bluetooth_var_run_t;
+		type bluetooth_var_lib_t, bluetooth_var_run_t, bluetooth_initrc_exec_t;
 		type bluetooth_conf_t, bluetooth_conf_rw_t;
-		type bluetooth_initrc_exec_t;
 	')
 
 	allow $1 bluetooth_t:process { ptrace signal_perms };

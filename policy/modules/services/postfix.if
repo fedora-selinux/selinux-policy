@@ -50,7 +50,7 @@ template(`postfix_domain_template',`
 
 	can_exec(postfix_$1_t, postfix_$1_exec_t)
 
-	allow postfix_$1_t postfix_exec_t:file { mmap_file_perms lock ioctl };
+	allow postfix_$1_t postfix_exec_t:file { mmap_file_perms lock };
 
 	allow postfix_$1_t postfix_master_t:process sigchld;
 
@@ -273,7 +273,8 @@ interface(`postfix_read_local_state',`
 		type postfix_local_t;
 	')
 
-	read_files_pattern($1, postfix_local_t, postfix_local_t)
+	kernel_search_proc($1)
+	ps_process_pattern($1, postfix_local_t)
 ')
 
 ########################################
@@ -291,7 +292,8 @@ interface(`postfix_read_master_state',`
 		type postfix_master_t;
 	')
 
-	read_files_pattern($1, postfix_master_t, postfix_master_t)
+	kernel_search_proc($1)
+	ps_process_pattern($1, postfix_master_t)
 ')
 
 ########################################
@@ -388,7 +390,7 @@ interface(`postfix_domtrans_master',`
 ##	</summary>
 ## </param>
 #
-interface(`postfix_initrc_domtrans', `
+interface(`postfix_initrc_domtrans',`
 	gen_require(`
 		type postfix_initrc_exec_t;
 	')
@@ -424,7 +426,6 @@ interface(`postfix_exec_master',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-## <rolecap/>
 #
 interface(`postfix_stream_connect_master',`
 	gen_require(`
@@ -676,19 +677,16 @@ interface(`postfix_domtrans_user_mail_handler',`
 ##	Role allowed access.
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
-interface(`postfix_admin', `
+interface(`postfix_admin',`
 	gen_require(`
-		type postfix_bounce_t, postfix_cleanup_t, postfix_local_t; 
-		type postfix_master_t, postfix_pickup_t, postfix_qmgr_t; 
-		type postfix_smtpd_t;
-
 		attribute postfix_spool_type;
-
+		type postfix_bounce_t, postfix_cleanup_t, postfix_local_t;
+		type postfix_master_t, postfix_pickup_t, postfix_qmgr_t;
 		type postfix_initrc_exec_t, postfix_data_t, postfix_etc_t;
-		type postfix_var_run_t;
-
 		type postfix_map_tmp_t, postfix_prng_t, postfix_public_t;
+		type postfix_smtpd_t, postfix_var_run_t;
 	')
 
 	allow $1 postfix_bounce_t:process { ptrace signal_perms };
@@ -712,9 +710,9 @@ interface(`postfix_admin', `
 	allow $1 postfix_smtpd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, postfix_smtpd_t)
 
-	postfix_run_map($1,$2)
-	postfix_run_postdrop($1,$2)
-		
+	postfix_run_map($1, $2)
+	postfix_run_postdrop($1, $2)
+
 	postfix_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 postfix_initrc_exec_t system_r;
@@ -725,12 +723,12 @@ interface(`postfix_admin', `
 	files_list_etc($1)
 	admin_pattern($1, postfix_etc_t)
 
-	files_search_spool($1)
-	admin_pattern($1,postfix_spool_type)	
+	files_list_spool($1)
+	admin_pattern($1, postfix_spool_type)
 
 	admin_pattern($1, postfix_var_run_t)
 
-	files_search_tmp($1)
+	files_list_tmp($1)
 	admin_pattern($1, postfix_map_tmp_t)
 	
 	admin_pattern($1, postfix_prng_t)
@@ -745,9 +743,10 @@ interface(`postfix_admin', `
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
+##	Domain allowed to transition.
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`postfix_run_postdrop',`
 	gen_require(`
@@ -757,4 +756,3 @@ interface(`postfix_run_postdrop',`
 	postfix_domtrans_postdrop($1)
 	role $2 types postfix_postdrop_t;
 ')
-

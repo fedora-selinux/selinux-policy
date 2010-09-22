@@ -116,7 +116,7 @@ interface(`nscd_socket_use',`
 	dontaudit $1 nscd_t:nscd { getserv shmempwd shmemgrp shmemhost shmemserv };
 	files_search_pids($1)
 	stream_connect_pattern($1, nscd_var_run_t, nscd_var_run_t, nscd_t)
-	dontaudit $1 nscd_var_run_t:file { getattr read };
+	dontaudit $1 nscd_var_run_t:file read_file_perms;
 ')
 
 ########################################
@@ -164,11 +164,14 @@ interface(`nscd_shm_use',`
 	# nscd_socket_domain macro. need to investigate
 	# if they are all actually required
 	allow $1 self:unix_stream_socket create_stream_socket_perms;
-	allow $1 nscd_t:unix_stream_socket connectto;
-	allow $1 nscd_var_run_t:sock_file rw_file_perms;
+
+	# dg: This may not be required.
+	allow $1 nscd_var_run_t:sock_file read_sock_file_perms;
+
+	stream_connect_pattern($1, nscd_var_run_t, nscd_var_run_t, nscd_t)
 	files_search_pids($1)
 	allow $1 nscd_t:nscd { getpwd getgrp gethost };
-	dontaudit $1 nscd_var_run_t:file { getattr read };
+	dontaudit $1 nscd_var_run_t:file read_file_perms;
 ')
 
 ########################################
@@ -242,6 +245,7 @@ interface(`nscd_unconfined',`
 ##	Role allowed access.
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`nscd_run',`
 	gen_require(`

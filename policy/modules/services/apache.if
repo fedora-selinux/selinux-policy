@@ -13,8 +13,7 @@
 #
 template(`apache_content_template',`
 	gen_require(`
-		attribute httpd_exec_scripts;
-		attribute httpd_script_exec_type;
+		attribute httpd_exec_scripts, httpd_script_exec_type;
 		type httpd_t, httpd_suexec_t, httpd_log_t;
 		type httpd_sys_content_t;
 	')
@@ -49,8 +48,6 @@ template(`apache_content_template',`
 	files_type(httpd_$1_ra_content_t)
 
 	read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_htaccess_t)
-
-	domtrans_pattern(httpd_suexec_t, httpd_$1_script_exec_t, httpd_$1_script_t)
 
 	allow httpd_t { httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
 	allow httpd_suexec_t { httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
@@ -132,6 +129,8 @@ template(`apache_content_template',`
 	tunable_policy(`httpd_enable_cgi',`
 		allow httpd_$1_script_t httpd_$1_script_exec_t:file entrypoint;
 
+		domtrans_pattern(httpd_suexec_t, httpd_$1_script_exec_t, httpd_$1_script_t)
+
 		# privileged users run the script:
 		domtrans_pattern(httpd_exec_scripts, httpd_$1_script_exec_t, httpd_$1_script_t)
 
@@ -151,6 +150,8 @@ template(`apache_content_template',`
 
 		allow httpd_$1_script_t httpd_t:fd use;
 		allow httpd_$1_script_t httpd_t:process sigchld;
+
+		dontaudit httpd_$1_script_t httpd_t:tcp_socket { read write };
 
 		kernel_read_system_state(httpd_$1_script_t)
 
@@ -180,8 +181,6 @@ template(`apache_content_template',`
 	optional_policy(`
 		nscd_socket_use(httpd_$1_script_t)
 	')
-
-	dontaudit httpd_$1_script_t httpd_t:tcp_socket { read write };
 ')
 
 ########################################
@@ -202,16 +201,15 @@ template(`apache_content_template',`
 interface(`apache_role',`
 	gen_require(`
 		attribute httpdcontent;
-		type httpd_user_content_t, httpd_user_htaccess_t;
-		type httpd_user_script_t, httpd_user_script_exec_t;
-		type httpd_user_ra_content_t, httpd_user_rw_content_t;
+		type httpd_user_content_t, httpd_user_htaccess_t, httpd_user_script_t;
+		type httpd_user_ra_content_t, httpd_user_rw_content_t, httpd_user_script_exec_t;
 	')
 
 	role $1 types httpd_user_script_t;
 
 	allow $2 httpd_user_content_t:{ dir file lnk_file } { relabelto relabelfrom };
 
-	allow $2 httpd_user_htaccess_t:file { manage_file_perms relabelto relabelfrom };
+	allow $2 httpd_user_htaccess_t:file { manage_file_perms relabel_file_perms };
 
 	manage_dirs_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
 	manage_files_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
@@ -314,21 +312,21 @@ interface(`apache_domtrans',`
 
 ######################################
 ## <summary>
-##  Allow the specified domain to execute apache
-##  in the caller domain.
+##	Allow the specified domain to execute apache
+##	in the caller domain.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`apache_exec',`
-    gen_require(`
-        type httpd_exec_t;
-    ')
+	gen_require(`
+		type httpd_exec_t;
+	')
 
-    can_exec($1, httpd_exec_t)
+	can_exec($1, httpd_exec_t)
 ')
 
 #######################################
@@ -501,7 +499,7 @@ interface(`apache_setattr_cache_dirs',`
 		type httpd_cache_t;
 	')
 
-	allow $1 httpd_cache_t:dir setattr;
+	allow $1 httpd_cache_t:dir setattr_dir_perms;
 ')
 
 ########################################
@@ -732,7 +730,7 @@ interface(`apache_dontaudit_append_log',`
 		type httpd_log_t;
 	')
 
-	dontaudit $1 httpd_log_t:file { getattr append };
+	dontaudit $1 httpd_log_t:file append_file_perms;
 ')
 
 ########################################
@@ -895,7 +893,6 @@ interface(`apache_manage_sys_content',`
 	')
 
 	files_search_var($1)
-	apache_search_sys_content($1)
 	manage_dirs_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
 	manage_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
 	manage_lnk_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
@@ -903,45 +900,45 @@ interface(`apache_manage_sys_content',`
 
 ######################################
 ## <summary>
-##  Allow the specified domain to read
-##  apache system content rw files.
+##	Allow the specified domain to read
+##	apache system content rw files.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`apache_read_sys_content_rw_files',`
-    gen_require(`
+	gen_require(`
 		type httpd_sys_rw_content_t;
 	')
 
-    read_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+	read_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
 ')
 
 ######################################
 ## <summary>
-##  Allow the specified domain to manage
-##  apache system content rw files.
+##	Allow the specified domain to manage
+##	apache system content rw files.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`apache_manage_sys_content_rw',`
-    gen_require(`
+	gen_require(`
 		type httpd_sys_rw_content_t;
 	')
 
-    files_search_var($1)
-    manage_dirs_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
-    manage_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
-    manage_lnk_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+	files_search_var($1)
+	manage_dirs_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+	manage_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+	manage_lnk_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
 ')
 
 ########################################
@@ -985,8 +982,7 @@ interface(`apache_delete_sys_content_rw',`
 interface(`apache_domtrans_sys_script',`
 	gen_require(`
 		attribute httpdcontent;
-		type httpd_sys_script_t;
-		type httpd_sys_content_t;
+		type httpd_sys_script_t, httpd_sys_content_t;
 	')
 
 	tunable_policy(`httpd_enable_cgi',`
@@ -1049,9 +1045,10 @@ interface(`apache_domtrans_all_scripts',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access..
+##	Role allowed access.
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`apache_run_all_scripts',`
 	gen_require(`
@@ -1221,21 +1218,21 @@ interface(`apache_read_tmp_files',`
 
 ######################################
 ## <summary>
-##  Dontaudit attempts to read and write
-##  apache tmp files.
+##	Dontaudit attempts to read and write
+##	apache tmp files.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain to not audit.
+##	</summary>
 ## </param>
 #
 interface(`apache_dontaudit_rw_tmp_files',`
-    gen_require(`
-        type httpd_tmp_t;
-    ')
+	gen_require(`
+		type httpd_tmp_t;
+	')
 
-    dontaudit $1 httpd_tmp_t:file { read write };
+	dontaudit $1 httpd_tmp_t:file { read write };
 ')
 
 ########################################
@@ -1317,17 +1314,14 @@ interface(`apache_cgi_domain',`
 #
 interface(`apache_admin',`
 	gen_require(`
-		attribute httpdcontent;
-		attribute httpd_script_exec_type;
-
+		attribute httpdcontent, httpd_script_exec_type;
 		type httpd_t, httpd_config_t, httpd_log_t;
-		type httpd_modules_t, httpd_lock_t;
-		type httpd_var_run_t, httpd_php_tmp_t;
+		type httpd_modules_t, httpd_lock_t, httpd_bool_t;
+		type httpd_var_run_t, httpd_php_tmp_t, httpd_initrc_exec_t;
 		type httpd_suexec_tmp_t, httpd_tmp_t;
-		type httpd_initrc_exec_t, httpd_bool_t;
 	')
 
-	allow $1 httpd_t:process { getattr ptrace signal_perms };
+	allow $1 httpd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, httpd_t)
 
 	init_labeled_script_domtrans($1, httpd_initrc_exec_t)
@@ -1338,10 +1332,10 @@ interface(`apache_admin',`
 	apache_manage_all_content($1)
 	miscfiles_manage_public_files($1)
 
-	files_search_etc($1)
+	files_list_etc($1)
 	admin_pattern($1, httpd_config_t)
 
-	logging_search_logs($1)
+	logging_list_logs($1)
 	admin_pattern($1, httpd_log_t)
 
 	admin_pattern($1, httpd_modules_t)
@@ -1352,26 +1346,22 @@ interface(`apache_admin',`
 	admin_pattern($1, httpd_var_run_t)
 	files_pid_filetrans($1, httpd_var_run_t, file)
 
-	kernel_search_proc($1)
-	allow $1 httpd_t:dir list_dir_perms;
-	ps_process_pattern($1, httpd_t)
-	read_lnk_files_pattern($1, httpd_t, httpd_t)
-
 	admin_pattern($1, httpdcontent)
 	admin_pattern($1, httpd_script_exec_type)
 
 	seutil_domtrans_setfiles($1)
 
+	files_list_tmp($1)
 	admin_pattern($1, httpd_tmp_t)
 	admin_pattern($1, httpd_php_tmp_t)
 	admin_pattern($1, httpd_suexec_tmp_t)
 
-ifdef(`TODO',`
-	apache_set_booleans($1, $2, $3, httpd_bool_t )
-	seutil_setsebool_role_template($1, $3, $2)
-	allow httpd_setsebool_t httpd_bool_t:dir list_dir_perms;
-	allow httpd_setsebool_t httpd_bool_t:file rw_file_perms;
-')
+	ifdef(`TODO',`
+		apache_set_booleans($1, $2, $3, httpd_bool_t)
+		seutil_setsebool_role_template($1, $3, $2)
+		allow httpd_setsebool_t httpd_bool_t:dir list_dir_perms;
+		allow httpd_setsebool_t httpd_bool_t:file rw_file_perms;
+	')
 ')
 
 ########################################
@@ -1380,7 +1370,7 @@ ifdef(`TODO',`
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
+##	Domain to not audit.
 ##	</summary>
 ## </param>
 #
@@ -1390,7 +1380,7 @@ interface(`apache_dontaudit_leaks',`
 	')
 
 	dontaudit $1 httpd_t:fifo_file rw_inherited_fifo_file_perms;
- 	dontaudit $1 httpd_t:tcp_socket { read write };
+	dontaudit $1 httpd_t:tcp_socket { read write };
 	dontaudit $1 httpd_t:unix_dgram_socket { read write };
 	dontaudit $1 httpd_t:unix_stream_socket { read write };
 ')

@@ -41,9 +41,7 @@ interface(`dbus_stub',`
 template(`dbus_role_template',`
 	gen_require(`
 		class dbus { send_msg acquire_svc };
-
-		attribute dbusd_unconfined;
-		attribute session_bus_type;
+		attribute dbusd_unconfined, session_bus_type;
 		type system_dbusd_t, session_dbusd_tmp_t, dbusd_exec_t, dbusd_etc_t;
 		type $1_t;
 	')
@@ -90,14 +88,15 @@ template(`dbus_role_template',`
 	files_tmp_filetrans($1_dbusd_t, session_dbusd_tmp_t, { file dir })
 
 	domtrans_pattern($3, dbusd_exec_t, $1_dbusd_t)
-	allow $3 $1_dbusd_t:process { signull sigkill signal };
+
+	ps_process_pattern($3, $1_dbusd_t)
+	allow $3 $1_dbusd_t:process { ptrace signal_perms };
 
 	# cjp: this seems very broken
 	corecmd_bin_domtrans($1_dbusd_t, $1_t)
 	allow $1_dbusd_t $3:process sigkill;
 	allow $3 $1_dbusd_t:fd use;
 	allow $3 $1_dbusd_t:fifo_file rw_fifo_file_perms;
-	allow $3 $1_dbusd_t:process sigchld;
 
 	kernel_read_system_state($1_dbusd_t)
 	kernel_read_kernel_sysctls($1_dbusd_t)
@@ -118,7 +117,7 @@ template(`dbus_role_template',`
 
 	dev_read_urand($1_dbusd_t)
 
- 	domain_use_interactive_fds($1_dbusd_t)
+	domain_use_interactive_fds($1_dbusd_t)
 	domain_read_all_domains_state($1_dbusd_t)
 
 	files_read_etc_files($1_dbusd_t)
@@ -156,7 +155,7 @@ template(`dbus_role_template',`
 	userdom_manage_user_home_content_files($1_dbusd_t)
 	userdom_user_home_dir_filetrans_user_home_content($1_dbusd_t, { dir file })
 
-	ifdef(`hide_broken_symptoms', `
+	ifdef(`hide_broken_symptoms',`
 		dontaudit $3 $1_dbusd_t:netlink_selinux_socket { read write };
 	')
 
@@ -463,7 +462,7 @@ interface(`dbus_system_domain',`
 		unconfined_dbus_send($1)
 	')
 
-	ifdef(`hide_broken_symptoms', `
+	ifdef(`hide_broken_symptoms',`
 		dontaudit $1 system_dbusd_t:netlink_selinux_socket { read write };
 	')
 ')
@@ -520,6 +519,6 @@ interface(`dbus_delete_pid_files',`
 		type system_dbusd_var_run_t;
 	')
 
+	files_search_pids($1)
 	delete_files_pattern($1, system_dbusd_var_run_t, system_dbusd_var_run_t)
 ')
-

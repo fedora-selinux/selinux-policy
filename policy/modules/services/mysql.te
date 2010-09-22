@@ -6,9 +6,9 @@ policy_module(mysql, 1.12.0)
 #
 
 ## <desc>
-## <p>
-## Allow mysqld to connect to all ports
-## </p>
+##	<p>
+##	Allow mysqld to connect to all ports
+##	</p>
 ## </desc>
 gen_tunable(mysql_connect_any, false)
 
@@ -69,7 +69,7 @@ manage_lnk_files_pattern(mysqld_t, mysqld_db_t, mysqld_db_t)
 files_var_lib_filetrans(mysqld_t, mysqld_db_t, { dir file lnk_file })
 
 allow mysqld_t mysqld_etc_t:file read_file_perms;
-allow mysqld_t mysqld_etc_t:lnk_file { getattr read };
+allow mysqld_t mysqld_etc_t:lnk_file read_lnk_file_perms;
 allow mysqld_t mysqld_etc_t:dir list_dir_perms;
 
 allow mysqld_t mysqld_log_t:file manage_file_perms;
@@ -129,8 +129,7 @@ userdom_dontaudit_use_unpriv_user_fds(mysqld_t)
 userdom_read_user_home_content_files(mysqld_t)
 
 ifdef(`distro_redhat',`
-	# because Fedora has the sock_file in the database directory
-	type_transition mysqld_t mysqld_db_t:sock_file mysqld_var_run_t;
+	filetrans_pattern(mysqld_t, mysqld_db_t, mysqld_var_run_t, sock_file)
 ')
 
 tunable_policy(`mysql_connect_any',`
@@ -157,8 +156,8 @@ optional_policy(`
 
 allow mysqld_safe_t self:capability { chown dac_override fowner kill };
 dontaudit mysqld_safe_t self:capability sys_ptrace;
-allow mysqld_safe_t self:fifo_file rw_fifo_file_perms;
 allow mysqld_safe_t self:process { setsched getsched setrlimit };
+allow mysqld_safe_t self:fifo_file rw_fifo_file_perms;
 
 read_lnk_files_pattern(mysqld_safe_t, mysqld_db_t, mysqld_db_t)
 

@@ -37,9 +37,9 @@ interface(`mta_stub',`
 ##	is the prefix for user_t).
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 template(`mta_base_mail_template',`
-
 	gen_require(`
 		attribute user_mail_domain;
 		type sendmail_exec_t;
@@ -158,6 +158,7 @@ template(`mta_base_mail_template',`
 ##	User domain for the role
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`mta_role',`
 	gen_require(`
@@ -169,7 +170,7 @@ interface(`mta_role',`
 
 	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2, sendmail_exec_t, user_mail_t)
-	allow $2 sendmail_exec_t:lnk_file { getattr read };
+	allow $2 sendmail_exec_t:lnk_file read_lnk_file_perms;
 
 	allow mta_user_agent $2:fd use;
 	allow mta_user_agent $2:process sigchld;
@@ -225,18 +226,18 @@ interface(`mta_agent_executable',`
 ##  Dontaudit read and write an leaked file descriptors
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain to not audit.
+##	</summary>
 ## </param>
 #
 interface(`mta_dontaudit_leaks_system_mail',`
-    gen_require(`
-        type system_mail_t;
-    ')
+	gen_require(`
+		type system_mail_t;
+	')
 
-    dontaudit $1 system_mail_t:fifo_file write;
-    dontaudit $1 system_mail_t:tcp_socket { read write };
+	dontaudit $1 system_mail_t:fifo_file write;
+	dontaudit $1 system_mail_t:tcp_socket { read write };
 ')
 
 ########################################
@@ -325,7 +326,6 @@ interface(`mta_mailserver_sender',`
 interface(`mta_mailserver_delivery',`
 	gen_require(`
 		attribute mailserver_delivery;
-		type mail_spool_t;
 	')
 
 	typeattribute $1 mailserver_delivery;
@@ -363,9 +363,8 @@ interface(`mta_mailserver_user_agent',`
 #
 interface(`mta_send_mail',`
 	gen_require(`
-		attribute mta_user_agent;
+		attribute mta_user_agent, mta_exec_type;
 		type system_mail_t;
-		attribute mta_exec_type;
 	')
 
 	allow $1 mta_exec_type:lnk_file read_lnk_file_perms;
@@ -376,7 +375,7 @@ interface(`mta_send_mail',`
 	allow mta_user_agent $1:process sigchld;
 	allow mta_user_agent $1:fifo_file rw_fifo_file_perms;
 
-	ifdef(`hide_broken_symptoms', `
+	ifdef(`hide_broken_symptoms',`
 		dontaudit system_mail_t $1:socket_class_set { read write };
 	')
 ')
@@ -429,7 +428,6 @@ interface(`mta_sendmail_domtrans',`
 ##	</summary>
 ## </param>
 #
-#
 interface(`mta_signal_system_mail',`
 	gen_require(`
 		type system_mail_t;
@@ -447,7 +445,6 @@ interface(`mta_signal_system_mail',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-#
 #
 interface(`mta_kill_system_mail',`
 	gen_require(`
@@ -514,7 +511,7 @@ interface(`mta_write_config',`
 	')
 
 	manage_files_pattern($1, etc_mail_t, etc_mail_t)
-	allow $1 etc_mail_t:file setattr;
+	allow $1 etc_mail_t:file setattr_file_perms;
 ')
 
 ########################################
@@ -592,7 +589,7 @@ interface(`mta_rw_aliases',`
 	')
 
 	files_search_etc($1)
-	allow $1 etc_aliases_t:file { rw_file_perms setattr };
+	allow $1 etc_aliases_t:file { rw_file_perms setattr_file_perms };
 ')
 
 #######################################
@@ -686,8 +683,8 @@ interface(`mta_dontaudit_getattr_spool_files',`
 
 	files_dontaudit_search_spool($1)
 	dontaudit $1 mail_spool_t:dir search_dir_perms;
-	dontaudit $1 mail_spool_t:lnk_file read;
-	dontaudit $1 mail_spool_t:file getattr;
+	dontaudit $1 mail_spool_t:lnk_file read_lnk_file_perms;
+	dontaudit $1 mail_spool_t:file getattr_file_perms;
 ')
 
 #######################################
@@ -737,7 +734,7 @@ interface(`mta_rw_spool',`
 
 	files_search_spool($1)
 	allow $1 mail_spool_t:dir list_dir_perms;
-	allow $1 mail_spool_t:file setattr;
+	allow $1 mail_spool_t:file setattr_file_perms;
 	manage_files_pattern($1, mail_spool_t, mail_spool_t)
 	read_lnk_files_pattern($1, mail_spool_t, mail_spool_t)
 ')
@@ -878,7 +875,7 @@ interface(`mta_dontaudit_rw_queue',`
 	')
 
 	dontaudit $1 mqueue_spool_t:dir search_dir_perms;
-	dontaudit $1 mqueue_spool_t:file { getattr read write };
+	dontaudit $1 mqueue_spool_t:file rw_file_perms;
 ')
 
 ########################################
@@ -957,25 +954,32 @@ interface(`mta_rw_user_mail_stream_sockets',`
 ## </param>
 #
 interface(`mta_filetrans_aliases',`
+	gen_require(`
+		type etc_aliases_t;
+	')
+
 	filetrans_pattern($1, $2, etc_aliases_t, file)
 ')
 
 ######################################
 ## <summary>
-##  ALlow domain to read mail content in the homedir 
+##	ALlow domain to read mail content in the homedir
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`mta_read_home',`
-    gen_require(`
-        type mail_home_t;
-    ')
+	gen_require(`
+		type mail_home_t;
+	')
 
-    userdom_search_user_home_dirs($1)
-    userdom_search_admin_dir($1)
-    read_files_pattern($1, mail_home_t, mail_home_t)
+	userdom_search_user_home_dirs($1)
+	read_files_pattern($1, mail_home_t, mail_home_t)
+
+	ifdef(`distro_redhat',`
+		userdom_search_admin_dir($1)
+	')
 ')

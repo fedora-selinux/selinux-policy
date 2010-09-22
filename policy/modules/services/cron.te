@@ -10,18 +10,18 @@ gen_require(`
 #
 
 ## <desc>
-## <p>
-## Allow system cron jobs to relabel filesystem
-## for restoring file contexts.
-## </p>
+##	<p>
+##	Allow system cron jobs to relabel filesystem
+##	for restoring file contexts.
+##	</p>
 ## </desc>
 gen_tunable(cron_can_relabel, false)
 
 ## <desc>
-## <p>
-## Enable extra rules in the cron domain
-## to support fcron.
-## </p>
+##	<p>
+##	Enable extra rules in the cron domain
+##	to support fcron.
+##	</p>
 ## </desc>
 gen_tunable(fcron_crond, false)
 
@@ -99,10 +99,6 @@ files_lock_file(system_cronjob_lock_t)
 type system_cronjob_tmp_t alias system_crond_tmp_t;
 files_tmp_file(system_cronjob_tmp_t)
 
-ifdef(`enable_mcs',`
-	init_ranged_daemon_domain(crond_t, crond_exec_t, s0 - mcs_systemhigh)
-')
-
 type unconfined_cronjob_t;
 domain_type(unconfined_cronjob_t)
 domain_cron_exemption_target(unconfined_cronjob_t)
@@ -122,13 +118,17 @@ typealias system_cronjob_var_lib_t alias system_crond_var_lib_t;
 type system_cronjob_var_run_t;
 files_pid_file(system_cronjob_var_run_t)
 
+ifdef(`enable_mcs',`
+	init_ranged_daemon_domain(crond_t, crond_exec_t, s0 - mcs_systemhigh)
+')
+
 ########################################
 #
 # Admin crontab local policy
 #
 
 # Allow our crontab domain to unlink a user cron spool file.
-allow admin_crontab_t user_cron_spool_t:file { getattr read unlink };
+allow admin_crontab_t user_cron_spool_t:file { read_file_perms delete_file_perms };
 
 # Manipulate other users crontab.
 selinux_get_fs_mount(admin_crontab_t)
@@ -138,7 +138,7 @@ selinux_compute_create_context(admin_crontab_t)
 selinux_compute_relabel_context(admin_crontab_t)
 selinux_compute_user_contexts(admin_crontab_t)
 
-tunable_policy(`fcron_crond', `
+tunable_policy(`fcron_crond',`
 	# fcron wants an instant update of a crontab change for the administrator
 	# also crontab does a security check for crontab -u
 	allow admin_crontab_t self:process setfscreate;
@@ -251,7 +251,7 @@ ifdef(`distro_debian',`
 	')
 ')
 
-ifdef(`distro_redhat', `
+ifdef(`distro_redhat',`
 	# Run the rpm program in the rpm_t domain. Allow creation of RPM log files
 	# via redirection of standard out.
 	optional_policy(`
@@ -263,13 +263,17 @@ tunable_policy(`allow_polyinstantiation',`
 	files_polyinstantiate_all(crond_t)
 ')
 
+tunable_policy(`fcron_crond',`
+	allow crond_t system_cron_spool_t:file manage_file_perms;
+')
+
 optional_policy(`
 	apache_search_sys_content(crond_t)
 ')
 
 optional_policy(`
-    djbdns_search_tinydns_keys(crond_t)
-    djbdns_link_tinydns_keys(crond_t)
+	djbdns_search_tinydns_keys(crond_t)
+	djbdns_link_tinydns_keys(crond_t)
 ')
 
 optional_policy(`
@@ -285,10 +289,6 @@ optional_policy(`
 
 optional_policy(`
 	mono_domtrans(crond_t)
-')
-
-tunable_policy(`fcron_crond', `
-	allow crond_t system_cron_spool_t:file manage_file_perms;
 ')
 
 optional_policy(`
@@ -351,7 +351,7 @@ logging_log_filetrans(system_cronjob_t, cron_log_t, file)
 
 # This is to handle /var/lib/misc directory.  Used currently
 # by prelink var/lib files for cron 
-allow system_cronjob_t cron_var_lib_t:file { manage_file_perms relabelfrom relabelto };
+allow system_cronjob_t cron_var_lib_t:file { manage_file_perms relabel_file_perms };
 files_var_lib_filetrans(system_cronjob_t, cron_var_lib_t, file)
 
 allow system_cronjob_t cron_var_run_t:file manage_file_perms;
@@ -472,7 +472,7 @@ miscfiles_manage_man_pages(system_cronjob_t)
 
 seutil_read_config(system_cronjob_t)
 
-ifdef(`distro_redhat', `
+ifdef(`distro_redhat',`
 	# Run the rpm program in the rpm_t domain. Allow creation of RPM log files
 	allow crond_t system_cron_spool_t:file manage_file_perms;
 
@@ -687,7 +687,7 @@ read_files_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
 read_lnk_files_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
 allow crond_t user_cron_spool_t:file manage_lnk_file_perms;
 
-tunable_policy(`fcron_crond', `
+tunable_policy(`fcron_crond',`
 	allow crond_t user_cron_spool_t:file manage_file_perms;
 ')
 

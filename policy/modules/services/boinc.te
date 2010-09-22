@@ -1,4 +1,4 @@
-policy_module(boinc,1.0.0)
+policy_module(boinc, 1.0.0)
 
 ########################################
 #
@@ -27,6 +27,9 @@ role system_r types boinc_project_t;
 
 permissive boinc_project_t;
 
+type boinc_project_tmp_t;
+files_tmp_file(boinc_project_tmp_t)
+
 type boinc_project_var_lib_t;
 files_type(boinc_project_var_lib_t)
 
@@ -49,15 +52,15 @@ manage_files_pattern(boinc_t, boinc_tmp_t, boinc_tmp_t)
 files_tmp_filetrans(boinc_t, boinc_tmp_t, { dir file })
 
 manage_files_pattern(boinc_t, boinc_tmpfs_t, boinc_tmpfs_t)
-fs_tmpfs_filetrans(boinc_t, boinc_tmpfs_t,file)
+fs_tmpfs_filetrans(boinc_t, boinc_tmpfs_t, file)
 
-exec_files_pattern(boinc_t, boinc_var_lib_t,  boinc_var_lib_t)
-manage_dirs_pattern(boinc_t, boinc_var_lib_t,  boinc_var_lib_t)
-manage_files_pattern(boinc_t, boinc_var_lib_t,  boinc_var_lib_t)
-filetrans_pattern(boinc_t, boinc_var_lib_t, boinc_project_var_lib_t, { dir })
+exec_files_pattern(boinc_t, boinc_var_lib_t, boinc_var_lib_t)
+manage_dirs_pattern(boinc_t, boinc_var_lib_t, boinc_var_lib_t)
+manage_files_pattern(boinc_t, boinc_var_lib_t, boinc_var_lib_t)
+filetrans_pattern(boinc_t, boinc_var_lib_t, boinc_project_var_lib_t, dir)
 
-manage_dirs_pattern(boinc_t, boinc_project_var_lib_t,  boinc_project_var_lib_t)
-manage_files_pattern(boinc_t, boinc_project_var_lib_t,  boinc_project_var_lib_t)
+manage_dirs_pattern(boinc_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
+manage_files_pattern(boinc_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
 
 kernel_read_system_state(boinc_t)
 
@@ -120,16 +123,20 @@ allow boinc_project_t self:process { execmem execstack };
 
 allow boinc_project_t self:fifo_file rw_fifo_file_perms;
 
+manage_dirs_pattern(boinc_project_t, boinc_project_tmp_t, boinc_project_tmp_t)
+manage_files_pattern(boinc_project_t, boinc_project_tmp_t, boinc_project_tmp_t)
+files_tmp_filetrans(boinc_project_t, boinc_project_tmp_t, { dir file })
+
 allow boinc_project_t boinc_project_var_lib_t:file entrypoint;
-exec_files_pattern(boinc_project_t, boinc_project_var_lib_t,  boinc_project_var_lib_t)
-manage_dirs_pattern(boinc_project_t, boinc_project_var_lib_t,  boinc_project_var_lib_t)
-manage_files_pattern(boinc_project_t, boinc_project_var_lib_t,  boinc_project_var_lib_t)
+exec_files_pattern(boinc_project_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
+manage_dirs_pattern(boinc_project_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
+manage_files_pattern(boinc_project_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
 files_var_lib_filetrans(boinc_project_t, boinc_project_var_lib_t, { file dir })
 
 allow boinc_project_t boinc_project_var_lib_t:file execmod;
 
 allow boinc_project_t boinc_t:shm rw_shm_perms;
-allow boinc_project_t boinc_tmpfs_t:file { read write };
+allow boinc_project_t boinc_tmpfs_t:file rw_inherited_file_perms;
 
 list_dirs_pattern(boinc_project_t, boinc_var_lib_t, boinc_var_lib_t)
 rw_files_pattern(boinc_project_t, boinc_var_lib_t, boinc_var_lib_t)
@@ -144,10 +151,16 @@ corecmd_exec_shell(boinc_project_t)
 
 corenet_tcp_connect_boinc_port(boinc_project_t)
 
+dev_read_rand(boinc_project_t)
 dev_read_urand(boinc_project_t)
+dev_read_sysfs(boinc_project_t)
 dev_rw_xserver_misc(boinc_project_t)
 
 files_read_etc_files(boinc_project_t)
 
+miscfiles_read_fonts(boinc_project_t)
 miscfiles_read_localization(boinc_project_t)
 
+optional_policy(`
+	java_exec(boinc_project_t)
+')

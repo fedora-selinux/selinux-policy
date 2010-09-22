@@ -6,9 +6,9 @@ policy_module(lpd, 1.12.0)
 #
 
 ## <desc>
-## <p>
-## Use lpd server instead of cups
-## </p>
+##	<p>
+##	Use lpd server instead of cups
+##	</p>
 ## </desc>
 gen_tunable(use_lpd_server, false)
 
@@ -80,7 +80,7 @@ rw_files_pattern(checkpc_t, print_spool_t, print_spool_t)
 delete_files_pattern(checkpc_t, print_spool_t, print_spool_t)
 files_search_spool(checkpc_t)
 
-allow checkpc_t printconf_t:file getattr;
+allow checkpc_t printconf_t:file getattr_file_perms;
 allow checkpc_t printconf_t:dir list_dir_perms;
 
 kernel_read_system_state(checkpc_t)
@@ -284,13 +284,13 @@ userdom_read_user_tmp_files(lpr_t)
 
 tunable_policy(`use_lpd_server',`
 	# lpr can run in lightweight mode, without a local print spooler.
-	allow lpr_t lpd_var_run_t:dir search;
-	allow lpr_t lpd_var_run_t:sock_file write;
+	allow lpr_t lpd_var_run_t:dir search_dir_perms;
+	allow lpr_t lpd_var_run_t:sock_file write_sock_file_perms;
 	files_read_var_files(lpr_t)
 
 	# Connect to lpd via a Unix domain socket.
-	allow lpr_t printer_t:sock_file rw_sock_file_perms;
-	allow lpr_t lpd_t:unix_stream_socket connectto;
+	allow lpr_t printer_t:sock_file read_sock_file_perms;
+	stream_connect_pattern(lpr_t, printer_t, printer_t, lpd_t)
 	# Send SIGHUP to lpd.
 	allow lpr_t lpd_t:process signal;
 
