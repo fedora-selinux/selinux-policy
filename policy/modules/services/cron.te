@@ -99,10 +99,6 @@ files_lock_file(system_cronjob_lock_t)
 type system_cronjob_tmp_t alias system_crond_tmp_t;
 files_tmp_file(system_cronjob_tmp_t)
 
-ifdef(`enable_mcs',`
-	init_ranged_daemon_domain(crond_t, crond_exec_t, s0 - mcs_systemhigh)
-')
-
 type unconfined_cronjob_t;
 domain_type(unconfined_cronjob_t)
 domain_cron_exemption_target(unconfined_cronjob_t)
@@ -121,6 +117,10 @@ typealias system_cronjob_var_lib_t alias system_crond_var_lib_t;
 
 type system_cronjob_var_run_t;
 files_pid_file(system_cronjob_var_run_t)
+
+ifdef(`enable_mcs',`
+	init_ranged_daemon_domain(crond_t, crond_exec_t, s0 - mcs_systemhigh)
+')
 
 ########################################
 #
@@ -263,6 +263,10 @@ tunable_policy(`allow_polyinstantiation',`
 	files_polyinstantiate_all(crond_t)
 ')
 
+tunable_policy(`fcron_crond',`
+	allow crond_t system_cron_spool_t:file manage_file_perms;
+')
+
 optional_policy(`
 	apache_search_sys_content(crond_t)
 ')
@@ -285,10 +289,6 @@ optional_policy(`
 
 optional_policy(`
 	mono_domtrans(crond_t)
-')
-
-tunable_policy(`fcron_crond',`
-	allow crond_t system_cron_spool_t:file manage_file_perms;
 ')
 
 optional_policy(`
