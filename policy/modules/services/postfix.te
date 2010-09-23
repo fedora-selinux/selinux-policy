@@ -6,10 +6,9 @@ policy_module(postfix, 1.12.0)
 #
 
 ## <desc>
-## <p>
-## Allow postfix_local domain full write access to mail_spool directories
-## 
-## </p>
+##	<p>
+##	Allow postfix_local domain full write access to mail_spool directories
+##	</p>
 ## </desc>
 gen_tunable(allow_postfix_local_write_mail_spool, false)
 
@@ -21,7 +20,7 @@ attribute postfix_user_domtrans;
 
 postfix_server_domain_template(bounce)
 
-type postfix_spool_bounce_t,  postfix_spool_type;
+type postfix_spool_bounce_t, postfix_spool_type;
 files_type(postfix_spool_bounce_t)
 
 postfix_server_domain_template(cleanup)
@@ -35,21 +34,12 @@ application_executable_file(postfix_exec_t)
 postfix_server_domain_template(local)
 mta_mailserver_delivery(postfix_local_t)
 
-# Handle vacation script
-mta_send_mail(postfix_local_t)
-
-userdom_read_user_home_content_files(postfix_local_t)
-
-tunable_policy(`allow_postfix_local_write_mail_spool',`
-	mta_manage_spool(postfix_local_t)
-')
-
 # Program for creating database files
 type postfix_map_t;
 type postfix_map_exec_t;
 application_domain(postfix_map_t, postfix_map_exec_t)
 role system_r types postfix_map_t;
-     
+
 type postfix_map_tmp_t;
 files_tmp_file(postfix_map_tmp_t)
 
@@ -116,10 +106,10 @@ mta_mailserver_delivery(postfix_virtual_t)
 
 # chown is to set the correct ownership of queue dirs
 allow postfix_master_t self:capability { chown dac_override kill setgid setuid net_bind_service sys_tty_config };
+allow postfix_master_t self:process setrlimit;
 allow postfix_master_t self:fifo_file rw_fifo_file_perms;
 allow postfix_master_t self:tcp_socket create_stream_socket_perms;
 allow postfix_master_t self:udp_socket create_socket_perms;
-allow postfix_master_t self:process setrlimit;
 
 allow postfix_master_t postfix_etc_t:dir rw_dir_perms;
 allow postfix_master_t postfix_etc_t:file rw_file_perms;
@@ -130,11 +120,11 @@ can_exec(postfix_master_t, postfix_exec_t)
 allow postfix_master_t postfix_data_t:dir manage_dir_perms;
 allow postfix_master_t postfix_data_t:file manage_file_perms;
 
-allow postfix_master_t postfix_map_exec_t:file { mmap_file_perms ioctl lock };
+allow postfix_master_t postfix_map_exec_t:file { mmap_file_perms lock };
 
-allow postfix_master_t postfix_postdrop_exec_t:file getattr;
+allow postfix_master_t postfix_postdrop_exec_t:file getattr_file_perms;
 
-allow postfix_master_t postfix_postqueue_exec_t:file getattr;
+allow postfix_master_t postfix_postqueue_exec_t:file getattr_file_perms;
 
 manage_fifo_files_pattern(postfix_master_t, postfix_private_t, postfix_private_t)
 manage_sock_files_pattern(postfix_master_t, postfix_private_t, postfix_private_t)
@@ -154,7 +144,7 @@ manage_files_pattern(postfix_master_t, postfix_spool_t, postfix_spool_t)
 files_spool_filetrans(postfix_master_t, postfix_spool_t, dir)
 
 allow postfix_master_t postfix_spool_bounce_t:dir manage_dir_perms;
-allow postfix_master_t postfix_spool_bounce_t:file getattr;
+allow postfix_master_t postfix_spool_bounce_t:file getattr_file_perms;
 
 manage_dirs_pattern(postfix_master_t, postfix_spool_flush_t, postfix_spool_flush_t)
 manage_files_pattern(postfix_master_t, postfix_spool_flush_t, postfix_spool_flush_t)
@@ -249,7 +239,7 @@ allow postfix_bounce_t self:capability dac_read_search;
 allow postfix_bounce_t self:tcp_socket create_socket_perms;
 
 allow postfix_bounce_t postfix_public_t:sock_file write;
-allow postfix_bounce_t postfix_public_t:dir search;
+allow postfix_bounce_t postfix_public_t:dir search_dir_perms;
 
 manage_dirs_pattern(postfix_bounce_t, postfix_spool_t, postfix_spool_t)
 manage_files_pattern(postfix_bounce_t, postfix_spool_t, postfix_spool_t)
@@ -293,14 +283,16 @@ optional_policy(`
 # Postfix local local policy
 #
 
-allow postfix_local_t self:fifo_file rw_fifo_file_perms;
 allow postfix_local_t self:process { setsched setrlimit };
+allow postfix_local_t self:fifo_file rw_fifo_file_perms;
 
 # connect to master process
 stream_connect_pattern(postfix_local_t, postfix_public_t, postfix_public_t, postfix_master_t)
 
 # for .forward - maybe we need a new type for it?
 rw_sock_files_pattern(postfix_local_t, postfix_private_t, postfix_private_t)
+
+domtrans_pattern(postfix_local_t, postfix_postdrop_exec_t, postfix_postdrop_t)
 
 allow postfix_local_t postfix_spool_t:file rw_file_perms;
 
@@ -315,10 +307,14 @@ mta_read_aliases(postfix_local_t)
 mta_delete_spool(postfix_local_t)
 # For reading spamassasin
 mta_read_config(postfix_local_t)
+# Handle vacation script
+mta_send_mail(postfix_local_t)
 
-domtrans_pattern(postfix_local_t, postfix_postdrop_exec_t, postfix_postdrop_t)
-# Might be a leak, but I need a postfix expert to explain
-allow postfix_postdrop_t postfix_local_t:unix_stream_socket { read write };
+userdom_read_user_home_content_files(postfix_local_t)
+
+tunable_policy(`allow_postfix_local_write_mail_spool',`
+	mta_manage_spool(postfix_local_t)
+')
 
 optional_policy(`
 	clamav_search_lib(postfix_local_t)
@@ -427,8 +423,8 @@ delete_files_pattern(postfix_pickup_t, postfix_spool_maildrop_t, postfix_spool_m
 # Postfix pipe local policy
 #
 
-allow postfix_pipe_t self:fifo_file rw_fifo_file_perms;
 allow postfix_pipe_t self:process setrlimit;
+allow postfix_pipe_t self:fifo_file rw_fifo_file_perms;
 
 write_sock_files_pattern(postfix_pipe_t, postfix_private_t, postfix_private_t)
 
@@ -475,6 +471,9 @@ optional_policy(`
 allow postfix_postdrop_t self:capability sys_resource;
 allow postfix_postdrop_t self:tcp_socket create;
 allow postfix_postdrop_t self:udp_socket create_socket_perms;
+
+# Might be a leak, but I need a postfix expert to explain
+allow postfix_postdrop_t postfix_local_t:unix_stream_socket { read write };
 
 rw_fifo_files_pattern(postfix_postdrop_t, postfix_public_t, postfix_public_t)
 
@@ -559,7 +558,7 @@ files_spool_filetrans(postfix_qmgr_t, postfix_spool_t, dir)
 
 allow postfix_qmgr_t postfix_spool_bounce_t:dir list_dir_perms;
 allow postfix_qmgr_t postfix_spool_bounce_t:file read_file_perms;
-allow postfix_qmgr_t postfix_spool_bounce_t:lnk_file { getattr read };
+allow postfix_qmgr_t postfix_spool_bounce_t:lnk_file read_lnk_file_perms;
 
 corecmd_exec_bin(postfix_qmgr_t)
 
@@ -579,7 +578,7 @@ postfix_list_spool(postfix_showq_t)
 
 allow postfix_showq_t postfix_spool_maildrop_t:dir list_dir_perms;
 allow postfix_showq_t postfix_spool_maildrop_t:file read_file_perms;
-allow postfix_showq_t postfix_spool_maildrop_t:lnk_file { getattr read };
+allow postfix_showq_t postfix_spool_maildrop_t:lnk_file read_lnk_file_perms;
 
 # to write the mailq output, it really should not need read access!
 term_use_all_ptys(postfix_showq_t)
@@ -656,8 +655,8 @@ optional_policy(`
 # Postfix virtual local policy
 #
 
-allow postfix_virtual_t self:fifo_file rw_fifo_file_perms;
 allow postfix_virtual_t self:process { setsched setrlimit };
+allow postfix_virtual_t self:fifo_file rw_fifo_file_perms;
 
 allow postfix_virtual_t postfix_spool_t:file rw_file_perms;
 
