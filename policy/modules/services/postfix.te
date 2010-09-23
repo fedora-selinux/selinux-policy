@@ -35,15 +35,6 @@ application_executable_file(postfix_exec_t)
 postfix_server_domain_template(local)
 mta_mailserver_delivery(postfix_local_t)
 
-# Handle vacation script
-mta_send_mail(postfix_local_t)
-
-userdom_read_user_home_content_files(postfix_local_t)
-
-tunable_policy(`allow_postfix_local_write_mail_spool',`
-	mta_manage_spool(postfix_local_t)
-')
-
 # Program for creating database files
 type postfix_map_t;
 type postfix_map_exec_t;
@@ -315,10 +306,18 @@ mta_read_aliases(postfix_local_t)
 mta_delete_spool(postfix_local_t)
 # For reading spamassasin
 mta_read_config(postfix_local_t)
+# Handle vacation script
+mta_send_mail(postfix_local_t)
 
 domtrans_pattern(postfix_local_t, postfix_postdrop_exec_t, postfix_postdrop_t)
 # Might be a leak, but I need a postfix expert to explain
 allow postfix_postdrop_t postfix_local_t:unix_stream_socket { read write };
+
+userdom_read_user_home_content_files(postfix_local_t)
+
+tunable_policy(`allow_postfix_local_write_mail_spool',`
+	mta_manage_spool(postfix_local_t)
+')
 
 optional_policy(`
 	clamav_search_lib(postfix_local_t)
