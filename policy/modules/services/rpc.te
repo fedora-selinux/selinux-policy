@@ -6,18 +6,18 @@ policy_module(rpc, 1.12.0)
 #
 
 ## <desc>
-## <p>
-## Allow gssd to read temp directory.  For access to kerberos tgt.
-## </p>
+##	<p>
+##	Allow gssd to read temp directory.  For access to kerberos tgt.
+##	</p>
 ## </desc>
 gen_tunable(allow_gssd_read_tmp, true)
 
 ## <desc>
-## <p>
-## Allow nfs servers to modify public files
-## used for public file transfer services.  Files/Directories must be
-## labeled public_content_rw_t.
-## </p>
+##	<p>
+##	Allow nfs servers to modify public files
+##	used for public file transfer services.  Files/Directories must be
+##	labeled public_content_rw_t.
+##	</p>
 ## </desc>
 gen_tunable(allow_nfsd_anon_write, false)
 
@@ -62,7 +62,7 @@ allow rpcd_t self:capability { sys_admin chown dac_override setgid setuid };
 allow rpcd_t self:process { getcap setcap };
 allow rpcd_t self:fifo_file rw_fifo_file_perms;
 
-allow rpcd_t rpcd_var_run_t:dir setattr;
+allow rpcd_t rpcd_var_run_t:dir setattr_dir_perms;
 manage_dirs_pattern(rpcd_t, rpcd_var_run_t, rpcd_var_run_t)
 manage_files_pattern(rpcd_t, rpcd_var_run_t, rpcd_var_run_t)
 files_pid_filetrans(rpcd_t, rpcd_var_run_t, { file dir })
@@ -161,6 +161,8 @@ storage_raw_read_removable_device(nfsd_t)
 # Read access to public_content_t and public_content_rw_t
 miscfiles_read_public_files(nfsd_t)
 
+userdom_user_home_dir_filetrans_user_home_content(nfsd_t, { file dir })
+
 # Write access to public_content_t and public_content_rw_t
 tunable_policy(`allow_nfsd_anon_write',`
 	miscfiles_manage_public_files(nfsd_t)
@@ -173,7 +175,6 @@ tunable_policy(`nfs_export_all_rw',`
 	fs_read_noxattr_fs_files(nfsd_t)
 	auth_manage_all_files_except_shadow(nfsd_t)
 ')
-userdom_user_home_dir_filetrans_user_home_content(nfsd_t, { file dir })
 
 tunable_policy(`nfs_export_all_ro',`
 	dev_getattr_all_blk_files(nfsd_t)
@@ -195,7 +196,7 @@ tunable_policy(`nfs_export_all_ro',`
 
 allow gssd_t self:capability { dac_override dac_read_search setuid sys_nice };
 allow gssd_t self:process { getsched setsched };
-allow gssd_t self:fifo_file rw_file_perms;
+allow gssd_t self:fifo_file rw_fifo_file_perms;
 
 manage_dirs_pattern(gssd_t, gssd_tmp_t, gssd_tmp_t)
 manage_files_pattern(gssd_t, gssd_tmp_t, gssd_tmp_t)

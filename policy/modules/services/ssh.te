@@ -6,23 +6,23 @@ policy_module(ssh, 2.2.0)
 #
 
 ## <desc>
-## <p>
-## allow host key based authentication
-## </p>
+##	<p>
+##	allow host key based authentication
+##	</p>
 ## </desc>
 gen_tunable(allow_ssh_keysign, false)
 
 ## <desc>
-## <p>
-## Allow ssh logins as sysadm_r:sysadm_t
-## </p>
+##	<p>
+##	Allow ssh logins as sysadm_r:sysadm_t
+##	</p>
 ## </desc>
 gen_tunable(ssh_sysadm_login, false)
 
 ## <desc>
-## <p>
-## allow sshd to forward port connections
-## </p>
+##	<p>
+##	allow sshd to forward port connections
+##	</p>
 ## </desc>
 gen_tunable(sshd_forward_ports, false)
 
@@ -32,7 +32,6 @@ attribute ssh_agent_type;
 type ssh_keygen_t;
 type ssh_keygen_exec_t;
 init_system_domain(ssh_keygen_t, ssh_keygen_exec_t)
-role system_r types ssh_keygen_t;
 
 type sshd_exec_t;
 corecmd_executable_file(sshd_exec_t)
@@ -45,10 +44,6 @@ init_script_file(sshd_initrc_exec_t)
 
 type sshd_key_t;
 files_type(sshd_key_t)
-
-ifdef(`enable_mcs',`
-	init_ranged_daemon_domain(sshd_t, sshd_exec_t, s0 - mcs_systemhigh)
-')
 
 type ssh_t;
 type ssh_exec_t;
@@ -82,8 +77,11 @@ ubac_constrained(ssh_tmpfs_t)
 type ssh_home_t;
 typealias ssh_home_t alias { home_ssh_t user_ssh_home_t user_home_ssh_t staff_home_ssh_t sysadm_home_ssh_t };
 typealias ssh_home_t alias { auditadm_home_ssh_t secadm_home_ssh_t };
-files_type(ssh_home_t)
 userdom_user_home_content(ssh_home_t)
+
+ifdef(`enable_mcs',`
+	init_ranged_daemon_domain(sshd_t, sshd_exec_t, s0 - mcs_systemhigh)
+')
 
 ##############################
 #
@@ -180,10 +178,7 @@ userdom_write_user_tmp_files(ssh_t)
 userdom_read_user_home_content_symlinks(ssh_t)
 
 tunable_policy(`allow_ssh_keysign',`
-	domain_auto_trans(ssh_t, ssh_keysign_exec_t, ssh_keysign_t)
-	allow ssh_keysign_t ssh_t:fd use;
-	allow ssh_keysign_t ssh_t:process sigchld;
-	allow ssh_keysign_t ssh_t:fifo_file rw_file_perms;
+	domtrans_pattern(ssh_t, ssh_keysign_exec_t, ssh_keysign_t)
 ')
 
 tunable_policy(`use_nfs_home_dirs',`
@@ -217,7 +212,6 @@ optional_policy(`
 
 dontaudit ssh_keygen_t self:capability sys_tty_config;
 allow ssh_keygen_t self:process { sigchld sigkill sigstop signull signal };
-
 allow ssh_keygen_t self:unix_stream_socket create_stream_socket_perms;
 
 allow ssh_keygen_t sshd_key_t:file manage_file_perms;
@@ -264,7 +258,7 @@ tunable_policy(`allow_ssh_keysign',`
 	allow ssh_keysign_t self:capability { setgid setuid };
 	allow ssh_keysign_t self:unix_stream_socket create_socket_perms;
 
-	allow ssh_keysign_t sshd_key_t:file { getattr read };
+	allow ssh_keysign_t sshd_key_t:file read_file_perms;
 
 	dev_read_urand(ssh_keysign_t)
 
@@ -287,7 +281,6 @@ optional_policy(`
 # so a tunnel can point to another ssh tunnel
 allow sshd_t self:netlink_route_socket r_netlink_socket_perms;
 allow sshd_t self:key { search link write };
-
 allow sshd_t self:process setcurrent;
 
 kernel_search_key(sshd_t)
@@ -303,15 +296,17 @@ term_use_ptmx(sshd_t)
 corenet_tcp_bind_xserver_port(sshd_t)
 corenet_sendrecv_xserver_server_packets(sshd_t)
 
-tunable_policy(`sshd_forward_ports', `
-	corenet_tcp_bind_all_unreserved_ports(sshd_t)
-	corenet_tcp_connect_all_ports(sshd_t)
-')
-
 userdom_read_user_home_content_files(sshd_t)
 userdom_read_user_home_content_symlinks(sshd_t)
 userdom_search_admin_dir(sshd_t)
 userdom_manage_tmp_role(system_r, sshd_t)
+userdom_spec_domtrans_unpriv_users(sshd_t)
+userdom_signal_unpriv_users(sshd_t)
+
+tunable_policy(`sshd_forward_ports',`
+	corenet_tcp_bind_all_unreserved_ports(sshd_t)
+	corenet_tcp_connect_all_ports(sshd_t)
+')
 
 tunable_policy(`ssh_sysadm_login',`
 	# Relabel and access ptys created by sshd
@@ -320,9 +315,6 @@ tunable_policy(`ssh_sysadm_login',`
 	# some versions of sshd on the new SE Linux require setattr
 	userdom_signal_all_users(sshd_t)
 ')
-
-userdom_spec_domtrans_unpriv_users(sshd_t)
-userdom_signal_unpriv_users(sshd_t)
 
 optional_policy(`
 	daemontools_service_domain(sshd_t, sshd_exec_t)
@@ -373,26 +365,26 @@ optional_policy(`
 ')
 
 ifdef(`TODO',`
-tunable_policy(`ssh_sysadm_login',`
-	# Relabel and access ptys created by sshd
-	# ioctl is necessary for logout() processing for utmp entry and for w to
-	# display the tty.
-	# some versions of sshd on the new SE Linux require setattr
-	allow sshd_t ptyfile:chr_file relabelto;
+	tunable_policy(`ssh_sysadm_login',`
+		# Relabel and access ptys created by sshd
+		# ioctl is necessary for logout() processing for utmp entry and for w to
+		# display the tty.
+		# some versions of sshd on the new SE Linux require setattr
+		allow sshd_t ptyfile:chr_file relabelto;
 
-	optional_policy(`
-		domain_trans(sshd_t, xauth_exec_t, userdomain)
+			optional_policy(`
+				domain_trans(sshd_t, xauth_exec_t, userdomain)
+			')
+	',`
+		optional_policy(`
+			domain_trans(sshd_t, xauth_exec_t, unpriv_userdomain)
+		')
+		# Relabel and access ptys created by sshd
+		# ioctl is necessary for logout() processing for utmp entry and for w to
+		# display the tty.
+		# some versions of sshd on the new SE Linux require setattr
+		allow sshd_t userpty_type:chr_file { relabelto rw_inherited_chr_file_perms setattr_chr_file_perms };
 	')
-',`
-	optional_policy(`
-		domain_trans(sshd_t, xauth_exec_t, unpriv_userdomain)
-	')
-	# Relabel and access ptys created by sshd
-	# ioctl is necessary for logout() processing for utmp entry and for w to
-	# display the tty.
-	# some versions of sshd on the new SE Linux require setattr
-	allow sshd_t userpty_type:chr_file { relabelto read write getattr ioctl setattr };
-')
 ') dnl endif TODO
 
 ########################################
@@ -405,7 +397,6 @@ tunable_policy(`ssh_sysadm_login',`
 
 dontaudit ssh_keygen_t self:capability sys_tty_config;
 allow ssh_keygen_t self:process { sigchld sigkill sigstop signull signal };
-
 allow ssh_keygen_t self:unix_stream_socket create_stream_socket_perms;
 
 allow ssh_keygen_t sshd_key_t:file manage_file_perms;
