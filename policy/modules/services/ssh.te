@@ -6,23 +6,23 @@ policy_module(ssh, 2.2.0)
 #
 
 ## <desc>
-## <p>
-## allow host key based authentication
-## </p>
+##	<p>
+##	allow host key based authentication
+##	</p>
 ## </desc>
 gen_tunable(allow_ssh_keysign, false)
 
 ## <desc>
-## <p>
-## Allow ssh logins as sysadm_r:sysadm_t
-## </p>
+##	<p>
+##	Allow ssh logins as sysadm_r:sysadm_t
+##	</p>
 ## </desc>
 gen_tunable(ssh_sysadm_login, false)
 
 ## <desc>
-## <p>
-## allow sshd to forward port connections
-## </p>
+##	<p>
+##	allow sshd to forward port connections
+##	</p>
 ## </desc>
 gen_tunable(sshd_forward_ports, false)
 
@@ -217,7 +217,6 @@ optional_policy(`
 
 dontaudit ssh_keygen_t self:capability sys_tty_config;
 allow ssh_keygen_t self:process { sigchld sigkill sigstop signull signal };
-
 allow ssh_keygen_t self:unix_stream_socket create_stream_socket_perms;
 
 allow ssh_keygen_t sshd_key_t:file manage_file_perms;
@@ -287,7 +286,6 @@ optional_policy(`
 # so a tunnel can point to another ssh tunnel
 allow sshd_t self:netlink_route_socket r_netlink_socket_perms;
 allow sshd_t self:key { search link write };
-
 allow sshd_t self:process setcurrent;
 
 kernel_search_key(sshd_t)
@@ -303,7 +301,7 @@ term_use_ptmx(sshd_t)
 corenet_tcp_bind_xserver_port(sshd_t)
 corenet_sendrecv_xserver_server_packets(sshd_t)
 
-tunable_policy(`sshd_forward_ports', `
+tunable_policy(`sshd_forward_ports',`
 	corenet_tcp_bind_all_unreserved_ports(sshd_t)
 	corenet_tcp_connect_all_ports(sshd_t)
 ')
@@ -373,26 +371,26 @@ optional_policy(`
 ')
 
 ifdef(`TODO',`
-tunable_policy(`ssh_sysadm_login',`
-	# Relabel and access ptys created by sshd
-	# ioctl is necessary for logout() processing for utmp entry and for w to
-	# display the tty.
-	# some versions of sshd on the new SE Linux require setattr
-	allow sshd_t ptyfile:chr_file relabelto;
+	tunable_policy(`ssh_sysadm_login',`
+		# Relabel and access ptys created by sshd
+		# ioctl is necessary for logout() processing for utmp entry and for w to
+		# display the tty.
+		# some versions of sshd on the new SE Linux require setattr
+		allow sshd_t ptyfile:chr_file relabelto;
 
-	optional_policy(`
-		domain_trans(sshd_t, xauth_exec_t, userdomain)
+			optional_policy(`
+				domain_trans(sshd_t, xauth_exec_t, userdomain)
+			')
+	',`
+		optional_policy(`
+			domain_trans(sshd_t, xauth_exec_t, unpriv_userdomain)
+		')
+		# Relabel and access ptys created by sshd
+		# ioctl is necessary for logout() processing for utmp entry and for w to
+		# display the tty.
+		# some versions of sshd on the new SE Linux require setattr
+		allow sshd_t userpty_type:chr_file { relabelto read write getattr ioctl setattr };
 	')
-',`
-	optional_policy(`
-		domain_trans(sshd_t, xauth_exec_t, unpriv_userdomain)
-	')
-	# Relabel and access ptys created by sshd
-	# ioctl is necessary for logout() processing for utmp entry and for w to
-	# display the tty.
-	# some versions of sshd on the new SE Linux require setattr
-	allow sshd_t userpty_type:chr_file { relabelto read write getattr ioctl setattr };
-')
 ') dnl endif TODO
 
 ########################################
@@ -405,7 +403,6 @@ tunable_policy(`ssh_sysadm_login',`
 
 dontaudit ssh_keygen_t self:capability sys_tty_config;
 allow ssh_keygen_t self:process { sigchld sigkill sigstop signull signal };
-
 allow ssh_keygen_t self:unix_stream_socket create_stream_socket_perms;
 
 allow ssh_keygen_t sshd_key_t:file manage_file_perms;
