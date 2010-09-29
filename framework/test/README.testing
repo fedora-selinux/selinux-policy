@@ -1,0 +1,144 @@
+The current code base contains a testbed for setroubleshoot, here is
+how you can use it.
+
+Impatient users can skip to "Simple Testing Scenario:" :-)
+
+If you want to test "in the tree" (e.g. not installed) then export
+PYTHONPATH=/repository/framework where repository is the root of
+mercurial tree. Note, you much have done a .autogen.sh followed by a
+make because this creates the necessary symbolic link "setroubleshoot"
+which allows imports from setroubleshoot to be resolved by python.
+
+The framework/test/data/audit directory contains a set of log
+files. Each log file contains audit records which define an AVC. You
+may add log files here, just make sure they are syntactically correct
+audit messages, in particular the audit event id's must be valid and
+share the same serial number.
+
+In framework/test you will find a test program called
+test_setroubleshootd. It emulates an audispd socket. Thus the
+setroubleshootd daemon can connect to that socket and will behave
+exactly as if the kernel were generating the AVC's without the need to
+generate the AVC through the kernel. The test_setroubleshootd program
+does this by reading one or more of the log files and transmitting the
+audit records through the socket.
+
+To avoid colliding with the actual audispd sockets both the test
+program and setroubleshootd must be told to use an alternate
+socket. By default test_setroubleshootd uses /tmp/audispd_events,
+setroubleshootd can be passed this command line arg to override it's
+normal socket selection:
+
+setroubleshootd -c audit.text_protocol_socket_path=/tmp/audispd_events
+
+The setroubleshoot init script has been augmented to start
+setroubleshootd in test mode, setting the socket path. If you want to
+test an installed setroubleshoot you can use the init script and add
+test as an extra argument. You can get verbose console output if you
+add verbose as an extra argument. The you can easily test this way:
+
+% service setroubleshoot start test
+
+or
+
+% service setroubleshoot start test verbose
+
+If you're working in the tree you have to bypass #! script interpreter
+otherwise it won't respect the PYTHONPATH override. To run the daemon
+in the tree do this:
+
+% sudo python setroubleshootd -c audit.text_protocol_socket_path=/tmp/audispd_events
+
+
+Prior to running the daemon it's a good idea to start
+test_setroubleshootd so when the daemon comes up it will automatically
+connect to it, otherwise you may have to wait 60 seconds for a
+connection retry.
+
+test_setroubleshootd runs in the foreground with simple command line
+input given by a ">" prompt. Currently at that prompt you can type
+
+send
+send all
+send next
+send <file>
+list
+quit
+help
+
+send (and send all) sends the content of all log files.
+send next sends the next log file in the list of log files.
+send <file> [<file>] sends a specific log file(s) (one can use globbing)
+list dumps the list of available log files.
+quit exits the program.
+help tells you what you can do.
+
+Each command can be abbreviated by using its first character, thus
+"send" can be entered as "s".
+
+The previous command will be reissued if you enter a blank line. The
+previous command is shown in brackets. Thus you can just keep hitting
+return to repeat a command, e.g. to step though the list of files one
+at a time:
+
+> send next <return>
+> [send next] <return>
+> [send next] <return>
+> [send next] <return>
+
+
+test_setroubleshooted also accepts this optional arguments.
+
+-a --audit-socket       audit message socket (default=/tmp/audispd_events)
+-o --out                - for stdout, unix for AF_UNIX socket
+-s --srcfiles           shell glob syntax specifying src log file to send
+-f --format binary|text|host_text       output audit record format
+-c --config section.option=value        set a configuration value
+-h --help               display help info
+-D --test-file-dir      search for test files in this directory (default=data/audit)
+-v --verbose            turn on verbose output
+
+Once the daemon is running the sealert client can connect to it, this
+will happen automatically if you run the daemon via the init script
+because the daemon announces it presence on DBUS.
+
+Simple Testing Scenario:
+------------------------
+
+1) install packages or make install from src
+2) run framework/test_setroubleshootd in a terminal window
+3) % service restart setroubleshoot test
+4) in the test_setroubleshootd terminal window type "s" to send all the files
+5) watch the results live in sealert
+
+Future Enhancements:
+--------------------
+
+It would be nice to run the test standalone and to verify the right
+plugin fired for the matching log file. There is code there already to
+support this but it's not finished. The basic idea is each log file
+can contain processing directives and comments (that support is
+already there). A processing directive would specify which plugin(s)
+should fire.
+
+test_setroubleshootd is capable of running the setroubleshootd daemon
+as a child process. The setroubleshootd daemon has a special
+configuration option which prints the plugin which fired during
+analysis (all this support is already there).
+
+The envisioned scenario is test_setroubleshootd runs the daemon as a
+child, it sends it log files, as it reads the log file it sees a
+processing directive specifying which plugin should be triggered, the
+daemon prints out the plugin after analysis, the test program compares
+the two to assure they match.
+
+Most of this code is there, it just needs to be "connected together"
+and given a little love. In the mean time the interactive test mode
+works well.
+
+Other Tools:
+------------
+
+The program audisp_listen will listen on an audispd socket and dump to
+stdout whatever appears on the socket. This can be useful to monitor
+or debug what the real time audit system is generating.
