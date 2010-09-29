@@ -386,44 +386,47 @@ class SEFaultSignatureInfo(XmlSerialize):
 
     def update_derived_template_substitutions(self):
         self.template_substitutions = {} 
-        self.template_substitutions["SOURCE_TYPE"] = escape_html(self.scontext.type)
-        self.template_substitutions["TARGET_TYPE"] = escape_html(self.tcontext.type)
-        self.template_substitutions["SOURCE"]      = escape_html(self.source)
-        self.template_substitutions["SOURCE_PATH"] = escape_html(self.spath)
+        self.template_substitutions["SOURCE_TYPE"] = self.scontext.type
+        self.template_substitutions["TARGET_TYPE"] = self.tcontext.type
+        self.template_substitutions["SOURCE"]      = self.source
+        self.template_substitutions["SOURCE_PATH"] = self.spath
+        self.template_substitutions["SOURCE_BASE_PATH"] = os.path.basename(self.spath)
         if self.spath:
-            self.template_substitutions["FIX_SOURCE_PATH"] = re.sub(" ",".",escape_html(self.spath))
-        self.template_substitutions["TARGET_PATH"] = escape_html(self.tpath)
+            self.template_substitutions["FIX_SOURCE_PATH"] = re.sub(" ",".",self.spath)
+        self.template_substitutions["TARGET_PATH"] = self.tpath
+        self.template_substitutions["TARGET_BASE_PATH"] = os.path.basename(self.tpath)
         if self.tpath:
-            self.template_substitutions["FIX_TARGET_PATH"] = re.sub(" ",".",escape_html(self.tpath))
+            self.template_substitutions["FIX_TARGET_PATH"] = re.sub(" ",".",self.tpath)
 
         if self.tpath is None:
             self.template_substitutions["TARGET_DIR"] = None
         else:
             if self.tclass == 'dir':
-                self.template_substitutions["TARGET_DIR"] = escape_html(self.tpath)
+                self.template_substitutions["TARGET_DIR"] = self.tpath
             elif self.tclass == 'file':
-                self.template_substitutions["TARGET_DIR"] = escape_html(os.path.dirname(self.tpath))
+                self.template_substitutions["TARGET_DIR"] = os.path.dirname(self.tpath)
             else:
                 self.template_substitutions["TARGET_DIR"] = None
 
         if self.tclass == "dir":
             self.template_substitutions["TARGET_CLASS"] = "directory"
         else:
-            self.template_substitutions["TARGET_CLASS"] = escape_html(self.tclass)
+            self.template_substitutions["TARGET_CLASS"] = self.tclass
 
         if self.sig.access is None:
             self.template_substitutions["ACCESS"] = None
         else:
-            self.template_substitutions["ACCESS"] = escape_html(' '.join(self.sig.access))
+            self.template_substitutions["ACCESS"] = ' '.join(self.sig.access)
 
         if len(self.src_rpm_list) > 0:
-            self.template_substitutions["SOURCE_PACKAGE"] = escape_html(self.src_rpm_list[0])
-        self.template_substitutions["PORT_NUMBER"] = escape_html(self.port)
+            self.template_substitutions["SOURCE_PACKAGE"] = self.src_rpm_list[0]
+        self.template_substitutions["PORT_NUMBER"] = self.port
 
         # validate, replace any None values with friendly string
         for key, value in self.template_substitutions.items():
             if value is None:
-                self.template_substitutions[key] = escape_html(default_text(value))
+                self.template_substitutions[key] = default_text(value)
+
     def priority_sort(self, x, y):
         return cmp(y[0].priority,x[0].priority)
 

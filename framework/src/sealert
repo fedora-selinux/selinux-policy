@@ -136,7 +136,7 @@ def ask_dbus_to_quit_app():
         log_dbus.error('could not start dbus: %s', str(e))
         return False
 
-def fix_lookup_id(local_id):
+def fix_lookup_id(local_id, analysis_id):
     def lookup_local_id():
         if debug:
             log_rpc.debug("calling server to lookup id (%s)", local_id)
@@ -147,18 +147,24 @@ def fix_lookup_id(local_id):
     def query_alerts_callback(sigs):
         import commands
         for siginfo in sigs.signature_list:
-            if siginfo.fixable == "False":
-                print _("Not fixable.")
-                cl.main_loop.quit()
-                return
-            command =  siginfo.solution.fix_cmd
-            rc, output = commands.getstatusoutput(command)
-            if rc == 0:
-                print _("Successfully ran %s" % command)
-            else:
-                print output
+            for plugin  in siginfo.plugin_list:
+                if analysis_id == plugin.analysis_id:
+                    p = load_plugins(analysis_id)[0]
+                    if p.fixable == False:
+                        print _("Not fixable.")
+                        cl.main_loop.quit()
+                        return
+                    siginfo.update_derived_template_substitutions()
+                    command = siginfo.substitute(p.get_fix_cmd(siginfo.audit_event, plugin.args))
+                    rc, output = commands.getstatusoutput(command)
+                    if rc == 0:
+                        print _("Successfully ran %s" % command)
+                    else:
+                        print output
+                    cl.main_loop.quit()
+                    return
+        print _("Plugin %s not valid for %s id") % (analysis_id, local_id)
         cl.main_loop.quit()
-
 
     def query_alerts_error(method, errno, strerror):
         print >> sys.stderr, "%s error (%d): %s" % (method, errno, strerror)
@@ -300,137 +306,6 @@ class DBusSessionService(dbus.service.Object):
         if debug:
             log_dbus.debug('quit_app() called')
         self.presentation_manager.quit_app()
-
-#------------------------------------------------------------------------------
-class StatusIcon(gobject.GObject):
-    __gsignals__ = {
-        'show_browser':
-        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        }
-
-    def __init__(self):
-        gobject.GObject.__init__(self)
-
-        self.status_icon = gtk.StatusIcon()
-        icon_name = get_config('general','icon_name')
-        self.status_icon.set_from_icon_name(icon_name)
-        self.status_icon.set_visible(False)
-        self.status_icon.set_blinking(False)
-        self.status_icon.set_tooltip(default_status_icon_tooltip)
-        self.status_icon.connect("activate", self.browser_activate)
-
-        pynotify.init("setroubleshoot")
-
-        self.notify = pynotify.Notification(_("SELinux"),
-                                            _("AVC denial, click icon to view"))
-        self.notify.set_timeout(5000)
-        icon_name = get_config('general','icon_name')
-        self.notify.set_property('icon_name', icon_name)
-        self.notify.connect('closed', self.on_notification_close)
-        self.notify_visible = False
-
-    def calculate_notify_position(self, notify):
-        self.get_icon_geometry()
-        if self.orientation == gtk.ORIENTATION_HORIZONTAL:
-            if self.icon_rect.y < self.screen_height / 2:
-                # Panel Top Edge
-                notify_x = self.icon_rect.x + self.icon_size/2
-                notify_y = self.icon_rect.y + self.icon_size/2
-            else:
-                # Panel Bottom Edge
-                notify_x = self.icon_rect.x + self.icon_size/2
-                notify_y = self.icon_rect.y - self.icon_size/2
-        elif self.orientation == gtk.ORIENTATION_VERTICAL:
-            if self.icon_rect.x < self.screen_width / 2:
-                # Panel Left Edge
-                notify_x = self.icon_rect.x + self.icon_size/2
-                notify_y = self.icon_rect.y + self.icon_size/2
-            else:
-                # Panel Right Edge
-                notify_x = self.icon_rect.x - self.icon_size/2
-                notify_y = self.icon_rect.y + self.icon_size/2
-        else:
-            raise ValueError("unknown orientation = %d" % self.orientation)
-
-        notify.set_hint("x", notify_x)
-        notify.set_hint("y", notify_y)
-
-    def get_icon_geometry(self):
-        (self.screen, self.icon_rect, self.orientation) = \
-                      self.status_icon.get_geometry()
-        self.icon_size = self.status_icon.get_size()
-        self.screen_width = self.screen.get_width()
-        self.screen_height = self.screen.get_height()
-
-        #print "rect=(%dx%d)(%d,%d) size=%d embedded=%s %s screen=(%dx%d)"  % \
-        #      (self.icon_rect.width, self.icon_rect.height,
-        #       self.icon_rect.x, self.icon_rect.y, self.icon_size,
-        #       self.status_icon.is_embedded(),
-        #       orientation_str[self.orientation],
-        #       self.screen_width, self.screen_height)
-
-    def display_notification(self):
-        if debug:
-            log_alert.debug("display_notification")
-        # If we want to update the text, this is how
-        #self.notify.set_property('body' ,_("AVC denial, click icon to view"))
-        self.calculate_notify_position(self.notify)
-        self.notify_visible = True
-        self.notify.show()
-        return False
-
-    def on_notification_close(self, *notification):
-        if debug:
-            log_alert.debug("notification closed")
-        self.notify_visible = False
-
-    def display_new_alert_is_pending(self, browser):
-        use_notification = get_config('alert','use_notification')
-        if debug:
-            log_alert.debug("display_new_alert_is_pending() use_notification=%s", use_notification)
-
-        # Don't dispaly ballon notification if status icon already visible
-        # if self.status_icon.get_visible(): return 
-
-        self.status_icon.set_visible(True)
-
-        # HACK WARNING: The information returned from the status icon's
-        # get_geometry() call is only valid at certain moments in
-        # time, e.g. while it's displayed on the screen. When we set
-        # its visibility to True that only queues a request for it to
-        # be made visible, calling get_geometry after setting its
-        # visibility to true is too soon for the position information
-        # to be valid. Unforunately there is no signal emitted when
-        # the position information is valid or changes. The most
-        # reliable thing we can do for the time being is queue a
-        # callback for a short duration in the future to display the
-        # notification and hope the icon is visible and its display
-        # informaiton is valid at the moment :-(
-
-        if use_notification == 'never':
-            display_notification = False
-        elif use_notification == 'always':
-            display_notification = True
-        elif use_notification == 'browser_hidden':
-            if not browser or browser.visibility_state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
-                display_notification = True
-            else:
-                display_notification = False
-        else:
-            log_cfg.error("unknown value for use_notification (%s)", use_notification)
-            display_notification = True
-
-        if display_notification:
-            if not self.notify_visible:
-                gobject.timeout_add(200, self.display_notification)
-            
-    def browser_activate(self, status_icon, data = None):
-        self.status_icon.set_visible(False)
-        if self.notify_visible:
-		self.notify.close()
-        self.emit('show_browser', 'audit')
-
-gobject.type_register(StatusIcon)
 
 #-----------------------------------------------------------------------------
 
@@ -602,7 +477,6 @@ class SEAlert(object):
     hub for processing the alerts.
     """
     def __init__(self, username, presentation_manager = None, watch_setroubleshootd = False):
-        self.handle_icon = False
         try:
             self.username = username
 
@@ -639,12 +513,7 @@ class SEAlert(object):
             # If there is no presentation mananger make sure when the
             # user closes the window the whole application exits. When running
             # in "alert" mode we want the application to persist in the background
-            if self.handle_icon:
-                self.status_icon = StatusIcon()
-                self.status_icon.connect('show_browser', self.on_show_browser)
-                self.browser.window_delete_hides = True
-            else:
-                self.browser.window_delete_hides = False
+            self.browser.window_delete_hides = False
 
         except ProgramError, e:
             log_program.error(e.strerror)
@@ -670,17 +539,6 @@ class SEAlert(object):
     def alert(self, alert_client, siginfo):
         if debug:
             log_alert.debug("evaluating alert")
-        def alert_filter_result(result):
-            from setroubleshoot.html_util import html_to_text
-            if self.handle_icon and result == 'display':
-                if self.alert_siginfo is not None:
-                    summary = html_to_text(self.alert_siginfo.solution.summary)
-                    if summary:
-                        self.status_icon.status_icon.set_tooltip(summary)
-                    else:
-                        self.status_icon.status_icon.set_tooltip(default_status_icon_tooltip)
-
-                self.status_icon.display_new_alert_is_pending(self.browser)
 
         self.alert_siginfo = siginfo
         async_rpc = self.browser.server.evaluate_alert_filter(siginfo.sig, self.username)
@@ -873,7 +731,7 @@ if __name__ == '__main__':
     try:
         import getopt
 
-        valid_opts = ['-b', '-h', '-q', '-s', '-S', '-l', '-a', '-v', '-V', '-u', '-p', '-f', '--help', '--browser','--quit','--service','--noservice','--lookupid', '--analyze','--verbose','--debug','--user','--password','--fix']
+        valid_opts = ['-b', '-h', '-q', '-s', '-S', '-l', '-a', '-v', '-V', '-u', '-p', '-P', '-f', '--help', '--browser','--quit','--service','--noservice','--lookupid', '--analyze','--verbose','--debug','--user','--password','--plugin', '--fix']
         last = False
         if sys.argv.count('-a') > 0:
             if valid_opts.count(sys.argv[-1]) == 0:
@@ -884,9 +742,9 @@ if __name__ == '__main__':
             sys_args = sys.argv[1:-1]
 
         try:
-            opts, args = getopt.getopt(sys_args, 'bhqsSl:avVu:p:f:',
+            opts, args = getopt.getopt(sys_args, 'bhqsSl:avVu:p:f:P:',
                          ['help', 'browser','quit','service','noservice','lookupid=',
-                          'analyze = ','verbose','debug','user=','password=','fix='])
+                          'analyze = ','verbose','debug','user=','password=','plugin=','fix='])
         except getopt.GetoptError:
             # print help information and exit:
             usage()
@@ -894,6 +752,7 @@ if __name__ == '__main__':
 
         username = None
         password = None
+        plugin_name = None
 
         for o, a in opts:
             if o in ('-h', '--help'):
@@ -940,6 +799,9 @@ if __name__ == '__main__':
             if o in ('-f', '--fix'):
                 validate_invocation_style('fix')
                 local_id = a
+
+            if o in ('-P', '--plugin'):
+                plugin_name = a
 
         if username is None:
             username = get_identity()
@@ -1018,11 +880,17 @@ if __name__ == '__main__':
             sys.exit()
         elif invocation_style == 'fix':
             try:
+                if plugin_name == None:
+                    print >> sys.stderr, "-P plugin_name required for fix"
+                    print 2
+                    sys.exit(3)
+
                 bus = dbus.SystemBus()
                 proxy_obj = bus.get_object(dbus_system_bus_name, dbus_system_object_path)
                 iface = dbus.Interface(proxy_obj, dbus_system_interface)
                 iface.start()
-                fix_lookup_id(local_id)
+
+                fix_lookup_id(local_id, plugin_name)
                 iface.finish()
             except dbus.DBusException, e:
                 print >> sys.stderr, "could not attach to desktop process"

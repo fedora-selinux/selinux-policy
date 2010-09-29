@@ -664,8 +664,11 @@ class AVC:
 
     def open_with_write(self):
         if self.has_any_access_in(['open']):
-            if self.a1 and (int(self.a1) & O_ACCMODE) != os.O_RDONLY:
-                return True
+            try:
+                if self.a1 and (int(self.a1) & O_ACCMODE) != os.O_RDONLY:
+                    return True
+            except:
+                pass
         return False
 
 

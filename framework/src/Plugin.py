@@ -76,7 +76,7 @@ o
         """
     summary = ""
     problem_description = ""
-    if_text = _('you want to allow $SOURCE_PATH to have $ACCESS access on the $TARGET_PATH $TARGET_CLASS')
+    if_text = _('you want to allow $SOURCE_BASE_PATH to have $ACCESS access on the $TARGET_BASE_PATH $TARGET_CLASS')
     then_text = "No default"
     do_text = "No default"
         
@@ -84,9 +84,9 @@ o
         self.analysis_id = re.sub(r'^plugins\.', '', name)
         self.priority = 10
         self.level = "yellow"
-        self.fixable=False
-        self.button_text=""
-        self.report_bug=False
+        self.fixable = False
+        self.button_text = ""
+        self.report_bug = False
         
     def get_if_text(self, avc, args):
         return self.if_text

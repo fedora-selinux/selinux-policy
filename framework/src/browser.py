@@ -419,7 +419,12 @@ class BrowserApplet:
         self.table.attach(do_frame, 4, 5, rows, rows + 1, yoptions=0)
 
         if plugin.fixable:
-            print "Fixable"
+            self.table.resize(rows + 1, cols + 1)
+            report_button = gtk.Button()
+            report_button.set_label(plugin.button_text)
+            report_button.show()
+            report_button.connect("clicked", self.fix_bug, sig, plugin)
+            self.table.attach(report_button, 5, 6, rows, rows + 1,xoptions=0, yoptions=0)
 
         if plugin.report_bug:
             self.table.resize(rows + 1, cols + 1)
@@ -428,10 +433,20 @@ class BrowserApplet:
             report_button.show()
             report_button.connect("clicked", self.report_bug, sig)
             self.table.attach(report_button, 5, 6, rows, rows + 1,xoptions=0, yoptions=0)
-            print "Report_bug"
 
     def quit(self, widget):
         gtk.main_quit() 
+
+    def fix_bug(self, widget, sig, plugin):
+        # Grant access here
+        # Stop showing the current alert that we've just granted access to
+        try:
+            dbus_proxy = DBusProxy()
+            resp = dbus_proxy.run_fix(sig, plugin.analsys_id)
+            MessageDialog(resp)
+        except dbus.DBusException, e:
+            print e
+            FailDialog(_("Unable to grant access."))
 
     def report_bug(self, widget, sig):
         # If we don't have a bug_report_window yet, make a new one
@@ -508,19 +523,6 @@ class BrowserApplet:
             self.alert_list.sort(compare_alert)
                
 
-    def grant_button_clicked(self, widget):
-        # Grant access here
-        # Stop showing the current alert that we've just granted access to
-        try:
-            dbus_proxy = DBusProxy()
-            resp = dbus_proxy.run_fix(self.alert_list[self.current_alert].local_id)
-            MessageDialog(resp)
-        except dbus.DBusException, e:
-            print e
-            FailDialog(_("Unable to grant access."))
-
-#        self.delete_current_alert()
-
     def delete_current_alert(self):
         del self.alert_list[self.current_alert]
         self.update_button_visibility()
@@ -551,11 +553,6 @@ class BrowserApplet:
         else:
             tclass = sig.tclass
         self.class_label.set_label(_("On the %s:") % tclass)
-        if len(sig.sig.access) == 1:
-            self.access_title_label.set_label(_("Attempted this access:"))
-        else:
-            self.access_title_label.set_label(_("Attempted these accesses:"))
-            
         self.access_label.set_label(",".join(sig.sig.access))
 
         total_priority, plugins = sig.get_plugins()
@@ -639,6 +636,16 @@ class BrowserApplet:
 
     def hide(self):
         self.main_window.hide()
+
+class DBusProxy (object):
+    def __init__ (self):
+        self.bus = dbus.SystemBus ()
+        self.dbus_object = self.bus.get_object ("org.fedoraproject.SetroubleshootFixit", "/org/fedoraproject/SetroubleshootFixit/object")
+
+    @polkit.enable_proxy
+    def run_fix (self, local_id, plugin_name):
+        return self.dbus_object.run_fix (local_id, plugin_name, dbus_interface = "org.fedoraproject.SetroubleshootFixit")
+
 # BugReport is the window that pops up when you press the Report Bug button
 class BugReport:
     def __init__(self, parent, siginfo):
@@ -710,3 +717,26 @@ class BugReport:
 
     def widget(self, name):
         return self.widget_tree.get_widget(name)
+
+class FailDialog():
+    def __init__(self, message):
+        dlg = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR,
+                                gtk.BUTTONS_OK,
+                                message)
+        dlg.set_title(_("Sealert Error"))
+        dlg.set_position(gtk.WIN_POS_MOUSE)
+        dlg.show_all()
+        rc = dlg.run()
+        dlg.destroy()
+
+class MessageDialog():
+    def __init__(self, message):
+        dlg = gtk.MessageDialog(None, 0, gtk.MESSAGE_INFO,
+                                gtk.BUTTONS_OK,
+                                message)
+        dlg.set_title(_("Sealert Message"))
+        dlg.set_position(gtk.WIN_POS_MOUSE)
+        dlg.show_all()
+        rc = dlg.run()
+        dlg.destroy()
+
