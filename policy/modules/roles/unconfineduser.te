@@ -8,10 +8,24 @@ attribute unconfined_login_domain;
 
 ## <desc>
 ## <p>
-## Transition to confined nsplugin domains from unconfined user
+## Transition unconfined user to the nsplugin domains when running nspluginviewer
 ## </p>
 ## </desc>
 gen_tunable(allow_unconfined_nsplugin_transition, false)
+
+## <desc>
+## <p>
+## Transition unconfined user to the mozilla plugin domain when running xulrunner plugin-container.
+## </p>
+## </desc>
+gen_tunable(unconfined_mozilla_plugin_transition, false)
+
+## <desc>
+## <p>
+## Transition unconfined user to telepathy confined domains.
+## </p>
+## </desc>
+gen_tunable(unconfined_telepathy_transition, false)
 
 ## <desc>
 ## <p>
@@ -157,10 +171,6 @@ optional_policy(`
 
 	optional_policy(`
 		hal_dbus_chat(unconfined_usertype)
-	')
-
-	optional_policy(`
-		iptables_run(unconfined_usertype, unconfined_r)
 	')
 
 	optional_policy(`
@@ -329,8 +339,11 @@ optional_policy(`
 	role system_r types unconfined_mono_t;
 ')
 
+
 optional_policy(`
-	mozilla_run_plugin(unconfined_usertype, unconfined_r)
+	tunable_policy(`unconfined_mozilla_plugin_transition', `
+			mozilla_run_plugin(unconfined_usertype, unconfined_r)
+	')
 ')
 
 optional_policy(`
@@ -391,7 +404,9 @@ optional_policy(`
 ')
 
 optional_policy(`
-	telepathy_dbus_session_role(unconfined_r, unconfined_t)
+	tunable_policy(`unconfined_telepathy_transition', `
+		   telepathy_dbus_session_role(unconfined_r, unconfined_t)
+	')
 ')
 
 optional_policy(`
@@ -475,4 +490,3 @@ domain_ptrace_all_domains(unconfined_notrans_t)
 #
 
 gen_user(unconfined_u, user, unconfined_r system_r, s0, s0 - mls_systemhigh, mcs_allcats)
-
