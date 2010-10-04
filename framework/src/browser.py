@@ -219,7 +219,7 @@ class BrowserApplet:
     def show_date(self, alert):
         from setroubleshoot.util import TimeStamp
         # Format the data that we get and display it in the appropriate places
-        date_format = "%a %b %e, %Y %r %Z"
+        date_format = "%a %b %e, %Y %R %Z"
         alert_date = alert.last_seen_date
         start_date = alert.first_seen_date
         self.date_label.set_label(alert_date.format(date_format))

@@ -460,12 +460,16 @@ class SEFaultSignatureInfo(XmlSerialize):
         env = self.environment
         self.update_derived_template_substitutions()
 
-        text = self.summary() + "\n"
+        text = self.summary()
 
         total_priority, plugins = self.get_plugins(all)
 
         for p, args in plugins:
-            text += _("\nPlugin %s (%d%% confidence) suggests: \n") % (p.analysis_id, ((float(p.priority) / float(total_priority)) * 100 + .5))
+            title = _("\n\n*****  Plugin %s (%.4s confidence) suggests  ") % (p.analysis_id, ((float(p.priority) / float(total_priority)) * 100 + .5))
+            text +=  title
+            for i in range(len(title),80):
+                text +=  "*"
+            text +=  "\n"
             txt = self.substitute(p.get_if_text(self.audit_event.records, args))
             text +=  _("\nIf ") + txt[0].lower() + txt[1:]
             txt = self.substitute(p.get_then_text(self.audit_event.records, args))
@@ -473,7 +477,6 @@ class SEFaultSignatureInfo(XmlSerialize):
 
             txt = self.substitute(p.get_do_text(self.audit_event.records, args))
             text +=  _("\nDo\n") + txt[0].lower() + txt[1:]
-
         text += '\n\n' + _("Additional Information") + ':\n'
 
         text += format_2_column_name_value(_("Source Context"),        self.scontext.format())

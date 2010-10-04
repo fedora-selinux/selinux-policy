@@ -338,7 +338,10 @@ class AuditRecord(XmlSerialize):
                     value = '"%s"' % self.translate_path(value)
 
                 if key == "exit":
-                    value = errno.errorcode[abs(int(value))]
+                    try:
+                        value = errno.errorcode[abs(int(value))]
+                    except:
+                        pass
 
                 if key == "syscall":
                     value = audit.audit_syscall_to_name(int(value),audit.audit_detect_machine())
@@ -737,7 +740,7 @@ class AVC:
         # First try to get the path from the AVC record, new kernel
         # versions put it there rather than in AVC_PATH
 
-        path = self.avc_record.get_field('path')
+        path = self.avc_record.get_field('path').strip('"')
         inodestr = self.avc_record.get_field("ino")
 
         if path is None:
@@ -850,7 +853,12 @@ class AVC:
             self.tpath = path
 
         if self.tpath is None:
-            self.tpath = _("port %s") % self.port
+            if self.tclass == "filesystem":
+                self.tpath = ""
+            elif self.tclass == "udp_socket" or self.tclass == "tcp_socket":
+                self.tpath = _("port %s") % self.port
+            else:
+                self.tpath = _("Unknown")
             
     def derive_avc_info_from_audit_event(self):
         self.tpath = None

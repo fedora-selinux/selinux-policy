@@ -37,7 +37,7 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #include "sedbus.h"
 
-#ifdef USE_NLS
+#ifdef ENABLE_NLS
 #include <locale.h>		/* for setlocale() */
 #include <libintl.h>		/* for gettext() */
 #define _(msgid) gettext (msgid)
@@ -375,6 +375,12 @@ static int read_config(char *pos[])
 
 int main(int argc, char *argv[])
 {
+	#ifdef ENABLE_NLS
+	bindtextdomain(PACKAGE, LOCALEDIR);
+	bind_textdomain_codeset(PACKAGE, "UTF-8");
+	textdomain(PACKAGE);
+	#endif
+
 	sealert alert;
 
 	char *local_id=NULL;
@@ -423,7 +429,7 @@ int main(int argc, char *argv[])
 
 
 	//set tooltip
-	gtk_status_icon_set_tooltip (alert.trayIcon, "SELinux AVC denial, click to view");
+	gtk_status_icon_set_tooltip (alert.trayIcon, _("SELinux AVC denial, click to view"));
 	g_signal_connect(alert.trayIcon, "activate", GTK_SIGNAL_FUNC (trayIconActivated), &alert);
 	gtk_status_icon_set_visible(alert.trayIcon, FALSE); //set icon initially invisible
 	alert.need_bubble = FALSE;

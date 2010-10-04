@@ -51,6 +51,8 @@ INCLUDES =  $(SEAPPLET_CFLAGS)
 
 LIBS =   $(SEAPPLET_LIBS)  -lauparse -lselinux
 
+DEFS = @DEFS@ -DLOCALEDIR=\"$(localedir)\"
+
 sbin_SCRIPTS =				\
 	setroubleshootd			\
 	$(NULL)
