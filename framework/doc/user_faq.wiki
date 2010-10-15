@@ -1,0 +1,668 @@
+= Setroubleshoot User FAQ =
+
+----
+[[PageOutline(2-6,,inline)]]
+----
+== What is the basic structure of the alert browser? == #alert-browser
+
+The alert browser is allows you to view and operate on alerts stored
+in an alert database. The browser is modeled after an email client
+where each alert corresponds to an email message.
+
+The browser window is composed of 3 components:
+
+* Alert List
+
+* Alert Detail 
+
+* [#sealert-statusbar Status Bar]
+
+[[Image(source:doc/setroubleshoot_browser_structure.png)]]
+
+The alert list shows you a list of all the alerts and is divided into
+columns:
+
+Filter::
+
+    Toggle a flag to prevent being notified when this alert repeats.
+
+Date::
+
+    The date and time of the most recent occurrence of this
+    [#denial-event denial event]
+
+Count::
+
+    How many times has this [#denial-event denial event] been
+    triggered since it was first reported.
+
+Category::
+
+    The category (class) this [#denial-event denial event] belongs
+    to (e.g.: "Web Server", "FTP", "File System", "Cron", etc.)
+
+Summary::
+
+    A brief description of the [#denial-event denial event]
+
+All the columns in the alert list can be [#sealert-column-sort sorted].
+
+== How am I alerted when an AVC denial occurs? == #alert-notification
+
+* You can receive alerts on your desktop
+
+* You can receive alerts as [#email-alerts email messages]
+
+If you are in a desktop session and sealert is running (the default)
+you will be notified when the setroubleshoot daemon sends a message to
+sealert. sealert first checks if the alert is being [#alert-filtering
+filtered], if so sealert remains passively quiet in the background. If
+the alert is not filtered then sealert puts the setroubleshoot icon
+[[Image(source:gui/setroubleshoot_icon.png, 24, align=middle, nolink)]]
+up in the status area. It then briefly displays a
+notification balloon indicating an AVC denial has occurred and directs
+the user to click on the setroubleshoot icon to view it. The
+notification will time out after a few seconds so it it not
+obstructively annoying.
+
+Note: The status icon is only displayed if sealert is running when the
+alert arrives, past unviewed alerts from previous sessions do not
+cause the status icon to be displayed, instead you can
+[#display-browser display the browser] to view them. This is an example of
+what a notification looks like:
+
+[[Image(source:doc/setroubleshoot_notification.png)]]
+
+You may also have setroubleshoot send you an [#email-alerts email alert].
+
+== Can setroubleshoot send me an email when an alert fires? == #email-alerts
+
+Besides desktop notifications setroubleshoot can also send you an
+alert as an email message. This might be preferable when there is [#no-desktop
+no desktop], when you want to archive alerts, automatically
+post-process alerts, or monitor remote systems.
+
+There are two ways to configure email alerts:
+
+1. Use the alert browser GUI
+
+2. Manually edit the mailing list
+
+The easiest way to configure email alert is to [#display-browser
+display the browser] and then from the File menu select "Edit Email
+Alert List ...". A dialog will pop up:
+
+[[Image(source:doc/setroubleshoot_email_preferences.png)]]
+
+With the dialog you can:
+
+ * add an address by entering it in the input box and clicking add
+
+ * delete one or more addresses by selecting them in the list and
+   clicking delete or hitting the delete button.
+
+ * edit an address already in the list by clicking on it and typing.
+
+ * modify the filtering for an address by clicking on the filter and
+selecting one of the options from the drop down list.
+
+The filter option for email alerts apply to all alerts, unlike in the
+alert browser you cannot have a different filter for each alert. Here
+are the filtering options for email alerts:
+
+Ignore After First Alert::
+  This is the default. The address will receive an alert only the
+  first time it fires. Email alerts will be filtered for the alert
+  in question for all subsequent firings of the alert.
+
+Never Ignore::
+  An email alert will be sent for every instance of every alert to
+  this address.
+
+Ignore Always::
+  Email alerts will never be sent for this address. One can use this
+  to temporarily disable alerts to an address.
+
+But I don't have a desktop session on the node I want to receive email
+alerts for? For instance how can I monitor a server?
+
+You can directly edit the file
+/var/lib/setroubleshoot/email_alert_recipients. This is the file the
+above GUI is modifying. The format of the file is line based, the hash
+(#) character is the comment character, the comment extends to the end
+of the line, blank lines are ignored.
+
+Addresses are one per line, optionally following the address
+(seperated by whitespace) are options in the form
+name=value. Currently there is only one option:
+
+filter_type::
+  after_first
+  never
+  always
+
+Here is an example:
+{{{
+jdennis@redhat.com                       filter_type=after_first
+}}}
+
+== What information is displayed in the status bar? == #sealert-statusbar
+
+At the bottom of the sealert browser window is a status bar. The
+status bar is divided into 4 areas:
+
+connection status::
+
+    This displays the status of the connection to the setroubleshootd
+    daemon. If you are not currently connected sealert will
+    periodically attempt to reconnect displaying messages to that
+    effect in the message area.
+
+visit database::
+
+    This is the alert database the browser is currently visiting
+    (e.g. viewing). The default is the 'Audit Listener', which is the
+    database of alerts received from the audit subsystem and managed
+    by the setroubleshootd daemon. If you scan a log file the browser
+    will switch to visiting the database created from the log file
+    scan. You can switch which database is being viewed via the View
+    menu.
+
+message area:
+
+    This is where temporary messages of minor importance are
+    displayed.
+
+progress bar::
+
+    During time consuming operations such as reading in new data or
+    scanning log files the progress bar will either indicate an
+    estimated percentage of completion or if an estimate is not
+    possible that an operation is underway.
+
+[[Image(source:/doc/setroubleshoot_statusbar.png)]]
+
+== How do I export alert information (clipboard, file, print)? ==
+
+You can export selected alerts by:
+
+* copying the alert to the clipboard (Edit|Copy Alert)
+
+* writing the alert to a file (File|Save As...)
+
+* printing the alert (File|Print...)
+
+=== Copying to the clipboard does not work as I expect ===
+
+There are two ways to copy to the clipboard:
+
+Copy::
+
+    This copies the selected items in the alert view to the
+    clipboard. The alert view is rendered as HTML (e.g. a web
+    page). The HTML renderer is asked to perform the copy
+    operation. The current HTML renderer is not very smart about
+    translating table and other HTML elements into text on the
+    clipboard. You get what the HTML renderer is capable of
+    producing. Future releases of setroubleshoot may upgrade to a more
+    capable HTML renderer.
+
+Copy Alert::
+
+    The copies the entire alert as TEXT and places it on the
+    clipboard. The text is formatted to resemble the HTML
+    version. When sharing an alert with someone else or pasting it
+    into another application "Copy Alert" will probably provide the
+    best text because it preserves formatting such as line
+    breaks. Although because it includes everything you may have to
+    delete some text you consider superfluous.
+
+
+== How can I sort the alert list? == #sealert-column-sort
+
+Each column heading in the alert list is sortable. Just click on the
+column heading to change the sort order.
+
+== What date is associated with an alert? ==
+
+Alerts store two seperate dates in their description. The date/time
+the alert was first seen and the date/time the alert was last seen
+(most recent occurance). The date/time column in the browser shows
+date/time of the most recent occurance (last seen). The alert detail
+view shows both date/time's.
+
+== I think SELinux is the cause of a problem, how can setroubleshoot help find it? ==
+
+In this instance you probably know or suspect the problem occurred at
+a certain time or in a certain component.
+
+If you think the problem is related to a certain component, for
+instance your web server, then [#display-browser display the browser]
+and [#sealert-column-sort sort] the Category column. This will group
+alerts by Category, look for any alerts in the "Web Server" category.
+
+If you think the problem occurred in at a certain time then
+[#sealert-column-sort sort] the Date column. Find the alerts which
+occurred within the time period the problem manifested itself.
+
+== I've got a log file with AVC messages in it, can setroubleshoot analyze it for me? ==
+
+Yes. By default setroubleshoot listens for AVC messages arriving from the
+audit subsystem and then feeds those AVC messages into its analysis
+engine. However setroubleshoot can also open a log file containing AVC
+messages, parse those AVC messages and feed them into its analysis
+engine just as if they had arrived from the audit subsystem. To
+analyze a log file go to the File menu and select "Scan
+logfile...". This will open a file chooser dialog which will allow you
+to pick a file to analyze.
+
+The file is opened by the sealert process which runs with your
+permissions, not root permissions. Therefore any file you wish to
+analyze must be readable by you. Some system log file are not world
+readable. If this is the case then your best option is to copy the
+file as root to a temporary location and make it readable.
+
+As the analysis engine runs on the log file it builds an alert
+database (e.g. post processed). The most significant effect is to
+collapse recurring problems into single alerts with a repeat count
+(see [#alert-description alert description]).
+
+The browser will switch to viewing (visiting) the alert database
+created by scanning the log file. The fact the browser is now viewing
+a different set of alerts is reported in the [#sealert-statusbar
+status bar]. You may switch which set of alerts you're viewing with
+the [#sealert-visit View menu].
+
+The alerts generated from log file scanning do not contain any
+environmental information (e.g. version information etc.), see
+[#alert-environment-info alert environment] for an explanation of why.
+
+=== How can I correlate alerts with the log file line numbers ? ===
+
+Each alert in the detail section will display the line numbers which
+contributed to the alert. Recall that [#alert-description alerts] are
+single descriptions of a denial which may have occurred multiple times
+in the log file, the line numbers will show you all the places in the
+log file where this same issue was identified. In addition
+[#denial-event denial events] are composed from multiple [#avc-message
+AVC messages] which may or may not be contiguous in the log file
+(typically denial events have their independent AVC messages in close
+proximity, thus any given denial event tends to be "clustered"). The
+line numbers reported are for every AVC message which contributed to a
+denial event and each alert may be composed from multiple denial
+evants (e.g. the report count).
+
+=== The /var/log/messages log file lists an AVC denial, can setroubleshoot give me more information? ===
+
+Sometimes. As a helpful service when setroubleshootd is running and
+catches an AVC denial it will write the AVC message into the system
+log file along with the alert identitifer (e.g. local-id). You can run
+sealert from the command line with the -l (e.g. lookup) option passing
+the ID reported in the log file. sealert will then print the alert
+matching that ID to stdout.
+
+== Alerts are not showing up, what's wrong? ==
+
+I know I'm getting AVC denials but I'm not getting alerts on my
+desktop. What might be going wrong and how can I fix it?
+
+Setroubleshoot is composed of independent parts, a daemon which runs
+as a system service with root privileges (setroubleshootd) and a user
+GUI tool typically run on the desktop (sealert) which communicates
+with the setroubleshootd daemon. Both setroubleshootd and sealert must
+be running to receive alerts on your desktop.
+
+1. Verify the setroubleshootd daemon is running. The connection icon
+in the [#sealert-statusbar status bar] is a quick way to check the
+sealert is connected to the setroubleshootd daemon.
+
+Otherwise to perform a more thorough, setroubleshootd is installed as
+a system service called setroubleshoot (no trailing 'd' in the
+name). Use the 'service' command to check its status like this:
+
+{{{
+% service setroubleshoot status
+}}}
+
+You should get one of two messages:
+
+setroubleshootd is stopped
+
+-OR-
+
+setroubleshootd (pid 12345) is running...
+
+If it's running, this part is good, otherwise start the service:
+
+{{{
+% service setroubleshoot start
+}}}
+
+If you want to make sure the setroubleshoot service is always running,
+even after a reboot you'll want to enable the service with the
+chkconfig command, you would do it like this:
+
+{{{
+chkconfig setroubleshoot on
+}}}
+
+2. Verify the sealert user process is running
+
+{{{
+% ps ax | grep sealert
+}}}
+
+This should show a running sealert process. If it's not running
+[#sealert-start start sealert].
+
+If it is running [#display-browser display the browser] and make sure
+the alert you are expecting is not [#alert-filtering filtered]
+
+Note [#alert-notification alert notification] only occurs when the
+alert arrives, but the alert should be visible in the browser.
+
+If all of these things fail then setroubleshoot may be experiencing
+technical difficulties, check the [#logging logs] for error messages.
+
+== How is sealert started? == #sealert-start
+sealert is configured to start with your login session. It should be
+running after you login. If you've just installed the sealert RPM you
+may need to start the setroubleshoot service (see above) and logout
+and back in again to start sealert. Or you can manually start sealert
+with this command:
+
+% sealert -s
+
+Note: when you start sealart with the -s option you're telling it to
+start as a desktop session service. It runs in the background and does
+not display anything until an alert arrives from the setroubleshoot
+daemon. If you want the browser to appear when you start sealert
+use the -b option instead.
+
+== How do I display the alert browser? == #display-browser
+
+There are 3 ways to display the alert browser:
+
+1. From the menu 'System --> Administration --> SELinux Troubleshooter
+
+2. If the setroubleshoot icon is showing in the status area, you can
+click on it.
+
+3. From the command line, use the command 'sealert -b'
+
+Note: sealert runs continuously in the background as a desktop session
+service. When you use the sealert -b option to display the browser or
+use the System --> Administration menu (which simply runs sealert -b)
+a message is sent to the running copy of sealert asking it to display
+the alert browser, if the sealert service is not running it will be
+started first. The command 'sealert -b' sends the message and exits.
+
+== Does sealert run continuously? ==
+
+When run as a normal desktop tool sealert runs continuously. Even when
+you close the sealert browser window the process continues to run in
+the background. The reason why it does this is because it is quietly
+waiting for a AVC alert from the setroubleshoot service daemon.
+
+Should it recieve a message from the daemon it will put up the status
+icon and notification message and wait for you to click on the icon to
+view the message. However, if you have filtered the AVC (told
+setroubleshoot you don't want to be bothered with a particular alert)
+then sealert will not notify you.
+
+Follow these instructions to [#stop-sealert stop sealert].
+
+== How can I stop sealert? == #stop-sealert
+
+If you want to stop the sealert service do this:
+{{{
+% sealert -q
+}}}
+This sends a message to the running sealert service and asks it to
+quit.
+
+== Some alerts are meaningful to me, others are just an annoyance, can I filter them somehow? == #alert-filtering
+
+Yes. Open the alert browser, find the alert you which to ignore and
+click the 'filter' checkbox associated with the alert. You will no
+longer be notified of these alerts. Later if you wish you can uncheck
+the filter box and you will get alerts again.
+
+Please note, if you permanently [#delete-alert delete an alert]
+setroubleshoot permanently forgets everything about the alert,
+including your desire to filter it. If the alert repeats again after
+you've deleted it previously you'll have to click the filter box
+again.
+
+TIP: You can mark an alert for deletion and then hide all alerts
+marked for deletion. This is one way to continue to filter an alert
+but not have it appear in the alert browser.
+
+
+== Does setroubleshoot have a log I can check? == #logging
+
+Yes. The setroubleshootd daemon and the sealert user tool are seperate
+processes and have seperate logging.
+
+The setroubleshoot daemon logs its operations to
+/var/log/setroubleshoot/setroubleshootd.log.
+
+The sealert user tool does not log by default, but you can get it log
+by editing the [#config-file config file].
+
+By default it only logs warnings and errors. Error messages are also
+written to the standard syslog (/var/log/messages).
+
+You can change the verbosity of the logging messages by editing the
+[#config-file config file].
+
+The config file has two sections in it for logging, one for each process:
+[sealert_log]
+[setroubleshootd_log]
+
+Find the section you wish to modify, there are a number of options,
+most of which are documented in the config file. The 'level' option
+changes the verbosity, setting the level to 'debug' is a good choice
+if your trying to diagnose a problem. The 'filename' option sets the
+file where logging will be directed. If no file is set logging goes to
+the console. By default there is no file set for sealert because its a
+per user log file and by default we don't want to be writing user
+files. The 'console' flag will also send logging messages to the
+console if otherwise they are also being writtin to a log file (if
+there is no log file, messages are directed to the console). There is
+also a 'categories' list which will allow you to select functional
+areas to log. By default all categories are logged.
+
+== Does setroubleshoot have a config file? == #config-file
+
+Yes. /etc/setroubleshoot/setroubleshoot.cfg
+
+The format of the config file is a standard 'ini' divided into
+sections. Each section is labeled inside square brackets, e.g. all the
+email related options are in the section [email].
+
+Most entries in the file are documented directly above the option.
+
+The config file is read when the process (setroubleshootd or sealert)
+is started. If you change the config file you'll have to restart the
+process.
+
+== How do I switch which alerts I'm viewing? == #sealert-visit
+
+Alerts are always collected into an alert database (see
+[#alert-description What is an alert]). There is an alert database for
+collecting alerts from the audit subsystem, an alert database for any
+log files which were scanned, etc. You can use the View menu to select
+which database the browser is visiting (e.g. viewing). The alert
+database currently being visited (viewed) is displayed in the [#sealert-statusbar
+status bar].
+
+== What is an alert? == #alert-description
+
+An alert is a general description of something SELinux prevented. It
+is not a specific instance of a [#denial-event SELinux denial]. This
+is because in almost all cases users are most interested in a
+"problem" such as "the web server can't read home directories" as well
+as how often that "problem" is occurring. An alert is the general
+problem describing a SELinux denial. Alerts may have multiple
+instances, e.g. this problem occurred 15 times.
+
+An alert is the linking of a [#alert-signature general denial] with
+analysis information and any metadata such as [#alert-environment-info
+environmental information], time stamps, occurance counts, etc.
+
+Every time a denial event is recognized it is converted to an
+[#alert-signature alert signature], a general way of describing the
+denial event. Then the [#alert-database alert database] is consulted
+to see if the denial has been seen before, if so its report count is
+incremented, otherwise it's added to the database. Irregardless of
+whether the denial was previously in the alert database or not a full
+analysis is run on the denial event to produce a [#analysis-report
+analysis report]. The most recent analysis report of the denial event
+is stored in the alert database along with how many times it occurred
+and when it last occurred. This means the description of the denial
+event (e.g. the [#analysis-report analysis-report] is based on the
+most recent occurrence of the denial event.
+
+=== What is an AVC message? === #avc-message
+
+The kernel audit subsystem emits a message whenever SELinux denies
+permission (or would have denied permission). These messages describe
+the particulars of what the kernel is doing at the moment and is not a
+complete desciption of the denial (which we term [#denial-event denial
+event]. As the kernel continues to process the system call which
+triggered the AVC additional messages may be emitted independently
+which when combined fully describe the denial event. Thus any one AVC
+message may be an incomplete description of the denial event. Each AVC
+message is tagged with the denial event it is part of and post
+processiong tools such as setroubleshoot can assemble independent AVC
+messages into complete events.
+
+=== What is a Denial Event? === #denial-event
+
+A denial event is exactly one operation SELinux denied. It may be
+reported by the kernel as multiple [#avc-message AVC
+messages]. Specialized software such as setroubleshoot has the ability
+to merge independent AVC messages into single denial events. People
+often use the term AVC when they really mean denial event.
+
+setroubleshoot uses a general method to "label" [#denial-event denial
+events] called an [#alert-signature alert signature].
+
+== What is environment information and why is it sometimes missing? == #alert-environment-info
+
+Environment infomation describes the "context" in which the
+[#denial-event denial event] occurred. It is the information most
+useful for rectifying a problem, filing a bug report etc. It lists
+items such as the version of the SELinux policy, the version of the
+operating system, the RPM package and version the software which
+triggered the denial came from, etc.
+
+However envionmental information can only be reliably gathered at the
+moment the denial occurred. If one queried the system for
+environmental information at a later point in time, for instance
+during log file scanning, then the enviroment may have changed in the
+interim which would then attach incorrect infomation to the alert. The
+same problem occurs if the log file being scanned was generated on
+another system.
+
+Therefore environment information by default is only gathered when
+alerts enter the system via real time audit monitoring (e.g. audit
+listener). This is the only time enviroment information is guaranteed
+to be correct. Alerts generated from log file scans do not display
+environment information.
+
+== What is an alert database? == #alert-database
+
+A general denial (as opposed to a specific instance of the denial) is
+described by its [#alert-signature signature]. Alert databases store
+information about a denial such as its analysis, how many times this
+denial has occurred, when was the first and most recent time it was
+reported, etc. The alert is looked up in the database by its
+signature.
+
+== What is an alert signatures? == #alert-signature
+
+Alert signatures are a means to describe a general denial. For most
+users this can be thought of as an "SELinux problem" such as "the web
+server can't execute CGI scripts". A signature collects the minimal
+information necessary to uniquely descibe a SELinux denial, but no
+more information than is necessary otherwise the signature would begin
+to describe specific instances rather than a general problem. However the
+content of the signature must be unique enough so that denial events
+which are fundamentally unique are not coalesced into a single
+description.
+
+Signatures allow alerts to be "portable" across systems. For example
+if you're managing a collection of nodes the same signature can be
+used to reference the same problem on all the nodes. As a system
+administrator it is quite useful to see nodes X,Y, and Z are all
+showing the same problem, but node W is not. Portable signatures also
+make bug reporting much more useful because one signature can be used
+for every person reporting the same problem.
+
+Alerts are always referenced by their signature. In essence an alert
+is the alert analysis and metadata which is looked up by its signature
+in the alert database.
+
+== What is an analysis report? == #analysis-report
+
+When a [#denial-event denial event] enters the system for analysis
+each analysis plugin is given an opportunity to examine the denial
+event. If the plugin recognizes the denial event it creates an
+analysis report providing as much information as it can about the
+event such as a summmary, a detailed description, how one might fix
+the problem, etc. The analysis report is the bulk of the information
+presented to the user when he or she views an alert. The analysis
+report may optionally be merged with [#alert-environment-info
+environmental information].
+
+== Can I delete alerts? == #delete-alert
+
+Yes. The alert browser is modeled after an email IMAP client which may
+be familiar. Deletion is a two step process. First an alert is marked
+for deletion. This is done by selecting one or more alerts in the
+alert list and choosing the "Mark Delete" option from either the Edit
+menu or the right-click popup menu. At this point the alert is not
+actually deleted, it is just marked as pending for deletion, this is
+indicated by drawing a strike-out line through the alert. One can
+[#hide-deleted-alerts hide] alerts marked for deletion.
+
+To permanently delete the alerts marked for deletion choose the
+"Remove All Marked for Deletion" command from either the Edit menu or
+the right-click popup menu.
+
+== Can I hide alerts marked for deletion? == #hide-deleted-alerts
+
+Yes. Use the View menu and toggle the "Hide Deleted" option. Alerts
+marked for deletion will not be visible in the alert list. They will
+remain in the alert database until the "Remove All Marked for
+Deletion" command is executed. You may toggle the hide option on and
+off.
+
+== Are there shortcuts for common operations in the browser? ==
+
+Yes, right clicking in the browser alert list will bring up a popup
+menu with common commands.
+
+== Does setroubleshoot write syslog messages? == #setroubleshoot-syslog
+
+Yes. As a courtesy or alternate way to discover an AVC denial occurred
+setroubleshoot will write a message into syslog with the result of its
+analysis of the denial event, for example:
+
+{{{
+SELinux is preventing /sbin/busybox (dhcpc_t) "ptrace" access to exe (ypbind_t).      For complete SELinux messages. run sealert -l 66cb5378-d593-42b3-9b6e-68da2cf09628
+}}}
+
+The first part is the "summary" information for the alert. What
+follows it is the ID (local identifier) for the alert in the
+setroubleshoot database. This ID can be used to lookup the alert using
+sealert in [#sealert-commandline command line mode]. This will dump
+the alert to stdout. One can also search for the matching alert in the
+alert browser. The expectation is using the ID in the browser will be
+rare, if you're using the browser you probably don't need to lookup
+the alert, but sometimes this is helpful if you're trying to match a
+syslog entry with what you're seeing in the browser.
+
+== sealert command line operation == #sealert-commandline

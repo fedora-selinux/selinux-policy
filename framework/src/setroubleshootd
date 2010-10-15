@@ -1,0 +1,122 @@
+#!/usr/bin/python -Es
+# -*- mode: Python; -*-
+#
+# Authors: John Dennis <jdennis@redhat.com>
+#          Dan Walsh <dwalsh@redhat.com>
+#
+# Copyright (C) 2006,2007,2008,2009 Red Hat, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+import setroubleshoot.default_encoding_utf8
+import selinux
+import os
+import getopt
+import sys
+import syslog
+from setroubleshoot.config import parse_config_setting, get_config
+from setroubleshoot.log import *
+log_init(sys.argv[0])
+import gettext
+gettext.install(domain    = get_config('general', 'i18n_text_domain'),
+                localedir = get_config('general', 'i18n_locale_dir'))
+
+pkg_name = get_config('general','pkg_name')
+syslog.openlog(pkg_name)
+
+def usage():
+    print '''
+-f --nofork				no fork
+-c --config section.option=value	set a configuration value
+-v --verbose                            log INFO level and higher messages to console
+-V --debug                              log DEBUG level and higher messages to console
+-h --help				display help info
+'''
+
+fork = True
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "fc:vVh", ["nofork","config=","verbose","debug","help"])
+except getopt.GetoptError:
+    # print help information and exit:
+    usage()
+    sys.exit(2)
+
+for o, a in opts:
+    if o in ("-h", "--help"):
+        usage()
+        sys.exit()
+
+    if o in ("-f", "--nofork"):
+        fork = False
+
+    if o in ("-c", "--config"):
+        config_setting = a
+        if not parse_config_setting(config_setting):
+            syslog.syslog(syslog.LOG_ERR, "could not parse config setting '%s'", config_setting)
+
+    if o in ('-v', '--verbose'):
+        enable_log_output('console')
+        set_default_category_level('info')
+        #dump_log_levels()
+
+    if o in ('-V', '--debug'):
+        enable_log_output('console')
+        set_default_category_level('debug')
+        #dump_log_levels()
+
+
+if not selinux.is_selinux_enabled():
+    syslog.syslog(syslog.LOG_ERR, _("SELinux not enabled, setroubleshootd exiting..."))
+    sys.exit(3)
+
+import dbus.service
+import dbus
+
+try: 
+    if fork:
+        # do the UNIX double-fork magic, see Stevens' "Advanced 
+        # Programming in the UNIX Environment" for details (ISBN 0201563177)
+        pid = os.fork() 
+        if pid > 0:
+            # exit first parent
+            sys.exit(0) 
+
+        # decouple from parent environment
+        os.chdir("/") 
+        os.setsid() 
+        os.umask(os.umask(0077) | 0022)
+    
+        # write the pid file
+        pid_file = get_config('general','pid_file')
+        f=open(pid_file, "w")
+        f.write(str(os.getpid()))
+        f.close()
+    
+    from setroubleshoot.log import *
+    from setroubleshoot.server import RunFaultServer
+    RunFaultServer()
+    
+except OSError, e: 
+    print >>sys.stderr, _("fork #1 failed: %d (%s)") % (e.errno, e.strerror) 
+    sys.exit(1)
+except dbus.DBusException, e:
+    syslog.syslog(syslog.LOG_ERR, str(e))
+    print >>sys.stderr, e
+    sys.exit(1)
+except IOError, e:
+    syslog.syslog(syslog.LOG_ERR, str(e))
+    print >>sys.stderr, e
+    sys.exit(1)

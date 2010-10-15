@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+#
+# Authors: John Dennis <jdennis@redhat.com>
+#
+# Copyright (C) 2006,2007,2008 Red Hat, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+
+from setroubleshoot.analyze import *
+from setroubleshoot.config import cfg
+from setroubleshoot.errcode import *
+from setroubleshoot.log import *
+from setroubleshoot.util import *
+
+import os
+import re
+import sys
+
+def rename_alert_database():
+    database_dir = cfg.get('database','database_dir')
+    old_database = os.path.join(database_dir, 'database.xml')
+    new_database = make_database_filepath(cfg.get('database','filename'))
+
+    if os.path.exists(new_database):
+        log_program.info("new database exists, skipping (%s)", new_database)
+    else:
+        if os.path.exists(old_database):
+            log_program.info("moving %s to %s", old_database, new_database)
+            try:
+                os.rename(old_database, new_database)
+            except OSError, e:
+                log_program.error("could not rename %s to %s, %s", old_database, new_database, e.strerror)
+        else:
+            log_program.info("old database does not exist, skipping (%s)", old_database)
+
+rename_alert_database()

@@ -1,0 +1,181 @@
+#!/usr/bin/env python
+# -*- mode: Python; -*-
+#
+# Authors: John Dennis <jdennis@redhat.com>
+#
+# Copyright (C) 2007,2008 Red Hat, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+
+import audit
+import gettext
+import os
+import struct
+import socket as Socket
+import select
+import sys
+import getopt
+
+import errno
+
+prog_name = 'audisp_listen'
+
+from setroubleshoot.config import parse_config_setting, get_config
+gettext.install(domain = prog_name, unicode = False, codeset = 'utf-8')
+from setroubleshoot.log import log_init
+log_init(sys.argv[0], {'console':True,
+                       'level':'debug'})
+from setroubleshoot.log import *
+
+from setroubleshoot.util import *
+from setroubleshoot.audit_data import *
+
+#------------------------------ Variables -------------------------------
+
+audit_socket_path = '/var/run/audit_events'
+audit_socket_path = '/tmp/audit_events'
+
+record_formats = {'text'      : AuditRecordReader.TEXT_FORMAT,
+                  'host_text' : AuditRecordReader.TEXT_FORMAT,
+                  'binary'    : AuditRecordReader.BINARY_FORMAT
+                  }
+record_format = None
+
+# ----------------------------------------------------------------------
+
+class AuditSocketListener(object):
+    def __init__(self, audit_socket_path, new_audit_record_handler):
+        self.new_audit_record_handler = new_audit_record_handler
+        self.audit_socket_path = audit_socket_path
+        self.record_reader = AuditRecordReader(record_format)
+
+
+    def connect(self):
+        while True:
+            try:
+                self.audit_socket=Socket.socket(Socket.AF_UNIX,Socket.SOCK_STREAM)
+                self.audit_socket.connect(self.audit_socket_path)
+                self.audit_socket_fd = self.audit_socket.makefile()
+                log_avc.info("audit socket (%s) connected", self.audit_socket_path)
+                return
+            except Socket.error, e:
+                errno, strerror = get_error_from_socket_exception(e)
+                log_avc.error("audit socket (%s) failed, error='%s'",
+                              self.audit_socket_path, strerror)
+                sys.exit(1)
+                
+            except OSError, e:
+                log_avc.error("audit socket (%s) failed, error='%s'",
+                              self.audit_socket_path, e[1])
+                sys.exit(1)
+
+    def run(self):
+        self.connect()
+        
+        while True:
+            inList, outList, errList = select.select([self.audit_socket],[], [], None)
+            try:
+                if self.audit_socket in inList:
+                    new_data = os.read(self.audit_socket_fd.fileno(), 1024)
+                    if new_data == '':
+                        if debug:
+                            log_avc.debug("audit socket connection dropped")
+                        self.connect()
+                    else:
+                        for (record_type, event_id, body_text, fields, line_number) in self.record_reader.feed(new_data):
+                            self.new_audit_record_handler(record_type, event_id, body_text, fields, line_number)
+
+            except KeyboardInterrupt, e:
+                if debug:
+                    log_avc.debug("KeyboardInterrupt exception in %s", self.__class__.__name__)
+                sys.exit(0)
+
+            except SystemExit, e:
+                if debug:
+                    log_avc.debug("SystemExit exception in %s" % self.__class__.__name__)
+                sys.exit(0)
+
+            except Exception, e:
+                log_avc.exception("exception %s: %s",e.__class__.__name__, str(e))
+                sys.exit(0)
+
+
+# ----------------------------------------------------------------------
+
+def new_audit_record_handler(record_type, event_id, body_text, fields, line_number):
+    audit_record = AuditRecord(record_type, event_id, body_text, fields, line_number)
+    audit_record.audispd_rectify()
+    print audit_record.to_text()
+    #print "fields=%s" % audit_record.fields
+    
+# ----------------------------------------------------------------------
+
+def usage():
+    print '''
+-s --socket				audit message socket
+-f --format %s	output audit record format
+-p --path   path			prepend path to pythons path
+-h --help				display help info
+''' % '|'.join(record_formats.keys())
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "s:f:p:h", ["socket=","format=","path=","help"])
+except getopt.GetoptError:
+    # print help information and exit:
+    usage()
+    sys.exit(2)
+
+for o, a in opts:
+    if o in ("-s", "--socket"):
+        audit_socket_path = a
+
+    if o in ("-f", "--format"):
+        if a not in record_formats:
+            print >> sys.stderr, "ERROR: record format (%s) invalid, must be one of %s" % \
+                  (a, ','.join(record_formats.keys()))
+            sys.exit(1)
+        record_format = record_formats.get(a)
+
+    if o in ("-p", "--path"):
+        path = a
+        if not os.path.exists(path):
+            print >> sys.stderr, "ERROR: path does not exist (%s)" % (path)
+            continue
+        if not os.path.isdir(path):
+            print >> sys.stderr, "ERROR: path is not a directory (%s)" % (path)
+            continue
+        sys.path.insert(0, path)
+        
+    if o in ("-h", "--help"):
+        usage()
+        sys.exit()
+
+
+        if a == '-':
+            output_dst = 'stdout'
+        elif a == 'stdout':
+            output_dst = 'stdout'
+        elif a == 'unix':
+            output_dst = 'unix'
+        else:
+            print >> sys.stderr, "ERROR: output destination (%s) invalid, must be -|stdout|unix"
+            sys.exit(1)
+
+if record_format is None:
+    record_format = derive_record_format(audit_socket_path)
+    
+listener = AuditSocketListener(audit_socket_path, new_audit_record_handler)
+listener.run()
+

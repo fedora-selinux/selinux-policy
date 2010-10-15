@@ -1,0 +1,909 @@
+#! /usr/bin/python -Es
+#
+# Authors: John Dennis <jdennis@redhat.com>
+# Authors: Dan Walsh <dwalsh@redhat.com>
+#
+# Copyright (C) 2006-2010 Red Hat, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+
+import syslog
+import setroubleshoot.default_encoding_utf8
+import gobject
+import dbus
+import dbus.glib
+import dbus.service
+import errno as Errno
+import gettext
+import os
+import Queue
+import re
+import signal
+import selinux
+import socket as Socket
+import fcntl
+import sys
+import slip.dbus.service
+
+from setroubleshoot.config import parse_config_setting, get_config
+domain = get_config('general', 'i18n_text_domain')
+gettext.install(domain    = domain,
+                unicode = True,
+                localedir = get_config('general', 'i18n_locale_dir'))
+
+from setroubleshoot.log import log_init
+log_init(sys.argv[0])
+from setroubleshoot.log import *
+from setroubleshoot.errcode import *
+from setroubleshoot.signature import *
+from setroubleshoot.util import *
+from setroubleshoot.rpc import *
+from setroubleshoot.rpc_interfaces import *
+
+#------------------------------------------------------------------------------
+invocation_style = None
+status_icon = None
+dbus_system_bus_name = get_config('system_dbus','bus_name')
+dbus_system_object_path = get_config('system_dbus','object_path')
+dbus_system_interface = get_config('system_dbus','interface')
+
+dbus_session_bus_name = get_config('session_dbus','bus_name')
+dbus_session_object_path = get_config('session_dbus','object_path')
+dbus_session_interface = get_config('session_dbus','interface')
+app = None
+default_status_icon_tooltip = _("SELinux AVC denial, click to view")
+#------------------------------------------------------------------------------
+def sighandler(signum, frame):
+    if debug:
+        log_program.debug("exiting on signal %s", signum)
+    sys.exit()
+
+def get_server_socket_address():
+    addr_list = get_socket_list_from_config('client_connect_to')
+    if len(addr_list) == 0: return None
+    return addr_list[0]
+
+def setup_sighandlers():
+    signal.signal(signal.SIGHUP,  sighandler)
+    signal.signal(signal.SIGQUIT, sighandler)
+    signal.signal(signal.SIGTERM, sighandler)
+
+def run_app(user):
+    global app
+
+    app = SEAlert(user)
+    return app.main()    
+
+def error(message):
+    dlg = gtk.MessageDialog(None, 0, gtk.MESSAGE_ERROR,
+                            gtk.BUTTONS_CLOSE,
+                            message)
+    dlg.set_position(gtk.WIN_POS_MOUSE)
+    dlg.show_all()
+    dlg.run()
+    dlg.destroy()
+
+def run_as_dbus_service(user):
+    global app
+
+    if not selinux.is_selinux_enabled():
+        log_program.info("SELinux not enabled, sealert will not run on non SELinux systems")
+        error(_("SELinux not enabled, sealert will not run on non SELinux systems"))
+        sys.exit(3)
+
+    try:
+        if debug:
+            log_dbus.debug('starting service')
+        dbus_service = DBusSessionService(dbus_session_bus_name)
+        app = SEAlert(user, dbus_service.presentation_manager, watch_setroubleshootd=True)
+        return app.main()    
+    except dbus.DBusException, e:
+        log_dbus.error('could not start dbus: %s', str(e))
+        return False
+
+def ask_dbus_to_show_browser():
+    try:
+        bus = dbus.SessionBus()
+        proxy_obj = bus.get_object(dbus_session_bus_name, dbus_session_object_path)
+        iface = dbus.Interface(proxy_obj, dbus_session_interface)
+        print iface.show_browser()    
+        return True
+    except dbus.DBusException, e:
+        log_dbus.error('could not start dbus: %s', str(e))
+        return False
+
+def ask_dbus_to_quit_app():
+    try:
+        bus = dbus.SessionBus()
+        proxy_obj = bus.get_object(dbus_session_bus_name, dbus_session_object_path)
+        iface = dbus.Interface(proxy_obj, dbus_session_interface)
+        iface.quit_app()    
+        return True
+    except dbus.DBusException, e:
+        log_dbus.error('could not start dbus: %s', str(e))
+        return False
+
+def fix_lookup_id(local_id, analysis_id):
+    def lookup_local_id():
+        if debug:
+            log_rpc.debug("calling server to lookup id (%s)", local_id)
+        async_rpc = cl.alert_client.query_alerts(local_id)
+        async_rpc.add_callback(query_alerts_callback)
+        async_rpc.add_errback(query_alerts_error)
+
+    def query_alerts_callback(sigs):
+        import commands
+        for siginfo in sigs.signature_list:
+            for plugin  in siginfo.plugin_list:
+                if analysis_id == plugin.analysis_id:
+                    p = load_plugins(analysis_id)[0]
+                    if p.fixable == False:
+                        print _("Not fixable.")
+                        cl.main_loop.quit()
+                        return
+                    siginfo.update_derived_template_substitutions()
+                    command = siginfo.substitute(p.get_fix_cmd(siginfo.audit_event, plugin.args))
+                    rc, output = commands.getstatusoutput(command)
+                    if rc == 0:
+                        print _("Successfully ran %s" % command)
+                    else:
+                        print output
+                    cl.main_loop.quit()
+                    return
+        print _("Plugin %s not valid for %s id") % (analysis_id, local_id)
+        cl.main_loop.quit()
+
+    def query_alerts_error(method, errno, strerror):
+        print >> sys.stderr, "%s error (%d): %s" % (method, errno, strerror)
+        cl.main_loop.quit()
+
+    cl = SECommandLine(lookup_local_id)
+    cl.run()
+
+
+def command_line_lookup_id(local_id, html=False):
+    global err;
+    err=None
+    def lookup_local_id():
+        if debug:
+            log_rpc.debug("calling server to lookup id (%s)", local_id)
+        async_rpc = cl.alert_client.query_alerts(local_id)
+        async_rpc.add_callback(query_alerts_callback)
+        async_rpc.add_errback(query_alerts_error)
+
+    def query_alerts_callback(sigs):
+        for siginfo in sigs.signature_list:
+            print siginfo.format_text()
+        cl.main_loop.quit()
+
+    def query_alerts_error(method, errno, strerror):
+        global err
+        cl.main_loop.quit()
+        err = "%s error (%d): %s" % (method, errno, strerror)
+
+    cl = SECommandLine(lookup_local_id)
+    cl.run()
+    if err:
+        print "Error"
+        raise ValueError(err)
+
+#-----------------------------------------------------------------------------
+
+class PresentationManager(gobject.GObject):
+    __gsignals__ = {
+        'show_browser':
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'quit_app':
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
+        }
+
+    def __init__(self):
+        gobject.GObject.__init__(self)
+
+    def show_browser(self, data_name = None):
+        self.emit('show_browser', data_name)
+
+    def quit_app(self):
+        self.emit('quit_app')
+
+gobject.type_register(PresentationManager)
+
+#-----------------------------------------------------------------------------
+
+class SETroubleshootdDBus(gobject.GObject):
+    __gsignals__ = {
+        'state_change':
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'restart_request':
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        }
+
+    def __init__(self):
+        gobject.GObject.__init__(self)
+
+        self.bus = dbus.SystemBus()
+
+        proxy_obj = self.bus.get_object(dbus_system_bus_name, dbus_system_object_path)
+        self.iface = dbus.Interface(proxy_obj, dbus_system_interface)
+        s = self.iface.start()
+        log_program.debug("starting setroubleshootd service")
+
+        self.bus.add_signal_receiver(self.on_dbus_name_owner_change, 'NameOwnerChanged',
+                                     'org.freedesktop.DBus', 'org.freedesktop.DBus', '/org/freedesktop/DBus',
+                                     arg0=dbus_system_bus_name)
+
+
+        # Note: this signal can be emitted from the command line via
+        # dbus-send --system $dbus_system_object_path $dbus_system_interface.restart string:"reason"
+        self.bus.add_signal_receiver(self.do_restart, 'restart', dbus_system_interface, None, dbus_system_object_path)
+
+    def finish(self):
+        log_program.debug("exiting dbus")
+        s = self.iface.finish()
+
+    def __del__(self):
+        log_program.debug("exiting dbus")
+        s = self.iface.finish()
+
+    def on_dbus_name_owner_change(self, name, old_owner, new_owner):
+        log_dbus.info("on_dbus_name_owner_change: name=%s old_owner=%s new_owner=%s", name, old_owner, new_owner)
+        if not old_owner and new_owner:
+            log_dbus.info("setroubleshootd: came on line")
+            self.emit('state_change', 'run')
+        elif old_owner and not new_owner:
+            log_dbus.info("setroubleshootd: went off line")
+            self.emit('state_change', 'stop')
+        elif not old_owner and not new_owner:
+            log_dbus.info("setroubleshootd: no connection")
+            self.emit('state_change', 'stop')
+        elif old_owner and new_owner:
+            log_dbus.info("setroubleshootd: owner change")
+        else:
+            log_dbus.warning("don't know how to parse old_owner(%s) new_owner(%s)",old_owner, new_owner)
+
+    def do_restart(self, reason):
+        log_dbus.info("do_restart(%s)", reason)
+        self.emit('restart_request', reason)
+
+gobject.type_register(SETroubleshootdDBus)
+
+#-----------------------------------------------------------------------------
+
+class DBusSessionService(dbus.service.Object):
+    def __init__(self, bus_name):
+        bus = dbus.SessionBus()
+        bus_name = dbus.service.BusName(dbus_session_bus_name, bus = bus)
+        dbus.service.Object.__init__(self, bus_name, dbus_session_object_path)
+
+        self.presentation_manager = PresentationManager()
+
+    @dbus.service.method(dbus_session_interface)
+    def start(self):
+        return _("Started")
+
+    @dbus.service.method(dbus_session_interface)
+    def show_browser(self):
+        if debug:
+            log_dbus.debug('dbus iface show_browser() called',)
+        self.presentation_manager.show_browser()
+        return ""
+
+    @dbus.service.method(dbus_session_interface)
+    def quit_app(self):
+        if debug:
+            log_dbus.debug('quit_app() called')
+        self.presentation_manager.quit_app()
+
+#-----------------------------------------------------------------------------
+
+class ServerConnectionHandler(RpcChannel,
+                              SETroubleshootServerInterface,
+                              SETroubleshootDatabaseInterface,
+                              gobject.GObject):
+    __gsignals__ = {
+        'alert':
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'connection_state_changed': # callback(connection_state, flags, flags_added, flags_removed):
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_INT, gobject.TYPE_INT, gobject.TYPE_INT)),
+        'signatures_updated': 
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
+        'database_bind': 
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
+        'async-error': # callback(method, errno, strerror)
+        (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING)),
+        }
+
+    def __init__(self, username):
+        RpcChannel.__init__(self, channel_type = 'sealert')
+        gobject.GObject.__init__(self)
+        self.connection_state.connect('changed', self.on_connection_state_change)
+
+        self.connect_rpc_interface('SEAlert', self)
+        self.connect_rpc_interface('SETroubleshootDatabaseNotify', self)
+
+        self.pkg_version = get_config('general','pkg_version')
+        self.rpc_version = get_config('general','rpc_version')
+        self.username = username
+        self.retry_connection_if_closed = False
+        self.connection_retry = Retry(self.retry_connection, self.get_connection_retry_interval, notify_interval=1.0)
+        self.report_connect_failure = True
+        self.database_name = 'audit_listener'
+
+    def on_connection_state_change(self, connection_state, flags, flags_added, flags_removed):
+        if debug:
+            log_program.debug("%s.on_connection_state_change: connection_state=%s flags_added=%s flags_removed=%s address=%s",
+                              self.__class__.__name__, connection_state,
+                              connection_state.flags_to_string(flags_added), connection_state.flags_to_string(flags_removed),
+                              self.socket_address)
+        self.emit('connection_state_changed', connection_state, flags, flags_added, flags_removed)
+
+        if (flags_removed & ConnectionState.OPEN) or (flags_added & (ConnectionState.HUP | ConnectionState.ERROR)):
+            if self.retry_connection_if_closed and not (flags & ConnectionState.RETRY):
+                self.connection_state.update(ConnectionState.RETRY)
+                self.connection_retry.start()
+
+    # Retry Behavior:
+    #
+    # Started when:
+    # Connection lost is detected, however must not start if deliberate close is requested
+    # Stopped when:
+    # 1) successful open
+    # 2) deliberate close
+
+    def open(self, socket_address = None):
+        if debug:
+            log_communication.debug("%s.open: new addr = %s, existing %s %s",
+                                    self.__class__.__name__, socket_address, self.socket_address, self.connection_state)
+
+        if socket_address is not None:
+            self.socket_address = socket_address
+
+        if self.connection_state.flags & ConnectionState.OPEN:
+            return True
+
+        try:
+            self.connection_state.update(ConnectionState.CONNECTING, ConnectionState.OPEN | ConnectionState.ERROR)
+
+            self.socket_address.socket = Socket.socket(self.socket_address.family, self.socket_address.type)
+            fcntl.fcntl(self.socket_address.socket.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+            if debug:
+                log_communication.debug("%s.open: %s", self.__class__.__name__, self.socket_address)
+            self.socket_address.socket.connect(self.socket_address.get_py_address())
+            self.io_watch_add(self.handle_client_io)
+            self.connection_state.update(ConnectionState.OPEN, ConnectionState.CONNECTING | ConnectionState.RETRY)
+            self.connection_retry.stop()
+            self.report_connect_failure = True
+            self.do_logon()
+        except Socket.error, e:
+            errno, strerror = get_error_from_socket_exception(e)
+            if self.report_connect_failure == True:
+                log_rpc.error("attempt to open server connection failed: %s", strerror)
+                self.report_connect_failure = False
+            if errno == Errno.EPIPE:
+                add_flags = ConnectionState.HUP
+            else:
+                add_flags = ConnectionState.ERROR
+            self.close_connection(add_flags, ConnectionState.CONNECTING, errno, strerror)
+            return False
+        return True
+            
+    def retry_connection(self, retry, user_data):
+        if self.open(self.socket_address):
+            return True
+        else:
+            return False
+        
+    def get_connection_retry_interval(self, retry, user_data):
+        if retry.failed_attempts < 5:
+            return 10
+        else:
+            return 60
+
+    def async_error_callback(self, method, errno, strerror):
+        log_program.error("async_error: method=%s errno=%s: %s", method, errno, strerror)
+        self.emit('async-error', method, errno, strerror)
+
+    def bind(self):
+        def database_bind_callback(properties):
+            if debug:
+                log_rpc.debug('database_bind_callback properties = %s', str(properties))
+            self.emit('database_bind', self, properties)
+
+        async_rpc = self.database_bind(self.database_name)
+        async_rpc.add_callback(database_bind_callback)
+        async_rpc.add_errback(self.async_error_callback)
+
+    def evaluate_server_version(self, pkg_version, rpc_version):
+        if pkg_version != self.pkg_version:
+            if debug:
+                log_program.debug("server pkg_version(%s) != client pkg_version(%s)",
+                                  pkg_version, self.pkg_version)
+
+    def do_logon(self):
+        def logon_callback(pkg_version, rpc_version):
+            if debug:
+                log_program.debug("logon_callback(): pkg_version=%s rpc_version=%s", pkg_version, rpc_version)
+            self.evaluate_server_version(pkg_version, rpc_version)
+            self.connection_state.update(ConnectionState.AUTHENTICATED)
+
+        if debug:
+            log_program.debug("logon: %s", self.username)
+
+        self.channel_name = self.username
+        async_rpc = self.logon(self.channel_type, self.username, 'passwd')
+        async_rpc.add_callback(logon_callback)
+        async_rpc.add_errback(self.async_error_callback)
+
+    def set_filter(self, sig, user, filter_type, data):
+        async_rpc = SETroubleshootDatabaseInterface.set_filter(self, sig, user, filter_type, data)
+        async_rpc.add_errback(self.async_error_callback)
+
+    # ------
+
+    def alert(self, siginfo):
+        if debug:
+            log_alert.debug("received alert")
+        self.emit('alert', siginfo)
+
+    def signatures_updated(self, type, item):
+        if debug:
+            log_rpc.debug('signatures_updated() alert client: type=%s item=%s', type, item)
+        self.emit('signatures_updated', type, item)
+
+        
+gobject.type_register(ServerConnectionHandler)
+
+#-----------------------------------------------------------------------------
+
+class SEAlert(object):
+    """
+    The SEAlert object represents a gui client for setroubleshoot. It
+    processes alerts and presents the user with an appropriate user
+    interface for handling the alert. Most of the interface code
+    is in BrowserApplet and StatusIcon. This class is mainly a central
+    hub for processing the alerts.
+    """
+    def __init__(self, username, presentation_manager = None, watch_setroubleshootd = False):
+        try:
+            self.username = username
+
+            if get_display() is None:
+                print >> sys.stderr, "cannot open X display, exiting ..."
+                sys.exit(1)
+            from setroubleshoot.browser import BrowserApplet
+
+            if presentation_manager is None:
+                self.presentation_manager = PresentationManager()
+                gobject.idle_add(self.show_browser_at_startup)
+            else:
+                self.presentation_manager = presentation_manager
+
+            self.browser = None
+
+            self.alert_siginfo = None
+
+            if watch_setroubleshootd:
+                self.setroubleshootd_dbus = SETroubleshootdDBus()
+                self.setroubleshootd_dbus.connect('state_change', self.on_setroubleshootd_state_change)
+                self.setroubleshootd_dbus.connect('restart_request', self.on_restart_request)
+            else:
+                self.setroubleshootd_dbus = None
+
+            self.alert_client = ServerConnectionHandler(self.username)
+            self.alert_client.open(get_server_socket_address())
+            self.browser = BrowserApplet(self.username, self.alert_client, domain=domain)
+            self.presentation_manager.connect('show_browser', self.on_show_browser)
+            self.presentation_manager.connect('quit_app', self.on_quit)
+
+            self.alert_client.connect('alert', self.alert)
+
+            # If there is no presentation mananger make sure when the
+            # user closes the window the whole application exits. When running
+            # in "alert" mode we want the application to persist in the background
+            self.browser.window_delete_hides = False
+
+        except ProgramError, e:
+            log_program.error(e.strerror)
+            log_program.exception(e.strerror)
+            sys.exit(1)
+
+    def finish(self):
+        if  self.setroubleshootd_dbus != None:
+            self.setroubleshootd_dbus.finish()
+
+    def main(self):
+        if debug:
+            log_program.debug('creating main GUI application')
+        try:
+            gtk.main()
+            self.finish()
+        except KeyboardInterrupt, e:
+            log_program.info("got KeyboardInterrupt, exiting ...")
+            self.alert_client.close_connection(ConnectionState.HUP)
+            self.finish()
+            sys.exit()
+
+    def alert(self, alert_client, siginfo):
+        if debug:
+            log_alert.debug("evaluating alert")
+
+        self.alert_siginfo = siginfo
+        async_rpc = self.browser.server.evaluate_alert_filter(siginfo.sig, self.username)
+        async_rpc.add_callback(alert_filter_result)
+
+    def show_browser_at_startup(self):
+        self.presentation_manager.show_browser()
+        return False
+
+    def show_browser(self, data_name):
+        if data_name is not None:
+            self.browser.do_visit(data_name)
+        if debug:
+            log_gui.debug("SEAlert.show_browser(): data_name=%s", data_name)
+        self.browser.show()
+        return True
+
+    def on_quit(self, widget):
+        if self.alert_client is not None:
+            self.alert_client.close_connection(ConnectionState.HUP)
+        gtk.main_quit()
+
+    def on_show_browser(self, widget, data_name):
+        self.show_browser(data_name)
+
+    def on_setroubleshootd_state_change(self, setroubleshootd_dbus, state):
+        log_communication.info('setroubleshootd state change (%s)', state)
+        if state == 'run':
+            self.alert_client.open()
+
+    def on_restart_request(self, setroubleshootd_dbus, reason):
+        log_program.info('restart request: reason = %s', reason)
+        do_restart()
+        return False
+        
+
+def do_restart():
+    log_program.info("restarting application...)")
+    window_state = None
+    geometry = None
+    if app is not None:
+        if app.browser is not None:
+            window_state, visibility_state = app.browser.get_window_state()
+            geometry = app.browser.get_geometry()
+            os.environ['SEALERT_WINDOW_STATE'] = window_state
+            os.environ['SEALERT_WINDOW_GEOMETRY'] = geometry
+    log_program.info("restarting %s: args=%s window_state=%s geometry=%s",
+                     sys.argv[0], sys.argv[1:], window_state, geometry)
+    os.execv(sys.argv[0], sys.argv)
+
+#-----------------------------------------------------------------------------
+
+class SECommandLine(object):
+    def __init__(self, func):
+        self.username = get_identity()
+        self.func = func
+
+        self.alert_client = ServerConnectionHandler(self.username)
+        self.alert_client.connect('connection_state_changed', self.on_connection_state_change)
+        self.main_loop = gobject.MainLoop()
+
+
+    def async_error_callback(self, method, errno, strerror):
+        print >> sys.stderr, "%s error (%d): %s" % (method, errno, strerror)
+        sys.exit(1)
+
+    def do_logon(self):
+        def logon_callback(pkg_version, rpc_version):
+            if debug:
+                log_program.debug("logon_callback(): pkg_version=%s rpc_version=%s", pkg_version, rpc_version)
+            self.alert_client.evaluate_server_version(pkg_version, rpc_version)
+            self.alert_client.connection_state.update(ConnectionState.AUTHENTICATED)
+
+        if debug:
+            log_program.debug("logon: %s", self.username)
+
+        self.alert_client.channel_name = self.username
+        async_rpc = self.alert_client.logon(self.alert_client.channel_type, self.username, 'passwd')
+        async_rpc.add_callback(logon_callback)
+        async_rpc.add_errback(self.async_error_callback)
+
+    def on_connection_state_change(self, connection, connection_state, flags, flags_added, flags_removed):
+        if debug:
+            log_program.debug("%s.on_connection_state_change: connection_state=%s flags_added=%s flags_removed=%s address=%s",
+                              self.__class__.__name__, connection_state,
+                              connection_state.flags_to_string(flags_added), connection_state.flags_to_string(flags_removed),
+                              connection.socket_address)
+
+        if flags_added & ConnectionState.ERROR:
+            errno, strerror = connection_state.get_result()
+            print >> sys.stderr, "failed to connect to server: %s" % (strerror)
+            sys.exit(1)
+
+        if flags_added & ConnectionState.OPEN:
+            self.do_logon()
+
+        if flags_added & ConnectionState.AUTHENTICATED:
+            self.func()
+
+    def run(self):
+        if debug:
+            log_program.debug('executing command line application')
+        self.alert_client.open(get_server_socket_address())
+        try:
+            self.main_loop.run()
+        except KeyboardInterrupt, e:
+            sys.exit()
+
+#-----------------------------------------------------------------------------
+
+class ScanLogfile:
+    def __init__(self, logfile_path):
+        from setroubleshoot.analyze import LogfileAnalyzer
+        self.analyzer = LogfileAnalyzer(logfile_path)
+        self.main_loop = gobject.MainLoop()
+        if sys.stdout.isatty():
+            self.analyzer.connect('progress', self.on_progress)
+        self.analyzer.connect('state-changed', self.on_analyzer_state_change)
+        
+    def on_progress(self, analyzer, progress):
+        output = "\r%3d%% done" % (progress*100)
+        sys.stdout.write(output)
+        sys.stdout.flush()
+
+    def on_analyzer_state_change(self, analyzer, state):
+        if state == 'stopped':
+            if analyzer.strerror:
+                print >> sys.stderr, "ERROR: %s" % analyzer.strerror
+            if debug:
+                log_program.debug("analyzer stopped")
+            self.main_loop.quit()
+            self.output_results()
+
+    def scan_file(self):
+        self.analyzer.cancelled = False
+        self.analyzer.open()
+        self.analyzer.run()
+        self.main_loop.run()
+
+    def output_results(self):
+        sigs = self.analyzer.database.query_alerts('*')
+
+        seperator = '-'*80 + '\n'
+        print "found %d alerts in %s" % (len(sigs.signature_list), self.analyzer.logfile_path)
+        for siginfo in sigs.signature_list:
+            print seperator
+            print siginfo.format_text()
+
+def do_analyze_logfile(logfile_path):
+    import selinux.audit2why as audit2why
+    audit2why.init()
+    scanner = ScanLogfile(logfile_path)
+    scanner.scan_file()
+    audit2why.finish()
+        
+#-----------------------------------------------------------------------------
+
+# -- Main --
+if __name__ == '__main__':
+    setup_sighandlers()
+    if debug:
+        log_program.debug("main() args=%s", sys.argv)
+
+    def usage():
+        print _('''
+        -b --browser         Launch the browser
+        -h --help            Show this message
+        -s --service         Start sealert as a dbus service
+        -S --noservice       Start sealert without dbus service as stand alone app
+        -l --lookupid id     Lookup alert by id, id may be wildcard * to lookup all alerts
+        -a --analyze file    Scan a log file, analyze it's AVC's
+        -v --verbose         log INFO level and higher messages to console
+        -V --debug           log DEBUG level and higher messages to console
+        -u --user            logon user name
+        -p --password        logon password
+        -f --fix             fix avc with the given uuid
+        ''')
+
+    def validate_invocation_style(style):
+        global invocation_style
+
+        if invocation_style is not None:
+            print >> sys.stderr, "cannot run as %s, already selected %s" % (style, invocation_style)
+            usage()
+            sys.exit(3)
+
+        invocation_style = style
+        
+
+    try:
+        import getopt
+
+        valid_opts = ['-b', '-h', '-q', '-s', '-S', '-l', '-a', '-v', '-V', '-u', '-p', '-P', '-f', '--help', '--browser','--quit','--service','--noservice','--lookupid', '--analyze','--verbose','--debug','--user','--password','--plugin', '--fix']
+        last = False
+        if sys.argv.count('-a') > 0:
+            if valid_opts.count(sys.argv[-1]) == 0:
+                last = True
+
+        sys_args = sys.argv[1:]
+        if last == True:
+            sys_args = sys.argv[1:-1]
+
+        try:
+            opts, args = getopt.getopt(sys_args, 'bhqsSl:avVu:p:f:P:',
+                         ['help', 'browser','quit','service','noservice','lookupid=',
+                          'analyze = ','verbose','debug','user=','password=','plugin=','fix='])
+        except getopt.GetoptError:
+            # print help information and exit:
+            usage()
+            sys.exit(2)
+
+        username = None
+        password = None
+        plugin_name = None
+
+        for o, a in opts:
+            if o in ('-h', '--help'):
+                usage()
+                sys.exit()
+
+            if o in ('-b', '--browser'):
+                validate_invocation_style('browser')
+
+            if o in ('-q', '--quit'):
+                validate_invocation_style('quit')
+
+            if o in ('-s', '--service'):
+                validate_invocation_style('service')
+
+            if o in ('-S', '--noservice'):
+                validate_invocation_style('noservice')
+
+            if o in ('-l', '--lookupid'):
+                validate_invocation_style('lookupid')
+                local_id = a
+
+            if o in ('-a', '--analyze'):
+                validate_invocation_style('analyze')
+                logfile = "/dev/stdin"
+                if last == True:
+                    logfile = sys.argv[-1]
+            if o in ('-v', '--verbose'):
+                enable_log_output('console')
+                set_default_category_level('info')
+                #dump_log_levels()
+
+            if o in ('-V', '--debug'):
+                enable_log_output('console')
+                set_default_category_level('debug')
+                #dump_log_levels()
+
+            if o in ('-u', '--user'):
+                username = a
+
+            if o in ('-p', '--password'):
+                password = a
+            
+            if o in ('-f', '--fix'):
+                validate_invocation_style('fix')
+                local_id = a
+
+            if o in ('-P', '--plugin'):
+                plugin_name = a
+
+        if username is None:
+            username = get_identity()
+        if password is None:
+            password = 'passwd'
+
+
+        # Attempt to communicate with the service.  DBus should start it if it is not
+        # running, otherwise we will become the service
+        if invocation_style is None:
+            if debug:
+                log_program.debug("invocation style not set, asking dbus to start us")
+            try:
+                bus = dbus.SessionBus()
+                proxy_obj = bus.get_object(dbus_session_bus_name, dbus_session_object_path)
+                iface = dbus.Interface(proxy_obj, dbus_session_interface)
+                s = iface.start()
+            except dbus.DBusException:
+                print >> sys.stderr, "could not attach to desktop process"
+                sys.exit(1)
+            sys.exit()
+
+        if debug:
+            log_program.debug("invocation style = '%s'", invocation_style)
+
+        if invocation_style == 'browser':
+            ask_dbus_to_show_browser()
+            sys.exit()
+        elif invocation_style == 'service':
+            try:
+                # This import must come before importing gtk to silence warnings
+                from setroubleshoot.gui_utils import *
+                import gtk
+                import pynotify
+                run_as_dbus_service(username)
+            except RuntimeError, e:
+                print e
+                sys.exit(3)
+            sys.exit()
+        elif invocation_style == 'noservice':
+            # This import must come before importing gtk to silence warnings
+            from setroubleshoot.gui_utils import *
+            import gtk
+            import pynotify
+            run_app(username)
+            sys.exit()
+        elif invocation_style == 'lookupid':
+            try:
+                # make sure setroubleshoot is running
+                bus = dbus.SystemBus()
+                proxy_obj = bus.get_object(dbus_system_bus_name, dbus_system_object_path)
+                iface = dbus.Interface(proxy_obj, dbus_system_interface)
+                iface.start()
+                command_line_lookup_id(local_id)
+                iface.finish()
+            except ValueError, e:
+                print >> sys.stderr, e
+                sys.exit(3)
+
+            sys.exit()
+        elif invocation_style == 'analyze':
+            try:
+                do_analyze_logfile(logfile)
+            except OSError, e:
+                print e
+                sys.exit(3)
+            except ProgramError, e:
+                print >> sys.stderr, e.strerror
+                sys.exit(3)
+                
+        elif invocation_style == 'quit':
+            if not ask_dbus_to_quit_app():
+                print >> sys.stderr, "could not attach to desktop process"
+		print 2
+                sys.exit(3)
+            sys.exit()
+        elif invocation_style == 'fix':
+            try:
+                if plugin_name == None:
+                    print >> sys.stderr, "-P plugin_name required for fix"
+                    print 2
+                    sys.exit(3)
+
+                bus = dbus.SystemBus()
+                proxy_obj = bus.get_object(dbus_system_bus_name, dbus_system_object_path)
+                iface = dbus.Interface(proxy_obj, dbus_system_interface)
+                iface.start()
+
+                fix_lookup_id(local_id, plugin_name)
+                iface.finish()
+            except dbus.DBusException, e:
+                print >> sys.stderr, "could not attach to desktop process"
+		print 3
+                sys.exit(3)
+                
+            sys.exit()
+        else:
+            print >> sys.stderr, "unknown invocation style (%s)" % invocation_style
+            sys.exit(3)
+
+    except Exception, e:
+        log_program.exception("exception %s: %s",e.__class__.__name__, str(e))
+        from setroubleshoot.gui_utils import *
+        display_traceback('sealert')
+        sys.exit(3)
