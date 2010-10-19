@@ -207,6 +207,23 @@ interface(`libs_search_lib',`
 
 	allow $1 lib_t:dir search_dir_perms;
 ')
+########################################
+## <summary>
+##	dontaudit attempts to setattr on library files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`libs_dontaudit_setattr_lib_files',`
+	gen_require(`
+		type lib_t;
+	')
+
+	dontaudit $1 lib_t:file setattr;
+')
 
 ########################################
 ## <summary>
@@ -403,7 +420,7 @@ interface(`libs_manage_shared_libs',`
 		type lib_t, textrel_shlib_t;
 	')
 
-	manage_files_pattern($1, lib_t, { lib_t textrel_shlib_t })
+	manage_files_pattern($1, { textrel_shlib_t lib_t }, { lib_t textrel_shlib_t })
 ')
 
 ########################################
@@ -422,9 +439,9 @@ interface(`libs_use_shared_libs',`
 	')
 
 	files_search_usr($1)
-	allow $1 lib_t:dir list_dir_perms;
-	read_lnk_files_pattern($1, lib_t, { lib_t textrel_shlib_t })
-	mmap_files_pattern($1, lib_t, { lib_t textrel_shlib_t })
+	allow $1 { textrel_shlib_t lib_t }:dir list_dir_perms;
+	read_lnk_files_pattern($1, { textrel_shlib_t lib_t }, { lib_t textrel_shlib_t })
+	mmap_files_pattern($1, { textrel_shlib_t lib_t }, { lib_t textrel_shlib_t })
 	allow $1 textrel_shlib_t:file execmod;
 ')
 
@@ -465,7 +482,7 @@ interface(`libs_relabel_shared_libs',`
 		type lib_t, textrel_shlib_t;
 	')
 
-	relabel_files_pattern($1, lib_t, { lib_t textrel_shlib_t })
+	relabel_files_pattern($1, { textrel_shlib_t lib_t }, { lib_t textrel_shlib_t })
 ')
 
 ########################################

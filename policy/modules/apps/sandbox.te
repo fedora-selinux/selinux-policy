@@ -152,7 +152,7 @@ allow sandbox_x_domain self:unix_dgram_socket { sendto create_socket_perms };
 allow sandbox_x_domain self:unix_stream_socket create_stream_socket_perms;
 
 allow sandbox_x_domain self:process { signal_perms getsched setpgid execstack execmem };
-dontaudit sandbox_x_domain self:process signal;
+dontaudit sandbox_x_domain sandbox_x_domain:process signal;
 
 allow sandbox_x_domain self:shm create_shm_perms;
 allow sandbox_x_domain self:unix_stream_socket { connectto create_stream_socket_perms };
@@ -198,12 +198,18 @@ miscfiles_dontaudit_setattr_fonts_cache_dirs(sandbox_x_domain)
 term_getattr_pty_fs(sandbox_x_domain)
 term_use_ptmx(sandbox_x_domain)
 
+application_dontaudit_signal(sandbox_x_domain)
+
 logging_send_syslog_msg(sandbox_x_domain)
 logging_dontaudit_search_logs(sandbox_x_domain)
 
 miscfiles_read_fonts(sandbox_x_domain)
 
 storage_dontaudit_rw_fuse(sandbox_x_domain)
+
+optional_policy(`
+	consolekit_dbus_chat(sandbox_x_domain)
+')
 
 optional_policy(`
 	cups_stream_connect(sandbox_x_domain)
@@ -238,7 +244,7 @@ tunable_policy(`use_nfs_home_dirs',`
 	fs_search_nfs(sandbox_x_domain)
 ')
 
-tunable_policy(`use_cifs_home_dirs',`
+tunable_policy(`use_samba_home_dirs',`
 	fs_search_cifs(sandbox_x_domain)
 ')
 
@@ -367,10 +373,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	consolekit_dbus_chat(sandbox_web_type)
-')
-
-optional_policy(`
 	hal_dbus_chat(sandbox_web_type)
 ')
 
@@ -418,3 +420,4 @@ optional_policy(`
 	mozilla_dontaudit_rw_user_home_files(sandbox_xserver_t)
 	mozilla_dontaudit_rw_user_home_files(sandbox_x_domain)
 ')
+
