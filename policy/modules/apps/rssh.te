@@ -31,6 +31,12 @@ typealias rssh_rw_t alias { user_rssh_rw_t staff_rssh_rw_t sysadm_rssh_rw_t };
 typealias rssh_rw_t alias { auditadm_rssh_rw_t secadm_rssh_rw_t };
 userdom_user_home_content(rssh_rw_t)
 
+type rssh_chroot_helper_t;
+type rssh_chroot_helper_exec_t;
+init_system_domain(rssh_chroot_helper_t, rssh_chroot_helper_exec_t)
+
+permissive rssh_chroot_helper_t;
+
 ##############################
 #
 # Local policy
@@ -78,3 +84,25 @@ ssh_rw_stream_sockets(rssh_t)
 optional_policy(`
 	nis_use_ypbind(rssh_t)
 ')
+
+########################################
+#
+# rssh_chroot_helper local policy
+#
+rssh_domtrans_chroot_helper(rssh_t)
+
+allow rssh_chroot_helper_t self:capability { sys_chroot setuid };
+
+allow rssh_chroot_helper_t self:fifo_file rw_fifo_file_perms;
+allow rssh_chroot_helper_t self:unix_stream_socket create_stream_socket_perms;
+
+domain_use_interactive_fds(rssh_chroot_helper_t)
+
+files_read_etc_files(rssh_chroot_helper_t)
+
+auth_use_nsswitch(rssh_chroot_helper_t)
+
+logging_send_syslog_msg(rssh_chroot_helper_t)
+
+miscfiles_read_localization(rssh_chroot_helper_t)
+
