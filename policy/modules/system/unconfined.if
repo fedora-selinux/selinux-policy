@@ -15,11 +15,16 @@ interface(`unconfined_domain_noaudit',`
 		class dbus all_dbus_perms;
 		class nscd all_nscd_perms;
 		class passwd all_passwd_perms;
+		bool secure_mode_insmod;
 	')
 
 	# Use any Linux capability.
-	allow $1 self:capability all_capabilities;
+	allow $1 self:capability ~sys_module;
 	allow $1 self:fifo_file manage_fifo_file_perms;
+
+	if (!secure_mode_insmod) {
+		allow $1 self:capability sys_module;
+	}
 
 	# Transition to myself, to make get_ordered_context_list happy.
 	allow $1 self:process transition;

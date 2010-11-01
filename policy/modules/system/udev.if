@@ -231,3 +231,36 @@ interface(`udev_manage_pid_files',`
 	files_search_var_lib($1)
 	manage_files_pattern($1, udev_var_run_t, udev_var_run_t)
 ')
+
+########################################
+## <summary>
+##	Create a domain for processes
+##	which can be started by udev.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Type to be used as a domain.
+##	</summary>
+## </param>
+## <param name="entry_point">
+##	<summary>
+##	Type of the program to be used as an entry point to this domain.
+##	</summary>
+## </param>
+#
+interface(`udev_system_domain',`
+	gen_require(`
+		type udev_t;
+		role system_r;
+	')
+
+	domain_type($1)
+	domain_entry_file($1, $2)
+
+	role system_r types $1;
+
+	domtrans_pattern(udev_t, $2, $1)
+
+	dontaudit $1 udev_t:unix_dgram_socket { read write };
+')
+

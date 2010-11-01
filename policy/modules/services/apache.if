@@ -57,7 +57,7 @@ template(`apache_content_template',`
 
 	allow httpd_$1_script_t httpd_t:fifo_file write;
 	# apache should set close-on-exec
-	dontaudit httpd_$1_script_t httpd_t:unix_stream_socket { read write };
+	apache_dontaudit_leaks(httpd_$1_script_t)
 
 	# Allow the script process to search the cgi directory, and users directory
 	allow httpd_$1_script_t httpd_$1_content_t:dir search_dir_perms;
@@ -1398,10 +1398,12 @@ interface(`apache_admin',`
 interface(`apache_dontaudit_leaks',`
 	gen_require(`
 		type httpd_t;
+		type httpd_tmp_t;
 	')
 
 	dontaudit $1 httpd_t:fifo_file rw_inherited_fifo_file_perms;
 	dontaudit $1 httpd_t:tcp_socket { read write };
 	dontaudit $1 httpd_t:unix_dgram_socket { read write };
 	dontaudit $1 httpd_t:unix_stream_socket { read write };
+	dontaudit $1 httpd_tmp_t:file { read write };
 ')
