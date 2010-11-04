@@ -1,0 +1,181 @@
+## <summary>Administration Server for Directory Server, dirsrv-admin.</summary>
+
+########################################
+## <summary>
+##	Extend httpd domain for dirsrv-admin.
+## </summary>
+#
+interface(`dirsrvadmin_extend_httpd',`
+	gen_require(`
+		type httpd_t;
+		type httpd_tmp_t;
+		type dirsrv_t;
+	')
+
+	# Allow httpd domain to interact with dirsrv
+	dirsrv_manage_config(httpd_t)
+	dirsrv_manage_log(httpd_t)
+	dirsrv_manage_var_run(httpd_t)
+	dirsrv_read_share(httpd_t)
+	dirsrv_signal(httpd_t)
+	dirsrv_signull(httpd_t)
+	dirsrvadmin_manage_config(httpd_t)
+	dirsrvadmin_manage_tmp(httpd_t)
+
+	files_exec_usr_files(httpd_t)
+	files_manage_generic_tmp_files(httpd_t)
+	userdom_rw_user_tmp_files(httpd_t)
+	corenet_tcp_connect_generic_port(httpd_t)
+
+	# Strict policy
+	ifdef(`strict_policy',`
+		userdom_dontaudit_search_sysadm_home_dirs(httpd_t)
+	')
+')
+
+########################################
+## <summary>
+##	Extend httpd domain for dirsrv-admin cgi.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dirsrvadmin_script_extend_httpd',`
+	gen_require(`
+		type httpd_t, httpd_exec_t, httpd_suexec_exec_t, httpd_tmp_t, httpd_var_run_t;
+	')
+
+	allow $1 httpd_exec_t:file { read getattr execute_no_trans };
+	allow $1 httpd_suexec_exec_t:file getattr;
+	allow $1 httpd_tmp_t:file { read write };
+	allow $1 httpd_t:udp_socket { read write };
+	allow $1 httpd_t:unix_stream_socket { ioctl getattr read write };
+	allow $1 httpd_t:netlink_route_socket { read write };
+	allow $1 httpd_t:fifo_file { write read };
+	allow $1 httpd_t:process signal;
+	allow $1 httpd_var_run_t:file read_file_perms;
+	apache_list_modules($1)
+	apache_exec_modules($1)
+	apache_use_fds($1)
+	apache_read_log($1)
+	apache_read_config($1)
+	apache_domtrans($1)
+	dirsrvadmin_run_httpd_script_exec(httpd_t)
+')
+
+########################################
+## <summary>
+##      Extend dirsrv domain for dirsrv-admin.
+## </summary>
+#
+interface(`dirsrvadmin_extend_dirsrv',`
+	gen_require(`
+		type dirsrv_t;
+		type httpd_t;
+		type httpd_tmp_t;
+	')
+
+	# Allow dirsrv to interact with CGIs
+	allow dirsrv_t httpd_dirsrvadmin_script_t:unix_stream_socket { read write };
+	allow dirsrv_t dirsrvadmin_tmp_t:file write;
+
+	# Allow dirsrv domain to interact with httpd
+	allow dirsrv_t httpd_t:fifo_file { write read };
+	allow dirsrv_t httpd_t:unix_stream_socket { ioctl getattr read write };
+	allow dirsrv_t httpd_tmp_t:file { read write };
+	apache_use_fds(dirsrv_t)
+')
+
+########################################
+## <summary>
+##	Extend init domain for dirsrv-admin.
+##	The initscript searches in a config file.
+## </summary>
+#
+interface(`dirsrvadmin_extend_init',`
+	gen_require(`
+		type initrc_t;
+	')
+
+	allow initrc_t dirsrvadmin_config_t:file read;
+')
+
+########################################
+## <summary>
+##	Exec dirsrv-admin programs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dirsrvadmin_run_exec',`
+	gen_require(`
+		type dirsrvadmin_exec_t;
+	')
+
+	allow $1 dirsrvadmin_exec_t:dir search_dir_perms;
+	can_exec($1,dirsrvadmin_exec_t)
+')
+
+########################################
+## <summary>
+##	Exec cgi programs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dirsrvadmin_run_httpd_script_exec',`
+	gen_require(`
+		type httpd_dirsrvadmin_script_exec_t;
+	')
+
+	allow $1 httpd_dirsrvadmin_script_exec_t:dir search_dir_perms;
+	can_exec($1, httpd_dirsrvadmin_script_exec_t)
+')
+
+########################################
+## <summary>
+##	Manage dirsrv-adminserver configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dirsrvadmin_manage_config',`
+	gen_require(`
+		type dirsrvadmin_config_t;
+	')
+
+	allow $1 dirsrvadmin_config_t:dir manage_dir_perms;
+	allow $1 dirsrvadmin_config_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##      Manage dirsrv-adminserver tmp files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`dirsrvadmin_manage_tmp',`
+        gen_require(`
+                type dirsrvadmin_tmp_t;
+        ')
+
+	manage_files_pattern(dirsrvadmin_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
+	manage_dirs_pattern(dirsrvadmin_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
+')
+
