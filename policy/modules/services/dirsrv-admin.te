@@ -5,27 +5,14 @@ policy_module(dirsrv-admin,1.0.0)
 # Declarations for the daemon
 #
 
-require {
-    type httpd_t;
-    type httpd_var_run_t;
-}
-
 type dirsrvadmin_t;
-domain_type(dirsrvadmin_t)
-
-## Create a dirsrvadmin_exec_t domain to transition to httpd_t.
 type dirsrvadmin_exec_t;
-files_type(dirsrvadmin_exec_t)
-
-# Start from initrc
 init_daemon_domain(dirsrvadmin_t, dirsrvadmin_exec_t)
 role system_r types dirsrvadmin_t;
 
-# Keep configuration files in a private domain
 type dirsrvadmin_config_t;
 files_type(dirsrvadmin_config_t)
 
-# tmp files
 type dirsrvadmin_tmp_t;
 files_tmp_file(dirsrvadmin_tmp_t)
 
@@ -33,53 +20,31 @@ files_tmp_file(dirsrvadmin_tmp_t)
 #
 # Local policy for the daemon
 #
+allow dirsrvadmin_t self:fifo_file rw_fifo_file_perms;
+allow dirsrvadmin_t self:capability { dac_read_search dac_override sys_tty_config };
 
-# Transition to httpd domain
-apache_domtrans(dirsrvadmin_t)
-
-# Extend the dirsrv and httpd policy
-dirsrvadmin_extend_httpd()
-dirsrvadmin_extend_dirsrv()
-
-# The initscript for dirsrv-admin searches in a private conf file.
-# Extend the init domain to allow the search.
-dirsrvadmin_extend_init()
-
-# tmp files
 manage_files_pattern(dirsrvadmin_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
 manage_dirs_pattern(dirsrvadmin_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
 files_tmp_filetrans(dirsrvadmin_t, dirsrvadmin_tmp_t, { file dir })
-files_manage_generic_tmp_files(dirsrvadmin_t)
 
-# Things needed by the start script (before transition to httpd domain)
-allow dirsrvadmin_t self:fifo_file { write read getattr ioctl };
-allow dirsrvadmin_t self:capability { dac_read_search dac_override sys_tty_config };
-logging_search_logs(dirsrvadmin_t)
+kernel_read_system_state(dirsrvadmin_t)
+
 corecmd_exec_bin(dirsrvadmin_t)
 corecmd_read_bin_symlinks(dirsrvadmin_t)
 corecmd_search_bin(dirsrvadmin_t)
 corecmd_shell_entry_type(dirsrvadmin_t)
+
 files_exec_etc_files(dirsrvadmin_t)
-libs_exec_ld_so(dirsrvadmin_t)
-libs_use_ld_so(dirsrvadmin_t)
-libs_use_shared_libs(dirsrvadmin_t)
+
+logging_search_logs(dirsrvadmin_t)
+
 miscfiles_read_localization(dirsrvadmin_t)
-kernel_read_system_state(dirsrvadmin_t)
-# In strict policy
-ifdef(`strict_policy',`
-	# Read cwd (/root)
-	userdom_dontaudit_search_sysadm_home_dirs(dirsrvadmin_t)
-')
-# In targeted policy 
-ifdef(`targeted_policy',`
-	# Read cwd (/root)
-	userdom_dontaudit_search_generic_user_home_dirs(dirsrvadmin_t)
-')
 
 # Needed for stop and restart scripts
 dirsrv_read_var_run(dirsrvadmin_t)
-allow dirsrvadmin_t httpd_t:process signal;
-allow dirsrvadmin_t httpd_var_run_t:file read_file_perms;
+
+apache_domtrans(dirsrvadmin_t)
+apache_signal(dirsrvadmin_t)
 
 ########################################
 #
@@ -90,33 +55,32 @@ allow dirsrvadmin_t httpd_var_run_t:file read_file_perms;
 # Create a domain for the CGI scripts
 apache_content_template(dirsrvadmin)
 
-# Process and networking stuff
 allow httpd_dirsrvadmin_script_t self:process { getsched getpgid };
 allow httpd_dirsrvadmin_script_t self:capability { setuid net_bind_service setgid chown sys_nice kill dac_read_search dac_override };
-allow httpd_dirsrvadmin_script_t self:tcp_socket { write getopt create read connect bind getattr setopt accept listen shutdown };
-allow httpd_dirsrvadmin_script_t self:udp_socket { write read create connect getattr ioctl };
-allow httpd_dirsrvadmin_script_t self:unix_dgram_socket { write create connect };
-allow httpd_dirsrvadmin_script_t self:netlink_route_socket { write getattr read bind create nlmsg_read };
-allow httpd_dirsrvadmin_script_t self:sem { write destroy create unix_write setattr };
+allow httpd_dirsrvadmin_script_t self:tcp_socket create_stream_socket_perms;
+allow httpd_dirsrvadmin_script_t self:udp_socket create_socket_perms;
+allow httpd_dirsrvadmin_script_t self:unix_dgram_socket create_socket_perms;
+allow httpd_dirsrvadmin_script_t self:netlink_route_socket r_netlink_socket_perms;
+allow httpd_dirsrvadmin_script_t self:sem create_sem_perms;
+
 kernel_read_kernel_sysctls(httpd_dirsrvadmin_script_t)
+
 corenet_sendrecv_unlabeled_packets(httpd_dirsrvadmin_script_t)
 corenet_tcp_connect_generic_port(httpd_dirsrvadmin_script_t)
 corenet_tcp_connect_ldap_port(httpd_dirsrvadmin_script_t)
 corenet_tcp_connect_http_port(httpd_dirsrvadmin_script_t)
-sysnet_read_config(httpd_dirsrvadmin_script_t)
+
 files_search_var_lib(httpd_dirsrvadmin_script_t)
 
-# The CGI scripts require some interfaces that doesn't exist in httpd_t
-dirsrvadmin_script_extend_httpd(httpd_dirsrvadmin_script_t)
+sysnet_read_config(httpd_dirsrvadmin_script_t)
 
-# The CGI scripts must be able to manage dirsrv-admin
-dirsrvadmin_run_exec(httpd_dirsrvadmin_script_t)
-dirsrvadmin_manage_config(httpd_dirsrvadmin_script_t)
 manage_files_pattern(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
 manage_dirs_pattern(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
 files_tmp_filetrans(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, { file dir })
 
-# The CGI scripts must be able to manage the dirsrv
+# The CGI scripts must be able to manage dirsrv-admin
+dirsrvadmin_run_exec(httpd_dirsrvadmin_script_t)
+dirsrvadmin_manage_config(httpd_dirsrvadmin_script_t)
 dirsrv_domtrans(httpd_dirsrvadmin_script_t)
 dirsrv_signal(httpd_dirsrvadmin_script_t)
 dirsrv_signull(httpd_dirsrvadmin_script_t)
@@ -126,4 +90,3 @@ dirsrv_pid_filetrans(httpd_dirsrvadmin_script_t)
 dirsrv_manage_var_run(httpd_dirsrvadmin_script_t)
 dirsrv_manage_config(httpd_dirsrvadmin_script_t)
 dirsrv_read_share(httpd_dirsrvadmin_script_t)
-
