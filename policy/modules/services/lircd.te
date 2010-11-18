@@ -12,6 +12,9 @@ init_daemon_domain(lircd_t, lircd_exec_t)
 type lircd_initrc_exec_t;
 init_script_file(lircd_initrc_exec_t)
 
+type lircd_etc_t;
+files_type(lircd_etc_t)
+
 type lircd_var_run_t alias lircd_sock_t;
 files_pid_file(lircd_var_run_t)
 
@@ -21,15 +24,17 @@ files_pid_file(lircd_var_run_t)
 #
 
 allow lircd_t self:capability { chown kill sys_admin };
-allow lircd_t self:process { fork signal };
 allow lircd_t self:fifo_file rw_fifo_file_perms;
 allow lircd_t self:unix_dgram_socket create_socket_perms;
 allow lircd_t self:tcp_socket create_stream_socket_perms;
 
+# etc file
+read_files_pattern(lircd_t, lircd_etc_t, lircd_etc_t)
+
 manage_dirs_pattern(lircd_t, lircd_var_run_t, lircd_var_run_t)
 manage_files_pattern(lircd_t, lircd_var_run_t, lircd_var_run_t)
 manage_sock_files_pattern(lircd_t, lircd_var_run_t, lircd_var_run_t)
-files_pid_filetrans(lircd_t, lircd_var_run_t, { file dir })
+files_pid_filetrans(lircd_t, lircd_var_run_t, { dir file })
 # /dev/lircd socket
 dev_filetrans(lircd_t, lircd_var_run_t, sock_file)
 

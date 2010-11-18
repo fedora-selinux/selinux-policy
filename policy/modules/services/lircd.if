@@ -5,9 +5,9 @@
 ##	Execute a domain transition to run lircd.
 ## </summary>
 ## <param name="domain">
-##	<summary>
+## <summary>
 ##	Domain allowed to transition.
-##	</summary>
+## </summary>
 ## </param>
 #
 interface(`lircd_domtrans',`
@@ -16,6 +16,7 @@ interface(`lircd_domtrans',`
 	')
 
 	domain_auto_trans($1, lircd_exec_t, lircd_t)
+
 ')
 
 ######################################
@@ -38,6 +39,24 @@ interface(`lircd_stream_connect',`
 	stream_connect_pattern($1, lircd_var_run_t, lircd_var_run_t, lircd_t)
 ')
 
+#######################################
+## <summary>
+##	Read lircd etc file
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`lircd_read_config',`
+	gen_require(`
+		type lircd_etc_t;
+	')
+
+	read_files_pattern($1, lircd_etc_t, lircd_etc_t)
+')
+
 ########################################
 ## <summary>
 ##	All of the rules required to administrate
@@ -58,7 +77,7 @@ interface(`lircd_stream_connect',`
 interface(`lircd_admin',`
 	gen_require(`
 		type lircd_t, lircd_var_run_t;
-		type lircd_initrc_exec_t;
+		type lircd_initrc_exec_t, lircd_etc_t;
 	')
 
 	allow $1 lircd_t:process { ptrace signal_perms };
@@ -69,6 +88,9 @@ interface(`lircd_admin',`
 	role_transition $2 lircd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	files_list_pids($1)
+	files_search_etc($1)
+	admin_pattern($1, lircd_etc_t)
+
+	files_search_pids($1)
 	admin_pattern($1, lircd_var_run_t)
 ')
