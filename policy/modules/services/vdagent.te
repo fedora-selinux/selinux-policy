@@ -7,32 +7,44 @@ policy_module(vdagent,1.0.0)
 
 type vdagent_t;
 type vdagent_exec_t;
-udev_system_domain(vdagent_t, vdagent_exec_t)
+init_daemon_domain(vdagent_t, vdagent_exec_t)
+
+permissive vdagent_t;
 
 type vdagent_var_run_t;
 files_pid_file(vdagent_var_run_t)
 
-permissive vdagent_t;
+type vdagent_log_t;
+logging_log_file(vdagent_log_t)
 
 ########################################
 #
 # vdagent local policy
 #
-allow vdagent_t self:process { fork };
 
 allow vdagent_t self:fifo_file rw_fifo_file_perms;
 allow vdagent_t self:unix_stream_socket create_stream_socket_perms;
 
-manage_files_pattern(vdagent_t, vdagent_var_run_t, vdagent_var_run_t)
 manage_dirs_pattern(vdagent_t, vdagent_var_run_t, vdagent_var_run_t)
+manage_files_pattern(vdagent_t, vdagent_var_run_t, vdagent_var_run_t)
 manage_sock_files_pattern(vdagent_t, vdagent_var_run_t, vdagent_var_run_t)
-manage_lnk_files_pattern(vdagent_t, vdagent_var_run_t, vdagent_var_run_t)
-files_pid_filetrans(vdagent_t, vdagent_var_run_t, { file dir sock_file })
+files_pid_filetrans(vdagent_t, vdagent_var_run_t, { dir file sock_file })
 
-domain_use_interactive_fds(vdagent_t)
+manage_dirs_pattern(vdagent_t, vdagent_log_t, vdagent_log_t)
+manage_files_pattern(vdagent_t, vdagent_log_t, vdagent_log_t)
+logging_log_filetrans(vdagent_t, vdagent_log_t, { file })
 
-files_read_etc_files(vdagent_t)
+dev_rw_input_dev(vdagent_t)
+
+term_use_virtio_console(vdagent_t)
 
 miscfiles_read_localization(vdagent_t)
 
-userdom_use_user_ptys(vdagent_t)
+optional_policy(`
+	consolekit_dbus_chat(vdagent_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(vdagent_t)
+')
+
