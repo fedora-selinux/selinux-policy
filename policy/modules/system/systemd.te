@@ -23,16 +23,23 @@ init_domain(systemd_tmpfiles_t, systemd_tmpfiles_exec_t)
 
 permissive systemd_tmpfiles_t;
 
+#
+# Type for systemd pipes in /dev/.systemd/ directory
+#
+type systemd_device_t;
+files_type(systemd_device_t)
+
 #######################################
 #
 # Local policy
 #
 
-dev_read_systemd_pipe(systemd_passwd_agent_t)
-dev_create_systemd_pipe(systemd_passwd_agent_t)
-dev_filetrans_systemd_pipe(systemd_passwd_agent_t)
+allow systemd_passwd_agent_t systemd_device_t:fifo_file manage_fifo_file_perms;
+dev_filetrans(systemd_passwd_agent_t, systemd_device_t, { fifo_file })
 
 files_read_etc_files(systemd_passwd_agent_t)
+
+dev_create_generic_dirs(systemd_passwd_agent_t)
 
 auth_use_nsswitch(systemd_passwd_agent_t)
 
