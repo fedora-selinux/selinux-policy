@@ -1,0 +1,92 @@
+## <summary>SELinux policy for systemd components</summary>
+
+#######################################
+## <summary>
+##  Execute a domain transition to run systemd-tmpfiles.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`systemd_tmpfiles_domtrans',`
+    gen_require(`
+        type systemd_tmpfiles_t, systemd_tmpfiles_exec_t;
+    ')
+
+    domtrans_pattern($1, systemd_tmpfiles_exec_t, systemd_tmpfiles_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run systemd-tty-ask-password-agent.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`systemd_passwd_agent_domtrans',`
+	gen_require(`
+		type systemd_passwd_agent_t, systemd_passwd_agent_exec_t;
+	')
+
+	domtrans_pattern($1, systemd_passwd_agent_exec_t, systemd_passwd_agent_t)
+')
+
+
+########################################
+## <summary>
+##	Execute systemd-tty-ask-password-agent in the systemd_passwd_agent domain, and
+##	allow the specified role the systemd_passwd_agent domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the systemd_passwd_agent domain.
+##	</summary>
+## </param>
+#
+interface(`systemd_passwd_agent_run',`
+	gen_require(`
+		type systemd_passwd_agent_t;
+	')
+
+	systemd_passwd_agent_domtrans($1)
+	role $2 types systemd_passwd_agent_t;
+')
+
+########################################
+## <summary>
+##	Role access for systemd_passwd_agent
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`systemd_passwd_agent_role',`
+	gen_require(`
+              type systemd_passwd_agent_t;
+	')
+
+	role $1 types systemd_passwd_agent_t;
+
+	systemd_passwd_agent_domtrans($2)
+
+	ps_process_pattern($2, systemd_passwd_agent_t)
+	allow $2 systemd_passwd_agent_t:process signal;
+')
+
