@@ -1,0 +1,95 @@
+
+policy_module(systemd, 1.0)
+
+#######################################
+#
+# Declarations
+#
+
+# domain for systemd-tty-ask-password-agent and systemd-gnome-ask-password-agent
+# systemd components
+type systemd_passwd_agent_t;
+type systemd_passwd_agent_exec_t;
+init_daemon_domain(systemd_passwd_agent_t, systemd_passwd_agent_exec_t)
+
+permissive systemd_passwd_agent_t;
+
+# domain for systemd-tmpfiles component
+type systemd_tmpfiles_t;
+type systemd_tmpfiles_exec_t;
+init_domain(systemd_tmpfiles_t, systemd_tmpfiles_exec_t)
+#application_domain(systemd_tmpfiles_t, systemd_tmpfiles_exec_t)
+#role system_r types systemd_tmpfiles_t;
+
+permissive systemd_tmpfiles_t;
+
+#
+# Type for systemd pipes in /dev/.systemd/ directory
+#
+type systemd_device_t;
+files_type(systemd_device_t)
+
+#######################################
+#
+# Local policy
+#
+
+allow systemd_passwd_agent_t systemd_device_t:fifo_file manage_fifo_file_perms;
+dev_filetrans(systemd_passwd_agent_t, systemd_device_t, { fifo_file })
+
+files_read_etc_files(systemd_passwd_agent_t)
+
+dev_create_generic_dirs(systemd_passwd_agent_t)
+
+auth_use_nsswitch(systemd_passwd_agent_t)
+
+miscfiles_read_localization(systemd_passwd_agent_t)
+
+#######################################
+#
+# Local policy
+#
+
+allow systemd_tmpfiles_t self:capability { fowner chown fsetid };
+
+allow systemd_tmpfiles_t self:unix_dgram_socket create_socket_perms;
+
+files_read_etc_files(systemd_tmpfiles_t)
+
+files_relabel_all_lock_dirs(systemd_tmpfiles_t)
+files_relabel_all_pid_dirs(systemd_tmpfiles_t)
+files_relabel_all_pid_files(systemd_tmpfiles_t)
+files_manage_all_pids(systemd_tmpfiles_t)
+files_manage_all_pid_dirs(systemd_tmpfiles_t)
+files_manage_all_locks(systemd_tmpfiles_t)
+files_setattr_all_tmp_dirs(systemd_tmpfiles_t)
+
+files_purge_tmp(systemd_tmpfiles_t)
+files_manage_generic_tmp_files(systemd_tmpfiles_t)
+files_manage_generic_tmp_dirs(systemd_tmpfiles_t)
+files_relabelfrom_tmp_dirs(systemd_tmpfiles_t)
+files_relabelfrom_tmp_files(systemd_tmpfiles_t)
+files_relabel_all_tmp_dirs(systemd_tmpfiles_t)
+files_relabel_all_tmp_files(systemd_tmpfiles_t)
+
+init_dgram_send(systemd_tmpfiles_t)
+
+auth_manage_faillog(systemd_tmpfiles_t)
+auth_relabel_faillog(systemd_tmpfiles_t)
+auth_manage_var_auth(systemd_tmpfiles_t)
+auth_relabel_var_auth_dirs(systemd_tmpfiles_t)
+auth_relabel_login_records(systemd_tmpfiles_t)
+auth_setattr_login_records(systemd_tmpfiles_t)
+
+seutil_read_file_contexts(systemd_tmpfiles_t)
+
+logging_create_devlog_dev(systemd_tmpfiles_t)
+
+miscfiles_delete_man_pages(systemd_tmpfiles_t)
+miscfiles_relabel_man_pages(systemd_tmpfiles_t)
+miscfiles_read_localization(systemd_tmpfiles_t)
+
+optional_policy(`
+    auth_rw_login_records(systemd_tmpfiles_t)
+')
+
