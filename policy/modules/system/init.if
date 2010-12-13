@@ -79,6 +79,40 @@ interface(`init_script_domain',`
 	domtrans_pattern(init_run_all_scripts_domain, $2, $1)
 ')
 
+
+#######################################
+## <summary>
+##  Create a domain which can be started by init.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Type to be used as a domain.
+##  </summary>
+## </param>
+## <param name="entry_point">
+##  <summary>
+##  Type of the program to be used as an entry point to this domain.
+##  </summary>
+## </param>
+#
+interface(`init_systemd_domain',`
+    gen_require(`
+        type init_t;
+        role system_r;
+    ')
+
+    domain_type($1)
+    domain_entry_file($1,$2)
+
+    role system_r types $1;
+
+    tunable_policy(`init_systemd',`
+        domtrans_pattern(init_t,$2,$1)
+        allow init_t $1:unix_stream_socket create_stream_socket_perms;
+        allow $1 init_t:unix_dgram_socket sendto;
+    ')
+')
+
 ########################################
 ## <summary>
 ##	Create a domain which can be started by init.
