@@ -1692,30 +1692,42 @@ interface(`auth_manage_login_records',`
 #
 interface(`auth_use_nsswitch',`
 
-	allow $1 self:netlink_route_socket r_netlink_socket_perms;
-
-	files_list_var_lib($1)
-
 	# read /etc/nsswitch.conf
 	files_read_etc_files($1)
 
-	miscfiles_read_generic_certs($1)
-
 	sysnet_dns_name_resolve($1)
-	sysnet_use_ldap($1)
+
+	tunable_policy(`authlogin_use_sssd',`', `
+		files_list_var_lib($1)
+
+		miscfiles_read_generic_certs($1)
+
+		sysnet_use_ldap($1)
+	')
 
 	optional_policy(`
 		avahi_stream_connect($1)
 	')
 
 	optional_policy(`
-		ldap_stream_connect($1)
+		tunable_policy(`authlogin_use_sssd',`', `
+			dirsrv_stream_connect($1)
+		')
+	')
+
+	optional_policy(`
+		tunable_policy(`authlogin_use_sssd',`', `
+			ldap_stream_connect($1)
+		')
 	')
 
  	optional_policy(`
-		likewise_stream_connect_lsassd($1)
+		tunable_policy(`authlogin_use_sssd',`', `
+			likewise_stream_connect_lsassd($1)
+		')
 	')
 
+	# can not wrap nis_use_ypbind or kerberos_use, but they both have booleans you can turn off.
 	optional_policy(`
 		kerberos_use($1)
 	')
@@ -1729,7 +1741,9 @@ interface(`auth_use_nsswitch',`
 	')
 
 	optional_policy(`
-		nslcd_stream_connect($1)
+		tunable_policy(`authlogin_use_sssd',`', `
+			nslcd_stream_connect($1)
+		')
 	')
 
 	optional_policy(`
@@ -1737,9 +1751,11 @@ interface(`auth_use_nsswitch',`
 	')
 
 	optional_policy(`
-		samba_stream_connect_winbind($1)
-		samba_read_var_files($1)
-		samba_dontaudit_write_var_files($1)
+		tunable_policy(`authlogin_use_sssd',`', `
+			samba_stream_connect_winbind($1)
+			samba_read_var_files($1)
+			samba_dontaudit_write_var_files($1)
+		')
 	')
 ')
 
