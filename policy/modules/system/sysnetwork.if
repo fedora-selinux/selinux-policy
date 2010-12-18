@@ -496,8 +496,12 @@ interface(`sysnet_manage_config',`
 		type net_conf_t;
 	')
 
-	allow $1 net_conf_t:dir list_dir_perms;
-	manage_files_pattern($1, net_conf_t, net_conf_t)
+	allow $1 net_conf_t:file manage_file_perms;
+
+	ifdef(`distro_redhat',`
+		allow $1 net_conf_t:dir list_dir_perms;
+		manage_files_pattern($1, net_conf_t, net_conf_t)
+	')
 ')
 
 #######################################
@@ -791,8 +795,8 @@ interface(`sysnet_use_ldap',`
 	corenet_tcp_connect_ldap_port($1)
 	corenet_sendrecv_ldap_client_packets($1)
 
-	files_search_etc($1)
-	allow $1 net_conf_t:file read_file_perms;
+	sysnet_read_config($1)
+
 	# LDAP Configuration using encrypted requires
 	dev_read_urand($1)
 ')
@@ -826,8 +830,7 @@ interface(`sysnet_use_portmap',`
 	corenet_tcp_connect_portmap_port($1)
 	corenet_sendrecv_portmap_client_packets($1)
 
-	files_search_etc($1)
-	allow $1 net_conf_t:file read_file_perms;
+	sysnet_read_config($1)
 ')
 
 ########################################
