@@ -14,6 +14,9 @@ role system_r types passenger_t;
 type passenger_tmp_t;
 files_tmp_file(passenger_tmp_t)
 
+type passenger_log_t;
+logging_log_file(passenger_log_t)
+
 type passenger_var_lib_t;
 files_type(passenger_var_lib_t)
 
@@ -27,10 +30,15 @@ permissive passenger_t;
 # passanger local policy
 #
 
-allow passenger_t self:capability { dac_override fsetid fowner chown setuid setgid };
-allow passenger_t self:process signal;
+allow passenger_t self:capability { chown dac_override fsetid fowner kill setuid setgid sys_nice };
+allow passenger_t self:process { setpgid setsched sigkill signal };
+
 allow passenger_t self:fifo_file rw_fifo_file_perms;
 allow passenger_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+manage_dirs_pattern(passenger_t, passenger_log_t, passenger_log_t)
+manage_files_pattern(passenger_t, passenger_log_t, passenger_log_t)
+logging_log_filetrans(passenger_t, passenger_log_t, file)
 
 files_search_var_lib(passenger_t)
 manage_dirs_pattern(passenger_t, passenger_var_lib_t, passenger_var_lib_t)
@@ -41,6 +49,8 @@ manage_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
 manage_fifo_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
 manage_sock_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
 files_pid_filetrans(passenger_t, passenger_var_run_t, { file dir sock_file })
+
+can_exec(passenger_t, passenger_exec_t)
 
 kernel_read_system_state(passenger_t)
 kernel_read_kernel_sysctls(passenger_t)
