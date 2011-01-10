@@ -1,0 +1,73 @@
+
+## <summary>policy for firewalld</summary>
+
+
+########################################
+## <summary>
+##	Execute a domain transition to run firewalld.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`firewalld_domtrans',`
+	gen_require(`
+		type firewalld_t, firewalld_exec_t;
+	')
+
+	domtrans_pattern($1, firewalld_exec_t, firewalld_t)
+')
+
+
+########################################
+## <summary>
+##	Execute firewalld server in the firewalld domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firewalld_initrc_domtrans',`
+	gen_require(`
+		type firewalld_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, firewalld_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an firewalld environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`firewalld_admin',`
+	gen_require(`
+		type firewalld_t;
+		type firewalld_initrc_exec_t;
+	')
+
+	allow $1 firewalld_t:process { ptrace signal_perms };
+	ps_process_pattern($1, firewalld_t)
+
+	firewalld_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 firewalld_initrc_exec_t system_r;
+	allow $2 system_r;
+
+')
