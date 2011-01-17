@@ -13,6 +13,13 @@ policy_module(puppet, 1.0.0)
 ## </desc>
 gen_tunable(puppet_manage_all_files, false)
 
+## <desc>
+## <p>
+## Alow Pupper master to use connect to mysql and postgresql database
+## </p>
+## </desc>
+gen_tunable(puppetmaster_use_db, false)
+
 type puppet_t;
 type puppet_exec_t;
 init_daemon_domain(puppet_t, puppet_exec_t)
@@ -232,6 +239,18 @@ sysnet_dns_name_resolve(puppetmaster_t)
 sysnet_run_ifconfig(puppetmaster_t, system_r)
 
 mta_send_mail(puppetmaster_t)
+
+optional_policy(`
+    tunable_policy(`puppetmaster_use_db',`
+        mysql_stream_connect(puppetmaster_t)
+    ')
+')
+
+optional_policy(`
+    tunable_policy(`puppetmaster_use_db',`
+        postgresql_stream_connect(puppetmaster_t)
+    ')
+')
 
 optional_policy(`
 	hostname_exec(puppetmaster_t)
