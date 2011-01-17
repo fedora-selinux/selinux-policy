@@ -52,8 +52,11 @@ template(`hadoop_domain_template',`
 	# Shared hadoop_$1 policy.
 	#
 
-	allow hadoop_$1_t self:process execmem;
+	allow hadoop_$1_t self:capability { chown kill setgid setuid };
+	allow hadoop_$1_t self:process { execmem getsched setsched sigkill signal };
+	allow hadoop_$1_t self:key search;
 	allow hadoop_$1_t self:fifo_file rw_fifo_file_perms;
+	allow hadoop_$1_t self:unix_dgram_socket create_socket_perms;
 	allow hadoop_$1_t self:tcp_socket create_stream_socket_perms;
 	allow hadoop_$1_t self:udp_socket create_socket_perms;
 	dontaudit hadoop_$1_t self:netlink_route_socket rw_netlink_socket_perms;
@@ -69,7 +72,8 @@ template(`hadoop_domain_template',`
 	filetrans_pattern(hadoop_$1_t, hadoop_var_lib_t, hadoop_$1_var_lib_t, file)
 	files_search_var_lib(hadoop_$1_t)
 
-	allow hadoop_$1_t hadoop_var_run_t:dir getattr;
+	manage_files_pattern(hadoop_$1_t, hadoop_$1_initrc_var_run_t, hadoop_$1_initrc_var_run_t)
+	filetrans_pattern(hadoop_$1_t, hadoop_var_run_t, hadoop_$1_initrc_var_run_t, file)
 	files_search_pids(hadoop_$1_t)
 
 	allow hadoop_$1_t hadoop_hsperfdata_t:dir manage_dir_perms;
@@ -77,6 +81,8 @@ template(`hadoop_domain_template',`
 	filetrans_pattern(hadoop_$1_t, hadoop_hsperfdata_t, hadoop_$1_tmp_t, file)
 	files_tmp_filetrans(hadoop_$1_t, hadoop_hsperfdata_t, dir)
 
+	kernel_read_kernel_sysctls(hadoop_$1_t)
+	kernel_read_sysctl(hadoop_$1_t)
 	kernel_read_network_state(hadoop_$1_t)
 	kernel_read_system_state(hadoop_$1_t)
 
@@ -102,6 +108,18 @@ template(`hadoop_domain_template',`
 
 	files_read_etc_files(hadoop_$1_t)
 
+	auth_domtrans_chkpwd(hadoop_$1_t)
+
+	hadoop_match_lan_spd(hadoop_$1_t)
+
+	init_read_utmp(hadoop_$1_t)
+	init_use_fds(hadoop_$1_t)
+	init_use_script_fds(hadoop_$1_t)
+	init_use_script_ptys(hadoop_$1_t)
+
+	logging_send_audit_msgs(hadoop_$1_t)
+	logging_send_syslog_msg(hadoop_$1_t)
+
 	miscfiles_read_localization(hadoop_$1_t)
 
 	sysnet_read_config(hadoop_$1_t)
@@ -109,6 +127,10 @@ template(`hadoop_domain_template',`
 	hadoop_exec_config(hadoop_$1_t)
 
 	java_exec(hadoop_$1_t)
+
+	kerberos_use(hadoop_$1_t)
+
+	su_exec(hadoop_$1_t)
 
 	optional_policy(`
 		nscd_socket_use(hadoop_$1_t)
@@ -156,12 +178,14 @@ template(`hadoop_domain_template',`
 	consoletype_exec(hadoop_$1_initrc_t)
 
 	fs_getattr_xattr_fs(hadoop_$1_initrc_t)
+	fs_search_cgroup_dirs(hadoop_$1_initrc_t)
 
 	term_use_generic_ptys(hadoop_$1_initrc_t)
 
 	hadoop_exec_config(hadoop_$1_initrc_t)
 
 	init_rw_utmp(hadoop_$1_initrc_t)
+	init_use_fds(hadoop_$1_initrc_t)
 	init_use_script_ptys(hadoop_$1_initrc_t)
 
 	logging_send_syslog_msg(hadoop_$1_initrc_t)
@@ -197,7 +221,6 @@ interface(`hadoop_role',`
 		type hadoop_t;
 	')
 
-
 	hadoop_domtrans($2)
 	role $1 types hadoop_t;
 
@@ -232,6 +255,26 @@ interface(`hadoop_domtrans',`
 
 ########################################
 ## <summary>
+##	Give permission to a domain to
+##	recvfrom hadoop_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing recvfrom
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_recvfrom',`
+	gen_require(`
+		type hadoop_t;
+	')
+
+	allow $1 hadoop_t:peer recv;
+')
+
+########################################
+## <summary>
 ##	Execute zookeeper client in the
 ##	zookeeper client domain.
 ## </summary>
@@ -248,6 +291,26 @@ interface(`hadoop_domtrans_zookeeper_client',`
 
 	corecmd_search_bin($1)
 	domtrans_pattern($1, zookeeper_exec_t, zookeeper_t)
+')
+
+########################################
+## <summary>
+##	Give permission to a domain to
+##	recvfrom zookeeper_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing recvfrom
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_recvfrom_zookeeper_client',`
+	gen_require(`
+		type zookeeper_t;
+	')
+
+	allow $1 zookeeper_t:peer recv;
 ')
 
 ########################################
@@ -272,6 +335,26 @@ interface(`hadoop_domtrans_zookeeper_server',`
 
 ########################################
 ## <summary>
+##	Give permission to a domain to
+##	recvfrom zookeeper_server_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing recvfrom
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_recvfrom_zookeeper_server',`
+	gen_require(`
+		type zookeeper_server_t;
+	')
+
+	allow $1 zookeeper_server_t:peer recv;
+')
+
+########################################
+## <summary>
 ##	Execute zookeeper server in the
 ##	zookeeper domain.
 ## </summary>
@@ -287,6 +370,26 @@ interface(`hadoop_initrc_domtrans_zookeeper_server',`
 	')
 
 	init_labeled_script_domtrans($1, zookeeper_server_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Give permission to a domain to
+##	recvfrom hadoop_datanode_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing recvfrom
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_recvfrom_datanode',`
+	gen_require(`
+		type hadoop_datanode_t;
+	')
+
+	allow $1 hadoop_datanode_t:peer recv;
 ')
 
 ########################################
@@ -328,4 +431,104 @@ interface(`hadoop_exec_config',`
 
 	hadoop_read_config($1)
 	allow $1 hadoop_etc_t:file exec_file_perms;
+')
+
+########################################
+## <summary>
+##	Give permission to a domain to
+##	recvfrom hadoop_jobtracker_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing recvfrom
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_recvfrom_jobtracker',`
+	gen_require(`
+		type hadoop_jobtracker_t;
+	')
+
+	allow $1 hadoop_jobtracker_t:peer recv;
+')
+
+########################################
+## <summary>
+##	Give permission to a domain to
+##	polmatch on hadoop_lan_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing polmatch
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_match_lan_spd',`
+	gen_require(`
+		type hadoop_lan_t;
+	')
+
+	allow $1 hadoop_lan_t:association polmatch;
+')
+
+########################################
+## <summary>
+##	Give permission to a domain to
+##	recvfrom hadoop_namenode_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing recvfrom
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_recvfrom_namenode',`
+	gen_require(`
+		type hadoop_namenode_t;
+	')
+
+	allow $1 hadoop_namenode_t:peer recv;
+')
+
+########################################
+## <summary>
+##	Give permission to a domain to
+##	recvfrom hadoop_secondarynamenode_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing recvfrom
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_recvfrom_secondarynamenode',`
+	gen_require(`
+		type hadoop_secondarynamenode_t;
+	')
+
+	allow $1 hadoop_secondarynamenode_t:peer recv;
+')
+
+########################################
+## <summary>
+##	Give permission to a domain to
+##	recvfrom hadoop_tasktracker_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain needing recvfrom
+##	permission
+##	</summary>
+## </param>
+#
+interface(`hadoop_recvfrom_tasktracker',`
+	gen_require(`
+		type hadoop_tasktracker_t;
+	')
+
+	allow $1 hadoop_tasktracker_t:peer recv;
 ')

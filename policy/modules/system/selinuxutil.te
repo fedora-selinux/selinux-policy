@@ -1,4 +1,4 @@
-policy_module(selinuxutil, 1.14.0)
+policy_module(selinuxutil, 1.14.1)
 
 gen_require(`
 	bool secure_mode;
@@ -463,6 +463,10 @@ seutil_domtrans_setfiles(semanage_t)
 # netfilter_contexts:
 seutil_manage_default_contexts(semanage_t)
 
+# Handle pp files created in homedir and /tmp
+userdom_read_user_home_content_files(semanage_t)
+userdom_read_user_tmp_files(semanage_t)
+
 ifdef(`distro_debian',`
 	files_read_var_lib_files(semanage_t)
 	files_read_var_lib_symlinks(semanage_t)
@@ -479,22 +483,6 @@ ifdef(`distro_ubuntu',`
 		unconfined_domain(semanage_t)
 	')
 ')
-
-optional_policy(`
-	#signal mcstrans on reload
-	init_spec_domtrans_script(semanage_t)
-')
-
-# cjp: need a more general way to handle this:
-ifdef(`enable_mls',`
-	# read secadm tmp files
-',`
-	# Handle pp files created in homedir and /tmp
-	userdom_read_user_home_content_files(semanage_t)
-	userdom_read_user_tmp_files(semanage_t)
-')
-
-userdom_search_admin_dir(semanage_t)
 
 ####################################n####
 #
