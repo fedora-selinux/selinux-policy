@@ -208,6 +208,34 @@ interface(`dbus_system_bus_client',`
 
 #######################################
 ## <summary>
+##	Creating connections to specified
+##	DBUS sessions.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dbus_session_client',`
+	gen_require(`
+		class dbus send_msg;
+		type $1_dbusd_t;
+	')
+
+	allow $2 $1_dbusd_t:fd use;
+	allow $2 { $1_dbusd_t self }:dbus send_msg;
+	allow $2 $1_dbusd_t:unix_stream_socket connectto;
+')
+
+#######################################
+## <summary>
 ##	Template for creating connections to
 ##	a user DBUS.
 ## </summary>
@@ -228,6 +256,8 @@ interface(`dbus_session_bus_client',`
 
 	# For connecting to the bus
 	allow $1 session_bus_type:unix_stream_socket connectto;
+
+	allow session_bus_type $1:process sigkill;
 ')
 
 ########################################

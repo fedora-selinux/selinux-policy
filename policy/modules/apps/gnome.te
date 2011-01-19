@@ -5,7 +5,7 @@ policy_module(gnome, 2.1.0)
 # Declarations
 #
 
-attribute gnomedomain;
+attribute gnome_domain;
 attribute gnome_home_type;
 
 type gconf_etc_t;
@@ -36,7 +36,7 @@ typealias gconf_tmp_t alias unconfined_gconf_tmp_t;
 files_tmp_file(gconf_tmp_t)
 ubac_constrained(gconf_tmp_t)
 
-type gconfd_t, gnomedomain;
+type gconfd_t, gnome_domain;
 type gconfd_exec_t;
 typealias gconfd_t alias { user_gconfd_t staff_gconfd_t sysadm_gconfd_t };
 typealias gconfd_t alias { auditadm_gconfd_t secadm_gconfd_t };
@@ -48,6 +48,19 @@ typealias gnome_home_t alias { user_gnome_home_t staff_gnome_home_t sysadm_gnome
 typealias gnome_home_t alias { auditadm_gnome_home_t secadm_gnome_home_t };
 typealias gnome_home_t alias unconfined_gnome_home_t;
 userdom_user_home_content(gnome_home_t)
+
+attribute gkeyringd_domain;
+type gkeyringd_t, gnome_domain, gkeyringd_domain;
+type gkeyringd_exec_t;
+application_domain(gkeyringd_t, gkeyringd_exec_t)
+ubac_constrained(gkeyringd_t)
+permissive gkeyringd_t;
+
+type gkeyringd_gnome_home_t;
+userdom_user_home_content(gkeyringd_gnome_home_t)
+
+type gkeyringd_tmp_t;
+userdom_user_tmp_content(gkeyringd_tmp_t)
 
 type gconfdefaultsm_t;
 type gconfdefaultsm_exec_t;
@@ -97,16 +110,6 @@ optional_policy(`
 	xserver_rw_xdm_pipes(gconfd_t)
 ')
 
-tunable_policy(`use_nfs_home_dirs',`
-        fs_manage_nfs_dirs(gconfdefaultsm_t)
-        fs_manage_nfs_files(gconfdefaultsm_t)
-')
-
-tunable_policy(`use_samba_home_dirs',`
-        fs_manage_cifs_dirs(gconfdefaultsm_t)
-        fs_manage_cifs_files(gconfdefaultsm_t)
-')
-
 #######################################
 #
 # gconf-defaults-mechanisms local policy
@@ -144,6 +147,16 @@ optional_policy(`
         policykit_dbus_chat(gconfdefaultsm_t)
         policykit_read_lib(gconfdefaultsm_t)
         policykit_read_reload(gconfdefaultsm_t)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+        fs_manage_nfs_dirs(gconfdefaultsm_t)
+        fs_manage_nfs_files(gconfdefaultsm_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+        fs_manage_cifs_dirs(gconfdefaultsm_t)
+        fs_manage_cifs_files(gconfdefaultsm_t)
 ')
 
 #######################################
@@ -184,3 +197,60 @@ optional_policy(`
         policykit_read_lib(gnomesystemmm_t)
         policykit_read_reload(gnomesystemmm_t)
 ')
+
+allow gkeyringd_t self:capability ipc_lock;
+allow gkeyringd_t self:process { getcap getsched signal };
+allow gkeyringd_t self:fifo_file rw_fifo_file_perms;
+allow gkeyringd_t self:unix_stream_socket { connectto accept listen };
+
+userdom_user_home_dir_filetrans(gkeyringd_t, gnome_home_t, dir)
+
+manage_dirs_pattern(gkeyringd_t, gkeyringd_gnome_home_t, gkeyringd_gnome_home_t)
+manage_files_pattern(gkeyringd_t, gkeyringd_gnome_home_t, gkeyringd_gnome_home_t)
+filetrans_pattern(gkeyringd_t, gnome_home_t, gkeyringd_gnome_home_t, dir)
+
+manage_dirs_pattern(gkeyringd_t, gkeyringd_tmp_t, gkeyringd_tmp_t)
+manage_sock_files_pattern(gkeyringd_t, gkeyringd_tmp_t, gkeyringd_tmp_t)
+files_tmp_filetrans(gkeyringd_t, gkeyringd_tmp_t, dir)
+
+kernel_read_crypto_sysctls(gkeyringd_t)
+
+corecmd_search_bin(gkeyringd_t)
+
+dev_read_rand(gkeyringd_t)
+dev_read_urand(gkeyringd_t)
+
+files_read_etc_files(gkeyringd_t)
+files_read_usr_files(gkeyringd_t)
+# for nscd?
+files_search_pids(gkeyringd_t)
+
+fs_getattr_xattr_fs(gkeyringd_t)
+
+selinux_getattr_fs(gkeyringd_t)
+
+logging_send_syslog_msg(gkeyringd_t)
+
+miscfiles_read_localization(gkeyringd_t)
+
+xserver_append_xdm_home_files(gkeyringd_t)
+xserver_read_xdm_home_files(gkeyringd_t)
+xserver_use_xdm_fds(gkeyringd_t)
+
+optional_policy(`
+	dbus_session_domain(gkeyringd_t, gkeyringd_exec_t)
+
+	dbus_session_bus_client(gkeyringd_t)
+	gnome_home_dir_filetrans(gkeyringd_t)
+	gnome_manage_generic_home_dirs(gkeyringd_t)
+
+	optional_policy(`
+		telepathy_mission_control_read_state(gkeyringd_t)
+	')
+')
+
+optional_policy(`
+	ssh_read_user_home_files(gkeyringd_t)
+')
+
+userdom_use_user_terminals(gnome_domain)
