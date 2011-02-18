@@ -7,6 +7,7 @@ policy_module(gnome, 2.1.0)
 
 attribute gnome_domain;
 attribute gnome_home_type;
+attribute gkeyringd_domain;
 
 type gconf_etc_t;
 files_config_file(gconf_etc_t)
@@ -49,12 +50,8 @@ typealias gnome_home_t alias { auditadm_gnome_home_t secadm_gnome_home_t };
 typealias gnome_home_t alias unconfined_gnome_home_t;
 userdom_user_home_content(gnome_home_t)
 
-attribute gkeyringd_domain;
-type gkeyringd_t, gnome_domain, gkeyringd_domain;
 type gkeyringd_exec_t;
-application_domain(gkeyringd_t, gkeyringd_exec_t)
-ubac_constrained(gkeyringd_t)
-permissive gkeyringd_t;
+corecmd_executable_file(gkeyringd_exec_t)
 
 type gkeyringd_gnome_home_t;
 userdom_user_home_content(gkeyringd_gnome_home_t)
@@ -198,59 +195,58 @@ optional_policy(`
         policykit_read_reload(gnomesystemmm_t)
 ')
 
-allow gkeyringd_t self:capability ipc_lock;
-allow gkeyringd_t self:process { getcap getsched signal };
-allow gkeyringd_t self:fifo_file rw_fifo_file_perms;
-allow gkeyringd_t self:unix_stream_socket { connectto accept listen };
+######################################
+#
+# gnome-keyring-daemon local policy
+#
 
-userdom_user_home_dir_filetrans(gkeyringd_t, gnome_home_t, dir)
+allow gkeyringd_domain self:capability ipc_lock;
+allow gkeyringd_domain self:process { getcap getsched signal };
+allow gkeyringd_domain self:fifo_file rw_fifo_file_perms;
+allow gkeyringd_domain self:unix_stream_socket { connectto accept listen };
 
-manage_dirs_pattern(gkeyringd_t, gkeyringd_gnome_home_t, gkeyringd_gnome_home_t)
-manage_files_pattern(gkeyringd_t, gkeyringd_gnome_home_t, gkeyringd_gnome_home_t)
-filetrans_pattern(gkeyringd_t, gnome_home_t, gkeyringd_gnome_home_t, dir)
+userdom_user_home_dir_filetrans(gkeyringd_domain, gnome_home_t, dir)
 
-#manage_dirs_pattern(gkeyringd_t, gkeyringd_tmp_t, gkeyringd_tmp_t)
-#manage_sock_files_pattern(gkeyringd_t, gkeyringd_tmp_t, gkeyringd_tmp_t)
-#files_tmp_filetrans(gkeyringd_t, gkeyringd_tmp_t, dir)
+manage_dirs_pattern(gkeyringd_domain, gkeyringd_gnome_home_t, gkeyringd_gnome_home_t)
+manage_files_pattern(gkeyringd_domain, gkeyringd_gnome_home_t, gkeyringd_gnome_home_t)
+filetrans_pattern(gkeyringd_domain, gnome_home_t, gkeyringd_gnome_home_t, dir)
 
-kernel_read_crypto_sysctls(gkeyringd_t)
+manage_dirs_pattern(gkeyringd_domain, gkeyringd_tmp_t, gkeyringd_tmp_t)
+manage_sock_files_pattern(gkeyringd_domain, gkeyringd_tmp_t, gkeyringd_tmp_t)
+files_tmp_filetrans(gkeyringd_domain, gkeyringd_tmp_t, dir)
 
-corecmd_search_bin(gkeyringd_t)
+kernel_read_crypto_sysctls(gkeyringd_domain)
 
-dev_read_rand(gkeyringd_t)
-dev_read_urand(gkeyringd_t)
+corecmd_search_bin(gkeyringd_domain)
 
-files_read_etc_files(gkeyringd_t)
-files_read_usr_files(gkeyringd_t)
+dev_read_rand(gkeyringd_domain)
+dev_read_urand(gkeyringd_domain)
+
+files_read_etc_files(gkeyringd_domain)
+files_read_usr_files(gkeyringd_domain)
 # for nscd?
-files_search_pids(gkeyringd_t)
+files_search_pids(gkeyringd_domain)
 
-fs_getattr_xattr_fs(gkeyringd_t)
+fs_getattr_xattr_fs(gkeyringd_domain)
 
-selinux_getattr_fs(gkeyringd_t)
+selinux_getattr_fs(gkeyringd_domain)
 
-logging_send_syslog_msg(gkeyringd_t)
+logging_send_syslog_msg(gkeyringd_domain)
 
-miscfiles_read_localization(gkeyringd_t)
+miscfiles_read_localization(gkeyringd_domain)
 
-xserver_append_xdm_home_files(gkeyringd_t)
-xserver_read_xdm_home_files(gkeyringd_t)
-xserver_use_xdm_fds(gkeyringd_t)
+xserver_append_xdm_home_files(gkeyringd_domain)
+xserver_read_xdm_home_files(gkeyringd_domain)
+xserver_use_xdm_fds(gkeyringd_domain)
 
 optional_policy(`
-	dbus_session_domain(gkeyringd_t, gkeyringd_exec_t)
-
-	dbus_session_bus_client(gkeyringd_t)
-	gnome_home_dir_filetrans(gkeyringd_t)
-	gnome_manage_generic_home_dirs(gkeyringd_t)
-
-	optional_policy(`
-		telepathy_mission_control_read_state(gkeyringd_t)
-	')
+	gnome_read_home_config(gkeyringd_domain)
+	gnome_read_generic_cache_files(gkeyringd_domain)
+	gnome_write_generic_cache_files(gkeyringd_domain)
 ')
 
 optional_policy(`
-	ssh_read_user_home_files(gkeyringd_t)
+	ssh_read_user_home_files(gkeyringd_domain)
 ')
 
 userdom_use_user_terminals(gnome_domain)
