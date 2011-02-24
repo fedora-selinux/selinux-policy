@@ -2,13 +2,17 @@ policy_module(sandbox,1.0.0)
 dbus_stub()
 attribute sandbox_domain;
 attribute sandbox_x_domain;
-attribute sandbox_file_type;
 attribute sandbox_web_type;
+attribute sandbox_file_type;
 attribute sandbox_tmpfs_type;
 attribute sandbox_type;
 
 type sandbox_exec_t;
 files_type(sandbox_exec_t)
+
+type sandbox_file_t, sandbox_file_type;
+files_type(sandbox_file_t)
+typealias sandbox_file_t alias { sandbox_x_file_t sandbox_web_file_t sandbox_net_file_t sandbox_min_file_t };
 
 ########################################
 #
@@ -40,6 +44,11 @@ allow sandbox_xserver_t self:process { execmem execstack };
 allow sandbox_xserver_t self:fifo_file manage_fifo_file_perms;
 allow sandbox_xserver_t self:shm create_shm_perms;
 allow sandbox_xserver_t self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(sandbox_xserver_t, sandbox_file_t, sandbox_file_t)
+manage_files_pattern(sandbox_xserver_t, sandbox_file_t, sandbox_file_t)
+manage_sock_files_pattern(sandbox_xserver_t, sandbox_file_t, sandbox_file_t)
+allow sandbox_xserver_t sandbox_file_t:sock_file create_sock_file_perms;
 
 manage_dirs_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
 manage_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
@@ -117,6 +126,14 @@ dontaudit sandbox_domain self:netlink_audit_socket { create_netlink_socket_perms
 
 dev_rw_all_inherited_chr_files(sandbox_domain)
 dev_rw_all_inherited_blk_files(sandbox_domain)
+
+can_exec(sandbox_domain, sandbox_file_t)
+allow sandbox_domain sandbox_file_t:filesystem getattr;
+manage_files_pattern(sandbox_domain, sandbox_file_t, sandbox_file_t);
+manage_dirs_pattern(sandbox_domain, sandbox_file_t, sandbox_file_t);
+manage_sock_files_pattern(sandbox_domain, sandbox_file_t, sandbox_file_t);
+manage_fifo_files_pattern(sandbox_domain, sandbox_file_t, sandbox_file_t);
+manage_lnk_files_pattern(sandbox_domain, sandbox_file_t, sandbox_file_t);
 
 gen_require(`
 	type usr_t, lib_t, locale_t;
@@ -446,4 +463,3 @@ optional_policy(`
 	mozilla_dontaudit_rw_user_home_files(sandbox_x_domain)
 	mozilla_plugin_dontaudit_leaks(sandbox_x_domain)
 ')
-
