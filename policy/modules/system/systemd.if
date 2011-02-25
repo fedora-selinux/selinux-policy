@@ -90,3 +90,33 @@ interface(`systemd_passwd_agent_role',`
 	allow $2 systemd_passwd_agent_t:process signal;
 ')
 
+
+######################################
+## <summary>
+##  Template for temporary sockets and files in /dev/.systemd/ask-password
+##  which are used by systemd-passwd-agent
+## </summary>
+## <param name="userdomain_prefix">
+##  <summary>
+##  The prefix of the domain (e.g., user
+##  is the prefix for user_t).
+##  </summary>
+## </param>
+#
+interface(`systemd_passwd_agent_dev_template',`
+        gen_require(`
+                type systemd_passwd_agent_t;
+        ')
+
+		type systemd_$1_device_t;
+        files_type(systemd_$1_device_t)
+        dev_associate(systemd_$1_device_t)
+
+		dev_filetrans($1_t, systemd_$1_device_t, { file sock_file })
+        allow $1_t systemd_$1_device_t:file manage_file_perms;
+        allow $1_t systemd_$1_device_t:sock_file manage_sock_file_perms;
+
+        allow systemd_passwd_agent_t $1_t:unix_dgram_socket sendto;
+		allow systemd_passwd_agent_t systemd_$1_device_t:sock_file write;
+        allow systemd_passwd_agent_t systemd_$1_device_t:file read_file_perms;
+')
