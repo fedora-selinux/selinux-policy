@@ -45,8 +45,10 @@ miscfiles_read_localization(dirsrvadmin_t)
 # Needed for stop and restart scripts
 dirsrv_read_var_run(dirsrvadmin_t)
 
-apache_domtrans(dirsrvadmin_t)
-apache_signal(dirsrvadmin_t)
+optional_policy(`
+	apache_domtrans(dirsrvadmin_t)
+	apache_signal(dirsrvadmin_t)
+')
 
 ########################################
 #
@@ -55,41 +57,44 @@ apache_signal(dirsrvadmin_t)
 #
 #
 # Create a domain for the CGI scripts
-apache_content_template(dirsrvadmin)
 
-allow httpd_dirsrvadmin_script_t self:process { getsched getpgid };
-allow httpd_dirsrvadmin_script_t self:capability { setuid net_bind_service setgid chown sys_nice kill dac_read_search dac_override };
-allow httpd_dirsrvadmin_script_t self:tcp_socket create_stream_socket_perms;
-allow httpd_dirsrvadmin_script_t self:udp_socket create_socket_perms;
-allow httpd_dirsrvadmin_script_t self:unix_dgram_socket create_socket_perms;
-allow httpd_dirsrvadmin_script_t self:netlink_route_socket r_netlink_socket_perms;
-allow httpd_dirsrvadmin_script_t self:sem create_sem_perms;
+optional_policy(`
+	apache_content_template(dirsrvadmin)
 
-kernel_read_kernel_sysctls(httpd_dirsrvadmin_script_t)
+	allow httpd_dirsrvadmin_script_t self:process { getsched getpgid };
+	allow httpd_dirsrvadmin_script_t self:capability { setuid net_bind_service setgid chown sys_nice kill dac_read_search dac_override };
+	allow httpd_dirsrvadmin_script_t self:tcp_socket create_stream_socket_perms;
+	allow httpd_dirsrvadmin_script_t self:udp_socket create_socket_perms;
+	allow httpd_dirsrvadmin_script_t self:unix_dgram_socket create_socket_perms;
+	allow httpd_dirsrvadmin_script_t self:netlink_route_socket r_netlink_socket_perms;
+	allow httpd_dirsrvadmin_script_t self:sem create_sem_perms;
 
-corenet_all_recvfrom_unlabeled(httpd_dirsrvadmin_script_t)
-corenet_all_recvfrom_netlabel(httpd_dirsrvadmin_script_t)
-corenet_tcp_connect_generic_port(httpd_dirsrvadmin_script_t)
-corenet_tcp_connect_ldap_port(httpd_dirsrvadmin_script_t)
-corenet_tcp_connect_http_port(httpd_dirsrvadmin_script_t)
+	kernel_read_kernel_sysctls(httpd_dirsrvadmin_script_t)
 
-files_search_var_lib(httpd_dirsrvadmin_script_t)
+	corenet_all_recvfrom_unlabeled(httpd_dirsrvadmin_script_t)
+	corenet_all_recvfrom_netlabel(httpd_dirsrvadmin_script_t)
+	corenet_tcp_connect_generic_port(httpd_dirsrvadmin_script_t)
+	corenet_tcp_connect_ldap_port(httpd_dirsrvadmin_script_t)
+	corenet_tcp_connect_http_port(httpd_dirsrvadmin_script_t)
 
-sysnet_read_config(httpd_dirsrvadmin_script_t)
+	files_search_var_lib(httpd_dirsrvadmin_script_t)
 
-manage_files_pattern(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
-manage_dirs_pattern(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
-files_tmp_filetrans(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, { file dir })
+	sysnet_read_config(httpd_dirsrvadmin_script_t)
 
-# The CGI scripts must be able to manage dirsrv-admin
-dirsrvadmin_run_exec(httpd_dirsrvadmin_script_t)
-dirsrvadmin_manage_config(httpd_dirsrvadmin_script_t)
-dirsrv_domtrans(httpd_dirsrvadmin_script_t)
-dirsrv_signal(httpd_dirsrvadmin_script_t)
-dirsrv_signull(httpd_dirsrvadmin_script_t)
-dirsrv_manage_log(httpd_dirsrvadmin_script_t)
-dirsrv_manage_var_lib(httpd_dirsrvadmin_script_t)
-dirsrv_pid_filetrans(httpd_dirsrvadmin_script_t)
-dirsrv_manage_var_run(httpd_dirsrvadmin_script_t)
-dirsrv_manage_config(httpd_dirsrvadmin_script_t)
-dirsrv_read_share(httpd_dirsrvadmin_script_t)
+	manage_files_pattern(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
+	manage_dirs_pattern(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
+	files_tmp_filetrans(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, { file dir })
+
+	# The CGI scripts must be able to manage dirsrv-admin
+	dirsrvadmin_run_exec(httpd_dirsrvadmin_script_t)
+	dirsrvadmin_manage_config(httpd_dirsrvadmin_script_t)
+	dirsrv_domtrans(httpd_dirsrvadmin_script_t)
+	dirsrv_signal(httpd_dirsrvadmin_script_t)
+	dirsrv_signull(httpd_dirsrvadmin_script_t)
+	dirsrv_manage_log(httpd_dirsrvadmin_script_t)
+	dirsrv_manage_var_lib(httpd_dirsrvadmin_script_t)
+	dirsrv_pid_filetrans(httpd_dirsrvadmin_script_t)
+	dirsrv_manage_var_run(httpd_dirsrvadmin_script_t)
+	dirsrv_manage_config(httpd_dirsrvadmin_script_t)
+	dirsrv_read_share(httpd_dirsrvadmin_script_t)
+')
