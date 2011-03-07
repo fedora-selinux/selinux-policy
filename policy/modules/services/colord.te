@@ -1,0 +1,67 @@
+policy_module(colord,1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type colord_t;
+type colord_exec_t;
+dbus_system_domain(colord_t, colord_exec_t)
+
+type colord_var_lib_t;
+files_type(colord_var_lib_t)
+
+type colord_tmp_t;
+files_tmp_file(colord_tmp_t)
+
+permissive colord_t;
+
+########################################
+#
+# colord local policy
+#
+allow colord_t self:fifo_file rw_fifo_file_perms;
+allow colord_t self:netlink_kobject_uevent_socket { bind create setopt getattr };
+allow colord_t self:udp_socket create_socket_perms;
+
+manage_dirs_pattern(colord_t, colord_tmp_t, colord_tmp_t)
+manage_files_pattern(colord_t, colord_tmp_t, colord_tmp_t)
+files_tmp_filetrans(colord_t, colord_tmp_t, { file dir })
+
+manage_dirs_pattern(colord_t, colord_var_lib_t, colord_var_lib_t)
+manage_files_pattern(colord_t, colord_var_lib_t, colord_var_lib_t)
+files_var_lib_filetrans(colord_t, colord_var_lib_t, { file dir })
+
+kernel_read_device_sysctls(colord_t)
+
+corenet_udp_bind_generic_node(colord_t)
+corenet_udp_bind_ipp_port(colord_t)
+
+dev_read_raw_memory(colord_t)
+dev_write_raw_memory(colord_t)
+dev_read_video_dev(colord_t)
+dev_write_video_dev(colord_t)
+dev_read_rand(colord_t)
+dev_read_sysfs(colord_t)
+dev_read_urand(colord_t)
+dev_list_sysfs(colord_t)
+dev_read_generic_usb_dev(colord_t)
+
+domain_use_interactive_fds(colord_t)
+
+files_read_etc_files(colord_t)
+files_read_usr_files(colord_t)
+
+miscfiles_read_localization(colord_t)
+
+sysnet_dns_name_resolve(colord_t)
+
+optional_policy(`
+	cups_read_rw_config(colord_t)
+	cups_stream_connect(colord_t)
+')
+
+optional_policy(`
+	udev_read_db(colord_t)
+')
