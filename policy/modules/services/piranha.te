@@ -146,6 +146,7 @@ kernel_read_kernel_sysctls(piranha_lvs_t)
 # needed by nanny
 corenet_tcp_connect_ftp_port(piranha_lvs_t)
 corenet_tcp_connect_http_port(piranha_lvs_t)
+corenet_tcp_connect_smtp_port(piranha_lvs_t)
 
 sysnet_dns_name_resolve(piranha_lvs_t)
 
@@ -164,6 +165,8 @@ optional_policy(`
 # piranha-pulse local policy
 #
 
+allow piranha_pulse_t self:capability net_admin;
+
 allow piranha_pulse_t self:packet_socket create_socket_perms;
 
 # pulse starts fos and lvs daemon
@@ -173,17 +176,90 @@ allow piranha_pulse_t piranha_fos_t:process signal;
 domtrans_pattern(piranha_pulse_t, piranha_lvs_exec_t, piranha_lvs_t)
 allow piranha_pulse_t piranha_lvs_t:process signal;
 
+kernel_read_kernel_sysctls(piranha_pulse_t)
+kernel_read_rpc_sysctls(piranha_pulse_t)
+kernel_read_system_state(piranha_pulse_t)
+kernel_rw_rpc_sysctls(piranha_pulse_t)
+kernel_search_debugfs(piranha_pulse_t)
+kernel_search_network_state(piranha_pulse_t)
+
+corecmd_exec_bin(piranha_pulse_t)
+corecmd_exec_shell(piranha_pulse_t)
+consoletype_exec(piranha_pulse_t)
+
 corenet_udp_bind_apertus_ldp_port(piranha_pulse_t)
+
+domain_read_all_domains_state(piranha_pulse_t)
+domain_getattr_all_domains(piranha_pulse_t)
+#domain_dontaudit_ptrace_all_domains(piranha_pulse_t)
+
+fs_getattr_all_fs(piranha_pulse_t)
 
 sysnet_dns_name_resolve(piranha_pulse_t)
 
+auth_use_nsswitch(piranha_pulse_t)
+
+logging_send_syslog_msg(piranha_pulse_t)
+
+miscfiles_read_localization(piranha_pulse_t)
+
+# various services to failover
+
 optional_policy(`
+	apache_domtrans(piranha_pulse_t)
+	apache_signal(piranha_pulse_t)
+')
+
+optional_policy(`
+	ftp_domtrans(piranha_pulse_t)
+	ftp_initrc_domtrans(piranha_pulse_t)
+')
+
+optional_policy(`
+	hostname_exec(piranha_pulse_t)
+')
+
+optional_policy(`
+    ldap_initrc_domtrans(piranha_pulse_t)
+    ldap_domtrans(piranha_pulse_t)
+')
+
+optional_policy(`
+    mysql_domtrans_mysql_safe(piranha_pulse_t)
+    mysql_stream_connect(piranha_pulse_t)
+')
+
+optional_policy(`
+	netutils_domtrans(piranha_pulse_t)
 	netutils_domtrans_ping(piranha_pulse_t)
 ')
 
 optional_policy(`
-	sysnet_domtrans_ifconfig(piranha_pulse_t)
+	postgresql_domtrans(piranha_pulse_t)
+	postgresql_signal(piranha_pulse_t)
 ')
+
+optional_policy(`
+	samba_initrc_domtrans(piranha_pulse_t)
+	samba_domtrans_smbd(piranha_pulse_t)
+	samba_domtrans_nmbd(piranha_pulse_t)
+	samba_manage_var_files(piranha_pulse_t)
+	samba_rw_config(piranha_pulse_t)
+	samba_signal_smbd(piranha_pulse_t)
+	samba_signal_nmbd(piranha_pulse_t)
+')
+
+optional_policy(`
+    sysnet_domtrans_ifconfig(piranha_pulse_t)
+')
+
+optional_policy(`
+    udev_read_db(piranha_pulse_t)
+')
+
+#optional_policy(`
+#       unconfined_domain(piranha_pulse_t)
+#')
 
 ####################################
 #
