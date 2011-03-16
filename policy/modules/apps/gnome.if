@@ -862,13 +862,14 @@ interface(`gnome_dbus_chat_gconfdefault',`
 #
 interface(`gnome_dbus_chat_gkeyringd',`
 	gen_require(`
-		type gkeyringd_t;
+		attribute gkeyringd_domain;
 		class dbus send_msg;
 	')
 
-	allow $2 gkeyringd_t:dbus send_msg;
-	allow gkeyringd_t $2:dbus send_msg;
+	allow $2 gkeyringd_domain:dbus send_msg;
+	allow gkeyringd_domain $2:dbus send_msg;
 ')
+
 ########################################
 ## <summary>
 ##	Create directories in user home directories
@@ -930,3 +931,30 @@ interface(`gnome_manage_usr_config',`
 		manage_files_pattern($1, config_usr_t, config_usr_t)
 		manage_lnk_files_pattern($1, config_usr_t, config_usr_t)
 ')
+
+########################################
+## <summary>
+##	Execute gnome-keyring in the user gkeyring domain
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the gkeyring domain.
+##	</summary>
+## </param>
+#
+interface(`gnome_transition_gkeyringd',`
+	gen_require(`
+		attribute gkeyringd_domain;
+	')
+
+	allow $1 gkeyringd_domain:process transition;
+	dontaudit $1 gkeyringd_domain:process { noatsecure siginh rlimitinh };
+	allow gkeyringd_domain $1:process { sigchld signull };
+	allow gkeyringd_domain $1:fifo_file rw_inherited_fifo_file_perms;
+')
+
