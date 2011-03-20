@@ -64,13 +64,15 @@ interface(`gnome_role_gkeyringd',`
 		class dbus send_msg;
         ')
 
-	type gkeyringd_$1_t, gnome_domain, gkeyringd_domain;
-	application_domain(gkeyringd_$1_t, gkeyringd_exec_t)
-	ubac_constrained(gkeyringd_$1_t)
+	type $1_gkeyringd_t, gnome_domain, gkeyringd_domain;
+	typealias $1_gkeyringd_t types gkeyrind_$1_t;
+	application_domain($1_gkeyringd_t, gkeyringd_exec_t)
+	ubac_constrained($1_gkeyringd_t)
+	domain_user_exemption_target($1_gkeyringd_t)
 
-	role $2 types gkeyringd_$1_t;
+	role $2 types $1_gkeyringd_t;
 
-	domtrans_pattern($3, gkeyringd_exec_t, gkeyringd_$1_t)
+	domtrans_pattern($3, gkeyringd_exec_t, $1_gkeyringd_t)
 
 	allow $3 gkeyringd_gnome_home_t:dir { relabel_dir_perms manage_dir_perms };
 	allow $3 gkeyringd_gnome_home_t:file { relabel_file_perms manage_file_perms };
@@ -78,31 +80,31 @@ interface(`gnome_role_gkeyringd',`
 	allow $3 gkeyringd_tmp_t:dir { relabel_dir_perms manage_dir_perms };
 	allow $3 gkeyringd_tmp_t:sock_file { relabel_sock_file_perms manage_sock_file_perms };
 
-	corecmd_bin_domtrans(gkeyringd_$1_t, $1_t)
-	corecmd_shell_domtrans(gkeyringd_$1_t, $1_t)
-	allow gkeyringd_$1_t $3:process sigkill;
-	allow $3 gkeyringd_$1_t:fd use;
-	allow $3 gkeyringd_$1_t:fifo_file rw_fifo_file_perms;
+	corecmd_bin_domtrans($1_gkeyringd_t, $1_t)
+	corecmd_shell_domtrans($1_gkeyringd_t, $1_t)
+	allow $1_gkeyringd_t $3:process sigkill;
+	allow $3 $1_gkeyringd_t:fd use;
+	allow $3 $1_gkeyringd_t:fifo_file rw_fifo_file_perms;
 
-	ps_process_pattern(gkeyringd_$1_t, $3)
+	ps_process_pattern($1_gkeyringd_t, $3)
 
-	ps_process_pattern($3, gkeyringd_$1_t)
-	allow $3 gkeyringd_$1_t:process { ptrace signal_perms };
+	ps_process_pattern($3, $1_gkeyringd_t)
+	allow $3 $1_gkeyringd_t:process { ptrace signal_perms };
 
 	dontaudit $3 gkeyringd_exec_t:file entrypoint;
 
-	stream_connect_pattern($3, gkeyringd_tmp_t, gkeyringd_tmp_t, gkeyringd_$1_t)
+	stream_connect_pattern($3, gkeyringd_tmp_t, gkeyringd_tmp_t, $1_gkeyringd_t)
 
-	allow gkeyringd_$1_t $3:dbus send_msg;
-	allow $3 gkeyringd_$1_t:dbus send_msg;
+	allow $1_gkeyringd_t $3:dbus send_msg;
+	allow $3 $1_gkeyringd_t:dbus send_msg;
 	optional_policy(`
-	       	dbus_session_domain(gkeyringd_$1_t, gkeyringd_exec_t)
-		dbus_session_bus_client(gkeyringd_$1_t)
-		gnome_home_dir_filetrans(gkeyringd_$1_t)
-		gnome_manage_generic_home_dirs(gkeyringd_$1_t)
+	       	dbus_session_domain($1_gkeyringd_t, gkeyringd_exec_t)
+		dbus_session_bus_client($1_gkeyringd_t)
+		gnome_home_dir_filetrans($1_gkeyringd_t)
+		gnome_manage_generic_home_dirs($1_gkeyringd_t)
 
 		optional_policy(`
-			telepathy_mission_control_read_state(gkeyringd_$1_t)
+			telepathy_mission_control_read_state($1_gkeyringd_t)
 		')
 	')
 ')
