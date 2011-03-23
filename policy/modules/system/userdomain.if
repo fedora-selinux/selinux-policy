@@ -1388,7 +1388,7 @@ template(`userdom_admin_user_template',`
 	storage_raw_write_removable_device($1_t)
 	storage_dontaudit_read_fixed_disk($1_t)
 
-	term_use_all_terms($1_t)
+	term_use_all_inherited_terms($1_t)
 
 	auth_getattr_shadow($1_t)
 	# Manage almost all files
@@ -2931,6 +2931,24 @@ interface(`userdom_use_user_ttys',`
 
 ########################################
 ## <summary>
+##	Read and write a inherited user domain tty.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_use_inherited_user_ttys',`
+	gen_require(`
+		type user_tty_device_t;
+	')
+
+	allow $1 user_tty_device_t:chr_file rw_inherited_term_perms;
+')
+
+########################################
+## <summary>
 ##	Read and write a user domain pty.
 ## </summary>
 ## <param name="domain">
@@ -2945,6 +2963,24 @@ interface(`userdom_use_user_ptys',`
 	')
 
 	allow $1 user_devpts_t:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Read and write a inherited user domain pty.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_use_inherited_user_ptys',`
+	gen_require(`
+		type user_devpts_t;
+	')
+
+	allow $1 user_devpts_t:chr_file rw_inherited_term_perms;
 ')
 
 ########################################
@@ -2973,7 +3009,7 @@ interface(`userdom_use_user_ptys',`
 ## </param>
 ## <infoflow type="both" weight="10"/>
 #
-interface(`userdom_use_user_terminals',`
+interface(`userdom_use_inherited_user_terminals',`
 	gen_require(`
 		type user_tty_device_t, user_devpts_t;
 	')
@@ -2981,6 +3017,35 @@ interface(`userdom_use_user_terminals',`
 	allow $1 user_tty_device_t:chr_file rw_term_perms;
 	allow $1 user_devpts_t:chr_file rw_term_perms;
 	term_list_ptys($1)
+')
+
+########################################
+## <summary>
+##	Read and write a inherited user TTYs and PTYs.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to read and write inherited user
+##	TTYs and PTYs. This will allow the domain to
+##	interact with the user via the terminal. Typically
+##	all interactive applications will require this
+##	access.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`userdom_use_inherited_user_terminals',`
+	gen_require(`
+		type user_tty_device_t, user_devpts_t;
+	')
+
+	allow $1 user_tty_device_t:chr_file rw_inherited_term_perms;
+	allow $1 user_devpts_t:chr_file rw_inherited_term_perms;
 ')
 
 ########################################
