@@ -139,6 +139,8 @@ allow initrc_t init_t:fifo_file rw_fifo_file_perms;
 
 manage_dirs_pattern(init_t, init_var_run_t, init_var_run_t)
 manage_files_pattern(init_t, init_var_run_t, init_var_run_t)
+manage_lnk_files_pattern(init_t, init_var_run_t, init_var_run_t)
+manage_sock_files_pattern(init_t, init_var_run_t, init_var_run_t)
 files_pid_filetrans(init_t, init_var_run_t, { dir file })
 
 allow init_t initctl_t:fifo_file manage_fifo_file_perms;
@@ -274,9 +276,11 @@ tunable_policy(`init_systemd',`
 	files_mounton_all_mountpoints(init_t)
 	files_unmount_all_file_type_fs(init_t)
 	files_manage_all_pid_dirs(init_t)
+	files_relabel_all_pid_dirs(init_t)
 	files_relabel_all_pid_files(init_t)
 	files_unlink_all_pid_sockets(init_t)
 	files_manage_urandom_seed(init_t)
+	files_create_lock_dirs(init_t)
 
 	fs_manage_cgroup_dirs(init_t)
 	fs_manage_hugetlbfs_dirs(init_t)
@@ -1200,3 +1204,8 @@ optional_policy(`
 ')
 
 init_rw_stream_sockets(daemon)
+
+allow init_t var_run_t:dir relabelto;
+
+init_stream_connect(initrc_t)
+
