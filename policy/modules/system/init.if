@@ -288,6 +288,8 @@ interface(`init_daemon_domain',`
 		ifdef(`distro_rhel4',`
 			kernel_dontaudit_use_fds($1)
 		')
+
+		dontaudit $1 init_t:dir search_dir_perms;
 	')
 
 	optional_policy(`
@@ -630,10 +632,12 @@ interface(`init_sigchld',`
 #
 interface(`init_stream_connect',`
 	gen_require(`
-		type init_t;
+		type init_t, init_var_run_t;
 	')
 
-	allow $1 init_t:unix_stream_socket connectto;
+	files_search_pids($1)
+        stream_connect_pattern($1, init_var_run_t, init_var_run_t, init_t)    
+
 ')
 
 #######################################
@@ -1948,6 +1952,74 @@ interface(`init_pid_filetrans_utmp',`
 	files_pid_filetrans($1, initrc_var_run_t, file)
 ')
 
+######################################
+## <summary>
+##  Allow search  directory in the /run/systemd directory.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`init_search_pid_dirs',`
+    gen_require(`
+        type init_var_run_t;
+    ')
+
+    allow $1 init_var_run_t:dir list_dir_perms;
+')
+
+#######################################
+## <summary>
+##  Create a directory in the /run/systemd directory.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`init_create_pid_dirs',`
+    gen_require(`
+        type init_var_run_t;
+    ')
+
+    allow $1 init_var_run_t:dir list_dir_perms;
+    create_dirs_pattern($1, init_var_run_t, init_var_run_t)
+')
+
+#######################################
+## <summary>
+##  Create objects in /run/systemd directory
+##  with an automatic type transition to
+##  a specified private type.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="private_type">
+##  <summary>
+##  The type of the object to create.
+##  </summary>
+## </param>
+## <param name="object_class">
+##  <summary>
+##  The class of the object to be created.
+##  </summary>
+## </param>
+#
+interface(`init_pid_filetrans',`
+    gen_require(`
+        type init_var_run_t;
+    ')
+
+    filetrans_pattern($1, init_var_run_t, $2, $3)
+	allow $1 init_var_run_t:dir search_dir_perms;
+')
+
 ########################################
 ## <summary>
 ##	Allow the specified domain to connect to daemon with a tcp socket
@@ -2052,6 +2124,25 @@ interface(`init_rw_stream_sockets',`
 	')
 
 	allow $1 init_t:unix_stream_socket rw_stream_socket_perms;
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to write to
+##  init sock file.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`init_write_pid_socket',`
+    gen_require(`
+        type init_var_run_t;
+    ')
+
+    allow $1 init_var_run_t:sock_file write;
 ')
 
 ########################################

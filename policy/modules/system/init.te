@@ -137,9 +137,11 @@ allow init_t initrc_t:unix_stream_socket { connectto create_stream_socket_perms 
 allow initrc_t init_t:unix_stream_socket { connectto rw_stream_socket_perms };
 allow initrc_t init_t:fifo_file rw_fifo_file_perms;
 
-# For /var/run/shutdown.pid.
-allow init_t init_var_run_t:file manage_file_perms;
-files_pid_filetrans(init_t, init_var_run_t, file)
+manage_dirs_pattern(init_t, init_var_run_t, init_var_run_t)
+manage_files_pattern(init_t, init_var_run_t, init_var_run_t)
+manage_lnk_files_pattern(init_t, init_var_run_t, init_var_run_t)
+manage_sock_files_pattern(init_t, init_var_run_t, init_var_run_t)
+files_pid_filetrans(init_t, init_var_run_t, { dir file })
 
 allow init_t initctl_t:fifo_file manage_fifo_file_perms;
 dev_filetrans(init_t, initctl_t, fifo_file)
@@ -276,8 +278,11 @@ tunable_policy(`init_systemd',`
 	files_mounton_all_mountpoints(init_t)
 	files_unmount_all_file_type_fs(init_t)
 	files_manage_all_pid_dirs(init_t)
+	files_relabel_all_pid_dirs(init_t)
+	files_relabel_all_pid_files(init_t)
 	files_unlink_all_pid_sockets(init_t)
 	files_manage_urandom_seed(init_t)
+	files_create_lock_dirs(init_t)
 
 	fs_manage_cgroup_dirs(init_t)
 	fs_manage_hugetlbfs_dirs(init_t)
@@ -399,6 +404,7 @@ manage_fifo_files_pattern(initrc_t, initrc_state_t, initrc_state_t)
 allow initrc_t initrc_var_run_t:file manage_file_perms;
 files_pid_filetrans(initrc_t, initrc_var_run_t, file)
 files_manage_generic_pids_symlinks(initrc_t)
+files_create_var_run_dirs(initrc_t)
 
 can_exec(initrc_t, initrc_tmp_t)
 manage_files_pattern(initrc_t, initrc_tmp_t, initrc_tmp_t)
@@ -676,6 +682,7 @@ ifdef(`distro_redhat',`
 	files_create_boot_dirs(initrc_t)
 	files_create_boot_flag(initrc_t)
 	files_rw_boot_symlinks(initrc_t)
+
 	# wants to read /.fonts directory
 	files_read_default_files(initrc_t)
 	files_mountpoint(initrc_tmp_t)
@@ -1196,3 +1203,8 @@ optional_policy(`
 ')
 
 init_rw_stream_sockets(daemon)
+
+allow init_t var_run_t:dir relabelto;
+
+init_stream_connect(initrc_t)
+

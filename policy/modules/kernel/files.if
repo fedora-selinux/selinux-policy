@@ -5551,6 +5551,7 @@ interface(`files_list_locks',`
 		type var_t, var_lock_t;
 	')
 
+	files_search_pids($1)
 	list_dirs_pattern($1, var_t, var_lock_t)
 ')
 
@@ -5569,6 +5570,7 @@ interface(`files_search_locks',`
 		type var_t, var_lock_t;
 	')
 
+	files_search_pids($1)
 	search_dirs_pattern($1, var_t, var_lock_t)
 ')
 
@@ -5593,6 +5595,26 @@ interface(`files_dontaudit_search_locks',`
 
 ########################################
 ## <summary>
+##	create a directory in the /var/lock
+##	directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_create_lock_dirs',`
+	gen_require(`
+		type var_t, var_lock_t;
+	')
+
+        allow $1 var_t:dir search_dir_perms;
+        allow $1 var_lock_t:dir create_dir_perms;
+')
+
+########################################
+## <summary>
 ##	Add and remove entries in the /var/lock
 ##	directories.
 ## </summary>
@@ -5607,6 +5629,7 @@ interface(`files_rw_lock_dirs',`
 		type var_t, var_lock_t;
 	')
 
+	files_search_pids($1)
 	rw_dirs_pattern($1, var_t, var_lock_t)
 ')
 
@@ -5627,6 +5650,7 @@ interface(`files_getattr_generic_locks',`
 
 	allow $1 var_t:dir search_dir_perms;
 	allow $1 var_lock_t:dir list_dir_perms;
+	files_search_pids($1)
 	getattr_files_pattern($1, var_lock_t, var_lock_t)
 ')
 
@@ -5646,6 +5670,7 @@ interface(`files_delete_generic_locks',`
        ')
 
        allow $1 var_t:dir search_dir_perms;
+       files_search_pids($1)
        delete_files_pattern($1, var_lock_t, var_lock_t)
 ')
 
@@ -5666,6 +5691,7 @@ interface(`files_manage_generic_locks',`
 	')
 
 	allow $1 var_t:dir search_dir_perms;
+	files_search_pids($1)
 	manage_files_pattern($1, var_lock_t, var_lock_t)
 ')
 
@@ -5730,6 +5756,7 @@ interface(`files_read_all_locks',`
 	allow $1 { var_t var_lock_t }:dir search_dir_perms;
 	allow $1 lockfile:dir list_dir_perms;
 	read_files_pattern($1, lockfile, lockfile)
+	files_search_pids($1)
 	read_lnk_files_pattern($1, lockfile, lockfile)
 ')
 
@@ -5750,6 +5777,7 @@ interface(`files_manage_all_locks',`
 	')
 
 	allow $1 { var_t var_lock_t }:dir search_dir_perms;
+	files_search_pids($1)
 	manage_dirs_pattern($1, lockfile, lockfile)
 	manage_files_pattern($1, lockfile, lockfile)
 	manage_lnk_files_pattern($1, lockfile, lockfile)
@@ -5782,6 +5810,7 @@ interface(`files_lock_filetrans',`
 	')
 
 	allow $1 var_t:dir search_dir_perms;
+	files_search_pids($1)
 	filetrans_pattern($1, var_lock_t, $2, $3)
 ')
 

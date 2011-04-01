@@ -39,6 +39,7 @@ allow systemd_passwd_agent_t self:unix_dgram_socket create_socket_perms;
 
 allow systemd_passwd_agent_t systemd_device_t:fifo_file manage_fifo_file_perms;
 dev_filetrans(systemd_passwd_agent_t, systemd_device_t, fifo_file)
+init_pid_filetrans(systemd_passwd_agent_t, systemd_device_t, fifo_file)
 
 kernel_stream_connect(systemd_passwd_agent_t)
 
@@ -51,6 +52,7 @@ dev_write_generic_sock_files(systemd_passwd_agent_t)
 auth_use_nsswitch(systemd_passwd_agent_t)
 
 init_read_utmp(systemd_passwd_agent_t)
+init_create_pid_dirs(systemd_passwd_agent_t)
 
 miscfiles_read_localization(systemd_passwd_agent_t)
 
@@ -70,6 +72,10 @@ allow systemd_tmpfiles_t self:unix_dgram_socket create_socket_perms;
 kernel_read_network_state(systemd_tmpfiles_t)
 
 dev_write_kmsg(systemd_tmpfiles_t)
+
+# systemd-tmpfiles relabel /run/lock and creates /run/lock/lockdev
+fs_create_tmpfs_dir(systemd_tmpfiles_t)
+fs_relabelfrom_tmpfs_dir(systemd_tmpfiles_t)
 
 files_read_etc_files(systemd_tmpfiles_t)
 files_getattr_all_dirs(systemd_tmpfiles_t)
@@ -123,6 +129,14 @@ optional_policy(`
 optional_policy(`
 	rpm_read_db(systemd_tmpfiles_t)
 	rpm_delete_db(systemd_tmpfiles_t)
+')
+
+optional_policy(`
+	sandbox_list(systemd_tmpfiles_t)
+	sandbox_delete_dirs(systemd_tmpfiles_t)
+	sandbox_delete_files(systemd_tmpfiles_t)
+	sandbox_delete_sock_files(systemd_tmpfiles_t)
+	sandbox_setattr_dirs(systemd_tmpfiles_t)
 ')
 
 ########################################
