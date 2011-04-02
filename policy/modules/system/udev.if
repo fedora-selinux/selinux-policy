@@ -160,10 +160,10 @@ interface(`udev_manage_rules_files',`
 #
 interface(`udev_dontaudit_search_db',`
 	gen_require(`
-		type udev_tbl_t;
+		type udev_var_run_t;
 	')
 
-	dontaudit $1 udev_tbl_t:dir search_dir_perms;
+	dontaudit $1 udev_var_run_t:dir search_dir_perms;
 ')
 
 ########################################
@@ -183,16 +183,7 @@ interface(`udev_dontaudit_search_db',`
 ## <infoflow type="read" weight="10"/>
 #
 interface(`udev_read_db',`
-	gen_require(`
-		type udev_tbl_t;
-		type device_t;
-	')
-
-	dev_list_all_dev_nodes($1)
-	allow $1 udev_tbl_t:dir list_dir_perms;
-	read_files_pattern($1, udev_tbl_t, udev_tbl_t)
-	read_lnk_files_pattern($1, udev_tbl_t, udev_tbl_t)
-	allow $1 device_t:file read_file_perms;
+	udev_read_pid_files($1)
 ')
 
 ########################################
@@ -207,11 +198,12 @@ interface(`udev_read_db',`
 #
 interface(`udev_rw_db',`
 	gen_require(`
-		type udev_tbl_t;
+		type udev_var_run_t;
 	')
 
+	files_search_pids($1)
 	dev_list_all_dev_nodes($1)
-	allow $1 udev_tbl_t:file rw_file_perms;
+	rw_files_pattern($1, udev_var_run_t, udev_var_run_t)
 ')
 
 ########################################
@@ -226,10 +218,34 @@ interface(`udev_rw_db',`
 #
 interface(`udev_relabelto_db',`
 	gen_require(`
-		type udev_tbl_t;
+		type udev_var_run_t;
 	')
 
-	allow $1 udev_tbl_t:file relabelto_file_perms;
+	files_search_pids($1)
+	allow $1 udev_var_run_t:file relabelto_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	udev pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udev_read_pid_files',`
+	gen_require(`
+		type udev_var_run_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	files_search_pids($1)
+	allow $1 udev_var_run_t:dir list_dir_perms;
+	read_files_pattern($1, udev_var_run_t, udev_var_run_t)
+	read_lnk_files_pattern($1, udev_var_run_t, udev_var_run_t)
 ')
 
 ########################################
@@ -248,7 +264,7 @@ interface(`udev_manage_pid_files',`
 		type udev_var_run_t;
 	')
 
-	files_search_var_lib($1)
+	files_search_pids($1)
 	manage_files_pattern($1, udev_var_run_t, udev_var_run_t)
 ')
 
