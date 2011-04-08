@@ -5,17 +5,11 @@ policy_module(matahari,1.0.0)
 # Declarations
 #
 
-type matahari_hostd_t;
-type matahari_hostd_exec_t;
-init_daemon_domain(matahari_hostd_t, matahari_hostd_exec_t)
+attribute matahari_domain
 
-type matahari_netd_t;
-type matahari_netd_exec_t;
-init_daemon_domain(matahari_netd_t, matahari_netd_exec_t)
-
-type matahari_serviced_t;
-type matahari_serviced_exec_t;
-init_daemon_domain(matahari_serviced_t, matahari_serviced_exec_t)
+matahari_domain_template(hostd)
+matahari_domain_template(netd)
+matahari_domain_template(serviced)
 
 type matahari_initrc_exec_t;
 init_script_file(matahari_initrc_exec_t)
@@ -34,31 +28,16 @@ files_pid_file(matahari_var_run_t)
 #
 # matahari_hostd local policy
 #
-allow matahari_hostd_t self:capability sys_ptrace;
-allow matahari_hostd_t self:process { signal };
 
-allow matahari_hostd_t self:fifo_file rw_fifo_file_perms;
-allow matahari_hostd_t self:unix_stream_socket create_stream_socket_perms;
+allow matahari_hostd_t self:capability sys_ptrace;
 
 kernel_read_network_state(matahari_hostd_t)
-kernel_read_system_state(matahari_hostd_t)
-
-corenet_tcp_connect_matahari_port(matahari_hostd_t)
 
 dev_read_sysfs(matahari_hostd_t)
-dev_read_urand(matahari_hostd_t)
 dev_rw_mtrr(matahari_hostd_t)
 
 domain_use_interactive_fds(matahari_hostd_t)
 domain_read_all_domains_state(matahari_hostd_t)
-
-files_read_etc_files(matahari_hostd_t)
-
-logging_send_syslog_msg(matahari_hostd_t)
-
-miscfiles_read_localization(matahari_hostd_t)
-
-sysnet_dns_name_resolve(matahari_hostd_t)
 
 optional_policy(`
 	dbus_system_bus_client(matahari_hostd_t)
@@ -68,49 +47,36 @@ optional_policy(`
 #
 # matahari_netd local policy
 #
-allow matahari_netd_t self:process { signal };
-
-allow matahari_netd_t self:fifo_file rw_fifo_file_perms;
-allow matahari_netd_t self:unix_stream_socket create_stream_socket_perms;
-
-kernel_read_system_state(matahari_netd_t)
-
-corenet_tcp_connect_matahari_port(matahari_netd_t)
-
-dev_read_urand(matahari_netd_t)
 
 domain_use_interactive_fds(matahari_netd_t)
-
-files_read_etc_files(matahari_netd_t)
-
-logging_send_syslog_msg(matahari_netd_t)
-
-miscfiles_read_localization(matahari_netd_t)
-
-sysnet_dns_name_resolve(matahari_netd_t)
 
 ########################################
 #
 # matahari_serviced local policy
 #
-allow matahari_serviced_t self:process { signal };
-
-allow matahari_serviced_t self:fifo_file rw_fifo_file_perms;
-allow matahari_serviced_t self:unix_stream_socket create_stream_socket_perms;
-
-kernel_read_system_state(matahari_serviced_t)
-
-corenet_tcp_connect_matahari_port(matahari_serviced_t)
-
-dev_read_urand(matahari_serviced_t)
 
 domain_use_interactive_fds(matahari_serviced_t)
 
-files_read_etc_files(matahari_serviced_t)
+#######################################
+#
+# matahari domain local policy
+#
 
-logging_send_syslog_msg(matahari_serviced_t)
+allow matahari_domain self:process { signal };
 
-miscfiles_read_localization(matahari_serviced_t)
+allow matahari_domain self:fifo_file rw_fifo_file_perms;
+allow matahari_domain self:unix_stream_socket create_stream_socket_perms;
 
-sysnet_dns_name_resolve(matahari_serviced_t)
+kernel_read_system_state(matahari_domain)
 
+corenet_tcp_connect_matahari_port(matahari_domain)
+
+dev_read_urand(matahari_domain)
+
+files_read_etc_files(matahari_domain)
+
+logging_send_syslog_msg(matahari_domain)
+
+miscfiles_read_localization(matahari_domain)
+
+sysnet_dns_name_resolve(matahari_domain)
