@@ -2,6 +2,112 @@
 
 #######################################
 ## <summary>
+##      Create a domain for processes which are started 
+##      exuting systemctl.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+## <param name="domain">
+##      <summary>
+##      Type to be used as a domain.
+##      </summary>
+## </param>
+#
+interface(`systemd_systemctl_domain',`
+        gen_require(`
+                type systemd_systemctl_exec_t;
+                role system_r;
+        ')
+
+	type $1_systemctl_t;
+	domain_type($1_systemctl_t)
+	domain_entry_file($1_systemctl_t, systemd_systemctl_exec_t)	
+
+	role system_r types $1_systemctl_t;
+
+	domtrans_pattern($1_t, systemd_systemctl_exec_t , $1_systemctl_t)
+')
+
+########################################
+## <summary>
+##      Execute systemctl in the caller domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`systemd_exec_systemctl',`
+        gen_require(`
+                type systemd_systemctl_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        can_exec($1, systemd_systemctl_exec_t)
+')
+
+#######################################
+## <summary>
+##      Create a file type used for systemd unit files.
+## </summary>
+## <param name="script_file">
+##      <summary>
+##      Type to be used for an unit file.
+##      </summary>
+## </param>
+#
+interface(`systemd_unit_file',`
+        gen_require(`
+                attribute systemd_unit_file_type;
+        ')
+
+        typeattribute $1 systemd_unit_file_type;
+	files_type($1)
+')
+
+######################################
+## <summary>
+##      Allow domain to read all systemd unit files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`systemd_read_unit_files',`
+        gen_require(`
+                attribute systemd_unit_file_type;
+        ')
+	
+	files_search_var_lib($1)
+        allow $1 systemd_unit_file_type:file read_file_perms;
+')
+
+#####################################
+## <summary>
+##      Dontaudit domain to read all systemd unit files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`systemd_dontaudit_read_unit_files',`
+        gen_require(`
+                attribute systemd_unit_file_type;
+        ')
+
+        dontaudit $1 systemd_unit_file_type:file read_file_perms;
+')
+
+#######################################
+## <summary>
 ##  Execute a domain transition to run systemd-tmpfiles.
 ## </summary>
 ## <param name="domain">

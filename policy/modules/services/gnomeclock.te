@@ -9,6 +9,9 @@ type gnomeclock_t;
 type gnomeclock_exec_t;
 dbus_system_domain(gnomeclock_t, gnomeclock_exec_t)
 
+systemd_systemctl_domain(gnomeclock)
+permissive gnomeclock_systemctl_t;
+
 ########################################
 #
 # gnomeclock local policy
@@ -65,4 +68,24 @@ optional_policy(`
 	policykit_domtrans_auth(gnomeclock_t)
 	policykit_read_lib(gnomeclock_t)
 	policykit_read_reload(gnomeclock_t)
+')
+
+#######################################
+#
+# gnomeclock systemctl local policy 
+#
+
+files_dontaudit_remove_etc_dir(gnomeclock_systemctl_t)
+files_manage_etc_symlinks(gnomeclock_systemctl_t)
+
+fs_dontaudit_search_cgroup_dirs(gnomeclock_systemctl_t)
+
+# needed by systemctl
+init_stream_connect(gnomeclock_systemctl_t)
+init_read_state(gnomeclock_systemctl_t)
+
+systemd_dontaudit_read_unit_files(gnomeclock_systemctl_t)
+
+optional_policy(`
+	ntpd_read_unit_file(gnomeclock_systemctl_t)
 ')
