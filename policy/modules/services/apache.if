@@ -245,6 +245,7 @@ interface(`apache_role',`
 	relabel_lnk_files_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
 
 	apache_exec_modules($2)
+	apache_filetrans_home_content($2)
 
 	tunable_policy(`httpd_enable_cgi',`
 		# If a user starts a script by hand it gets the proper context
@@ -1410,4 +1411,24 @@ interface(`apache_dontaudit_leaks',`
 	dontaudit $1 httpd_t:unix_dgram_socket { read write };
 	dontaudit $1 httpd_t:unix_stream_socket { read write };
 	dontaudit $1 httpd_tmp_t:file { read write };
+')
+
+########################################
+## <summary>
+##	Transition to apache named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_filetrans_home_content',`
+	gen_require(`
+		type httpd_user_content_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, httpd_user_content_t, dir, public_html)
+	userdom_user_home_dir_filetrans($1, httpd_user_content_t, dir, www)
+	userdom_user_home_dir_filetrans($1, httpd_user_content_t, dir, web)
 ')
