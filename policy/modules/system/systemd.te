@@ -6,6 +6,8 @@ policy_module(systemd, 1.0.0)
 # Declarations
 #
 
+attribute systemd_unit_file_type;
+
 # domain for systemd-tty-ask-password-agent and systemd-gnome-ask-password-agent
 # systemd components
 
@@ -26,6 +28,14 @@ init_systemd_domain(systemd_notify_t, systemd_notify_exec_t)
 
 permissive systemd_tmpfiles_t;
 permissive systemd_notify_t;
+
+# type for systemd unit files
+type systemd_unit_file_t;
+systemd_unit_file(systemd_unit_file_t)
+
+# executable for systemctl
+type systemd_systemctl_exec_t;
+corecmd_executable_file(systemd_systemctl_exec_t)
 
 #
 # Type for systemd pipes in /dev/.systemd/ directory
@@ -126,6 +136,14 @@ logging_send_syslog_msg(systemd_tmpfiles_t)
 miscfiles_delete_man_pages(systemd_tmpfiles_t)
 miscfiles_relabel_man_pages(systemd_tmpfiles_t)
 miscfiles_read_localization(systemd_tmpfiles_t)
+
+ifdef(`distro_redhat',`
+	userdom_list_user_home_content(systemd_tmpfiles_t)
+	userdom_delete_user_home_content_dirs(systemd_tmpfiles_t)
+	userdom_delete_user_home_content_files(systemd_tmpfiles_t)
+	userdom_delete_user_home_content_sock_files(systemd_tmpfiles_t)
+	userdom_delete_user_home_content_symlinks(systemd_tmpfiles_t)
+')
 
 optional_policy(`
     auth_rw_login_records(systemd_tmpfiles_t)
