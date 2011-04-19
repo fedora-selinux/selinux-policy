@@ -48,6 +48,12 @@ template(`sudo_role_template',`
 	ubac_constrained($1_sudo_t)
 	role $2 types $1_sudo_t;
 
+	type $1_sudo_tmp_t;
+	files_tmp_file($1_sudo_tmp_t)
+
+	allow $1_sudo_t $1_sudo_tmp_t:file manage_file_perms;
+	files_tmp_filetrans($1_sudo_t, $1_sudo_tmp_t, file)
+
 	manage_dirs_pattern($1_sudo_t, sudo_db_t, sudo_db_t)
 	manage_files_pattern($1_sudo_t, sudo_db_t, sudo_db_t)
 
@@ -82,7 +88,7 @@ template(`sudo_role_template',`
 	corecmd_bin_domtrans($1_sudo_t, $3)
 	userdom_domtrans_user_home($1_sudo_t, $3)
 	userdom_domtrans_user_tmp($1_sudo_t, $3)
-	domain_auto_transition_pattern($1_sudo_t, sudo_exec_t, $3)
+	can_exec($1_sudo_t, sudo_exec_t)
 
 	allow $3 $1_sudo_t:fd use;
 	allow $3 $1_sudo_t:fifo_file rw_fifo_file_perms;
