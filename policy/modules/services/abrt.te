@@ -51,6 +51,26 @@ ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(abrt_t, abrt_exec_t, s0 - mcs_systemhigh)
 ')
 
+#
+# Support for ABRT retrace server
+#
+
+type abrt_retrace_worker_t;
+type abrt_retrace_worker_exec_t;
+application_domain(abrt_retrace_worker_t, abrt_retrace_worker_exec_t)
+role system_r types abrt_retrace_worker_t;
+
+type abrt_retrace_coredump_t;
+type abrt_retrace_coredump_exec_t;
+application_domain(abrt_retrace_coredump_t, abrt_retrace_coredump_exec_t)
+role system_r types abrt_retrace_coredump_t;
+
+permissive abrt_retrace_worker_exec_t;
+permissive abrt_retrace_coredump_t;
+
+type abrt_retrace_cache_t;
+files_type(abrt_retrace_cache_t)
+
 ########################################
 #
 # abrt local policy
@@ -274,4 +294,78 @@ ifdef(`hide_broken_symptoms',`
 	allow abrt_t self:capability sys_resource;
 	allow abrt_t domain:file write;
 	allow abrt_t domain:process setrlimit;
+')
+
+#######################################
+#
+# abrt retrace coredump policy
+#
+
+allow abrt_retrace_coredump_t self:fifo_file rw_fifo_file_perms;
+
+kernel_read_system_state(abrt_retrace_coredump_t)
+
+corecmd_exec_bin(abrt_retrace_coredump_t)
+corecmd_exec_shell(abrt_retrace_coredump_t)
+
+dev_read_urand(abrt_retrace_coredump_t)
+
+files_read_etc_files(abrt_retrace_coredump_t)
+files_read_usr_files(abrt_retrace_coredump_t)
+
+logging_send_syslog_msg(abrt_retrace_coredump_t)
+
+miscfiles_read_localization(abrt_retrace_coredump_t)
+
+sysnet_dns_name_resolve(abrt_retrace_coredump_t)
+
+# to install debuginfo packages
+optional_policy(`
+	rpm_exec(abrt_retrace_coredump_t)
+	rpm_dontaudit_manage_db(abrt_retrace_coredump_t)
+	rpm_manage_cache(abrt_retrace_coredump_t)
+	rpm_manage_log(abrt_retrace_coredump_t)
+	rpm_manage_pid_files(abrt_retrace_coredump_t)
+	rpm_read_db(abrt_retrace_coredump_t)
+	rpm_signull(abrt_retrace_coredump_t)
+)
+
+#######################################
+#
+# abrt retrace worker policy
+#
+
+allow abrt_retrace_worker_t self:capability { setuid };
+
+allow abrt_retrace_worker_t self:fifo_file rw_fifo_file_perms;
+
+domtrans_pattern(abrt_retrace_worker_t, abrt_retrace_coredump_exec_t, abrt_retrace_coredump_t)
+allow abrt_retrace_worker_t abrt_retrace_coredump_exec_t:file ioctl;
+
+manage_dirs_pattern(abrt_retrace_worker_t, abrt_retrace_cache_t, abrt_retrace_cache_t)
+manage_files_pattern(abrt_retrace_worker_t, abrt_retrace_cache_t, abrt_retrace_cache_t)
+manage_lnk_files_pattern(abrt_retrace_worker_t, abrt_retrace_cache_t, abrt_retrace_cache_t)
+
+allow abrt_retrace_worker_t abrt_etc_t:file r_file_perms;
+
+can_exec(abrt_retrace_worker_t, abrt_retrace_worker_exec_t)
+
+kernel_read_system_state(abrt_retrace_worker_t)
+
+corecmd_exec_bin(abrt_retrace_worker_t)
+corecmd_exec_shell(abrt_retrace_worker_t)
+
+dev_read_urand(abrt_retrace_worker_t)
+
+files_read_etc_files(abrt_retrace_worker_t)
+files_read_usr_files(abrt_retrace_worker_t)
+
+logging_send_syslog_msg(abrt_retrace_worker_t)
+
+miscfiles_read_localization(abrt_retrace_worker_t)
+
+sysnet_dns_name_resolve(abrt_retrace_worker_t)
+
+optional_policy(`
+	mock_domtrans(abrt_retrace_worker_t)
 ')
