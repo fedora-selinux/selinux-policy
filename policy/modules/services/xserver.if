@@ -482,6 +482,7 @@ template(`xserver_object_types_template',`
 template(`xserver_user_x_domain_template',`
 	gen_require(`
 		type xdm_t, xdm_tmp_t, xserver_tmpfs_t;
+		type xdm_home_t;
 		type xauth_home_t, iceauth_home_t, xserver_t;
 	')
 
@@ -492,6 +493,13 @@ template(`xserver_user_x_domain_template',`
 	# Read .Xauthority file
 	allow $2 xauth_home_t:file read_file_perms;
 	allow $2 iceauth_home_t:file read_file_perms;
+
+	userdom_user_home_dir_filetrans($1, iceauth_home_t, file, .DCOP)
+	userdom_user_home_dir_filetrans($1, iceauth_home_t, file, .ICEauthority)
+	userdom_user_home_dir_filetrans($1, xauth_home_t, file, .Xauthority)
+	userdom_user_home_dir_filetrans($1, xauth_home_t, file, .xauth)
+	userdom_user_home_dir_filetrans($1, xdm_home_t, file, .xsession-errors)
+	userdom_user_home_dir_filetrans($1, xdm_home_t, file, .dmrc)
 
 	# for when /tmp/.X11-unix is created by the system
 	allow $2 xdm_t:fd use;
@@ -1834,7 +1842,7 @@ interface(`xserver_read_home_fonts',`
 #
 interface(`xserver_manage_home_fonts',`
 	gen_require(`
-		type user_fonts_t, user_fonts_config_t;
+		type user_fonts_t, user_fonts_config_t, user_fonts_cache_t;
 	')
 
 	manage_dirs_pattern($1, user_fonts_t, user_fonts_t)
@@ -1842,4 +1850,9 @@ interface(`xserver_manage_home_fonts',`
 	manage_lnk_files_pattern($1, user_fonts_t, user_fonts_t)
 
 	manage_files_pattern($1, user_fonts_config_t, user_fonts_config_t)
+
+	userdom_user_home_dir_filetrans($1, user_fonts_config_t, file, .k5login)
+	userdom_user_home_dir_filetrans($1, user_fonts_t, dir, .fonts.d)
+	userdom_user_home_dir_filetrans($1, user_fonts_t, dir, .fonts)
+	userdom_user_home_dir_filetrans($1, user_fonts_cache_t, dir, .fontconfig)
 ')
