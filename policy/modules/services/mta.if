@@ -570,7 +570,7 @@ interface(`mta_etc_filetrans_aliases',`
 		type etc_aliases_t;
 	')
 
-	files_etc_filetrans($1, etc_aliases_t, file)
+	files_etc_filetrans($1, etc_aliases_t, file, $2)
 ')
 
 ########################################
@@ -983,4 +983,66 @@ interface(`mta_read_home',`
 	ifdef(`distro_redhat',`
 		userdom_search_admin_dir($1)
 	')
+')
+
+########################################
+## <summary>
+##	create mail content in the  in the /root directory
+##	with an correct label.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mta_filetrans_admin_home_content',`
+	gen_require(`
+		type mail_home_t;
+	')
+
+	userdom_admin_home_dir_filetrans($1, mail_home_t, file, dead.letter)
+	userdom_admin_home_dir_filetrans($1, mail_home_t, file, .forward)
+')
+
+########################################
+## <summary>
+##	Transition to mta named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mta_filetrans_home_content',`
+	gen_require(`
+		type mail_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, mail_home_t, file, dead.letter)
+	userdom_user_home_dir_filetrans($1, mail_home_t, file, .forward)
+')
+
+########################################
+## <summary>
+##	Transition to apache named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mta_filetrans_named_content',`
+	gen_require(`
+		type etc_aliases_t;
+		type etc_mail_t;
+	')
+
+	filetrans_pattern($1, etc_mail_t, etc_aliases_t, { dir file )}
+	mta_etc_filetrans_aliases($1, aliases)
+	mta_etc_filetrans_aliases($1, aliases.db)
+	mta_filetrans_home_content($1)
+	mta_filetrans_admin_home_content($1)
 ')
