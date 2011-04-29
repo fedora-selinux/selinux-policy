@@ -28,8 +28,6 @@ template(`telepathy_domain_template',`
 	type telepathy_$1_tmp_t;
 	files_tmp_file(telepathy_$1_tmp_t)
 	ubac_constrained(telepathy_$1_tmp_t)
-
-	dbus_session_domain(telepathy_$1_t, telepathy_$1_exec_t)
 ')
 
 #######################################
@@ -51,6 +49,22 @@ template(`telepathy_domain_template',`
 template(`telepathy_dbus_session_role', `
 	gen_require(`
 		attribute telepathy_domain;
+		type telepathy_gabble_t;
+		type telepathy_sofiasip_t;
+		type telepathy_idle_t;
+		type telepathy_mission_control_t;
+		type telepathy_salut_t;
+		type telepathy_sunshine_t;
+		type telepathy_stream_engine_t;
+		type telepathy_msn_t;
+		type telepathy_gabble_exec_t;
+		type telepathy_sofiasip_exec_t;
+		type telepathy_idle_exec_t;
+		type telepathy_mission_control_exec_t;
+		type telepathy_salut_exec_t;
+		type telepathy_sunshine_exec_t;
+		type telepathy_stream_engine_exec_t;
+		type telepathy_msn_exec_t;
 	')
 
         role $1 types telepathy_domain;
@@ -65,6 +79,15 @@ template(`telepathy_dbus_session_role', `
 	telepathy_gabble_stream_connect($2)
 	telepathy_msn_stream_connect($2)
 	telepathy_salut_stream_connect($2)	
+
+	dbus_session_domain($2, telepathy_gabble_exec_t, telepathy_gabble_t)
+	dbus_session_domain($2, telepathy_sofiasip_exec_t, telepathy_sofiasip_t)
+	dbus_session_domain($2, telepathy_idle_exec_t, telepathy_idle_t)
+	dbus_session_domain($2, telepathy_mission_control_exec_t, telepathy_mission_control_t)
+	dbus_session_domain($2, telepathy_salut_exec_t, telepathy_salut_t)
+	dbus_session_domain($2, telepathy_sunshine_exec_t, telepathy_sunshine_t)
+	dbus_session_domain($2, telepathy_stream_engine_exec_t, telepathy_stream_engine_t)
+	dbus_session_domain($2, telepathy_msn_exec_t, telepathy_msn_t)
 ')
 
 ########################################
@@ -147,7 +170,6 @@ interface(`telepathy_msn_stream_connect', `
         files_search_tmp($1)
 ')
 
-
 ########################################
 ## <summary>
 ##	Stream connect to Telepathy Salut
@@ -191,3 +213,46 @@ interface(`telepathy_mission_control_read_state',`
 	ps_process_pattern($1, telepathy_mission_control_t)
 ')
 
+########################################
+## <summary>
+##	Execute telepathy executable
+##	in the specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a telepathy executable
+##	in the specified domain.  This allows
+##	the specified domain to execute any file
+##	on these filesystems in the specified
+##	domain. 
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+##	<p>
+##	This interface was added to handle
+##	the ssh-agent policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`telepathy_command_domtrans', `
+	gen_require(`
+		attribute telepathy_executable;
+	')
+
+	allow $2 telepathy_executable:file entrypoint;
+	domain_transition_pattern($1, telepathy_executable, $2)
+	type_transition $1 telepathy_executable:process $2;
+')
