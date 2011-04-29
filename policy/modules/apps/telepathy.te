@@ -54,7 +54,6 @@ telepathy_domain_template(sunshine)
 #
 
 allow telepathy_msn_t self:process setsched;
-allow telepathy_msn_t self:netlink_route_socket create_netlink_socket_perms;
 allow telepathy_msn_t self:unix_dgram_socket { write create connect };
 
 manage_dirs_pattern(telepathy_msn_t, telepathy_msn_tmp_t, telepathy_msn_tmp_t)
@@ -113,7 +112,6 @@ optional_policy(`
 # Telepathy Gabble local policy.
 #
 
-allow telepathy_gabble_t self:netlink_route_socket create_netlink_socket_perms;
 allow telepathy_gabble_t self:tcp_socket { listen accept };
 allow telepathy_gabble_t self:unix_dgram_socket { write read create getattr sendto };
 
@@ -172,8 +170,6 @@ optional_policy(`
 # Telepathy Idle local policy.
 #
 
-allow telepathy_idle_t self:netlink_route_socket create_netlink_socket_perms;
-
 corenet_sendrecv_ircd_client_packets(telepathy_idle_t)
 corenet_tcp_connect_gatekeeper_port(telepathy_idle_t)
 corenet_tcp_connect_ircd_port(telepathy_idle_t)
@@ -230,8 +226,6 @@ optional_policy(`
 #
 # Telepathy Salut local policy.
 #
-
-allow telepathy_salut_t self:netlink_route_socket create_netlink_socket_perms;
 allow telepathy_salut_t self:tcp_socket { accept listen };
 
 manage_sock_files_pattern(telepathy_salut_t, telepathy_salut_tmp_t, telepathy_salut_tmp_t)
@@ -257,8 +251,6 @@ optional_policy(`
 #
 # Telepathy Sofiasip local policy.
 #
-
-allow telepathy_sofiasip_t self:netlink_route_socket create_netlink_socket_perms;
 allow telepathy_sofiasip_t self:rawip_socket { create_socket_perms listen };
 allow telepathy_sofiasip_t self:tcp_socket { listen };
 
@@ -321,9 +313,9 @@ kernel_read_system_state(telepathy_domain)
 
 fs_search_auto_mountpoints(telepathy_domain)
 
-miscfiles_read_localization(telepathy_domain)
+auth_use_nsswitch(telepathy_domain)
 
-sysnet_dns_name_resolve(telepathy_domain)
+miscfiles_read_localization(telepathy_domain)
 
 # This interface does not facilitate files_search_tmp which appears to be a bug.
 userdom_stream_connect(telepathy_domain)
@@ -341,16 +333,12 @@ tunable_policy(`telepathy_connect_all_ports', `
 ')
 
 optional_policy(`
-	gnome_read_generic_cache_files(telepathy_domain)
-	gnome_write_generic_cache_files(telepathy_domain)
-')
-
-optional_policy(`
         automount_dontaudit_getattr_tmp_dirs(telepathy_domain)
 ')
 
 optional_policy(`
-        nis_use_ypbind(telepathy_domain)
+	gnome_read_generic_cache_files(telepathy_domain)
+	gnome_write_generic_cache_files(telepathy_domain)
 ')
 
 optional_policy(`
