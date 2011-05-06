@@ -58,6 +58,7 @@ manage_sock_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xs
 fs_tmpfs_filetrans(sandbox_xserver_t, sandbox_xserver_tmpfs_t, { dir file lnk_file sock_file fifo_file })
 
 kernel_dontaudit_request_load_module(sandbox_xserver_t)
+kernel_read_system_state(sandbox_xserver_t)
 
 corecmd_exec_bin(sandbox_xserver_t)
 corecmd_exec_shell(sandbox_xserver_t)
@@ -75,7 +76,9 @@ corenet_tcp_bind_xserver_port(sandbox_xserver_t)
 corenet_sendrecv_xserver_server_packets(sandbox_xserver_t)
 corenet_sendrecv_all_client_packets(sandbox_xserver_t)
 
+dev_search_sysfs(sandbox_xserver_t)
 dev_rwx_zero(sandbox_xserver_t)
+dev_read_urand(sandbox_xserver_t)
 
 files_read_config_files(sandbox_xserver_t)
 files_read_usr_files(sandbox_xserver_t)
@@ -86,8 +89,6 @@ fs_search_auto_mountpoints(sandbox_xserver_t)
 
 miscfiles_read_fonts(sandbox_xserver_t)
 miscfiles_read_localization(sandbox_xserver_t)
-
-kernel_read_system_state(sandbox_xserver_t)
 
 selinux_validate_context(sandbox_xserver_t)
 selinux_compute_access_vector(sandbox_xserver_t)
@@ -142,6 +143,10 @@ gen_require(`
 	attribute exec_type, configfile;
 ')
 
+kernel_dontaudit_read_system_state(sandbox_domain)
+
+corecmd_exec_all_executables(sandbox_domain)
+
 files_rw_all_inherited_files(sandbox_domain, -exec_type -configfile -usr_t -lib_t -locale_t -var_t -var_run_t -device_t -rpm_log_t )
 files_entrypoint_all_files(sandbox_domain)
 
@@ -151,9 +156,6 @@ files_read_var_files(sandbox_domain)
 files_dontaudit_search_all_dirs(sandbox_domain)
 
 miscfiles_read_localization(sandbox_domain)
-
-kernel_dontaudit_read_system_state(sandbox_domain)
-corecmd_exec_all_executables(sandbox_domain)
 
 userdom_dontaudit_use_user_terminals(sandbox_domain)
 
@@ -194,14 +196,11 @@ manage_fifo_files_pattern(sandbox_x_domain, sandbox_file_t, sandbox_file_t);
 manage_lnk_files_pattern(sandbox_x_domain, sandbox_file_t, sandbox_file_t);
 dontaudit sandbox_x_domain sandbox_file_t:dir mounton;
 
-domain_dontaudit_read_all_domains_state(sandbox_x_domain)
-
-files_search_home(sandbox_x_domain)
-files_dontaudit_list_all_mountpoints(sandbox_x_domain)
-
 kernel_getattr_proc(sandbox_x_domain)
 kernel_read_network_state(sandbox_x_domain)
 kernel_read_system_state(sandbox_x_domain)
+
+domain_dontaudit_read_all_domains_state(sandbox_x_domain)
 
 corecmd_exec_all_executables(sandbox_x_domain)
 
@@ -209,6 +208,8 @@ dev_read_urand(sandbox_x_domain)
 dev_dontaudit_read_rand(sandbox_x_domain)
 dev_read_sysfs(sandbox_x_domain)
 
+files_search_home(sandbox_x_domain)
+files_dontaudit_list_all_mountpoints(sandbox_x_domain)
 files_entrypoint_all_files(sandbox_x_domain)
 files_read_config_files(sandbox_x_domain)
 files_read_usr_files(sandbox_x_domain)
