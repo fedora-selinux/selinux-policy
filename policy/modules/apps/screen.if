@@ -50,7 +50,7 @@ template(`screen_role_template',`
 	allow $1_screen_t self:udp_socket create_socket_perms;
 	# Internal screen networking
 	allow $1_screen_t self:fd use;
-	allow $1_screen_t self:unix_stream_socket create_socket_perms;
+	allow $1_screen_t self:unix_stream_socket { create_socket_perms connectto };
 	allow $1_screen_t self:unix_dgram_socket create_socket_perms;
 
 	manage_dirs_pattern($1_screen_t, screen_tmp_t, screen_tmp_t)
@@ -61,6 +61,7 @@ template(`screen_role_template',`
 	# Create fifo
 	manage_fifo_files_pattern($1_screen_t, screen_var_run_t, screen_var_run_t)
 	manage_dirs_pattern($1_screen_t, screen_var_run_t, screen_var_run_t)
+	manage_sock_files_pattern($1_screen_t, screen_var_run_t, screen_var_run_t)
 	files_pid_filetrans($1_screen_t, screen_var_run_t, dir)
 
 	allow $1_screen_t screen_home_t:dir list_dir_perms;
@@ -75,6 +76,7 @@ template(`screen_role_template',`
 
 	domtrans_pattern($3, screen_exec_t, $1_screen_t)
 	allow $3 $1_screen_t:process { signal sigchld };
+	dontaudit $3 $1_screen_t:unix_stream_socket { read write };
 	allow $1_screen_t $3:process signal;
 
 	manage_fifo_files_pattern($3, screen_home_t, screen_home_t)
@@ -141,7 +143,7 @@ template(`screen_role_template',`
 
 	seutil_read_config($1_screen_t)
 
-	userdom_use_inherited_user_terminals($1_screen_t)
+	userdom_use_user_terminals($1_screen_t)
 	userdom_create_user_pty($1_screen_t)
 	userdom_user_home_domtrans($1_screen_t, $3)
 	userdom_setattr_user_ptys($1_screen_t)
