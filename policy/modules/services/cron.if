@@ -36,7 +36,7 @@ template(`cron_common_crontab_template',`
 
 	# dac_override is to create the file in the directory under /tmp
 	allow $1_t self:capability { fowner setuid setgid chown dac_override };
-	allow $1_t self:process { setsched signal_perms };
+	allow $1_t self:process { getcap setsched signal_perms };
 	allow $1_t self:fifo_file rw_fifo_file_perms;
 
 	allow $1_t crond_t:process signal;
@@ -60,6 +60,8 @@ template(`cron_common_crontab_template',`
 	selinux_dontaudit_search_fs($1_t)
 
 	fs_getattr_xattr_fs($1_t)
+	fs_manage_cgroup_dirs($1_t)
+	fs_manage_cgroup_files($1_t)
 
 	domain_use_interactive_fds($1_t)
 
@@ -68,6 +70,7 @@ template(`cron_common_crontab_template',`
 	files_dontaudit_search_pids($1_t)
 
 	auth_domtrans_chk_passwd($1_t)
+	auth_rw_var_auth($1_t)
 
 	logging_send_syslog_msg($1_t)
 	logging_send_audit_msgs($1_t)
@@ -75,6 +78,7 @@ template(`cron_common_crontab_template',`
 
 	init_dontaudit_write_utmp($1_t)
 	init_read_utmp($1_t)
+	init_read_state($1_t)
 
 	miscfiles_read_localization($1_t)
 
@@ -134,7 +138,7 @@ interface(`cron_role',`
 	allow $2 crond_t:process sigchld;
 
 	# needs to be authorized SELinux context for cron
-	allow $2 user_cron_spool_t:file entrypoint;
+	allow $2 user_cron_spool_t:file { getattr read write ioctl entrypoint };
 
 	# crontab shows up in user ps
 	ps_process_pattern($2, crontab_t)
