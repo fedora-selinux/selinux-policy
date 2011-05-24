@@ -23,9 +23,16 @@ files_type(fail2ban_var_lib_t)
 type fail2ban_var_run_t;
 files_pid_file(fail2ban_var_run_t)
 
+type fail2ban_client_t;
+type fail2ban_client_exec_t;
+init_daemon_domain(fail2ban_client_t, fail2ban_client_exec_t)
+
+# new in F16
+permissive fail2ban_client_t;
+
 ########################################
 #
-# fail2ban local policy
+# fail2ban server local policy
 #
 
 allow fail2ban_t self:capability { dac_read_search dac_override sys_tty_config };
@@ -101,3 +108,16 @@ optional_policy(`
 optional_policy(`
 	iptables_domtrans(fail2ban_t)
 ')
+
+optional_policy(`
+	libs_exec_ldconfig(fail2ban_t)
+')
+
+########################################
+#
+# fail2ban client local policy
+#
+
+stream_connect_pattern(fail2ban_client_t, fail2ban_var_run_t, fail2ban_var_run_t, fail2ban_t)
+
+files_search_pids(fail2ban_client_t)
