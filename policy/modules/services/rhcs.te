@@ -12,6 +12,13 @@ policy_module(rhcs, 1.1.0)
 ## </desc>
 gen_tunable(fenced_can_network_connect, false)
 
+## <desc>
+##  <p>
+##  Allow fenced domain to execute ssh.
+##  </p>
+## </desc>
+gen_tunable(fenced_can_ssh, false)
+
 attribute cluster_domain;
 attribute cluster_tmpfs;
 attribute cluster_pid;
@@ -92,6 +99,7 @@ kernel_read_system_state(fenced_t)
 corecmd_exec_bin(fenced_t)
 corecmd_exec_shell(fenced_t)
 
+corenet_tcp_bind_zented_port(fenced_t)
 corenet_tcp_connect_http_port(fenced_t)
 
 dev_read_sysfs(fenced_t)
@@ -110,6 +118,18 @@ auth_use_nsswitch(fenced_t)
 
 tunable_policy(`fenced_can_network_connect',`
 	corenet_tcp_connect_all_ports(fenced_t)
+')
+
+optional_policy(`
+	tunable_policy(`fenced_can_ssh',`
+
+		allow fenced_t self:capability { setuid setgid };
+
+		corenet_tcp_connect_ssh_port(fenced_t)
+
+		ssh_exec(fenced_t)
+		ssh_read_user_home_files(fenced_t)
+	')
 ')
 
 # needed by fence_scsi
