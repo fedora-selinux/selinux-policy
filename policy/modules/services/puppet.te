@@ -5,6 +5,9 @@ policy_module(puppet, 1.0.0)
 # Declarations
 #
 
+# New in Fedora16
+permissive puppetca_t;
+
 ## <desc>
 ##	<p>
 ##	Allow Puppet client to manage all file
@@ -41,6 +44,11 @@ files_type(puppet_var_lib_t)
 
 type puppet_var_run_t;
 files_pid_file(puppet_var_run_t)
+
+type puppetca_t;
+type puppetca_exec_t;
+application_domain(puppetca_t, puppetca_exec_t)
+role system_r types puppetca_t;
 
 type puppetmaster_t;
 type puppetmaster_exec_t;
@@ -169,6 +177,59 @@ optional_policy(`
 
 ########################################
 #
+# PuppetCA personal policy
+#
+
+allow puppetca_t self:capability { dac_override setgid setuid };
+allow puppetca_t self:fifo_file rw_fifo_file_perms;
+
+read_files_pattern(puppetca_t, puppet_etc_t, puppet_etc_t)
+
+allow puppetca_t puppet_var_lib_t:dir list_dir_perms;
+manage_files_pattern(puppetca_t, puppet_var_lib_t, puppet_var_lib_t)
+manage_dirs_pattern(puppetca_t, puppet_var_lib_t, puppet_var_lib_t)
+
+allow puppetca_t puppet_log_t:dir search_dir_perms;
+
+allow puppetca_t puppet_var_run_t:dir search_dir_perms;
+
+kernel_read_system_state(puppetca_t)
+# Maybe dontaudit this like we did with other puppet domains?
+kernel_read_kernel_sysctls(puppetca_t)
+
+corecmd_exec_bin(puppetca_t)
+corecmd_exec_shell(puppetca_t)
+
+dev_read_urand(puppetca_t)
+dev_search_sysfs(puppetca_t)
+
+files_read_etc_files(puppetca_t)
+files_search_var_lib(puppetca_t)
+
+selinux_validate_context(puppetca_t)
+
+logging_search_logs(puppetca_t)
+
+miscfiles_read_localization(puppetca_t)
+miscfiles_read_generic_certs(puppetca_t)
+
+seutil_read_file_contexts(puppetca_t)
+
+optional_policy(`
+	hostname_exec(puppetca_t)
+')
+
+optional_policy(`
+	mta_sendmail_access_check(puppetca_t)
+')
+
+optional_policy(`
+	usermanage_access_check_passwd(puppetca_t)
+	usermanage_access_check_useradd(puppetca_t)
+')
+
+########################################
+#
 # Puppet master personal policy
 #
 
@@ -218,6 +279,10 @@ corenet_tcp_bind_generic_node(puppetmaster_t)
 corenet_tcp_bind_puppet_port(puppetmaster_t)
 corenet_sendrecv_puppet_server_packets(puppetmaster_t)
 
+# This needs investigation. Puppermasterd is confirmed to bind udp sockets to random high ports.
+corenet_udp_bind_generic_node(puppetmaster_t)
+corenet_udp_bind_generic_port(puppetmaster_t)
+
 dev_read_rand(puppetmaster_t)
 dev_read_urand(puppetmaster_t)
 
@@ -243,15 +308,15 @@ sysnet_run_ifconfig(puppetmaster_t, system_r)
 mta_send_mail(puppetmaster_t)
 
 optional_policy(`
-		tunable_policy(`puppetmaster_use_db',`
-				mysql_stream_connect(puppetmaster_t)
-		')
+	tunable_policy(`puppetmaster_use_db',`
+		mysql_stream_connect(puppetmaster_t)
+	')
 ')
 
 optional_policy(`
-		tunable_policy(`puppetmaster_use_db',`
-				postgresql_stream_connect(puppetmaster_t)
-		')
+	tunable_policy(`puppetmaster_use_db',`
+		postgresql_stream_connect(puppetmaster_t)
+	')
 ')
 
 optional_policy(`
@@ -267,5 +332,7 @@ optional_policy(`
 
 optional_policy(`
 	usermanage_domtrans_groupadd(puppetmaster_t)
+	# Might in some cases actually run passwd but was only able to confirm open X_ok.
+	usermanage_access_check_passwd(puppetmaster_t)
 	usermanage_domtrans_useradd(puppetmaster_t)
 ')
