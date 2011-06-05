@@ -1,0 +1,90 @@
+policy_module(mailscanner, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type mscan_t;
+type mscan_exec_t;
+init_daemon_domain(mscan_t, mscan_exec_t)
+
+type mscan_initrc_exec_t;
+init_script_file(mscan_initrc_exec_t)
+
+type mscan_etc_t;
+files_config_file(mscan_etc_t)
+
+type mscan_tmp_t;
+files_tmp_file(mscan_tmp_t)
+
+type mscan_var_run_t;
+files_pid_file(mscan_var_run_t)
+
+# New in F16
+permissive mscan_t;
+
+########################################
+#
+# Local policy
+#
+
+allow mscan_t self:capability { setuid chown setgid dac_override };
+allow mscan_t self:process signal;
+allow mscan_t self:fifo_file rw_fifo_file_perms;
+
+read_files_pattern(mscan_t, mscan_etc_t, mscan_etc_t)
+
+manage_files_pattern(mscan_t, mscan_var_run_t, mscan_var_run_t)
+files_pid_filetrans(mscan_t, mscan_var_run_t, file)
+
+manage_dirs_pattern(mscan_t, mscan_tmp_t, mscan_tmp_t)
+manage_files_pattern(mscan_t, mscan_tmp_t, mscan_tmp_t)
+files_tmp_filetrans(mscan_t, mscan_tmp_t, dir)
+
+can_exec(mscan_t, mscan_exec_t)
+
+kernel_read_system_state(mscan_t)
+
+corecmd_exec_bin(mscan_t)
+corecmd_exec_shell(mscan_t)
+
+corenet_tcp_connect_fprot_port(mscan_t)
+corenet_tcp_sendrecv_fprot_port(mscan_t)
+corenet_sendrecv_fprot_client_packets(mscan_t)
+corenet_udp_bind_generic_node(mscan_t)
+corenet_udp_bind_generic_port(mscan_t)
+corenet_udp_sendrecv_all_ports(mscan_t)
+corenet_sendrecv_generic_server_packets(mscan_t)
+
+dev_read_urand(mscan_t)
+
+files_read_usr_files(mscan_t)
+
+fs_getattr_xattr_fs(mscan_t)
+
+auth_dontaudit_read_shadow(mscan_t)
+auth_use_nsswitch(mscan_t)
+
+logging_send_syslog_msg(mscan_t)
+
+miscfiles_read_localization(mscan_t)
+
+optional_policy(`
+	clamav_domtrans_clamscan(mscan_t)
+	clamav_manage_clamd_pid(mscan_t)
+')
+
+optional_policy(`
+	mta_send_mail(mscan_t)
+	mta_manage_queue(mscan_t)
+')
+
+optional_policy(`
+	procmail_domtrans(mscan_t)
+')
+
+optional_policy(`
+	spamassassin_read_home_client(mscan_t)
+	spamassassin_read_lib_files(mscan_t)
+')
