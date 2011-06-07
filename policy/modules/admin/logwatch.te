@@ -22,6 +22,9 @@ files_tmp_file(logwatch_tmp_t)
 type logwatch_var_run_t;
 files_pid_file(logwatch_var_run_t)
 
+mta_base_mail_template(logwatch)
+role system_r types logwatch_mail_t;
+
 ########################################
 #
 # Local policy
@@ -104,14 +107,7 @@ userdom_dontaudit_search_user_home_dirs(logwatch_t)
 userdom_dontaudit_list_admin_dir(logwatch_t)
 
 #mta_send_mail(logwatch_t)
-mta_base_mail_template(logwatch)
 mta_sendmail_domtrans(logwatch_t, logwatch_mail_t)
-role system_r types logwatch_mail_t;
-logging_read_all_logs(logwatch_mail_t)
-manage_files_pattern(logwatch_mail_t, logwatch_tmp_t, logwatch_tmp_t)
-allow logwatch_mail_t self:capability { dac_read_search dac_override };
-mta_read_home(logwatch_mail_t)
-dev_read_rand(logwatch_mail_t)
 
 ifdef(`distro_redhat',`
 	files_search_all(logwatch_t)
@@ -163,4 +159,23 @@ optional_policy(`
 optional_policy(`
 	samba_read_log(logwatch_t)
 	samba_read_share_files(logwatch_t)
+')
+
+########################################
+#
+# Logwatch mail Local policy
+#
+
+allow logwatch_mail_t self:capability { dac_read_search dac_override };
+
+manage_files_pattern(logwatch_mail_t, logwatch_tmp_t, logwatch_tmp_t)
+
+dev_read_rand(logwatch_mail_t)
+
+logging_read_all_logs(logwatch_mail_t)
+
+mta_read_home(logwatch_mail_t)
+
+optional_policy(`
+	cron_dontaudit_use_system_job_fds(logwatch_mail_t)
 ')
