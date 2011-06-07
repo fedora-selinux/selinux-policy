@@ -204,17 +204,22 @@ interface(`mozilla_domtrans',`
 #
 interface(`mozilla_domtrans_plugin',`
 	gen_require(`
-		type mozilla_plugin_t, mozilla_plugin_exec_t;
+		type mozilla_plugin_t, mozilla_plugin_exec_t, mozilla_plugin_tmpfs_t;
 		class dbus send_msg;
 	')
 
 	domtrans_pattern($1, mozilla_plugin_exec_t, mozilla_plugin_t)
 	allow mozilla_plugin_t $1:process signull;	
 
+	ps_process_pattern($1, mozilla_plugin_t)
+	allow $1 mozilla_plugin_t:process { ptrace signal_perms };
+
 	allow $1 mozilla_plugin_t:dbus send_msg;
 	allow mozilla_plugin_t $1:dbus send_msg;
 
 	allow $1 mozilla_plugin_t:fd use;
+
+	allow $1 mozilla_plugin_tmpfs_t:file { delete_file_perms read_file_perms };
 ')
 
 
@@ -241,9 +246,8 @@ interface(`mozilla_run_plugin',`
 
 	mozilla_domtrans_plugin($1)
 	role $2 types mozilla_plugin_t;
+
 	allow $1 mozilla_plugin_t:unix_stream_socket { connectto rw_socket_perms };
-	allow $1 mozilla_plugin_t:process { ptrace signal sigkill };
-	allow $1 mozilla_plugin_t:fd use;
 
 	allow mozilla_plugin_t $1:unix_stream_socket rw_socket_perms;
 ')
@@ -333,12 +337,12 @@ interface(`mozilla_plugin_delete_tmpfs_files',`
 ##	</summary>
 ## </param>
 #
-interface(`mozilla_plugin_read_inherited_tmpfs_files',`
+interface(`mozilla_plugin_read_tmpfs_files',`
 	gen_require(`
 		type mozilla_plugin_tmpfs_t;
 	')
 
-	allow $1 mozilla_plugin_tmpfs_t:file read_inherited_file_perms;
+	allow $1 mozilla_plugin_tmpfs_t:file read_file_perms;
 ')
 
 ########################################

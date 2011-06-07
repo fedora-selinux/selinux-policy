@@ -473,6 +473,46 @@ interface(`gnome_manage_data',`
 
 ########################################
 ## <summary>
+##	Read icc data home content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gnome_read_home_icc_data_content',`
+	gen_require(`
+		type icc_data_home_t, gconf_home_t, data_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 { gconf_home_t data_home_t }:dir search_dir_perms;
+	list_dirs_pattern($1, icc_data_home_t, icc_data_home_t)
+	read_files_pattern($1, icc_data_home_t, icc_data_home_t)
+	read_lnk_files_pattern($1, icc_data_home_t, icc_data_home_t)
+')
+
+########################################
+## <summary>
+##	Read inherited icc data home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gnome_read_inherited_home_icc_data_files',`
+	gen_require(`
+		type icc_data_home_t;
+	')
+
+	allow $1 icc_data_home_t:file read_inherited_file_perms;
+')
+
+########################################
+## <summary>
 ##	Create gconf_home_t objects in the /root directory
 ## </summary>
 ## <param name="domain">
@@ -1055,7 +1095,7 @@ gen_require(`
 	type gstreamer_home_t;
 	type gconf_home_t;
 	type gnome_home_t;
-	type data_home_t;
+	type data_home_t, icc_data_home_t;
 	type gkeyringd_gnome_home_t;
 ')
 
@@ -1069,8 +1109,11 @@ gen_require(`
 	userdom_user_home_dir_filetrans($1, gnome_home_t, dir, ".gnome2")
 	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-10")
 	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-12")
+	# ~/.color/icc: legacy
+	userdom_user_home_content_filetrans($1, icc_data_home_t, dir, "icc")
 	filetrans_pattern($1, gnome_home_t, gkeyringd_gnome_home_t, dir, "keyrings")
 	filetrans_pattern($1, gconf_home_t, data_home_t, dir, "share")
+	filetrans_pattern($1, data_home_t, icc_data_home_t, dir, "icc")
 ')
 
 ########################################
@@ -1092,7 +1135,7 @@ gen_require(`
 	type gstreamer_home_t;
 	type gconf_home_t;
 	type gnome_home_t;
-	type data_home_t;
+	type icc_data_home_t;
 ')
 
 	userdom_admin_home_dir_filetrans($1, config_home_t, file, ".Xdefaults")
@@ -1105,6 +1148,8 @@ gen_require(`
 	userdom_admin_home_dir_filetrans($1, gnome_home_t, dir, ".gnome2")
 	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-10")
 	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-12")
+	# /root/.color/icc: legacy
+	userdom_admin_home_dir_filetrans($1, icc_data_home_t, dir, "icc")
 ')
 ######################################
 ## <summary>
