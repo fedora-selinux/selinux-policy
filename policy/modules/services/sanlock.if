@@ -38,6 +38,44 @@ interface(`sanlock_initrc_domtrans',`
 	init_labeled_script_domtrans($1, sanlock_initrc_exec_t)
 ')
 
+######################################
+## <summary>
+##	Create, read, write, and delete sanlock PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sanlock_manage_pid_files',`
+	gen_require(`
+		type sanlock_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, sanlock_var_run_t, sanlock_var_run_t)
+')
+
+########################################
+## <summary>
+##      Connect to sanlock over an unix stream socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`sanlock_stream_connect',`
+        gen_require(`
+                type sanlock_t, sanlock_var_run_t;
+        ')
+
+        files_search_pids($1)
+        stream_connect_pattern($1, sanlock_var_run_t, sanlock_var_run_t, sanlock_t)
+')
+
 ########################################
 ## <summary>
 ##	All of the rules required to administrate
@@ -69,23 +107,4 @@ interface(`sanlock_admin',`
 	role_transition $2 sanlock_initrc_exec_t system_r;
 	allow $2 system_r;
 
-')
-
-########################################
-## <summary>
-##      Connect to sanlock over an unix stream socket.
-## </summary>
-## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
-## </param>
-#
-interface(`sanlock_stream_connect',`
-        gen_require(`
-                type sanlock_t, sanlock_var_run_t;
-        ')
-
-        files_search_pids($1)
-        stream_connect_pattern($1, sanlock_var_run_t, sanlock_var_run_t, sanlock_t)
 ')
