@@ -7,23 +7,15 @@ policy_module(jabber, 1.8.0)
 
 attribute jabberd_domain;
 
-type jabberd_t, jabberd_domain;
-type jabberd_exec_t;
-init_daemon_domain(jabberd_t, jabberd_exec_t)
+jabber_domain_template(jabberd)
+jabber_domain_template(jabberd_router)
 
 type jabberd_initrc_exec_t;
-init_script_file(jabberd_initrc_exec_t)
+init_script_file(jabberd_initrc_exec_t
 
-jabberd_domain_template(router)
-
-type jabberd_log_t;
-logging_log_file(jabberd_log_t)
-
+# type which includes log/pid files pro jabberd components
 type jabberd_var_lib_t;
 files_type(jabberd_var_lib_t)
-
-type jabberd_var_run_t;
-files_pid_file(jabberd_var_run_t)
 
 ######################################
 #
@@ -31,6 +23,9 @@ files_pid_file(jabberd_var_run_t)
 #
 
 allow jabberd_router_t self:netlink_route_socket r_netlink_socket_perms;
+
+manage_files_pattern(jabberd_router_t, jabberd_var_lib_t, jabberd_var_lib_t)
+manage_dirs_pattern(jabberd_router_t, jabberd_var_lib_t, jabberd_var_lib_t)
 
 corenet_tcp_bind_jabber_client_port(jabberd_router_t)
 corenet_tcp_bind_jabber_router_port(jabberd_router_t)
@@ -54,6 +49,9 @@ optional_policy(`
 #
 # Local policy for other jabberd components
 #
+
+manage_files_pattern(jabberd_t, jabberd_var_lib_t, jabberd_var_lib_t)
+manage_dirs_pattern(jabberd_t, jabberd_var_lib_t, jabberd_var_lib_t)
 
 kernel_read_system_state(jabberd_t)
 
@@ -80,16 +78,6 @@ allow jabberd_domain self:process signal_perms;
 allow jabberd_domain self:fifo_file read_fifo_file_perms;
 allow jabberd_domain self:tcp_socket create_stream_socket_perms;
 allow jabberd_domain self:udp_socket create_socket_perms;
-
-manage_files_pattern(jabberd_domain, jabberd_var_lib_t, jabberd_var_lib_t)
-manage_dirs_pattern(jabberd_domain, jabberd_var_lib_t, jabberd_var_lib_t)
-
-# log and pid files are moved into /var/lib/jabberd in the newer version of jabberd
-manage_files_pattern(jabberd_domain, jabberd_log_t, jabberd_log_t)
-logging_log_filetrans(jabberd_domain, jabberd_log_t, { file dir })
-
-manage_files_pattern(jabberd_domain, jabberd_var_run_t, jabberd_var_run_t)
-files_pid_filetrans(jabberd_domain, jabberd_var_run_t, file)
 
 corenet_all_recvfrom_unlabeled(jabberd_domain)
 corenet_all_recvfrom_netlabel(jabberd_domain)
