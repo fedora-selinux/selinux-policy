@@ -1437,16 +1437,20 @@ interface(`apache_dontaudit_leaks',`
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##      Domain allowed access.
+##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
 interface(`apache_filetrans_home_content',`
 	gen_require(`
-		type httpd_user_content_t;
+		type httpd_user_content_t, httpd_user_script_exec_t, httpd_user_htaccess_t;
+		type httpd_user_content_ra_t;
 	')
 
 	userdom_user_home_dir_filetrans($1, httpd_user_content_t, dir, "public_html")
 	userdom_user_home_dir_filetrans($1, httpd_user_content_t, dir, "www")
 	userdom_user_home_dir_filetrans($1, httpd_user_content_t, dir, "web")
+	filetrans_pattern($1, httpd_user_content_t, httpd_user_script_exec_t, dir, "cgi-bin")
+	filetrans_pattern($1, httpd_user_content_t, httpd_user_content_ra_t, dir, "logs")
+	filetrans_pattern($1, { httpd_user_content_t httpd_user_script_exec_t }, httpd_user_htaccess_t, file, ".htaccess")
 ')
