@@ -9,6 +9,9 @@ attribute jabberd_domain;
 
 jabber_domain_template(jabberd)
 jabber_domain_template(jabberd_router)
+jabber_domain_template(pyicqt)
+
+permissive pyicqt_t;
 
 type jabberd_initrc_exec_t;
 init_script_file(jabberd_initrc_exec_t)
@@ -16,6 +19,16 @@ init_script_file(jabberd_initrc_exec_t)
 # type which includes log/pid files pro jabberd components
 type jabberd_var_lib_t;
 files_type(jabberd_var_lib_t)
+
+# pyicq-t types
+type pyicqt_log_t;
+logging_log_file(pyicqt_log_t);
+
+type pyicqt_var_spool_t;
+files_type(pyicqt_var_spool_t)
+
+type pyicqt_var_run_t;
+files_pid_file(pyicqt_var_run_t)
 
 ######################################
 #
@@ -69,13 +82,53 @@ optional_policy(`
 	udev_read_db(jabberd_t)
 ')
 
+######################################
+#
+# Local policy for pyicq-t
+#
+
+# need for /var/log/pyicq-t.log
+manage_files_pattern(pyicqt_t, pyicqt_log_t, pyicqt_log_t)
+logging_log_filetrans(pyicqt_t, pyicqt_log_t, file)
+
+manage_files_pattern(pyicqt_t, pyicqt_var_run_t, pyicqt_var_run_t);
+
+files_search_spool(pyicqt_t)
+manage_files_pattern(pyicqt_t, pyicqt_var_spool_t, pyicqt_var_spool_t);
+
+kernel_read_system_state(pyicqt_t)
+
+corenet_tcp_bind_jabber_router_port(pyicqt_t)
+corenet_tcp_connect_jabber_router_port(pyicqt_t)
+
+corecmd_exec_bin(pyicqt_t)
+
+dev_read_urand(pyicqt_t);
+
+files_read_usr_files(pyicqt_t)
+
+auth_use_nsswitch(pyicqt_t);
+
+# for RHEL5
+libs_use_ld_so(pyicqt_t)
+libs_use_shared_libs(pyicqt_t)
+
+# needed for pyicq-t-mysql
+optional_policy(`
+	corenet_tcp_connect_mysqld_port(pyicqt_t)
+')
+
+optional_policy(`
+	sysnet_use_ldap(pyicqt_t)
+')
+
 #######################################
 #
 # Local policy for jabberd domains
 #
 
 allow jabberd_domain self:process signal_perms;
-allow jabberd_domain self:fifo_file read_fifo_file_perms;
+allow jabberd_domain self:fifo_file rw_fifo_file_perms;
 allow jabberd_domain self:tcp_socket create_stream_socket_perms;
 allow jabberd_domain self:udp_socket create_socket_perms;
 
