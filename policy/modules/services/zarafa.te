@@ -18,6 +18,9 @@ zarafa_domain_template(deliver)
 type zarafa_deliver_tmp_t;
 files_tmp_file(zarafa_deliver_tmp_t)
 
+type zarafa_indexer_tmp_t;
+files_tmp_file(zarafa_indexer_tmp_t)
+
 type zarafa_server_tmp_t;
 files_tmp_file(zarafa_server_tmp_t)
 
@@ -32,6 +35,18 @@ files_type(zarafa_share_t)
 
 permissive zarafa_indexer_t;
 
+#######################################
+#
+# zarafa-indexer local policy
+#
+
+manage_dirs_pattern(zarafa_indexer_t, zarafa_indexer_tmp_t, zarafa_indexer_tmp_t)
+manage_files_pattern(zarafa_indexer_t, zarafa_indexer_tmp_t, zarafa_indexer_tmp_t)
+files_tmp_filetrans(zarafa_indexer_t, zarafa_indexer_tmp_t, { file dir })
+
+manage_dirs_pattern(zarafa_indexer_t, zarafa_var_lib_t, zarafa_var_lib_t)
+manage_files_pattern(zarafa_indexer_t, zarafa_var_lib_t, zarafa_var_lib_t)
+
 ########################################
 #
 # zarafa-deliver local policy
@@ -41,8 +56,6 @@ manage_dirs_pattern(zarafa_deliver_t, zarafa_deliver_tmp_t, zarafa_deliver_tmp_t
 manage_files_pattern(zarafa_deliver_t, zarafa_deliver_tmp_t, zarafa_deliver_tmp_t)
 files_tmp_filetrans(zarafa_deliver_t, zarafa_deliver_tmp_t, { file dir })
 
-#temporary
-#allow zarafa_deliver_t port_t:tcp_socket name_bind;
 
 ########################################
 #
@@ -58,7 +71,6 @@ files_tmp_filetrans(zarafa_server_t, zarafa_server_tmp_t, { file dir })
 
 manage_dirs_pattern(zarafa_server_t, zarafa_var_lib_t, zarafa_var_lib_t)
 manage_files_pattern(zarafa_server_t, zarafa_var_lib_t, zarafa_var_lib_t)
-files_var_lib_filetrans(zarafa_server_t, zarafa_var_lib_t, { file dir })
 
 stream_connect_pattern(zarafa_server_t, zarafa_indexer_var_run_t, zarafa_indexer_var_run_t, zarafa_indexer_t)
 
@@ -139,8 +151,3 @@ files_read_etc_files(zarafa_domain)
 auth_use_nsswitch(zarafa_domain)
 
 miscfiles_read_localization(zarafa_domain)
-
-# temporary rules
-optional_policy(`
-	apache_content_template(zarafa)
-')
