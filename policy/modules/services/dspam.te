@@ -1,0 +1,97 @@
+
+policy_module(dspam, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type dspam_t;
+type dspam_exec_t;
+init_daemon_domain(dspam_t, dspam_exec_t)
+
+permissive dspam_t;
+
+type dspam_initrc_exec_t;
+init_script_file(dspam_initrc_exec_t)
+
+type dspam_log_t;
+logging_log_file(dspam_log_t)
+
+type dspam_var_lib_t;
+files_type(dspam_var_lib_t)
+
+type dspam_var_run_t;
+files_pid_file(dspam_var_run_t)
+
+# FIXME
+# /tmp/dspam.sock
+type dspam_tmp_t;
+files_tmp_file(dspam_tmp_t)
+
+########################################
+#
+# dspam local policy
+#
+
+allow dspam_t self:capability net_admin;
+
+allow dspam_t self:process { signal };
+
+allow dspam_t self:fifo_file rw_fifo_file_perms;
+allow dspam_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(dspam_t, dspam_log_t, dspam_log_t)
+manage_files_pattern(dspam_t, dspam_log_t, dspam_log_t)
+
+manage_dirs_pattern(dspam_t, dspam_var_lib_t, dspam_var_lib_t)
+manage_files_pattern(dspam_t, dspam_var_lib_t, dspam_var_lib_t)
+
+manage_dirs_pattern(dspam_t, dspam_var_run_t, dspam_var_run_t)
+manage_files_pattern(dspam_t, dspam_var_run_t, dspam_var_run_t)
+
+manage_sock_files_pattern(dspam_t, dspam_tmp_t, dspam_tmp_t)
+files_tmp_filetrans(dspam_t, dspam_tmp_t, { sock_file })
+
+# need to add the port tcp/10026 to corenetwork.te.in
+#allow dspam_t port_t:tcp_socket name_connect;
+
+files_read_etc_files(dspam_t)
+
+auth_use_nsswitch(dspam_t)
+
+# for RHEL5
+libs_use_ld_so(dspam_t)
+libs_use_shared_libs(dspam_t)
+libs_read_lib_files(dspam_t)
+
+logging_send_syslog_msg(dspam_t)
+
+miscfiles_read_localization(dspam_t)
+
+sysnet_dns_name_resolve(dspam_t)
+
+optional_policy(`
+    mysql_tcp_connect(dspam_t)
+    mysql_search_db(dspam_t)
+    mysql_stream_connect(dspam_t)	
+')
+
+optional_policy(`
+    postgresql_tcp_connect(dspam_t)
+    postgresql_stream_connect(dspam_t)
+')
+
+#######################################
+#
+# dspam web local policy.
+#
+
+optional_policy(`
+	apache_content_template(dspam)
+
+	list_dirs_pattern(dspam_t, httpd_dspam_content_t, httpd_dspam_content_t)
+	manage_dirs_pattern(dspam_t, httpd_dspam_content_rw_t, httpd_dspam_content_rw_t)
+	manage_files_pattern(dspam_t, httpd_dspam_content_rw_t, httpd_dspam_content_rw_t)
+')
+
