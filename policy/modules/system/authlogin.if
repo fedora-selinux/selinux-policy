@@ -1039,7 +1039,7 @@ interface(`auth_read_var_auth',`
 #
 interface(`auth_rw_var_auth',`
     gen_require(`
-        type var_auth_t;
+		type var_auth_t;
     ')
 
     files_search_var($1)
@@ -1223,6 +1223,24 @@ interface(`auth_list_pam_console_data',`
 
 	files_search_pids($1)
 	allow $1 pam_var_console_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Relabel pam_console data directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_relabel_pam_console_data_dirs',`
+	gen_require(`
+		type pam_var_console_t;
+	')
+
+	relabel_dirs_pattern($1, pam_var_console_t, pam_var_console_t)
 ')
 
 ########################################
@@ -1712,6 +1730,24 @@ interface(`auth_manage_login_records',`
 
 ########################################
 ## <summary>
+##	Relabel login record files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_relabel_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	allow $1 wtmp_t:file relabel_file_perms;
+')
+
+########################################
+## <summary>
 ##	Use nsswitch to look up user, password, group, or
 ##	host information.
 ## </summary>
@@ -1772,6 +1808,14 @@ interface(`auth_use_nsswitch',`
 
 	optional_policy(`
 		nscd_use($1)
+	')
+
+	optional_policy(`
+		nslcd_stream_connect($1)
+	')
+
+	optional_policy(`
+		sssd_stream_connect($1)
 	')
 
 	optional_policy(`

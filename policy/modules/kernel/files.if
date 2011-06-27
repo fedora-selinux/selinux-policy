@@ -1803,20 +1803,20 @@ interface(`files_list_boot',`
 
 #######################################
 ## <summary>
-##  Dontaudit List the /boot directory.
+##	Do not audit attempts to list the /boot directory.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##	Domain to not audit.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`files_dontaudit_list_boot',`
-    gen_require(`
-        type boot_t;
-    ')
+	gen_require(`
+		type boot_t;
+	')
 
-    dontaudit $1 boot_t:dir list_dir_perms;
+	dontaudit $1 boot_t:dir list_dir_perms;
 ')
 
 ########################################
@@ -1944,21 +1944,20 @@ interface(`files_relabelfrom_boot_files',`
 
 ######################################
 ## <summary>
-##  Read symbolic links
-##  in the /boot directory.
+##	Read symbolic links in the /boot directory.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`files_read_boot_symlinks',`
-    gen_require(`
-        type boot_t;
-    ')
+	gen_require(`
+		type boot_t;
+	')
 
-    read_lnk_files_pattern($1, boot_t, boot_t)
+	read_lnk_files_pattern($1, boot_t, boot_t)
 ')
 
 ########################################
@@ -3478,16 +3477,16 @@ interface(`files_dontaudit_getattr_lost_found_dirs',`
 
 #######################################
 ## <summary>
-##  List the contents of /tmp/lost-found
+##	List the contents of lost+found directories.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
-interface(`files_list_lost_found_dirs',`
-    gen_require(`
+interface(`files_list_lost_found',`
+	gen_require(`
 		type lost_found_t;
 	')
 
@@ -3605,7 +3604,6 @@ interface(`files_dontaudit_access_check_mnt',`
 	gen_require(`
 		type mnt_t;
 	')
-
 	dontaudit $1 mnt_t:file_class_set audit_access;
 ')
 
@@ -3684,20 +3682,20 @@ interface(`files_read_mnt_files',`
 
 ######################################
 ## <summary>
-##  Read symbolic links in /mnt.
+##	Read symbolic links in /mnt.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`files_read_mnt_symlinks',`
-    gen_require(`
-        type mnt_t;
-    ')
+	gen_require(`
+		type mnt_t;
+	')
 
-    read_lnk_files_pattern($1, mnt_t, mnt_t)
+	read_lnk_files_pattern($1, mnt_t, mnt_t)
 ')
 
 ########################################
@@ -4481,6 +4479,28 @@ interface(`files_list_all_tmp',`
 
 ########################################
 ## <summary>
+##	Relabel to and from all temporary
+##	directory types.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`files_relabel_all_tmp_dirs',`
+	gen_require(`
+		attribute tmpfile;
+		type var_t;
+	')
+
+	allow $1 var_t:dir search_dir_perms;
+	relabel_dirs_pattern($1, tmpfile, tmpfile)
+')
+
+########################################
+## <summary>
 ##	Do not audit attempts to get the attributes
 ##	of all tmp files.
 ## </summary>
@@ -4515,6 +4535,28 @@ interface(`files_getattr_all_tmp_files',`
 	')
 
 	allow $1 tmpfile:file getattr;
+')
+
+########################################
+## <summary>
+##	Relabel to and from all temporary
+##	file types.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`files_relabel_all_tmp_files',`
+	gen_require(`
+		attribute tmpfile;
+		type var_t;
+	')
+
+	allow $1 var_t:dir search_dir_perms;
+	relabel_files_pattern($1, tmpfile, tmpfile)
 ')
 
 ########################################
@@ -5632,6 +5674,24 @@ interface(`files_dontaudit_search_locks',`
 	dontaudit $1 var_lock_t:dir search_dir_perms;
 ')
 
+#######################################
+## <summary>
+##  List generic lock directories.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`files_list_locks',`
+    gen_require(`
+        type var_t, var_lock_t;
+    ')
+
+    list_dirs_pattern($1, var_t, var_lock_t)
+')
+
 ########################################
 ## <summary>
 ##	create a directory in the /var/lock
@@ -5647,9 +5707,8 @@ interface(`files_create_lock_dirs',`
 	gen_require(`
 		type var_t, var_lock_t;
 	')
-
 	files_search_locks($1)
-        allow $1 var_lock_t:dir create_dir_perms;
+	allow $1 var_lock_t:dir create_dir_perms;
 ')
 
 ########################################
@@ -5688,6 +5747,27 @@ interface(`files_rw_lock_dirs',`
 
 	files_search_locks($1)
 	rw_dirs_pattern($1, var_t, var_lock_t)
+')
+
+########################################
+## <summary>
+##	Relabel to and from all lock directory types.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`files_relabel_all_lock_dirs',`
+	gen_require(`
+		attribute lockfile;
+		type var_t;
+	')
+
+	allow $1 var_t:dir search_dir_perms;
+	relabel_dirs_pattern($1, lockfile, lockfile)
 ')
 
 ########################################

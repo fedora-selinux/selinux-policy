@@ -548,8 +548,8 @@ template(`userdom_change_password_template',`
 	')
 
 	optional_policy(`
-		usermanage_run_chfn($1_t,$1_r)
-		usermanage_run_passwd($1_t,$1_r)
+		usermanage_run_chfn($1_t, $1_r)
+		usermanage_run_passwd($1_t, $1_r)
 	')
 ')
 
@@ -643,9 +643,11 @@ template(`userdom_common_user_template',`
 	# for eject
 	storage_getattr_fixed_disk_dev($1_usertype)
 
-	auth_read_login_records($1_usertype)
-	auth_run_pam($1_t,$1_r)
-	auth_run_utempter($1_t,$1_r)
+	auth_use_nsswitch($1_t)
+	auth_read_login_records($1_t)
+	auth_search_pam_console_data($1_t)
+	auth_run_pam($1_t, $1_r)
+	auth_run_utempter($1_t, $1_r)
 
 	init_read_utmp($1_usertype)
 
@@ -838,6 +840,7 @@ template(`userdom_common_user_template',`
 
 	optional_policy(`
 		seunshare_role_template($1, $1_r, $1_t)
+		usernetctl_run($1_t, $1_r)
 	')
 
 	optional_policy(`
@@ -932,6 +935,11 @@ template(`userdom_login_user_template', `
 	auth_dontaudit_write_login_records($1_t)
 	auth_rw_cache($1_t)
 
+	application_exec_all($1_t)
+
+	# The library functions always try to open read-write first,
+	# then fall back to read-only if it fails.
+	init_dontaudit_rw_utmp($1_t)
 	# Stop warnings about access to /dev/console
 	init_dontaudit_use_fds($1_usertype)
 	init_dontaudit_use_script_fds($1_usertype)
@@ -1013,7 +1021,7 @@ template(`userdom_restricted_user_template',`
 	#
 
 	optional_policy(`
-		loadkeys_run($1_t,$1_r)
+		loadkeys_run($1_t, $1_r)
 	')
 ')
 
@@ -1210,6 +1218,24 @@ template(`userdom_unpriv_user_template', `
 
 	storage_rw_fuse($1_t)
 
+	files_exec_usr_files($1_t)
+	# cjp: why?
+	files_read_kernel_symbol_table($1_t)
+
+	ifndef(`enable_mls',`
+		fs_exec_noxattr($1_t)
+
+		tunable_policy(`user_rw_noexattrfile',`
+			fs_manage_noxattr_fs_files($1_t)
+			fs_manage_noxattr_fs_dirs($1_t)
+			# Write floppies
+			storage_raw_read_removable_device($1_t)
+			storage_raw_write_removable_device($1_t)
+		',`
+			storage_raw_read_removable_device($1_t)
+		')
+	')
+
 	miscfiles_read_hwdata($1_usertype)
 
 	# Allow users to run TCP servers (bind to ports and accept connection from
@@ -1258,10 +1284,17 @@ template(`userdom_unpriv_user_template', `
 
 	optional_policy(`
 		java_role_template($1, $1_r, $1_t)
+
+	optional_policy(`
+		netutils_run_ping_cond($1_t, $1_r)
+		netutils_run_traceroute_cond($1_t, $1_r)
 	')
 
 	optional_policy(`
 		mono_role_template($1, $1_r, $1_t)
+
+	optional_policy(`
+		ppp_run_cond($1_t, $1_r)
 	')
 
 	optional_policy(`
@@ -1533,20 +1566,15 @@ template(`userdom_security_admin_template',`
 	seutil_manage_file_contexts($1)
 	seutil_manage_module_store($1)
 	seutil_manage_config($1)
+
 	seutil_run_checkpolicy($1,$2)
 	seutil_run_loadpolicy($1,$2)
 	seutil_run_semanage($1,$2)
 	seutil_run_setsebool($1,$2)
 	seutil_run_setfiles($1, $2)
 
-	seutil_manage_bin_policy($1)
-    seutil_manage_default_contexts($1)
-    seutil_manage_file_contexts($1)
-    seutil_manage_module_store($1)
-    seutil_manage_config($1)
-
 	optional_policy(`
-		aide_run($1,$2)
+		aide_run($1, $2)
 	')
 
 	optional_policy(`
@@ -1557,12 +1585,12 @@ template(`userdom_security_admin_template',`
 		dmesg_exec($1)
 	')
 
-	optional_policy(`	
-		ipsec_run_setkey($1,$2)
+	optional_policy(`
+		ipsec_run_setkey($1, $2)
 	')
 
 	optional_policy(`
-		netlabel_run_mgmt($1,$2)
+		netlabel_run_mgmt($1, $2)
 	')
 
 	optional_policy(`
@@ -3335,6 +3363,24 @@ interface(`userdom_xsession_spec_domtrans_unpriv_users',`
 	allow unpriv_userdomain $1:process sigchld;
 ')
 
+#######################################
+## <summary>
+##	Read and write unpriviledged user SysV sempaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_rw_unpriv_user_semaphores',`
+	gen_require(`
+		attribute unpriv_userdomain;
+	')
+
+	allow $1 unpriv_userdomain:sem rw_sem_perms;
+')
+
 ########################################
 ## <summary>
 ##	Manage unpriviledged user SysV sempaphores.
@@ -3351,6 +3397,25 @@ interface(`userdom_manage_unpriv_user_semaphores',`
 	')
 
 	allow $1 unpriv_userdomain:sem create_sem_perms;
+')
+
+#######################################
+## <summary>
+##	Read and write unpriviledged user SysV shared
+##	memory segments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_rw_unpriv_user_shared_mem',`
+	gen_require(`
+		attribute unpriv_userdomain;
+	')
+
+	allow $1 unpriv_userdomain:shm rw_shm_perms;
 ')
 
 ########################################
@@ -3437,6 +3502,24 @@ interface(`userdom_search_user_home_content',`
 	files_list_home($1)
 	allow $1 { user_home_dir_t user_home_type }:dir search_dir_perms;
 	allow $1 { user_home_dir_t user_home_type }:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Send signull to unprivileged user domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_signull_unpriv_users',`
+	gen_require(`
+		attribute unpriv_userdomain;
+	')
+
+	allow $1 unpriv_userdomain:process signull;
 ')
 
 ########################################

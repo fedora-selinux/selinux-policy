@@ -1,15 +1,14 @@
-
-## <summary>Telepathy framework.</summary>
+## <summary>Telepathy communications framework.</summary>
 
 #######################################
 ## <summary>
-##  Creates basic types for telepathy
-##  domain
+##	Creates basic types for telepathy
+##	domain
 ## </summary>
 ## <param name="prefix">
-##  <summary>
-##  Prefix for the domain.
-##  </summary>
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
 ## </param>
 #
 #
@@ -32,7 +31,7 @@ template(`telepathy_domain_template',`
 
 #######################################
 ## <summary>
-##  	Role access for telepathy domains
+##		Role access for telepathy domains
 ###     that executes via dbus-session
 ## </summary>
 ## <param name="user_role">
@@ -46,94 +45,37 @@ template(`telepathy_domain_template',`
 ##	</summary>
 ## </param>
 #
-template(`telepathy_dbus_session_role', `
+template(`telepathy_role', `
 	gen_require(`
 		attribute telepathy_domain;
-		 type telepathy_gabble_t;
-        type telepathy_sofiasip_t;
-        type telepathy_idle_t;
-        type telepathy_mission_control_t;
-        type telepathy_salut_t;
-        type telepathy_sunshine_t;
-        type telepathy_stream_engine_t;
-        type telepathy_msn_t;
-        type telepathy_gabble_exec_t;
-        type telepathy_sofiasip_exec_t;
-        type telepathy_idle_exec_t;
-        type telepathy_mission_control_exec_t;
-        type telepathy_salut_exec_t;
-        type telepathy_sunshine_exec_t;
-        type telepathy_stream_engine_exec_t;
-        type telepathy_msn_exec_t;
-		type telepathy_logger_exec_t;
-		type telepathy_logger_t;
+		type telepathy_gabble_t, telepathy_sofiasip_t, telepathy_idle_t;
+		type telepathy_mission_control_t, telepathy_salut_t, telepathy_sunshine_t;
+		type telepathy_stream_engine_t, telepathy_msn_t, telepathy_gabble_exec_t;
+		type telepathy_sofiasip_exec_t, telepathy_idle_exec_t;
+		type telepathy_logger_t, telepathy_logger_exec_t;
+		type telepathy_mission_control_exec_t, telepathy_salut_exec_t;
+		type telepathy_sunshine_exec_t, telepathy_stream_engine_exec_t;
+		type telepathy_msn_exec_t;
 	')
 
-        role $1 types telepathy_domain;
+	role $1 types telepathy_domain;
 
-	allow $2 telepathy_domain:process { ptrace signal_perms };
+	allow $2 telepathy_domain:process signal_perms;
 	ps_process_pattern($2, telepathy_domain)
-
-	optional_policy(`
-		telepathy_dbus_chat($2)
-	')
 
 	telepathy_gabble_stream_connect($2)
 	telepathy_msn_stream_connect($2)
-	telepathy_salut_stream_connect($2)	
+	telepathy_salut_stream_connect($2)
 
 	dbus_session_domain($3, telepathy_gabble_exec_t, telepathy_gabble_t)
-    dbus_session_domain($3, telepathy_sofiasip_exec_t, telepathy_sofiasip_t)
-    dbus_session_domain($3, telepathy_idle_exec_t, telepathy_idle_t)
+	dbus_session_domain($3, telepathy_sofiasip_exec_t, telepathy_sofiasip_t)
+	dbus_session_domain($3, telepathy_idle_exec_t, telepathy_idle_t)
 	dbus_session_domain($3, telepathy_logger_exec_t, telepathy_logger_t)
-    dbus_session_domain($3, telepathy_mission_control_exec_t, telepathy_mission_control_t)
-    dbus_session_domain($3, telepathy_salut_exec_t, telepathy_salut_t)
-    dbus_session_domain($3, telepathy_sunshine_exec_t, telepathy_sunshine_t)
-    dbus_session_domain($3, telepathy_stream_engine_exec_t, telepathy_stream_engine_t)
-    dbus_session_domain($3, telepathy_msn_exec_t, telepathy_msn_t)
-
-')
-
-########################################
-## <summary>
-##	Send DBus messages to and from
-##	all Telepathy domain.
-## </summary>
-## <param name="domain">
-## 	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`telepathy_dbus_chat', `
-	gen_require(`
-		attribute telepathy_domain;
-		class dbus send_msg;
-	')
-
-	allow $1 telepathy_domain:dbus send_msg;
-	allow telepathy_domain $1:dbus send_msg;
-')
-
-########################################
-## <summary>
-##	Send DBus messages to and from
-##	Telepathy Gabble.
-## </summary>
-## <param name="domain">
-## 	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`telepathy_gabble_dbus_chat', `
-	gen_require(`
-		type telepathy_gabble_t;
-		class dbus send_msg;
-	')
-
-	allow $1 telepathy_gabble_t:dbus send_msg;
-	allow telepathy_gabble_t $1:dbus send_msg;
+	dbus_session_domain($3, telepathy_mission_control_exec_t, telepathy_mission_control_t)
+	dbus_session_domain($3, telepathy_salut_exec_t, telepathy_salut_t)
+	dbus_session_domain($3, telepathy_sunshine_exec_t, telepathy_sunshine_t)
+	dbus_session_domain($3, telepathy_stream_engine_exec_t, telepathy_stream_engine_t)
+	dbus_session_domain($3, telepathy_msn_exec_t, telepathy_msn_t)
 ')
 
 ########################################
@@ -155,29 +97,10 @@ interface(`telepathy_gabble_stream_connect', `
 	files_search_tmp($1)
 ')
 
-#######################################
-## <summary>
-##      Stream connect to telepathy MSN managers
-## </summary>
-## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
-## </param>
-#
-interface(`telepathy_msn_stream_connect', `
-        gen_require(`
-                type telepathy_msn_t, telepathy_msn_tmp_t;
-        ')
-
-        stream_connect_pattern($1, telepathy_msn_tmp_t, telepathy_msn_tmp_t, telepathy_msn_t)
-        files_search_tmp($1)
-')
-
-
 ########################################
 ## <summary>
-##	Stream connect to Telepathy Salut
+##	Send DBus messages to and from
+##	Telepathy Gabble.
 ## </summary>
 ## <param name="domain">
 ## 	<summary>
@@ -185,13 +108,14 @@ interface(`telepathy_msn_stream_connect', `
 ##	</summary>
 ## </param>
 #
-interface(`telepathy_salut_stream_connect', `
+interface(`telepathy_gabble_dbus_chat', `
 	gen_require(`
-		type telepathy_salut_t, telepathy_salut_tmp_t;
+		type telepathy_gabble_t;
+		class dbus send_msg;
 	')
 
-	stream_connect_pattern($1, telepathy_salut_tmp_t, telepathy_salut_tmp_t, telepathy_salut_t)
-	files_search_tmp($1)
+	allow $1 telepathy_gabble_t:dbus send_msg;
+	allow telepathy_gabble_t $1:dbus send_msg;
 ')
 
 ########################################
@@ -219,6 +143,44 @@ interface(`telepathy_mission_control_read_state',`
 ')
 
 #######################################
+## <summary>
+##	Stream connect to telepathy MSN managers
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`telepathy_msn_stream_connect', `
+	gen_require(`
+		type telepathy_msn_t, telepathy_msn_tmp_t;
+	')
+
+	stream_connect_pattern($1, telepathy_msn_tmp_t, telepathy_msn_tmp_t, telepathy_msn_t)
+	files_search_tmp($1)
+')
+
+########################################
+## <summary>
+##	Stream connect to Telepathy Salut
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`telepathy_salut_stream_connect', `
+	gen_require(`
+		type telepathy_salut_t, telepathy_salut_tmp_t;
+	')
+
+	stream_connect_pattern($1, telepathy_salut_tmp_t, telepathy_salut_tmp_t, telepathy_salut_t)
+	files_search_tmp($1)
+')
+
+######################################
 ## <summary>
 ##  Execute telepathy executable
 ##  in the specified domain.
@@ -262,7 +224,7 @@ interface(`telepathy_command_domtrans', `
     type_transition $1 telepathy_executable:process $2;
 
 	# needs to dbus chat with unconfined_t and unconfined_dbusd_t
-	optional_policy(`
+    optional_policy(`
         telepathy_dbus_chat($1)
         telepathy_dbus_chat($2)
     ')
