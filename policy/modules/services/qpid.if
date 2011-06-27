@@ -1,4 +1,4 @@
-## <summary>Apache QPID AMQP messaging server.</summary>
+## <summary>policy for qpidd</summary>
 
 ########################################
 ## <summary>
@@ -16,42 +16,6 @@ interface(`qpidd_domtrans',`
 	')
 
 	domtrans_pattern($1, qpidd_exec_t, qpidd_t)
-')
-
-#####################################
-## <summary>
-##	Allow read and write access to qpidd semaphores.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`qpidd_rw_semaphores',`
-	gen_require(`
-		type qpidd_t;
-	')
-
-	allow $1 qpidd_t:sem rw_sem_perms;
-')
-
-########################################
-## <summary>
-##	Read and write to qpidd shared memory.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`qpidd_rw_shm',`
-	gen_require(`
-		type qpidd_t;
-	')
-
-	allow $1 qpidd_t:shm rw_shm_perms;
 ')
 
 ########################################
@@ -89,6 +53,27 @@ interface(`qpidd_read_pid_files',`
 
 	files_search_pids($1)
 	allow $1 qpidd_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage qpidd var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_manage_var_run',`
+	gen_require(`
+		type qpidd_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_dirs_pattern($1, qpidd_var_run_t, qpidd_var_run_t)
+	manage_files_pattern($1, qpidd_var_run_t, qpidd_var_run_t)
+	manage_lnk_files_pattern($1, qpidd_var_run_t, qpidd_var_run_t)
 ')
 
 ########################################
@@ -151,6 +136,27 @@ interface(`qpidd_manage_lib_files',`
 
 ########################################
 ## <summary>
+##	Manage qpidd var_lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_manage_var_lib',`
+	gen_require(`
+		type qpidd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, qpidd_var_lib_t, qpidd_var_lib_t)
+	manage_files_pattern($1, qpidd_var_lib_t, qpidd_var_lib_t)
+	manage_lnk_files_pattern($1, qpidd_var_lib_t, qpidd_var_lib_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an qpidd environment
 ## </summary>
@@ -180,7 +186,43 @@ interface(`qpidd_admin',`
 	role_transition $2 qpidd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	admin_pattern($1, qpidd_var_lib_t)
+	qpidd_manage_var_run($1)
 
-	admin_pattern($1, qpidd_var_run_t)
+	qpidd_manage_var_lib($1)
+')
+
+#####################################
+## <summary>
+##	Allow read and write access to qpidd semaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_rw_semaphores',`
+	gen_require(`
+		type qpidd_t;
+	')
+
+	allow $1 qpidd_t:sem rw_sem_perms;
+')
+
+########################################
+## <summary>
+##	Read and write to qpidd shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_rw_shm',`
+	gen_require(`
+		type qpidd_t;
+	')
+
+	allow $1 qpidd_t:shm rw_shm_perms;
 ')
