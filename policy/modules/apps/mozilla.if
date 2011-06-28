@@ -48,6 +48,7 @@ interface(`mozilla_role',`
 	relabel_files_pattern($2, mozilla_home_t, mozilla_home_t)
 	relabel_lnk_files_pattern($2, mozilla_home_t, mozilla_home_t)
 
+	mozilla_run_plugin(mozilla_t, $1)
 	mozilla_dbus_chat($2)
 
 	userdom_manage_tmp_role($1, mozilla_t)
@@ -150,7 +151,7 @@ interface(`mozilla_dontaudit_manage_user_home_files',`
 ##	</summary>
 ## </param>
 #
-interface(`mozilla_execute_user_home_files',`
+interface(`mozilla_exec_user_home_files',`
 	gen_require(`
 		type mozilla_home_t;
 	')
@@ -206,22 +207,13 @@ interface(`mozilla_domtrans',`
 #
 interface(`mozilla_domtrans_plugin',`
 	gen_require(`
-		type mozilla_plugin_t, mozilla_plugin_exec_t;
+		type mozilla_plugin_t, mozilla_plugin_exec_t, mozilla_plugin_tmpfs_t;
 		class dbus send_msg;
 	')
 
 	domtrans_pattern($1, mozilla_plugin_exec_t, mozilla_plugin_t)
-	allow mozilla_plugin_t $1:process signull;	
-
-	ps_process_pattern($1, mozilla_plugin_t)
-	allow $1 mozilla_plugin_t:process { ptrace signal_perms };
-
-	allow $1 mozilla_plugin_t:dbus send_msg;
-	allow mozilla_plugin_t $1:dbus send_msg;
-
-	allow $1 mozilla_plugin_t:fd use;
+	allow mozilla_plugin_t $1:process signull;
 ')
-
 
 ########################################
 ## <summary>
@@ -252,22 +244,22 @@ interface(`mozilla_run_plugin',`
 	allow mozilla_plugin_t $1:unix_stream_socket rw_socket_perms;
 ')
 
-########################################
+#######################################
 ## <summary>
-##	Execute qemu unconfined programs in the role.
+##  Execute qemu unconfined programs in the role.
 ## </summary>
 ## <param name="role">
-##	<summary>
-##	The role to allow the mozilla_plugin domain.
-##	</summary>
+##  <summary>
+##  The role to allow the mozilla_plugin domain.
+##  </summary>
 ## </param>
 #
 interface(`mozilla_role_plugin',`
-	gen_require(`
-		type mozilla_plugin_t;
-	')
+    gen_require(`
+        type mozilla_plugin_t;
+    ')
 
-	role $1 types mozilla_plugin_t;
+    role $1 types mozilla_plugin_t;
 ')
 
 ########################################
@@ -309,6 +301,24 @@ interface(`mozilla_rw_tcp_sockets',`
 	allow $1 mozilla_t:tcp_socket rw_socket_perms;
 ')
 
+#######################################
+## <summary>
+##  Read mozilla_plugin tmpfs files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+#
+interface(`mozilla_plugin_read_tmpfs_files',`
+    gen_require(`
+        type mozilla_plugin_tmpfs_t;
+    ')
+
+    allow $1 mozilla_plugin_tmpfs_t:file read_file_perms;
+')
+
 ########################################
 ## <summary>
 ##	Delete mozilla_plugin tmpfs files
@@ -325,24 +335,6 @@ interface(`mozilla_plugin_delete_tmpfs_files',`
 	')
 
 	allow $1 mozilla_plugin_tmpfs_t:file delete_file_perms;
-')
-
-########################################
-## <summary>
-##	Read mozilla_plugin tmpfs files
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access
-##	</summary>
-## </param>
-#
-interface(`mozilla_plugin_read_tmpfs_files',`
-	gen_require(`
-		type mozilla_plugin_tmpfs_t;
-	')
-
-	allow $1 mozilla_plugin_tmpfs_t:file read_file_perms;
 ')
 
 ########################################

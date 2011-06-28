@@ -9,15 +9,15 @@ type mpd_t;
 type mpd_exec_t;
 init_daemon_domain(mpd_t, mpd_exec_t)
 
-type mpd_initrc_exec_t;
-init_script_file(mpd_initrc_exec_t)
+# type for music content
+type mpd_data_t;
+files_type(mpd_data_t)
 
 type mpd_etc_t;
 files_config_file(mpd_etc_t)
 
-# type for music content
-type mpd_data_t;
-files_type(mpd_data_t)
+type mpd_initrc_exec_t;
+init_script_file(mpd_initrc_exec_t)
 
 type mpd_log_t;
 logging_log_file(mpd_log_t)
@@ -36,11 +36,12 @@ files_type(mpd_var_lib_t)
 # mpd local policy
 #
 
-#cjp: dac_override bug in mpd relating to mpd.log file
+# dac_override bug in mpd relating to mpd.log file
 allow mpd_t self:capability { dac_override kill setgid setuid };
 allow mpd_t self:process { getsched setsched setrlimit signal signull };
 allow mpd_t self:fifo_file rw_fifo_file_perms;
 allow mpd_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow mpd_t self:unix_dgram_socket { create_socket_perms sendto };
 allow mpd_t self:tcp_socket create_stream_socket_perms;
 allow mpd_t self:netlink_kobject_uevent_socket create_socket_perms;
 allow mpd_t self:unix_dgram_socket { create_socket_perms sendto };
@@ -50,6 +51,8 @@ read_files_pattern(mpd_t, mpd_etc_t, mpd_etc_t)
 manage_dirs_pattern(mpd_t, mpd_data_t, mpd_data_t)
 manage_files_pattern(mpd_t, mpd_data_t, mpd_data_t)
 manage_lnk_files_pattern(mpd_t, mpd_data_t, mpd_data_t)
+
+read_files_pattern(mpd_t, mpd_etc_t, mpd_etc_t)
 
 manage_dirs_pattern(mpd_t, mpd_tmp_t, mpd_tmp_t)
 manage_files_pattern(mpd_t, mpd_tmp_t, mpd_tmp_t)
@@ -72,13 +75,20 @@ kernel_read_kernel_sysctls(mpd_t)
 
 corecmd_exec_bin(mpd_t)
 
-corenet_sendrecv_pulseaudio_client_packets(mpd_t)
+corenet_all_recvfrom_unlabeled(mpd_t)
+corenet_all_recvfrom_netlabel(mpd_t)
+corenet_tcp_sendrecv_generic_if(mpd_t)
+corenet_tcp_sendrecv_generic_node(mpd_t)
+corenet_tcp_bind_mpd_port(mpd_t)
+corenet_tcp_bind_soundd_port(mpd_t)
 corenet_tcp_connect_http_port(mpd_t)
 corenet_tcp_connect_http_cache_port(mpd_t)
 corenet_tcp_connect_pulseaudio_port(mpd_t)
 corenet_tcp_connect_soundd_port(mpd_t)
-corenet_tcp_bind_mpd_port(mpd_t)
-corenet_tcp_bind_soundd_port(mpd_t)
+corenet_sendrecv_http_client_packets(mpd_t)
+corenet_sendrecv_http_cache_client_packets(mpd_t)
+corenet_sendrecv_pulseaudio_client_packets(mpd_t)
+corenet_sendrecv_soundd_client_packets(mpd_t)
 
 dev_read_sound(mpd_t)
 dev_write_sound(mpd_t)
@@ -114,7 +124,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-    consolekit_dbus_chat(mpd_t)
+	consolekit_dbus_chat(mpd_t)
 ')
 
 optional_policy(`

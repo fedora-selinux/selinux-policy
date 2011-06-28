@@ -5,6 +5,10 @@ policy_module(vnstatd, 1.0.0)
 # Declarations
 #
 
+type vnstat_t;
+type vnstat_exec_t;
+application_domain(vnstat_t, vnstat_exec_t)
+
 type vnstatd_t;
 type vnstatd_exec_t;
 init_daemon_domain(vnstatd_t, vnstatd_exec_t)
@@ -23,7 +27,8 @@ application_domain(vnstat_t, vnstat_exec_t)
 #
 # vnstatd local policy
 #
-allow vnstatd_t self:process { fork signal };
+
+allow vnstatd_t self:process signal;
 allow vnstatd_t self:fifo_file rw_fifo_file_perms;
 allow vnstatd_t self:unix_stream_socket create_stream_socket_perms;
 
@@ -33,7 +38,10 @@ files_pid_filetrans(vnstatd_t, vnstatd_var_run_t, { dir file })
 
 manage_dirs_pattern(vnstatd_t, vnstatd_var_lib_t, vnstatd_var_lib_t)
 manage_files_pattern(vnstatd_t, vnstatd_var_lib_t, vnstatd_var_lib_t)
-files_var_lib_filetrans(vnstatd_t, vnstatd_var_lib_t, { dir file })
+
+manage_files_pattern(vnstatd_t, vnstatd_var_run_t, vnstatd_var_run_t)
+manage_dirs_pattern(vnstatd_t, vnstatd_var_run_t, vnstatd_var_run_t)
+files_pid_filetrans(vnstatd_t, vnstatd_var_run_t, { dir file })
 
 kernel_read_network_state(vnstatd_t)
 kernel_read_system_state(vnstatd_t)
@@ -56,13 +64,13 @@ optional_policy(`
 #
 # vnstat local policy
 #
+
 allow vnstat_t self:process signal;
 allow vnstat_t self:fifo_file rw_fifo_file_perms;
 allow vnstat_t self:unix_stream_socket create_stream_socket_perms;
 
 manage_dirs_pattern(vnstat_t, vnstatd_var_lib_t, vnstatd_var_lib_t)
 manage_files_pattern(vnstat_t, vnstatd_var_lib_t, vnstatd_var_lib_t)
-files_var_lib_filetrans(vnstat_t, vnstatd_var_lib_t, { dir file })
 
 kernel_read_network_state(vnstat_t)
 kernel_read_system_state(vnstat_t)
