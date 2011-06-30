@@ -45,6 +45,7 @@ template(`telepathy_domain_template',`
 ## </param>
 #
 template(`telepathy_role', `
+
 	gen_require(`
 		attribute telepathy_domain;
 		type telepathy_gabble_t, telepathy_sofiasip_t, telepathy_idle_t;
@@ -76,6 +77,10 @@ template(`telepathy_role', `
 	dbus_session_domain($3, telepathy_stream_engine_exec_t, telepathy_stream_engine_t)
 	dbus_session_domain($3, telepathy_msn_exec_t, telepathy_msn_t)
 ')
+
+    optional_policy(`
+        telepathy_dbus_chat($2)
+    ')
 
 ########################################
 ## <summary>
@@ -179,6 +184,27 @@ interface(`telepathy_salut_stream_connect', `
 	files_search_tmp($1)
 ')
 
+#######################################
+## <summary>
+##  Send DBus messages to and from
+##  all Telepathy domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`telepathy_dbus_chat', `
+    gen_require(`
+        attribute telepathy_domain;
+        class dbus send_msg;
+    ')
+
+    allow $1 telepathy_domain:dbus send_msg;
+    allow telepathy_domain $1:dbus send_msg;
+')
+
 ######################################
 ## <summary>
 ##  Execute telepathy executable
@@ -214,6 +240,7 @@ interface(`telepathy_salut_stream_connect', `
 ## </param>
 #
 interface(`telepathy_command_domtrans', `
+
     gen_require(`
         attribute telepathy_executable;
     ')
