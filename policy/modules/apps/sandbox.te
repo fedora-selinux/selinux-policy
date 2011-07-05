@@ -168,25 +168,20 @@ mta_dontaudit_read_spool_symlinks(sandbox_domain)
 #
 # sandbox_x_domain local policy
 #
+allow sandbox_x_domain self:process { getattr signal_perms getsched setsched setpgid execstack execmem };
 allow sandbox_x_domain self:fifo_file manage_file_perms;
 allow sandbox_x_domain self:sem create_sem_perms;
 allow sandbox_x_domain self:shm create_shm_perms;
 allow sandbox_x_domain self:msgq create_msgq_perms;
-allow sandbox_x_domain self:unix_stream_socket create_stream_socket_perms;
+allow sandbox_x_domain self:netlink_selinux_socket create_socket_perms;
 allow sandbox_x_domain self:unix_dgram_socket { sendto create_socket_perms };
-allow sandbox_x_domain self:netlink_selinux_socket { create_socket_perms };
+allow sandbox_x_domain self:unix_stream_socket { connectto create_stream_socket_perms };
 
-allow sandbox_x_domain self:unix_stream_socket create_stream_socket_perms;
-
-allow sandbox_x_domain self:process { getattr signal_perms getsched setsched setpgid execstack execmem };
 dontaudit sandbox_x_domain sandbox_x_domain:process signal;
 dontaudit sandbox_x_domain sandbox_xserver_t:process signal;
-
-allow sandbox_x_domain self:shm create_shm_perms;
-allow sandbox_x_domain self:unix_stream_socket { connectto create_stream_socket_perms };
-allow sandbox_x_domain self:unix_dgram_socket { sendto create_socket_perms };
-allow sandbox_x_domain sandbox_xserver_t:unix_stream_socket connectto;
 dontaudit sandbox_x_domain self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+
+allow sandbox_x_domain sandbox_xserver_t:unix_stream_socket connectto;
 
 allow sandbox_x_domain sandbox_devpts_t:chr_file { rw_term_perms setattr };
 term_create_pty(sandbox_x_domain,sandbox_devpts_t)
@@ -336,7 +331,6 @@ userdom_use_user_ptys(sandbox_x_t)
 allow sandbox_x_client_t self:tcp_socket create_stream_socket_perms;
 allow sandbox_x_client_t self:udp_socket create_socket_perms;
 allow sandbox_x_client_t self:dbus { acquire_svc send_msg };
-allow sandbox_x_client_t self:netlink_selinux_socket create_socket_perms;
 
 dev_read_rand(sandbox_x_client_t)
 
@@ -365,7 +359,6 @@ dontaudit sandbox_web_type self:process setrlimit;
 allow sandbox_web_type self:tcp_socket create_stream_socket_perms;
 allow sandbox_web_type self:udp_socket create_socket_perms;
 allow sandbox_web_type self:dbus { acquire_svc send_msg };
-allow sandbox_web_type self:netlink_selinux_socket create_socket_perms;
 
 kernel_dontaudit_search_kernel_sysctl(sandbox_web_type)
 kernel_request_load_module(sandbox_web_type)
