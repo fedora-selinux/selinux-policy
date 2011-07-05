@@ -1,0 +1,46 @@
+policy_module(l2tpd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type l2tpd_t;
+type l2tpd_exec_t;
+init_daemon_domain(l2tpd_t, l2tpd_exec_t)
+
+permissive l2tpd_t;
+
+type l2tpd_initrc_exec_t;
+init_script_file(l2tpd_initrc_exec_t)
+
+type l2tpd_var_run_t;
+files_pid_file(l2tpd_var_run_t)
+
+########################################
+#
+# l2tpd local policy
+#
+allow l2tpd_t self:capability { kill };
+allow l2tpd_t self:process { fork signal };
+
+allow l2tpd_t self:fifo_file rw_fifo_file_perms;
+allow l2tpd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(l2tpd_t, l2tpd_var_run_t, l2tpd_var_run_t)
+manage_files_pattern(l2tpd_t, l2tpd_var_run_t, l2tpd_var_run_t)
+manage_fifo_files_pattern(l2tpd_t, l2tpd_var_run_t, l2tpd_var_run_t)
+files_pid_filetrans(l2tpd_t, l2tpd_var_run_t, { dir file })
+
+corenet_udp_bind_generic_node(l2tpd_t)
+corenet_udp_bind_generic_port(l2tpd_t)
+
+domain_use_interactive_fds(l2tpd_t)
+
+files_read_etc_files(l2tpd_t)
+
+logging_send_syslog_msg(l2tpd_t)
+
+miscfiles_read_localization(l2tpd_t)
+
+sysnet_dns_name_resolve(l2tpd_t)
