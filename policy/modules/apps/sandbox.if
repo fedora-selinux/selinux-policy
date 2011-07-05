@@ -35,6 +35,7 @@ interface(`sandbox_transition',`
 	allow $1 sandbox_x_domain:process { signal_perms transition };
 	dontaudit $1 sandbox_x_domain:process { noatsecure siginh rlimitinh };
 	allow sandbox_x_domain $1:process { sigchld signull };
+	allow { sandbox_x_domain sandbox_xserver_t } $1:fd use;
 	dontaudit sandbox_domain $1:process signal;
 	role $2 types sandbox_x_domain;
 	role $2 types sandbox_xserver_t;
@@ -154,6 +155,8 @@ template(`sandbox_x_domain_template',`
 	allow sandbox_xserver_t $1_t:shm rw_shm_perms;
 	allow $1_client_t $1_t:unix_stream_socket connectto;
 	allow $1_t $1_client_t:unix_stream_socket connectto;
+
+	fs_get_xattr_fs_quotas($1_client_t)
 ')
 
 ########################################
@@ -338,4 +341,22 @@ interface(`sandbox_list',`
 	')
 
 	allow $1 sandbox_file_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read and write a sandbox domain pty.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sandbox_use_ptys',`
+	gen_require(`
+		type sandbox_devpts_t;
+	')
+
+	allow $1 sandbox_devpts_t:chr_file rw_inherited_term_perms;
 ')
