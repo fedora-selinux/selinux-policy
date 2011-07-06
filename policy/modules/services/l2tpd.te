@@ -14,6 +14,9 @@ permissive l2tpd_t;
 type l2tpd_initrc_exec_t;
 init_script_file(l2tpd_initrc_exec_t)
 
+type l2tpd_tmp_t;
+files_tmp_file(l2tpd_tmp_t)
+
 type l2tpd_var_run_t;
 files_pid_file(l2tpd_var_run_t)
 
@@ -21,19 +24,28 @@ files_pid_file(l2tpd_var_run_t)
 #
 # l2tpd local policy
 #
-allow l2tpd_t self:capability { kill };
-allow l2tpd_t self:process { fork signal };
+allow l2tpd_t self:capability net_bind_service;
+allow l2tpd_t self:process signal;
 
 allow l2tpd_t self:fifo_file rw_fifo_file_perms;
 allow l2tpd_t self:unix_stream_socket create_stream_socket_perms;
+allow l2tpd_t self:tcp_socket create_stream_socket_perms;
+
+manage_sock_files_pattern(l2tpd_t, l2tpd_tmp_t, l2tpd_tmp_t)
+files_tmp_filetrans(l2tpd_t, l2tpd_tmp_t, sock_file)
 
 manage_dirs_pattern(l2tpd_t, l2tpd_var_run_t, l2tpd_var_run_t)
 manage_files_pattern(l2tpd_t, l2tpd_var_run_t, l2tpd_var_run_t)
+manage_sock_files_pattern(l2tpd_t, l2tpd_var_run_t, l2tpd_var_run_t)
 manage_fifo_files_pattern(l2tpd_t, l2tpd_var_run_t, l2tpd_var_run_t)
-files_pid_filetrans(l2tpd_t, l2tpd_var_run_t, { dir file })
+files_pid_filetrans(l2tpd_t, l2tpd_var_run_t, { dir file sock_file fifo_file })
 
+corenet_tcp_bind_generic_node(l2tpd_t)
 corenet_udp_bind_generic_node(l2tpd_t)
 corenet_udp_bind_generic_port(l2tpd_t)
+corenet_tcp_bind_all_rpc_ports(l2tpd_t)
+
+dev_read_urand(l2tpd_t)
 
 domain_use_interactive_fds(l2tpd_t)
 
