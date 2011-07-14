@@ -123,6 +123,22 @@ ifdef(`enable_mls',`
 
 ########################################
 #
+# Declarations
+#
+
+type virt_lxc_t;
+type virt_lxc_exec_t;
+init_system_domain(virt_lxc_t, virt_lxc_exec_t)
+
+type virt_lxc_var_run_t;
+files_pid_file(virt_lxc_var_run_t)
+
+permissive virt_lxc_t;
+
+permissive virtd_t;
+
+########################################
+#
 # svirt local policy
 #
 
@@ -240,6 +256,7 @@ manage_dirs_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t)
 manage_files_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t)
 manage_sock_files_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t)
 stream_connect_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t, virt_domain)
+filetrans_pattern(virtd_t, virt_var_run_t, qemu_var_run_t, dir, "qemu")
 
 read_files_pattern(virtd_t, virt_etc_t, virt_etc_t)
 read_lnk_files_pattern(virtd_t, virt_etc_t, virt_etc_t)
@@ -274,6 +291,11 @@ manage_dirs_pattern(virtd_t, virt_var_run_t, virt_var_run_t)
 manage_files_pattern(virtd_t, virt_var_run_t, virt_var_run_t)
 manage_sock_files_pattern(virtd_t, virt_var_run_t, virt_var_run_t)
 files_pid_filetrans(virtd_t, virt_var_run_t, { file dir })
+
+manage_dirs_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
+manage_files_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
+filetrans_pattern(virtd_t, virt_var_run_t, virt_lxc_var_run_t, dir, "lxc")
+stream_connect_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t, virt_lxc_t)
 
 kernel_read_system_state(virtd_t)
 kernel_read_network_state(virtd_t)
@@ -435,6 +457,7 @@ optional_policy(`
 	dnsmasq_kill(virtd_t)
 	dnsmasq_read_pid_files(virtd_t)
 	dnsmasq_signull(virtd_t)
+	dnsmasq_filetrans_named_content(virtd_t, virt_var_run_t);
 ')
 
 optional_policy(`
@@ -703,3 +726,50 @@ optional_policy(`
 
 	userdom_search_admin_dir(virsh_ssh_t)
 ')
+
+########################################
+#
+# virt_lxc local policy
+#
+allow virt_lxc_t self:capability { net_admin setpcap chown sys_admin };
+allow virt_lxc_t self:process { setsched getcap setcap };
+allow virt_lxc_t self:fifo_file rw_fifo_file_perms;
+allow virt_lxc_t self:netlink_route_socket rw_netlink_socket_perms;
+allow virt_lxc_t self:unix_stream_socket create_stream_socket_perms;
+
+domtrans_pattern(virtd_t, virt_lxc_exec_t, virt_lxc_t)
+allow virtd_t virt_lxc_t:process signal;
+
+manage_dirs_pattern(virt_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
+manage_files_pattern(virt_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
+manage_sock_files_pattern(virt_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
+files_pid_filetrans(virt_lxc_t, virt_lxc_var_run_t, { file dir })
+
+kernel_read_network_state(virt_lxc_t)
+kernel_search_network_sysctl(virt_lxc_t)
+
+dev_read_sysfs(virt_lxc_t)
+
+domain_use_interactive_fds(virt_lxc_t)
+
+files_read_etc_files(virt_lxc_t)
+files_mounton_all_mountpoints(virt_lxc_t)
+files_mount_all_file_type_fs(virt_lxc_t)
+files_unmount_all_file_type_fs(virt_lxc_t)
+
+fs_manage_cgroup_dirs(virt_lxc_t)
+fs_rw_cgroup_files(virt_lxc_t)
+
+term_use_generic_ptys(virt_lxc_t)
+term_use_ptmx(virt_lxc_t)
+
+auth_use_nsswitch(virt_lxc_t)
+
+logging_send_syslog_msg(virt_lxc_t)
+
+miscfiles_read_localization(virt_lxc_t)
+
+sysnet_exec_ifconfig(virt_lxc_t)
+
+unconfined_shell_domtrans(virt_lxc_t)
+unconfined_signal(virtd_t)
