@@ -1,4 +1,3 @@
-
 policy_module(systemd, 1.0.0)
 
 #######################################
@@ -7,6 +6,21 @@ policy_module(systemd, 1.0.0)
 #
 
 attribute systemd_unit_file_type;
+
+# New in f16
+permissive systemd_logind_t;
+
+type systemd_logind_t;
+type systemd_logind_exec_t;
+init_systemd_domain(systemd_logind_t, systemd_logind_exec_t)
+
+# /run/systemd/sessions
+type systemd_logind_sessions_t;
+files_type(systemd_logind_sessions_t)
+
+# /run/systemd/{seats, users}
+type systemd_logind_var_run_t;
+files_type(systemd_logind_var_run_t)
 
 # domain for systemd-tty-ask-password-agent and systemd-gnome-ask-password-agent
 # systemd components
@@ -38,6 +52,71 @@ corecmd_executable_file(systemd_systemctl_exec_t)
 type systemd_device_t;
 files_type(systemd_device_t)
 dev_associate(systemd_device_t)
+
+#######################################
+#
+# Systemd_logind local policy
+#
+
+# dac_override is for /run/user/$USER ($USER ownership is $USER:$USER)
+allow systemd_logind_t self:capability { chown dac_override };
+allow systemd_logind_t self:process getcap;
+allow systemd_logind_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow systemd_logind_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(systemd_logind_t, { systemd_logind_sessions_t systemd_logind_var_run_t }, { systemd_logind_sessions_t systemd_logind_var_run_t })
+manage_files_pattern(systemd_logind_t, { systemd_logind_sessions_t systemd_logind_var_run_t }, { systemd_logind_var_run_t systemd_logind_sessions_t })
+manage_fifo_files_pattern(systemd_logind_t, systemd_logind_sessions_t, systemd_logind_sessions_t)
+init_named_pid_filetrans(systemd_logind_t, systemd_logind_sessions_t, dir, "sessions")
+init_pid_filetrans(systemd_logind_t, systemd_logind_var_run_t, dir)
+
+dev_read_sysfs(systemd_logind_t)
+
+dev_getattr_dri_dev(systemd_logind_t)
+dev_setattr_dri_dev(systemd_logind_t)
+dev_getattr_sound_dev(systemd_logind_t)
+dev_setattr_sound_dev(systemd_logind_t)
+dev_getattr_video_dev(systemd_logind_t)
+dev_setattr_video_dev(systemd_logind_t)
+
+# /etc/udev/udev.conf should probably have a private type if only for confined administration
+# /etc/nsswitch.conf
+files_read_etc_files(systemd_logind_t)
+
+# /sys/fs/cgroup/systemd/user
+fs_manage_cgroup_dirs(systemd_logind_t)
+# write getattr open setattr
+fs_manage_cgroup_files(systemd_logind_t)
+
+term_use_unallocated_ttys(systemd_logind_t)
+
+# /run/user/.*
+# Actually only have proof of it creating dirs and symlinks (/run/user/$USER/X11/display)
+auth_manage_var_auth(systemd_logind_t)
+
+dbus_connect_system_bus(systemd_logind_t)
+dbus_system_bus_client(systemd_logind_t)
+
+init_dbus_chat(systemd_logind_t)
+init_read_state(systemd_logind_t)
+
+logging_send_syslog_msg(systemd_logind_t)
+
+miscfiles_read_localization(systemd_logind_t)
+
+udev_read_db(systemd_logind_t)
+
+optional_policy(`
+	cron_dbus_chat_crond(systemd_logind_t)
+	cron_read_state_crond(systemd_logind_t)
+')
+
+optional_policy(`
+	xserver_dbus_chat_xdm(systemd_logind_t)
+	xserver_read_state_xdm(systemd_logind_t)
+	# It links /run/user/$USER/X11/display to /tmp/.X11-unix/X* sock_file
+	xserver_search_xdm_tmp_dirs(systemd_logind_t)
+')
 
 #######################################
 #
