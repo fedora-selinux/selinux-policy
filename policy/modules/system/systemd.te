@@ -8,6 +8,12 @@ policy_module(systemd, 1.0.0)
 attribute systemd_unit_file_type;
 
 # New in f16
+permissive systemd_logger_t;
+
+type systemd_logger_t;
+type systemd_logger_exec_t;
+init_systemd_domain(systemd_logger_t, systemd_logger_exec_t)
+
 permissive systemd_logind_t;
 
 type systemd_logind_t;
@@ -72,12 +78,12 @@ init_pid_filetrans(systemd_logind_t, systemd_logind_var_run_t, dir)
 
 dev_read_sysfs(systemd_logind_t)
 
-dev_getattr_dri_dev(systemd_logind_t)
+dev_getattr_all_chr_files(systemd_logind_t)
+dev_getattr_all_blk_files(systemd_logind_t)
 dev_setattr_dri_dev(systemd_logind_t)
-dev_getattr_sound_dev(systemd_logind_t)
 dev_setattr_sound_dev(systemd_logind_t)
-dev_getattr_video_dev(systemd_logind_t)
 dev_setattr_video_dev(systemd_logind_t)
+dev_setattr_kvm_dev(systemd_logind_t)
 
 # /etc/udev/udev.conf should probably have a private type if only for confined administration
 # /etc/nsswitch.conf
@@ -87,6 +93,9 @@ files_read_etc_files(systemd_logind_t)
 fs_manage_cgroup_dirs(systemd_logind_t)
 # write getattr open setattr
 fs_manage_cgroup_files(systemd_logind_t)
+
+storage_setattr_removable_dev(systemd_logind_t)
+storage_setattr_scsi_generic_dev(systemd_logind_t)
 
 term_use_unallocated_ttys(systemd_logind_t)
 
@@ -268,3 +277,47 @@ miscfiles_read_localization(systemd_notify_t)
 optional_policy(`
 	readahead_manage_pid_files(systemd_notify_t)
 ')
+
+########################################
+#
+# systemd_logger local policy
+#
+allow systemd_logger_t self:capability { sys_admin chown kill };
+allow systemd_logger_t self:process { fork setfscreate setsockcreate };
+
+allow systemd_logger_t self:fifo_file rw_fifo_file_perms;
+allow systemd_logger_t self:unix_stream_socket create_stream_socket_perms;
+
+domain_use_interactive_fds(systemd_logger_t)
+
+files_read_etc_files(systemd_logger_t)
+
+auth_use_nsswitch(systemd_logger_t)
+
+logging_send_syslog_msg(systemd_logger_t)
+
+miscfiles_read_localization(systemd_logger_t)
+
+#============= abrt_helper_t ==============
+kernel_read_kernel_sysctls(abrt_helper_t)
+kernel_read_system_state(abrt_helper_t)
+
+#============= init_t ==============
+allow init_t systemd_logger_t:unix_stream_socket connectto;
+
+#============= initrc_t ==============
+allow initrc_t wdmd_var_run_t:dir add_name;
+allow initrc_t wdmd_var_run_t:file create;
+
+#============= system_dbusd_t ==============
+allow system_dbusd_t systemd_logind_sessions_t:fifo_file write;
+domain_type(system_dbusd_t)
+
+#============= systemd_logger_t ==============
+
+#============= virtd_t ==============
+allow virtd_t dnsmasq_var_run_t:dir create;
+
+#============= xdm_t ==============
+allow xdm_t systemd_logind_sessions_t:fifo_file write;
+domain_type(xdm_t)
