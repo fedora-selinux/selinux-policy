@@ -40,6 +40,12 @@ files_type(abrt_var_cache_t)
 type abrt_var_run_t;
 files_pid_file(abrt_var_run_t)
 
+type abrt_dump_oops_t;
+type abrt_dump_oops_exec_t;
+init_system_domain(abrt_dump_oops_t, abrt_dump_oops_exec_t)
+
+permissive abrt_dump_oops_t;
+
 # type needed to allow all domains
 # to handle /var/cache/abrt
 type abrt_helper_t;
@@ -384,3 +390,28 @@ sysnet_dns_name_resolve(abrt_retrace_worker_t)
 optional_policy(`
 	mock_domtrans(abrt_retrace_worker_t)
 ')
+
+########################################
+#
+# abrt_dump_oops local policy
+#
+
+allow abrt_dump_oops_t self:fifo_file rw_fifo_file_perms;
+allow abrt_dump_oops_t self:unix_stream_socket create_stream_socket_perms;
+
+files_search_spool(abrt_dump_oops_t)
+manage_dirs_pattern(abrt_dump_oops_t, abrt_var_cache_t, abrt_var_cache_t)
+manage_files_pattern(abrt_dump_oops_t, abrt_var_cache_t, abrt_var_cache_t)
+manage_lnk_files_pattern(abrt_dump_oops_t, abrt_var_cache_t, abrt_var_cache_t)
+files_var_filetrans(abrt_dump_oops_t, abrt_var_cache_t, { file dir })
+
+read_files_pattern(abrt_dump_oops_t, abrt_var_run_t, abrt_var_run_t)
+read_lnk_files_pattern(abrt_dump_oops_t, abrt_var_run_t, abrt_var_run_t)
+
+domain_use_interactive_fds(abrt_dump_oops_t)
+
+files_read_etc_files(abrt_dump_oops_t)
+
+logging_send_syslog_msg(abrt_dump_oops_t)
+
+miscfiles_read_localization(abrt_dump_oops_t)
