@@ -55,6 +55,7 @@
 ##		<li>files_pid_file()</li>
 ##		<li>files_security_file()</li>
 ##		<li>files_security_mountpoint()</li>
+##		<li>files_spool_file()</li>
 ##		<li>files_tmp_file()</li>
 ##		<li>files_tmpfs_file()</li>
 ##		<li>logging_log_file()</li>
@@ -6376,6 +6377,90 @@ interface(`files_delete_all_pid_dirs',`
 
 	allow $1 var_t:dir search_dir_perms;
 	delete_dirs_pattern($1, pidfile, pidfile)
+')
+
+########################################
+## <summary>
+##	Make the specified type a file
+##	used for spool files.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified type usable for spool files.
+##	This will also make the type usable for files, making
+##	calls to files_type() redundant.  Failure to use this interface
+##	for a spool file may result in problems with
+##	purging spool files.
+##	</p>
+##	<p>
+##	Related interfaces:
+##	</p>
+##	<ul>
+##		<li>files_spool_filetrans()</li>
+##	</ul>
+##	<p>
+##	Example usage with a domain that can create and
+##	write its spool file in the system spool file
+##	directories (/var/spool):
+##	</p>
+##	<p>
+##	type myspoolfile_t;
+##	files_spool_file(myfile_spool_t)
+##	allow mydomain_t myfile_spool_t:file { create_file_perms write_file_perms };
+##	files_spool_filetrans(mydomain_t, myfile_spool_t, file)
+##	</p>
+## </desc>
+## <param name="file_type">
+##	<summary>
+##	Type of the file to be used as a
+##	spool file.
+##	</summary>
+## </param>
+## <infoflow type="none"/>
+#
+interface(`files_spool_file',`
+	gen_require(`
+		attribute spoolfile;
+	')
+
+	files_type($1)
+	typeattribute $1 spoolfile;
+')
+
+########################################
+## <summary>
+##	Create all spool sockets
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_create_all_spool_sockets',`
+	gen_require(`
+		attribute spoolfile;
+	')
+
+	allow $1 spoolfile:sock_file create_sock_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete all spool sockets
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_delete_all_spool_sockets',`
+	gen_require(`
+		attribute spoolfile;
+	')
+
+	allow $1 spoolfile:sock_file delete_sock_file_perms;
 ')
 
 ########################################
