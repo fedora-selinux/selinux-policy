@@ -18,7 +18,8 @@ type ctdbd_log_t;
 logging_log_file(ctdbd_log_t)
 
 type ctdbd_spool_t;
-files_spool_file(ctdbd_spool_t)
+files_type(ctdbd_spool_t)
+#files_spool_file(ctdbd_spool_t)
 
 type ctdbd_tmp_t;
 files_tmp_file(ctdbd_tmp_t)
@@ -33,10 +34,13 @@ files_pid_file(ctdbd_var_run_t)
 #
 # ctdbd local policy
 #
-allow ctdbd_t self:capability { chown ipc_lock sys_nice };
+
+allow ctdbd_t self:capability { chown ipc_lock net_admin net_raw sys_nice sys_ptrace };
 allow ctdbd_t self:process { setpgid signal_perms setsched };
+
 allow ctdbd_t self:fifo_file rw_fifo_file_perms;
 allow ctdbd_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow ctdbd_t self:netlink_route_socket r_netlink_socket_perms;
 allow ctdbd_t self:packet_socket create_socket_perms;
 allow ctdbd_t self:tcp_socket create_stream_socket_perms;
 
@@ -44,14 +48,16 @@ manage_dirs_pattern(ctdbd_t, ctdbd_log_t, ctdbd_log_t)
 manage_files_pattern(ctdbd_t, ctdbd_log_t, ctdbd_log_t)
 logging_log_filetrans(ctdbd_t, ctdbd_log_t, { dir file } )
 
+manage_files_pattern(ctdbd_t, ctdbd_tmp_t, ctdbd_tmp_t)
 manage_sock_files_pattern(ctdbd_t, ctdbd_tmp_t, ctdbd_tmp_t)
-files_tmp_filetrans(ctdbd_t, ctdbd_tmp_t, sock_file)
+files_tmp_filetrans(ctdbd_t, ctdbd_tmp_t, { file sock_file})
 
 manage_dirs_pattern(ctdbd_t, ctdbd_spool_t, ctdbd_spool_t)
 manage_files_pattern(ctdbd_t, ctdbd_spool_t, ctdbd_spool_t)
 manage_lnk_files_pattern(ctdbd_t, ctdbd_spool_t, ctdbd_spool_t)
 files_spool_filetrans(ctdbd_t, ctdbd_spool_t, { dir file })
 
+exec_files_pattern(ctdbd_t, ctdbd_var_lib_t, ctdbd_var_lib_t)
 manage_dirs_pattern(ctdbd_t, ctdbd_var_lib_t, ctdbd_var_lib_t)
 manage_files_pattern(ctdbd_t, ctdbd_var_lib_t, ctdbd_var_lib_t)
 files_var_lib_filetrans(ctdbd_t, ctdbd_var_lib_t, { dir file } )
@@ -61,7 +67,7 @@ manage_files_pattern(ctdbd_t, ctdbd_var_run_t, ctdbd_var_run_t)
 files_pid_filetrans(ctdbd_t, ctdbd_var_run_t, { dir file })
 
 kernel_read_network_state(ctdbd_t)
-kernel_read_net_sysctls(ctdbd_t)
+kernel_rw_net_sysctls(ctdbd_t)
 kernel_read_system_state(ctdbd_t)
 
 corenet_tcp_bind_generic_node(ctdbd_t)
@@ -75,14 +81,12 @@ domain_use_interactive_fds(ctdbd_t)
 domain_dontaudit_read_all_domains_state(ctdbd_t)
 
 files_read_etc_files(ctdbd_t)
-
-iptables_domtrans(ctdbd_t)
+files_search_all_mountpoints(ctdbd_t)
 
 logging_send_syslog_msg(ctdbd_t)
 
 miscfiles_read_localization(ctdbd_t)
 
-sysnet_domtrans_ifconfig(ctdbd_t)
 
 # corenet_tcp_bind_ctdbd_cache_port(traffic_manager_t)
 # corenet_tcp_connect_ctdbd_cache_port(traffic_manager_t)
@@ -96,8 +100,15 @@ optional_policy(`
 ')
 
 optional_policy(`
-	samba_initrc_domtrans(ctdbd_t)
-	samba_domtrans_net(ctdbd_t)
+	iptables_domtrans(ctdbd_t)
 ')
 
+optional_policy(`
+	samba_initrc_domtrans(ctdbd_t)
+	samba_domtrans_net(ctdbd_t)
+	samba_read_var_files(ctdbd_t)
+')
 
+optional_policy(`
+	sysnet_domtrans_ifconfig(ctdbd_t)
+')
