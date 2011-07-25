@@ -19,6 +19,9 @@ role system_r types firstboot_t;
 type firstboot_etc_t;
 files_config_file(firstboot_etc_t)
 
+type firstboot_tmp_t;
+files_tmp_file(firstboot_tmp_t)
+
 ########################################
 #
 # Local policy
@@ -32,6 +35,10 @@ allow firstboot_t self:unix_stream_socket { connect create };
 allow firstboot_t self:passwd rootok;
 
 allow firstboot_t firstboot_etc_t:file read_file_perms;
+
+manage_dirs_pattern(firstboot_t, firstboot_tmp_t, firstboot_tmp_t)
+manage_files_pattern(firstboot_t, firstboot_tmp_t, firstboot_tmp_t)
+files_tmp_filetrans(firstboot_t, firstboot_tmp_t, { dir file })
 
 kernel_read_system_state(firstboot_t)
 kernel_read_kernel_sysctls(firstboot_t)
@@ -62,6 +69,8 @@ files_read_usr_files(firstboot_t)
 files_manage_var_dirs(firstboot_t)
 files_manage_var_files(firstboot_t)
 files_manage_var_symlinks(firstboot_t)
+files_create_boot_flag(firstboot_t)
+files_delete_boot_flag(firstboot_t)
 
 init_domtrans_script(firstboot_t)
 init_rw_utmp(firstboot_t)
@@ -74,6 +83,8 @@ locallogin_use_fds(firstboot_t)
 logging_send_syslog_msg(firstboot_t)
 
 miscfiles_read_localization(firstboot_t)
+
+sysnet_dns_name_resolve(firstboot_t)
 
 userdom_use_inherited_user_terminals(firstboot_t)
 # Add/remove user home directories
@@ -138,4 +149,5 @@ optional_policy(`
 	xserver_domtrans(firstboot_t)
 	xserver_rw_shm(firstboot_t)
 	xserver_unconfined(firstboot_t)
+	xserver_stream_connect(firstboot_t)
 ')
