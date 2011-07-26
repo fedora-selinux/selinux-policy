@@ -16,6 +16,13 @@ files_type(dirsrvadmin_config_t)
 type dirsrvadmin_tmp_t;
 files_tmp_file(dirsrvadmin_tmp_t)
 
+type dirsrvadmin_unconfined_script_t;
+type dirsrvadmin_unconfined_script_exec_t;
+domain_type(dirsrvadmin_unconfined_script_t)
+domain_entry_file(dirsrvadmin_unconfined_script_t, dirsrvadmin_unconfined_script_exec_t)
+corecmd_shell_entry_type(dirsrvadmin_unconfined_script_t)
+role system_r types dirsrvadmin_unconfined_script_t;
+
 ########################################
 #
 # Local policy for the daemon
@@ -99,3 +106,32 @@ optional_policy(`
 	dirsrv_manage_config(httpd_dirsrvadmin_script_t)
 	dirsrv_read_share(httpd_dirsrvadmin_script_t)
 ')
+
+#######################################
+#
+# Local policy for the admin CGIs
+#
+#
+
+
+manage_files_pattern(dirsrvadmin_unconfined_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
+manage_dirs_pattern(dirsrvadmin_unconfined_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
+files_tmp_filetrans(dirsrvadmin_unconfined_script_t, dirsrvadmin_tmp_t, { file dir })
+
+# needed because of filetrans rules
+dirsrvadmin_run_exec(dirsrvadmin_unconfined_script_t)
+dirsrvadmin_manage_config(dirsrvadmin_unconfined_script_t)
+dirsrv_domtrans(dirsrvadmin_unconfined_script_t)
+dirsrv_signal(dirsrvadmin_unconfined_script_t)
+dirsrv_signull(dirsrvadmin_unconfined_script_t)
+dirsrv_manage_log(dirsrvadmin_unconfined_script_t)
+dirsrv_manage_var_lib(dirsrvadmin_unconfined_script_t)
+dirsrv_pid_filetrans(dirsrvadmin_unconfined_script_t)
+dirsrv_manage_var_run(dirsrvadmin_unconfined_script_t)
+dirsrv_manage_config(dirsrvadmin_unconfined_script_t)
+dirsrv_read_share(dirsrvadmin_unconfined_script_t)
+
+optional_policy(`
+   unconfined_domain(dirsrvadmin_unconfined_script_t)
+')
+
