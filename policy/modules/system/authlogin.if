@@ -1757,62 +1757,11 @@ interface(`auth_manage_login_records',`
 ## <infoflow type="both" weight="10"/>
 #
 interface(`auth_use_nsswitch',`
-
-	# read /etc/nsswitch.conf
-	files_read_etc_files($1)
-
-	sysnet_dns_name_resolve($1)
-
-	tunable_policy(`authlogin_nsswitch_use_ldap',`
-		files_list_var_lib($1)
-
-		miscfiles_read_generic_certs($1)
-
-		sysnet_use_ldap($1)
+	gen_require(`
+		attribute nsswitch_domain;
 	')
 
-	optional_policy(`
-		tunable_policy(`authlogin_nsswitch_use_ldap',`
-			dirsrv_stream_connect($1)
-		')
-	')
-
-	optional_policy(`
-		tunable_policy(`authlogin_nsswitch_use_ldap',`
-			ldap_stream_connect($1)
-		')
-	')
-
- 	optional_policy(`
-		likewise_stream_connect_lsassd($1)
-	')
-
-	# can not wrap nis_use_ypbind or kerberos_use, but they both have booleans you can turn off.
-	optional_policy(`
-		kerberos_use($1)
-	')
-
-	optional_policy(`
-		nis_use_ypbind($1)
-	')
-
-	optional_policy(`
-		nscd_use($1)
-	')
-
-	optional_policy(`
-		nslcd_stream_connect($1)
-	')
-
-	optional_policy(`
-		sssd_stream_connect($1)
-	')
-
-	optional_policy(`
-		samba_stream_connect_winbind($1)
-		samba_read_var_files($1)
-		samba_dontaudit_write_var_files($1)
-	')
+	typeattribute $1 nsswitch_domain;
 ')
 
 ########################################

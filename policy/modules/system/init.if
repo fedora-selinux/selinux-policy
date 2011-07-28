@@ -244,58 +244,20 @@ interface(`init_daemon_domain',`
 	domain_type($1)
 	domain_entry_file($1, $2)
 
-	role system_r types $1;
-
 	domtrans_pattern(initrc_t,$2,$1)
-	allow initrc_t $1:process siginh;
-	allow $1 initrc_transition_domain:fifo_file rw_inherited_fifo_file_perms;
-	allow $1 initrc_transition_domain:fd use;
-
-	tunable_policy(`init_upstart || init_systemd',`
-		# Handle upstart direct transition to a executable
-		domtrans_pattern(init_t,$2,$1)
-		allow init_t $1:process siginh;
-	')
-
-	tunable_policy(`init_systemd',`
-		allow init_t $1:unix_stream_socket create_stream_socket_perms;
-		allow init_t $1:unix_dgram_socket create_socket_perms;
-		allow init_t $1:tcp_socket create_stream_socket_perms;
-		allow $1 init_t:unix_dgram_socket sendto;
-		dontaudit $1 init_t:unix_stream_socket { read ioctl getattr };
-	')
-
-	# daemons started from init will
-	# inherit fds from init for the console
-	init_dontaudit_use_fds($1)
-	term_dontaudit_use_console($1)
-
-	# init script ptys are the stdin/out/err
-	# when using run_init
-	init_use_script_ptys($1)
 
 	ifdef(`direct_sysadm_daemon',`
 		domtrans_pattern(direct_run_init, $2, $1)
-		allow direct_run_init $1:process { noatsecure siginh rlimitinh };
 
 		typeattribute $1 direct_init;
 		typeattribute $2 direct_init_entry;
 
-		userdom_dontaudit_use_user_terminals($1)
+#		userdom_dontaudit_use_user_terminals($1)
 	')
 
-	ifdef(`hide_broken_symptoms',`
-		# RHEL4 systems seem to have a stray
-		# fds open from the initrd
-		ifdef(`distro_rhel4',`
-			kernel_dontaudit_use_fds($1)
-		')
-
-		dontaudit $1 init_t:dir search_dir_perms;
-	')
-
-	optional_policy(`
-		nscd_socket_use($1)
+	tunable_policy(`init_upstart || init_systemd',`
+	     # Handle upstart direct transition to a executable
+	     domtrans_pattern(init_t,$2,$1)
 	')
 ')
 
@@ -404,71 +366,20 @@ interface(`init_system_domain',`
 		type initrc_t;
 		role system_r;
 		attribute initrc_transition_domain;
+		attribute systemprocess;
 	')
 
+	typeattribute $1 systemprocess;
 	application_domain($1, $2)
 
 	role system_r types $1;
 
 	domtrans_pattern(initrc_t,$2,$1)
-	allow initrc_t $1:process siginh;
-	allow $1 initrc_transition_domain:fifo_file rw_inherited_fifo_file_perms;
-	allow $1 initrc_transition_domain:fd use;
-
-	dontaudit $1 init_t:unix_stream_socket getattr;
 
 	tunable_policy(`init_systemd',`
 		# Handle upstart/systemd direct transition to a executable
 		domtrans_pattern(init_t,$2,$1)
-		allow init_t $1:process siginh;
-		allow init_t $1:unix_stream_socket create_stream_socket_perms;
-		allow init_t $1:unix_dgram_socket create_socket_perms;
-		allow $1 init_t:unix_dgram_socket sendto;
-		dontaudit $1 init_t:unix_stream_socket { read getattr ioctl };
 	')
-
-	ifdef(`hide_broken_symptoms',`
-		# RHEL4 systems seem to have a stray
-		# fds open from the initrd
-		ifdef(`distro_rhel4',`
-			kernel_dontaudit_use_fds($1)
-		')
-	')
-
-	userdom_dontaudit_search_user_home_dirs($1)
-	userdom_dontaudit_rw_stream($1)
-	userdom_dontaudit_write_user_tmp_files($1)
-
-	tunable_policy(`allow_daemons_use_tty',`
-	   term_use_all_ttys($1)
-	   term_use_all_ptys($1)
-	',`
-	   term_dontaudit_use_all_ttys($1)
-	   term_dontaudit_use_all_ptys($1)
-	')
-
-	# these apps are often redirect output to random log files
-	logging_inherit_append_all_logs($1)
-
-	optional_policy(`
-		abrt_stream_connect($1)
-	')
-
-	optional_policy(`
-		cron_rw_pipes($1)
-	')
-
-	optional_policy(`
-		xserver_dontaudit_append_xdm_home_files($1)
-	')
-
-	optional_policy(`
-		unconfined_dontaudit_rw_pipes($1)
-		unconfined_dontaudit_rw_stream($1)
-		userdom_dontaudit_read_user_tmp_files($1)
-	')
-
-	init_rw_script_stream_sockets($1)
 ')
 
 ########################################
@@ -530,7 +441,6 @@ interface(`init_ranged_system_domain',`
 	ifdef(`enable_mls',`
 		range_transition initrc_t $2:process $3;
 		range_transition init_t $2:process $3;
-		mls_rangetrans_target($1)
 	')
 ')
 

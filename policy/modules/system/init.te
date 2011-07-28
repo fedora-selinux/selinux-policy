@@ -59,6 +59,7 @@ attribute init_sock_file_type;
 
 # Mark process types as daemons
 attribute daemon;
+attribute systemprocess;
 
 #
 # init_t is the domain of the init process.
@@ -1275,3 +1276,107 @@ init_rw_stream_sockets(daemon)
 allow init_t var_run_t:dir relabelto;
 
 init_stream_connect(initrc_t)
+
+allow initrc_t daemon:process siginh;
+allow daemon initrc_transition_domain:fifo_file rw_inherited_fifo_file_perms;
+allow daemon initrc_transition_domain:fd use;
+
+tunable_policy(`init_systemd',`
+	allow init_t daemon:unix_stream_socket create_stream_socket_perms;
+	allow init_t daemon:unix_dgram_socket create_socket_perms;
+	allow init_t daemon:tcp_socket create_stream_socket_perms;
+	allow daemon init_t:unix_dgram_socket sendto;
+	dontaudit daemon init_t:unix_stream_socket { read ioctl getattr };
+')
+
+# daemons started from init will
+# inherit fds from init for the console
+init_dontaudit_use_fds(daemon)
+term_dontaudit_use_console(daemon)
+# init script ptys are the stdin/out/err
+# when using run_init
+init_use_script_ptys(daemon)
+
+allow init_t daemon:process siginh;
+
+ifdef(`hide_broken_symptoms',`
+	# RHEL4 systems seem to have a stray
+	# fds open from the initrd
+	ifdef(`distro_rhel4',`
+		kernel_dontaudit_use_fds(daemon)
+	')
+
+	dontaudit daemon init_t:dir search_dir_perms;
+')
+
+optional_policy(`
+	nscd_socket_use(daemon)
+')
+
+allow direct_run_init daemon:process { noatsecure siginh rlimitinh };
+
+allow initrc_t systemprocess:process siginh;
+allow systemprocess initrc_transition_domain:fifo_file rw_inherited_fifo_file_perms;
+allow systemprocess initrc_transition_domain:fd use;
+
+dontaudit systemprocess init_t:unix_stream_socket getattr;
+
+
+tunable_policy(`init_systemd',`
+	# Handle upstart/systemd direct transition to a executable
+	allow init_t systemprocess:process siginh;
+	allow init_t systemprocess:unix_stream_socket create_stream_socket_perms;
+	allow init_t systemprocess:unix_dgram_socket create_socket_perms;
+	allow systemprocess init_t:unix_dgram_socket sendto;
+	dontaudit systemprocess init_t:unix_stream_socket { read getattr ioctl };
+')
+
+ifdef(`hide_broken_symptoms',`
+	# RHEL4 systems seem to have a stray
+	# fds open from the initrd
+	ifdef(`distro_rhel4',`
+		kernel_dontaudit_use_fds(systemprocess)
+	')
+')
+
+userdom_dontaudit_search_user_home_dirs(systemprocess)
+userdom_dontaudit_rw_stream(systemprocess)
+userdom_dontaudit_write_user_tmp_files(systemprocess)
+
+tunable_policy(`allow_daemons_use_tty',`
+   term_use_all_ttys(systemprocess)
+   term_use_all_ptys(systemprocess)
+',`
+   term_dontaudit_use_all_ttys(systemprocess)
+   term_dontaudit_use_all_ptys(systemprocess)
+')
+
+# these apps are often redirect output to random log files
+logging_inherit_append_all_logs(systemprocess)
+
+optional_policy(`
+	abrt_stream_connect(systemprocess)
+')
+
+optional_policy(`
+	cron_rw_pipes(systemprocess)
+')
+
+optional_policy(`
+	xserver_dontaudit_append_xdm_home_files(systemprocess)
+')
+
+optional_policy(`
+	unconfined_dontaudit_rw_pipes(systemprocess)
+	unconfined_dontaudit_rw_stream(systemprocess)
+	userdom_dontaudit_read_user_tmp_files(systemprocess)
+')
+
+init_rw_script_stream_sockets(systemprocess)
+
+role system_r types systemprocess;
+role system_r types daemon;
+
+ifdef(`enable_mls',`
+	mls_rangetrans_target($1)
+')
