@@ -10,6 +10,7 @@ gen_require(`
 #
 
 attribute dbusd_unconfined;
+attribute system_bus_type;
 attribute session_bus_type;
 
 type dbusd_etc_t;
@@ -185,14 +186,140 @@ optional_policy(`
 
 ########################################
 #
+# system_bus_type rules
+#
+role system_r types system_bus_type;
+
+fs_search_all(system_bus_type)
+
+dbus_system_bus_client(system_bus_type)
+dbus_connect_system_bus(system_bus_type)
+
+init_stream_connect(system_bus_type)
+init_dgram_send(system_bus_type)
+init_use_fds(system_bus_type)
+
+ps_process_pattern(system_dbusd_t, system_bus_type)
+
+userdom_dontaudit_search_admin_dir(system_bus_type)
+userdom_read_all_users_state(system_bus_type)
+
+optional_policy(`
+	abrt_stream_connect(system_bus_type)
+')
+
+optional_policy(`
+	rpm_script_dbus_chat(system_bus_type)
+')
+
+optional_policy(`
+	unconfined_dbus_send(system_bus_type)
+')
+
+ifdef(`hide_broken_symptoms',`
+	dontaudit system_bus_type system_dbusd_t:netlink_selinux_socket { read write };
+')
+
+########################################
+#
+# session_bus_type rules
+#
+dontaudit session_bus_type self:capability sys_resource;
+allow session_bus_type self:process { getattr sigkill signal };
+dontaudit session_bus_type self:process { ptrace setrlimit };
+allow session_bus_type self:file { getattr read write };
+allow session_bus_type self:fifo_file rw_fifo_file_perms;
+allow session_bus_type self:dbus { send_msg acquire_svc };
+allow session_bus_type self:unix_stream_socket create_stream_socket_perms;
+allow session_bus_type self:unix_dgram_socket create_socket_perms;
+allow session_bus_type self:tcp_socket create_stream_socket_perms;
+allow session_bus_type self:netlink_selinux_socket create_socket_perms;
+
+allow session_bus_type dbusd_etc_t:dir list_dir_perms;
+read_files_pattern(session_bus_type, dbusd_etc_t, dbusd_etc_t)
+read_lnk_files_pattern(session_bus_type, dbusd_etc_t, dbusd_etc_t)
+
+manage_dirs_pattern(session_bus_type, session_dbusd_tmp_t, session_dbusd_tmp_t)
+manage_files_pattern(session_bus_type, session_dbusd_tmp_t, session_dbusd_tmp_t)
+files_tmp_filetrans(session_bus_type, session_dbusd_tmp_t, { file dir })
+
+kernel_read_system_state(session_bus_type)
+kernel_read_kernel_sysctls(session_bus_type)
+
+corecmd_list_bin(session_bus_type)
+corecmd_read_bin_symlinks(session_bus_type)
+corecmd_read_bin_files(session_bus_type)
+corecmd_read_bin_pipes(session_bus_type)
+corecmd_read_bin_sockets(session_bus_type)
+
+corenet_all_recvfrom_unlabeled(session_bus_type)
+corenet_all_recvfrom_netlabel(session_bus_type)
+corenet_tcp_sendrecv_generic_if(session_bus_type)
+corenet_tcp_sendrecv_generic_node(session_bus_type)
+corenet_tcp_sendrecv_all_ports(session_bus_type)
+corenet_tcp_bind_generic_node(session_bus_type)
+corenet_tcp_bind_reserved_port(session_bus_type)
+
+dev_read_urand(session_bus_type)
+
+domain_use_interactive_fds(session_bus_type)
+domain_read_all_domains_state(session_bus_type)
+
+files_read_etc_files(session_bus_type)
+files_list_home(session_bus_type)
+files_read_usr_files(session_bus_type)
+files_dontaudit_search_var(session_bus_type)
+
+fs_getattr_romfs(session_bus_type)
+fs_getattr_xattr_fs(session_bus_type)
+fs_list_inotifyfs(session_bus_type)
+fs_dontaudit_list_nfs(session_bus_type)
+
+selinux_get_fs_mount(session_bus_type)
+selinux_validate_context(session_bus_type)
+selinux_compute_access_vector(session_bus_type)
+selinux_compute_create_context(session_bus_type)
+selinux_compute_relabel_context(session_bus_type)
+selinux_compute_user_contexts(session_bus_type)
+
+auth_read_pam_console_data(session_bus_type)
+
+logging_send_audit_msgs(session_bus_type)
+logging_send_syslog_msg(session_bus_type)
+
+miscfiles_read_localization(session_bus_type)
+
+seutil_read_config(session_bus_type)
+seutil_read_default_contexts(session_bus_type)
+
+term_use_all_inherited_terms(session_bus_type)
+
+userdom_dontaudit_search_admin_dir(session_bus_type)
+userdom_manage_user_home_content_dirs(session_bus_type)
+userdom_manage_user_home_content_files(session_bus_type)
+userdom_user_home_dir_filetrans_user_home_content(session_bus_type, { dir file })
+
+optional_policy(`
+	gnome_read_gconf_home_files(session_bus_type)
+')
+
+optional_policy(`
+	hal_dbus_chat(session_bus_type)
+')
+
+optional_policy(`
+	xserver_search_xdm_lib(session_bus_type)
+	xserver_use_xdm_fds(session_bus_type)
+	xserver_rw_xdm_pipes(session_bus_type)
+	xserver_use_xdm_fds(session_bus_type)
+	xserver_rw_xdm_pipes(session_bus_type)
+	xserver_append_xdm_home_files(session_bus_type)
+')
+
+########################################
+#
 # Unconfined access to this module
 #
 allow dbusd_unconfined session_bus_type:dbus all_dbus_perms;
 allow dbusd_unconfined dbusd_unconfined:dbus all_dbus_perms;
 allow session_bus_type dbusd_unconfined:dbus send_msg;
-
-optional_policy(`
-	xserver_use_xdm_fds(session_bus_type)
-	xserver_rw_xdm_pipes(session_bus_type)
-	xserver_append_xdm_home_files(session_bus_type)
-')
