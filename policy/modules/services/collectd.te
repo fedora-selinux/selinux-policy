@@ -1,0 +1,60 @@
+policy_module(collectd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type collectd_t;
+type collectd_exec_t;
+init_daemon_domain(collectd_t, collectd_exec_t)
+
+permissive collectd_t;
+
+type collectd_initrc_exec_t;
+init_script_file(collectd_initrc_exec_t)
+
+type collectd_var_lib_t;
+files_type(collectd_var_lib_t)
+
+type collectd_var_run_t;
+files_pid_file(collectd_var_run_t)
+
+########################################
+#
+# collectd local policy
+#
+allow collectd_t self:process { fork };
+
+allow collectd_t self:fifo_file rw_fifo_file_perms;
+allow collectd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(collectd_t, collectd_var_lib_t, collectd_var_lib_t)
+manage_files_pattern(collectd_t, collectd_var_lib_t, collectd_var_lib_t)
+files_var_lib_filetrans(collectd_t, collectd_var_lib_t, { dir file })
+
+manage_dirs_pattern(collectd_t, collectd_var_run_t, collectd_var_run_t)
+manage_files_pattern(collectd_t, collectd_var_run_t, collectd_var_run_t)
+files_pid_filetrans(collectd_t, collectd_var_run_t, { dir file })
+
+domain_use_interactive_fds(collectd_t)
+
+kernel_read_network_state(collectd_t)
+kernel_read_system_state(collectd_t)
+
+files_read_etc_files(collectd_t)
+files_read_usr_files(collectd_t)
+
+miscfiles_read_localization(collectd_t)
+
+logging_send_syslog_msg(collectd_t)
+
+sysnet_dns_name_resolve(collectd_t)
+
+optional_policy(`
+	apache_content_template(collectd)
+	permissive httpd_collectd_script_t;
+
+	miscfiles_setattr_fonts_cache_dirs(httpd_collectd_script_t)
+')
+
