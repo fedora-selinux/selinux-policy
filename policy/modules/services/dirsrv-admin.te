@@ -16,13 +16,19 @@ files_type(dirsrvadmin_config_t)
 type dirsrvadmin_tmp_t;
 files_tmp_file(dirsrvadmin_tmp_t)
 
+type dirsrvadmin_unconfined_script_t;
+type dirsrvadmin_unconfined_script_exec_t;
+domain_type(dirsrvadmin_unconfined_script_t)
+domain_entry_file(dirsrvadmin_unconfined_script_t, dirsrvadmin_unconfined_script_exec_t)
+corecmd_shell_entry_type(dirsrvadmin_unconfined_script_t)
+role system_r types dirsrvadmin_unconfined_script_t;
+
 ########################################
 #
 # Local policy for the daemon
 #
 allow dirsrvadmin_t self:fifo_file rw_fifo_file_perms;
-allow dirsrvadmin_t self:capability { dac_read_search dac_override sys_tty_config sys_resource };
-allow dirsrvadmin_t self:process setrlimit;
+allow dirsrvadmin_t self:capability { dac_read_search dac_override sys_tty_config };
 
 manage_files_pattern(dirsrvadmin_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
 manage_dirs_pattern(dirsrvadmin_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
@@ -37,8 +43,6 @@ corecmd_shell_entry_type(dirsrvadmin_t)
 
 files_exec_etc_files(dirsrvadmin_t)
 
-libs_exec_ld_so(dirsrvadmin_t)
-
 logging_search_logs(dirsrvadmin_t)
 
 miscfiles_read_localization(dirsrvadmin_t)
@@ -46,10 +50,8 @@ miscfiles_read_localization(dirsrvadmin_t)
 # Needed for stop and restart scripts
 dirsrv_read_var_run(dirsrvadmin_t)
 
-optional_policy(`
-	apache_domtrans(dirsrvadmin_t)
-	apache_signal(dirsrvadmin_t)
-')
+apache_domtrans(dirsrvadmin_t)
+apache_signal(dirsrvadmin_t)
 
 ########################################
 #
@@ -72,8 +74,7 @@ optional_policy(`
 
 	kernel_read_kernel_sysctls(httpd_dirsrvadmin_script_t)
 
-	corenet_all_recvfrom_unlabeled(httpd_dirsrvadmin_script_t)
-	corenet_all_recvfrom_netlabel(httpd_dirsrvadmin_script_t)
+	corenet_sendrecv_unlabeled_packets(httpd_dirsrvadmin_script_t)
 	corenet_tcp_connect_generic_port(httpd_dirsrvadmin_script_t)
 	corenet_tcp_connect_ldap_port(httpd_dirsrvadmin_script_t)
 	corenet_tcp_connect_http_port(httpd_dirsrvadmin_script_t)
@@ -98,4 +99,35 @@ optional_policy(`
 	dirsrv_manage_var_run(httpd_dirsrvadmin_script_t)
 	dirsrv_manage_config(httpd_dirsrvadmin_script_t)
 	dirsrv_read_share(httpd_dirsrvadmin_script_t)
+
+	optional_policy(`
+		httpd_getattr_stream_socket(httpd_dirsrvadmin_script_t)
+	')
+')
+
+######################################
+#
+# Local policy for the admin CGIs
+#
+#
+
+manage_files_pattern(dirsrvadmin_unconfined_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
+manage_dirs_pattern(dirsrvadmin_unconfined_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
+files_tmp_filetrans(dirsrvadmin_unconfined_script_t, dirsrvadmin_tmp_t, { file dir })
+
+# needed because of filetrans rules
+dirsrvadmin_run_exec(dirsrvadmin_unconfined_script_t)
+dirsrvadmin_manage_config(dirsrvadmin_unconfined_script_t)
+dirsrv_domtrans(dirsrvadmin_unconfined_script_t)
+dirsrv_signal(dirsrvadmin_unconfined_script_t)
+dirsrv_signull(dirsrvadmin_unconfined_script_t)
+dirsrv_manage_log(dirsrvadmin_unconfined_script_t)
+dirsrv_manage_var_lib(dirsrvadmin_unconfined_script_t)
+dirsrv_pid_filetrans(dirsrvadmin_unconfined_script_t)
+dirsrv_manage_var_run(dirsrvadmin_unconfined_script_t)
+dirsrv_manage_config(dirsrvadmin_unconfined_script_t)
+dirsrv_read_share(dirsrvadmin_unconfined_script_t)
+
+optional_policy(`
+   unconfined_domain(dirsrvadmin_unconfined_script_t)
 ')
