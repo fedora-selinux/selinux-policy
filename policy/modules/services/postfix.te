@@ -1,4 +1,4 @@
-policy_module(postfix, 1.12.0)
+policy_module(postfix, 1.12.1)
 
 ########################################
 #
@@ -21,7 +21,7 @@ attribute postfix_user_domtrans;
 postfix_server_domain_template(bounce)
 
 type postfix_spool_bounce_t, postfix_spool_type;
-files_type(postfix_spool_bounce_t)
+files_spool_file(postfix_spool_bounce_t)
 
 postfix_server_domain_template(cleanup)
 
@@ -78,13 +78,13 @@ mta_mailserver_sender(postfix_smtp_t)
 postfix_server_domain_template(smtpd)
 
 type postfix_spool_t, postfix_spool_type;
-files_type(postfix_spool_t)
+files_spool_file(postfix_spool_t)
 
 type postfix_spool_maildrop_t, postfix_spool_type;
-files_type(postfix_spool_maildrop_t)
+files_spool_file(postfix_spool_maildrop_t)
 
 type postfix_spool_flush_t, postfix_spool_type;
-files_type(postfix_spool_flush_t)
+files_spool_file(postfix_spool_flush_t)
 
 type postfix_public_t;
 files_type(postfix_public_t)
@@ -187,6 +187,8 @@ files_read_usr_files(postfix_master_t)
 files_search_var_lib(postfix_master_t)
 files_search_tmp(postfix_master_t)
 
+mcs_file_read_all(postfix_master_t)
+
 term_dontaudit_search_ptys(postfix_master_t)
 
 miscfiles_read_man_pages(postfix_master_t)
@@ -246,10 +248,6 @@ manage_files_pattern(postfix_bounce_t, postfix_spool_t, postfix_spool_t)
 manage_lnk_files_pattern(postfix_bounce_t, postfix_spool_t, postfix_spool_t)
 files_spool_filetrans(postfix_bounce_t, postfix_spool_t, dir)
 
-manage_files_pattern(postfix_bounce_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
-manage_dirs_pattern(postfix_bounce_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
-allow postfix_bounce_t postfix_spool_maildrop_t:lnk_file read_lnk_file_perms;
-
 manage_dirs_pattern(postfix_bounce_t, postfix_spool_bounce_t, postfix_spool_bounce_t)
 manage_files_pattern(postfix_bounce_t, postfix_spool_bounce_t, postfix_spool_bounce_t)
 manage_lnk_files_pattern(postfix_bounce_t, postfix_spool_bounce_t, postfix_spool_bounce_t)
@@ -271,6 +269,10 @@ manage_dirs_pattern(postfix_cleanup_t, postfix_spool_t, postfix_spool_t)
 manage_files_pattern(postfix_cleanup_t, postfix_spool_t, postfix_spool_t)
 manage_lnk_files_pattern(postfix_cleanup_t, postfix_spool_t, postfix_spool_t)
 files_spool_filetrans(postfix_cleanup_t, postfix_spool_t, dir)
+
+allow postfix_cleanup_t postfix_spool_maildrop_t:dir list_dir_perms;
+allow postfix_cleanup_t postfix_spool_maildrop_t:file read_file_perms;
+allow postfix_cleanup_t postfix_spool_maildrop_t:lnk_file read_lnk_file_perms;
 
 allow postfix_cleanup_t postfix_spool_bounce_t:dir list_dir_perms;
 
@@ -346,7 +348,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	zarafa_deliver_domtrans(postfix_local_t)
+	zarafa_domtrans_deliver(postfix_local_t)
 	zarafa_stream_connect_server(postfix_local_t)
 ')
 
@@ -423,15 +425,18 @@ stream_connect_pattern(postfix_pickup_t, postfix_private_t, postfix_private_t, p
 rw_fifo_files_pattern(postfix_pickup_t, postfix_public_t, postfix_public_t)
 rw_sock_files_pattern(postfix_pickup_t, postfix_public_t, postfix_public_t)
 
-postfix_list_spool(postfix_pickup_t)
-
 allow postfix_pickup_t postfix_spool_t:dir list_dir_perms;
 read_files_pattern(postfix_pickup_t, postfix_spool_t, postfix_spool_t)
 delete_files_pattern(postfix_pickup_t, postfix_spool_t, postfix_spool_t)
 
+postfix_list_spool(postfix_pickup_t)
+
 allow postfix_pickup_t postfix_spool_maildrop_t:dir list_dir_perms;
 read_files_pattern(postfix_pickup_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
 delete_files_pattern(postfix_pickup_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
+
+mcs_file_read_all(postfix_pickup_t)
+mcs_file_write_all(postfix_pickup_t)
 
 ########################################
 #
@@ -495,6 +500,9 @@ rw_fifo_files_pattern(postfix_postdrop_t, postfix_public_t, postfix_public_t)
 postfix_list_spool(postfix_postdrop_t)
 manage_files_pattern(postfix_postdrop_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
 
+mcs_file_read_all(postfix_postdrop_t)
+mcs_file_write_all(postfix_postdrop_t)
+
 corenet_udp_sendrecv_generic_if(postfix_postdrop_t)
 corenet_udp_sendrecv_generic_node(postfix_postdrop_t)
 
@@ -541,8 +549,8 @@ write_fifo_files_pattern(postfix_postqueue_t, postfix_public_t, postfix_public_t
 domtrans_pattern(postfix_postqueue_t, postfix_showq_exec_t, postfix_showq_t)
 
 # to write the mailq output, it really should not need read access!
-term_use_all_ptys(postfix_postqueue_t)
-term_use_all_ttys(postfix_postqueue_t)
+term_use_all_inherited_ptys(postfix_postqueue_t)
+term_use_all_inherited_ttys(postfix_postqueue_t)
 
 init_sigchld_script(postfix_postqueue_t)
 init_use_script_fds(postfix_postqueue_t)
@@ -600,6 +608,8 @@ postfix_list_spool(postfix_showq_t)
 allow postfix_showq_t postfix_spool_maildrop_t:dir list_dir_perms;
 allow postfix_showq_t postfix_spool_maildrop_t:file read_file_perms;
 allow postfix_showq_t postfix_spool_maildrop_t:lnk_file read_lnk_file_perms;
+
+mcs_file_read_all(postfix_showq_t)
 
 # to write the mailq output, it really should not need read access!
 term_use_all_ptys(postfix_showq_t)
@@ -662,10 +672,6 @@ optional_policy(`
 
 optional_policy(`
 	mailman_read_data_files(postfix_smtpd_t)
-')
-
-optional_policy(`
-	mysql_stream_connect(postfix_smtpd_t)
 ')
 
 optional_policy(`
