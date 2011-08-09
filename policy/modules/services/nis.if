@@ -318,6 +318,46 @@ interface(`nis_initrc_domtrans_ypbind',`
 
 ########################################
 ## <summary>
+##	Execute ypbind server in the ypbind domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`nis_sysctl_ypbind',`
+	gen_require(`
+		type ypbind_unit_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 ypbind_unit_t:file read_file_perms;
+	allow $1 ypbind_unit_t:service all_service_perms;
+')
+
+########################################
+## <summary>
+##	Execute ypbind server in the ypbind domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`nis_sysctl',`
+	gen_require(`
+		type nis_unit_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 nis_unit_t:file read_file_perms;
+	allow $1 nis_unit_t:service all_service_perms;
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an nis environment
 ## </summary>
@@ -365,6 +405,7 @@ interface(`nis_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, ypbind_var_run_t)
+	nis_sysctl_ypbind($1)
 
 	admin_pattern($1, yppasswdd_var_run_t)
 
@@ -374,4 +415,5 @@ interface(`nis_admin',`
 	admin_pattern($1, ypserv_tmp_t)
 
 	admin_pattern($1, ypserv_var_run_t)
+	nis_sysctl($1)
 ')
