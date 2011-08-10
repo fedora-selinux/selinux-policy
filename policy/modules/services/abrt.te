@@ -13,6 +13,14 @@ policy_module(abrt, 1.2.0)
 ## </desc>
 gen_tunable(abrt_anon_write, false)
 
+## <desc>
+##  <p>
+##  Allow ABRT to run in abrt_handle_event_t domain
+##  to handle ABRT event scripts
+##  </p>
+## </desc>
+gen_tunable(abrt_handle_event, false)
+
 attribute abrt_domain;
 
 type abrt_t, abrt_domain;
@@ -47,6 +55,15 @@ type abrt_dump_oops_exec_t;
 init_system_domain(abrt_dump_oops_t, abrt_dump_oops_exec_t)
 
 permissive abrt_dump_oops_t;
+
+# type for abrt-handle-event to handle
+# ABRT event scripts
+type abrt_handle_event_t, abrt_domain;
+type abrt_handle_event_exec_t;
+application_domain(abrt_handle_event_t, abrt_handle_event_exec_t)
+role system_r types abrt_handle_event_t;
+
+permissive abrt_handle_event_t;
 
 # type needed to allow all domains
 # to handle /var/cache/abrt
@@ -243,6 +260,23 @@ optional_policy(`
 
 optional_policy(`
 	sssd_stream_connect(abrt_t)
+')
+
+#######################################
+#
+# abrt-handle-event local policy
+#
+
+allow abrt_handle_event_t self:fifo_file rw_fifo_file_perms;
+
+tunable_policy(`abrt_handle_event',`
+	domtrans_pattern(abrt_t, abrt_handle_event_exec_t, abrt_handle_event_t)
+',`
+	can_exec(abrt_t, abrt_handle_event_exec_t)
+')
+
+optional_policy(`
+	unconfined_domain(abrt_handle_event_t)
 ')
 
 ########################################
