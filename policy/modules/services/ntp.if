@@ -119,6 +119,26 @@ interface(`ntp_read_unit_file',`
 
 ########################################
 ## <summary>
+##	Execute ntpd server in the ntpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ntp_sysctl',`
+	gen_require(`
+		type ntpd_unit_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 ntpd_unit_t:file read_file_perms;
+	allow $1 ntpd_unit_t:service all_service_perms;
+')
+
+########################################
+## <summary>
 ##	Read and write ntpd shared memory.
 ## </summary>
 ## <param name="domain">
@@ -199,4 +219,6 @@ interface(`ntp_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, ntpd_var_run_t)
+
+	ntp_sysctl($1)
 ')
