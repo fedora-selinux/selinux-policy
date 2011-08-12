@@ -349,6 +349,13 @@ optional_policy(`
 	prelink_object_file(httpd_modules_t)
 ')
 
+type httpd_passwd_t;
+type httpd_passwd_exec_t;
+application_domain(httpd_passwd_t, httpd_passwd_exec_t)
+role system_r types httpd_passwd_t;
+
+permissive httpd_passwd_t;
+
 ########################################
 #
 # Apache server local policy
@@ -1250,3 +1257,30 @@ tunable_policy(`httpd_read_user_content',`
 	userdom_read_user_home_content_files(httpd_suexec_t)
 	userdom_read_user_home_content_files(httpd_user_script_t)
 ')
+
+########################################
+#
+# httpd_passwd local policy
+#
+
+allow httpd_passwd_t self:fifo_file manage_fifo_file_perms;
+allow httpd_passwd_t self:unix_stream_socket create_stream_socket_perms;
+allow httpd_passwd_t self:unix_dgram_socket create_socket_perms;
+
+domain_use_interactive_fds(httpd_passwd_t)
+
+files_read_etc_files(httpd_passwd_t)
+
+miscfiles_read_localization(httpd_passwd_t)
+
+corecmd_exec_bin(httpd_passwd_t)
+
+kernel_read_system_state(httpd_passwd_t)
+
+dev_read_urand(httpd_passwd_t)
+
+systemd_passwd_agent_dev_template(httpd_passwd)
+
+domtrans_pattern(httpd_t, httpd_passwd_exec_t, httpd_passwd_t)
+dontaudit httpd_passwd_t httpd_config_t:file read;
+
