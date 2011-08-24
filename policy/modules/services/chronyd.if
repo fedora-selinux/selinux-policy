@@ -134,6 +134,26 @@ interface(`chronyd_append_keys',`
 
 ########################################
 ## <summary>
+##	Execute chronyd server in the chronyd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`chronyd_sysemctl',`
+	gen_require(`
+		type chronyd_unit_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 chronyd_unit_t:file read_file_perms;
+	allow $1 chronyd_unit_t:service all_service_perms;
+')
+
+########################################
+## <summary>
 ##	Connect to chronyd over an unix stream socket.
 ## </summary>
 ## <param name="domain">
@@ -196,4 +216,6 @@ interface(`chronyd_admin',`
 	admin_pattern($1, chronyd_var_run_t)
 
 	admin_pattern($1, chronyd_tmpfs_t)
+
+	chronyd_sysemctl($1)
 ')
