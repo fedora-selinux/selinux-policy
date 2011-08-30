@@ -84,6 +84,7 @@ dev_setattr_kvm_dev(systemd_logind_t)
 dev_setattr_sound_dev(systemd_logind_t)
 dev_setattr_generic_usb_dev(systemd_logind_t)
 dev_setattr_video_dev(systemd_logind_t)
+dev_setattr_all_chr_files(systemd_logind_t)
 
 # /etc/udev/udev.conf should probably have a private type if only for confined administration
 # /etc/nsswitch.conf
@@ -138,7 +139,7 @@ optional_policy(`
 # Local policy
 #
 
-allow systemd_passwd_agent_t self:capability chown;
+allow systemd_passwd_agent_t self:capability { chown sys_tty_config };
 allow systemd_passwd_agent_t self:process { setfscreate setsockcreate signal };
 allow systemd_passwd_agent_t self:unix_dgram_socket create_socket_perms;
 
@@ -153,6 +154,8 @@ files_read_etc_files(systemd_passwd_agent_t)
 dev_create_generic_dirs(systemd_passwd_agent_t)
 dev_read_generic_files(systemd_passwd_agent_t)
 dev_write_generic_sock_files(systemd_passwd_agent_t)
+
+term_read_console(systemd_passwd_agent_t)
 
 auth_use_nsswitch(systemd_passwd_agent_t)
 
@@ -288,6 +291,7 @@ allow systemd_notify_t self:unix_stream_socket create_stream_socket_perms;
 domain_use_interactive_fds(systemd_notify_t)
 
 files_read_etc_files(systemd_notify_t)
+files_read_usr_files(systemd_notify_t)
 
 fs_getattr_cgroup_files(systemd_notify_t)
 
@@ -317,6 +321,7 @@ dev_write_kmsg(systemd_logger_t)
 domain_use_interactive_fds(systemd_logger_t)
 
 files_read_etc_files(systemd_logger_t)
+files_read_usr_files(systemd_logger_t)
 
 # only needs write
 term_use_generic_ptys(systemd_logger_t)
