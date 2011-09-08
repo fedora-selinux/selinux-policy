@@ -342,7 +342,6 @@ interface(`selinux_set_enforce_mode',`
 	gen_require(`
 		type security_t;
 		attribute can_setenforce;
-		bool secure_mode_policyload;
 	')
 
 	dev_getattr_sysfs_fs($1)
@@ -350,15 +349,6 @@ interface(`selinux_set_enforce_mode',`
 	allow $1 security_t:dir list_dir_perms;
 	allow $1 security_t:file rw_file_perms;
 	typeattribute $1 can_setenforce;
-
-	if(!secure_mode_policyload) {
-		allow $1 security_t:security setenforce;
-
-		ifdef(`distro_rhel4',`
-			# needed for systems without audit support
-			auditallow $1 security_t:security setenforce;
-		')
-	}
 ')
 
 ########################################
@@ -375,7 +365,6 @@ interface(`selinux_load_policy',`
 	gen_require(`
 		type security_t;
 		attribute can_load_policy;
-		bool secure_mode_policyload;
 	')
 
 	dev_getattr_sysfs_fs($1)
@@ -383,15 +372,6 @@ interface(`selinux_load_policy',`
 	allow $1 security_t:dir list_dir_perms;
 	allow $1 security_t:file rw_file_perms;
 	typeattribute $1 can_load_policy;
-
-	if(!secure_mode_policyload) {
-		allow $1 security_t:security load_policy;
-
-		ifdef(`distro_rhel4',`
-			# needed for systems without audit support
-			auditallow $1 security_t:security load_policy;
-		')
-	}
 ')
 
 ########################################
@@ -473,22 +453,14 @@ interface(`selinux_set_boolean',`
 interface(`selinux_set_generic_booleans',`
 	gen_require(`
 		type security_t;
-		bool secure_mode_policyload;
+		attribute can_setbool;
 	')
 
+	typeattribute $1 can_setbool;
 	dev_getattr_sysfs_fs($1)
 	dev_search_sysfs($1)
 	allow $1 security_t:dir list_dir_perms;
 	allow $1 security_t:file rw_file_perms;
-
-	if(!secure_mode_policyload) {
-		allow $1 security_t:security setbool;
-
-		ifdef(`distro_rhel4',`
-			# needed for systems without audit support
-			auditallow $1 security_t:security setbool;
-		')
-	}
 ')
 
 ########################################
@@ -517,23 +489,15 @@ interface(`selinux_set_all_booleans',`
 	gen_require(`
 		type security_t;
 		attribute boolean_type;
-		bool secure_mode_policyload;
+		attribute can_setbool;
 	')
 
+	typeattribute $1 can_setbool;
 	dev_getattr_sysfs_fs($1)
 	dev_search_sysfs($1)
 	allow $1 security_t:dir list_dir_perms;
 	allow $1 boolean_type:dir list_dir_perms;
 	allow $1 boolean_type:file rw_file_perms;
-
-	if(!secure_mode_policyload) {
-		allow $1 security_t:security setbool;
-
-		ifdef(`distro_rhel4',`
-			# needed for systems without audit support
-			auditallow $1 security_t:security setbool;
-		')
-	}
 ')
 
 ########################################
@@ -755,6 +719,9 @@ interface(`selinux_unconfined',`
 	')
 
 	typeattribute $1 selinux_unconfined_type;
+	selinux_set_all_booleans($1)
+	selinux_load_policy($1)
+	selinux_set_parameters($1)
 ')
 
 ########################################

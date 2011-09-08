@@ -1,5 +1,14 @@
 policy_module(selinux, 1.9.1)
 
+## <desc>
+## <p>
+## prevent all confined domains from loading policy, setting
+## enforcing mode, and changing boolean values.  Set this to true and you
+## have to reboot to set it back
+## </p>
+## </desc>
+gen_bool(secure_mode_policyload,false)
+
 ########################################
 #
 # Declarations
@@ -8,6 +17,7 @@ policy_module(selinux, 1.9.1)
 attribute boolean_type;
 attribute can_load_policy;
 attribute can_setenforce;
+attribute can_setbool;
 attribute can_setsecparam;
 attribute selinux_unconfined_type;
 
@@ -24,9 +34,9 @@ sid security gen_context(system_u:object_r:security_t,mls_systemhigh)
 genfscon selinuxfs / gen_context(system_u:object_r:security_t,s0)
 genfscon securityfs / gen_context(system_u:object_r:security_t,s0)
 
-neverallow ~{ selinux_unconfined_type can_load_policy } security_t:security load_policy;
-neverallow ~{ selinux_unconfined_type can_setenforce } security_t:security setenforce;
-neverallow ~{ selinux_unconfined_type can_setsecparam } security_t:security setsecparam;
+neverallow ~{ can_load_policy } security_t:security load_policy;
+neverallow ~{ can_setenforce } security_t:security setenforce;
+neverallow ~{ can_setsecparam } security_t:security setsecparam;
 
 ########################################
 #
@@ -42,11 +52,24 @@ allow selinux_unconfined_type boolean_type:file read_file_perms;
 allow selinux_unconfined_type security_t:security ~{ load_policy setenforce setbool };
 
 if(!secure_mode_policyload) {
-	allow selinux_unconfined_type boolean_type:file rw_file_perms;
-	allow selinux_unconfined_type security_t:security { load_policy setenforce setbool };
+	allow can_setenforce security_t:security setenforce;
 
 	ifdef(`distro_rhel4',`
 		# needed for systems without audit support
-		auditallow selinux_unconfined_type security_t:security { load_policy setenforce setbool };
+		auditallow can_setenforce security_t:security setenforce;
+	')
+
+	allow can_load_policy security_t:security load_policy;
+
+	ifdef(`distro_rhel4',`
+		# needed for systems without audit support
+		auditallow can_load_policy security_t:security load_policy;
+	')
+
+	allow can_setbool boolean_type:security setbool;
+
+	ifdef(`distro_rhel4',`
+		# needed for systems without audit support
+		auditallow can_setbool boolean_type:security setbool;
 	')
 }
