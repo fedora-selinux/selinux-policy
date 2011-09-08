@@ -155,11 +155,9 @@ interface(`mount_exec',`
 interface(`mount_signal',`
 	gen_require(`
 		type mount_t;
-		type unconfined_mount_t;
 	')
 
 	allow $1 mount_t:process signal;
-	allow $1 unconfined_mount_t:process signal;
 ')
 
 ########################################
@@ -222,59 +220,6 @@ interface(`mount_list_tmp',`
 	')
 
 	allow $1 mount_tmp_t:dir list_dir_perms;
-')
-
-########################################
-## <summary>
-##	Execute mount in the unconfined mount domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed to transition.
-##	</summary>
-## </param>
-#
-interface(`mount_domtrans_unconfined',`
-	gen_require(`
-		type unconfined_mount_t, mount_exec_t;
-	')
-
-	domtrans_pattern($1, mount_exec_t, unconfined_mount_t)
-')
-
-########################################
-## <summary>
-##	Execute mount in the unconfined mount domain, and
-##	allow the specified role the unconfined mount domain,
-##	and use the caller's terminal.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed to transition.
-##	</summary>
-## </param>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
-## <rolecap/>
-#
-interface(`mount_run_unconfined',`
-	gen_require(`
-		type unconfined_mount_t;
-	')
-
-	mount_domtrans_unconfined($1)
-	role $2 types unconfined_mount_t;
-
-	optional_policy(`
-		rpc_run_rpcd(unconfined_mount_t, $2)
-	')
-
-	optional_policy(`
-		samba_run_smbmount(unconfined_mount_t, $2)
-	')
 ')
 
 ########################################
