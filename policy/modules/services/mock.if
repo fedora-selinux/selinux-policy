@@ -189,10 +189,16 @@ interface(`mock_dontaudit_leaks',`
 interface(`mock_run',`
 	gen_require(`
 		type mock_t;
+		type mock_build_t;
 	')
 
 	mock_domtrans($1)
 	role $2 types mock_t;
+	role $2 types mock_build_t;
+
+	optional_policy(`
+		mount_run(mock_t, $2)
+	')
 ')
 
 ########################################
@@ -218,7 +224,7 @@ interface(`mock_role',`
 
 	role $1 types mock_t;
 
-	mock_domtrans($2)
+	mock_run($2, $1)
 
 	ps_process_pattern($2, mock_t)
 	allow $2 mock_t:process { ptrace signal_perms };
@@ -262,11 +268,21 @@ interface(`mock_signal',`
 interface(`mock_admin',`
 	gen_require(`
 		type mock_t, mock_var_lib_t;
+		type mock_build_t, mock_etc_t, mock_tmp_t;
 	')
 
 	allow $1 mock_t:process { ptrace signal_perms };
 	ps_process_pattern($1, mock_t)
 
+	allow $1 mock_build_t:process { ptrace signal_perms };
+	ps_process_pattern($1, mock_build_t)
+
 	files_list_var_lib($1)
 	admin_pattern($1, mock_var_lib_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, mock_tmp_t)
+
+	files_search_etc($1)
+	admin_pattern($1, mock_etc_t)
 ')
