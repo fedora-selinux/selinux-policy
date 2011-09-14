@@ -26,8 +26,20 @@ gen_tunable(ssh_sysadm_login, false)
 ## </desc>
 gen_tunable(sshd_forward_ports, false)
 
+## <desc>
+## <p>
+## Allow ssh with chroot env to read and write files 
+## in the user home directories
+## </p>
+## </desc>
+gen_tunable(ssh_chroot_rw_homedirs, false)
+
 attribute ssh_server;
 attribute ssh_agent_type;
+
+type chroot_user_t;
+domain_type(chroot_user_t)
+role system_r types chroot_user_t;
 
 type ssh_keygen_t;
 type ssh_keygen_exec_t;
@@ -269,6 +281,7 @@ userdom_read_user_home_content_symlinks(sshd_t)
 userdom_manage_tmp_role(system_r, sshd_t)
 userdom_spec_domtrans_unpriv_users(sshd_t)
 userdom_signal_unpriv_users(sshd_t)
+userdom_dyntransition_unpriv_users(sshd_t)
 
 tunable_policy(`sshd_forward_ports',`
 	corenet_tcp_bind_all_unreserved_ports(sshd_t)
@@ -321,6 +334,10 @@ optional_policy(`
 	rssh_spec_domtrans(sshd_t)
 	# For reading /home/user/.ssh
 	rssh_read_ro_content(sshd_t)
+')
+
+optional_policy(`
+    ssh_dyntransition_chroot_user(sshd_t)
 ')
 
 optional_policy(`
@@ -415,4 +432,55 @@ optional_policy(`
 
 optional_policy(`
 	udev_read_db(ssh_keygen_t)
+')
+
+######################################
+#
+# chroot_user_t local policy
+#
+
+allow chroot_user_t self:capability { setuid sys_chroot setgid };
+
+allow chroot_user_t self:fifo_file rw_fifo_file_perms;
+
+userdom_read_user_home_content_files(chroot_user_t)
+userdom_read_inherited_user_home_content_files(chroot_user_t)
+userdom_read_user_home_content_symlinks(chroot_user_t)
+userdom_exec_user_home_content_files(chroot_user_t)
+
+tunable_policy(`ssh_chroot_rw_homedirs',`
+        files_list_home(chroot_user_t)
+        userdom_read_user_home_content_files(chroot_user_t)
+        userdom_manage_user_home_content(chroot_user_t)
+', `
+
+        userdom_user_home_dir_filetrans_pattern(chroot_user_t, { dir file lnk_file })
+')
+
+tunable_policy(`ssh_chroot_rw_homedirs && use_nfs_home_dirs',`
+    fs_manage_nfs_dirs(chroot_user_t)
+    fs_manage_nfs_files(chroot_user_t)
+    fs_manage_nfs_symlinks(chroot_user_t)
+')
+
+tunable_policy(`ssh_chroot_rw_homedirs && use_samba_home_dirs',`
+    fs_manage_cifs_dirs(chroot_user_t)
+    fs_manage_cifs_files(chroot_user_t)
+    fs_manage_cifs_symlinks(chroot_user_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+    fs_read_cifs_files(chroot_user_t)
+    fs_read_cifs_symlinks(chroot_user_t)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+    fs_read_nfs_files(chroot_user_t)
+    fs_read_nfs_symlinks(chroot_user_t)
+')
+
+optional_policy(`
+    ssh_rw_stream_sockets(chroot_user_t)
+    ssh_rw_tcp_sockets(chroot_user_t)
+    ssh_rw_dgram_sockets(chroot_user_t)
 ')
