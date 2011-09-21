@@ -5,10 +5,13 @@ policy_module(usernetctl, 1.5.0)
 # Declarations
 #
 
+attribute_role usernetctl_roles;
+
 type usernetctl_t;
 type usernetctl_exec_t;
 application_domain(usernetctl_t, usernetctl_exec_t)
 domain_interactive_fd(usernetctl_t)
+role usernetctl_roles types usernetctl_t;
 
 ########################################
 #
@@ -57,13 +60,31 @@ miscfiles_read_localization(usernetctl_t)
 seutil_read_config(usernetctl_t)
 
 sysnet_read_config(usernetctl_t)
+sysnet_run_ifconfig(usernetctl_t, usernetctl_roles)
+sysnet_run_dhcpc(usernetctl_t, usernetctl_roles)
 
 userdom_use_user_terminals(usernetctl_t)
+
+optional_policy(`
+	consoletype_run(usernetctl_t, usernetctl_roles)
+')
 
 optional_policy(`
 	hostname_exec(usernetctl_t)
 ')
 
 optional_policy(`
+	iptables_run(usernetctl_t, usernetctl_roles)
+')
+
+optional_policy(`
+	modutils_run_insmod(usernetctl_t, usernetctl_roles)
+')
+
+optional_policy(`
 	nis_use_ypbind(usernetctl_t)
+')
+
+optional_policy(`
+	ppp_run(usernetctl_t, usernetctl_roles)
 ')
