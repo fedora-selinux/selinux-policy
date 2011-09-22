@@ -5,6 +5,13 @@ policy_module(logging, 1.17.2)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow syslogd daemon to send mail
+## </p>
+## </desc>
+gen_tunable(logging_syslogd_can_sendmail, false)
+
 attribute logfile;
 
 type auditctl_t;
@@ -459,8 +466,10 @@ corenet_sendrecv_syslogd_server_packets(syslogd_t)
 corenet_sendrecv_postgresql_client_packets(syslogd_t)
 corenet_sendrecv_mysqld_client_packets(syslogd_t)
 
-# support for ommail module to send logs via mail
-corenet_tcp_connect_smtp_port(syslogd_t)
+tunable_policy(`logging_syslogd_can_sendmail',`
+	# support for ommail module to send logs via mail
+	corenet_tcp_connect_smtp_port(syslogd_t)
+')
 
 dev_filetrans(syslogd_t, devlog_t, sock_file)
 dev_read_sysfs(syslogd_t)
