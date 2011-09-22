@@ -10,6 +10,7 @@ gen_require(`
 #
 
 attribute dbusd_unconfined;
+attribute system_bus_type;
 attribute session_bus_type;
 
 type dbusd_etc_t;
@@ -171,6 +172,45 @@ optional_policy(`
 optional_policy(`
 	udev_read_db(system_dbusd_t)
 ')
+
+########################################
+#
+# system_bus_type rules                         
+#
+
+role system_r types system_bus_type;
+
+fs_search_all(system_bus_type)
+
+dbus_system_bus_client(system_bus_type)
+dbus_connect_system_bus(system_bus_type)
+
+init_stream_connect(system_bus_type)
+init_dgram_send(system_bus_type)
+init_use_fds(system_bus_type)
+init_rw_stream_sockets(system_bus_type)
+
+ps_process_pattern(system_dbusd_t, system_bus_type)
+
+userdom_dontaudit_search_admin_dir(system_bus_type)
+userdom_read_all_users_state(system_bus_type)
+
+optional_policy(`
+    abrt_stream_connect(system_bus_type)
+')
+
+optional_policy(`
+    rpm_script_dbus_chat(system_bus_type)
+')
+
+optional_policy(`
+    unconfined_dbus_send(system_bus_type)
+')
+
+ifdef(`hide_broken_symptoms',`
+    dontaudit system_bus_type system_dbusd_t:netlink_selinux_socket { read write };
+')
+
 
 ########################################
 #
