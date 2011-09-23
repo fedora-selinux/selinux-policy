@@ -34,8 +34,12 @@ gen_tunable(sshd_forward_ports, false)
 ## </desc>
 gen_tunable(ssh_chroot_rw_homedirs, false)
 
+attribute ssh_dyntrasition_domain;
 attribute ssh_server;
 attribute ssh_agent_type;
+
+ssh_dyntransition_domain_template(chroot_user_t)
+ssh_dyntransition_domain_template(sshd_sandbox_t)
 
 type chroot_user_t;
 domain_type(chroot_user_t)
@@ -337,10 +341,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-    ssh_dyntransition_chroot_user(sshd_t)
-')
-
-optional_policy(`
 	systemd_exec_systemctl(sshd_t)
 ')
 
@@ -434,14 +434,36 @@ optional_policy(`
 	udev_read_db(ssh_keygen_t)
 ')
 
+####################################
+#
+# ssh_dyntransition domain local policy
+#
+
+allow ssh_dyntransition_domain self:capability { setuid sys_chroot setgid };
+
+allow ssh_dyntransition_domain self:fifo_file rw_fifo_file_perms;
+
+optional_policy(`
+    ssh_rw_stream_sockets(ssh_dyntransition_domain)
+    ssh_rw_tcp_sockets(ssh_dyntransition_domain)
+')
+
+#####################################
+#
+# ssh_sandbox local policy
+#
+
+allow sshd_t sshd_sandbox_t:process signal;
+
+init_ioctl_stream_sockets(sshd_sandbox_t)
+
+logging_send_audit_msgs(sshd_sandbox_t)
+
 ######################################
 #
 # chroot_user_t local policy
 #
 
-allow chroot_user_t self:capability { setuid sys_chroot setgid };
-
-allow chroot_user_t self:fifo_file rw_fifo_file_perms;
 
 userdom_read_user_home_content_files(chroot_user_t)
 userdom_read_inherited_user_home_content_files(chroot_user_t)
@@ -480,7 +502,5 @@ tunable_policy(`use_nfs_home_dirs',`
 ')
 
 optional_policy(`
-    ssh_rw_stream_sockets(chroot_user_t)
-    ssh_rw_tcp_sockets(chroot_user_t)
     ssh_rw_dgram_sockets(chroot_user_t)
 ')
