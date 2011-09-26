@@ -277,6 +277,30 @@ interface(`nscd_initrc_domtrans',`
 
 ########################################
 ## <summary>
+##	Execute nscd server in the nscd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`nscd_systemctl',`
+	gen_require(`
+		type nscd_unit_t;
+		type nscd_t;
+	')
+
+	systemd_exec_systemctl($1)
+	systemd_search_unit_dirs($1)
+	allow $1 nscd_unit_t:file read_file_perms;
+	allow $1 nscd_unit_t:service all_service_perms;
+
+	ps_process_pattern($1, nscd_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate 
 ##	an nscd environment
 ## </summary>
@@ -311,4 +335,6 @@ interface(`nscd_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, nscd_var_run_t)
+
+	nscd_systemctl($1)
 ')
