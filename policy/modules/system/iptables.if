@@ -88,6 +88,30 @@ interface(`iptables_initrc_domtrans',`
 	init_labeled_script_domtrans($1, iptables_initrc_exec_t)
 ')
 
+########################################
+## <summary>
+##	Execute iptables server in the iptables domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`iptables_systemctl',`
+	gen_require(`
+		type iptables_unit_t;
+		type iptables_t;
+	')
+
+	systemd_exec_systemctl($1)
+	systemd_search_unit_dirs($1)
+	allow $1 iptables_unit_t:file read_file_perms;
+	allow $1 iptables_unit_t:service all_service_perms;
+
+	ps_process_pattern($1, iptables_t)
+')
+
 #####################################
 ## <summary>
 ##	Set the attributes of iptables config files.
