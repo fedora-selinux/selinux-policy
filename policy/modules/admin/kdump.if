@@ -37,6 +37,30 @@ interface(`kdump_initrc_domtrans',`
 	init_labeled_script_domtrans($1, kdump_initrc_exec_t)
 ')
 
+########################################
+## <summary>
+##	Execute kdump server in the kdump domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`kdump_systemctl',`
+	gen_require(`
+		type kdump_unit_t;
+		type kdump_t;
+	')
+
+	systemd_exec_systemctl($1)
+	systemd_search_unit_dirs($1)
+	allow $1 kdump_unit_t:file read_file_perms;
+	allow $1 kdump_unit_t:service all_service_perms;
+
+	ps_process_pattern($1, kdump_t)
+')
+
 #####################################
 ## <summary>
 ##	Read kdump configuration file.
