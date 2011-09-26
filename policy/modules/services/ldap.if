@@ -38,6 +38,30 @@ interface(`ldap_initrc_domtrans',`
 
 ########################################
 ## <summary>
+##	Execute slapd server in the slapd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`lapd_systemctl',`
+	gen_require(`
+		type slapd_unit_t;
+		type slapd_t;
+	')
+
+	systemd_exec_systemctl($1)
+	systemd_search_unit_dirs($1)
+	allow $1 slapd_unit_t:file read_file_perms;
+	allow $1 slapd_unit_t:service all_service_perms;
+
+	ps_process_pattern($1, slapd_t)
+')
+
+########################################
+## <summary>
 ##	Read the contents of the OpenLDAP
 ##	database directories.
 ## </summary>
@@ -172,4 +196,6 @@ interface(`ldap_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, slapd_var_run_t)
+
+	ldap_systemctl($1)
 ')
