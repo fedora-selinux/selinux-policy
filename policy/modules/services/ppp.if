@@ -340,6 +340,30 @@ interface(`ppp_initrc_domtrans',`
 
 ########################################
 ## <summary>
+##	Execute pppd server in the pppd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ppp_systemctl',`
+	gen_require(`
+		type pppd_unit_t;
+		type pppd_t;
+	')
+
+	systemd_exec_systemctl($1)
+	systemd_search_unit_dirs($1)
+	allow $1 pppd_unit_t:file read_file_perms;
+	allow $1 pppd_unit_t:service all_service_perms;
+
+	ps_process_pattern($1, pppd_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an ppp environment
 ## </summary>
@@ -396,4 +420,6 @@ interface(`ppp_admin',`
 	admin_pattern($1, pptp_log_t)
 
 	admin_pattern($1, pptp_var_run_t)
+
+	ppp_systemctl($1)
 ')
