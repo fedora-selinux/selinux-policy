@@ -132,13 +132,18 @@ ifdef(`enable_mls',`
 #
 # Declarations
 #
+attribute virt_lxc_domain;
 
-type virt_lxc_t;
-type virt_lxc_exec_t;
-init_system_domain(virt_lxc_t, virt_lxc_exec_t)
+type virtd_lxc_t;
+type virtd_lxc_exec_t;
+init_system_domain(virtd_lxc_t, virtd_lxc_exec_t)
 
-type virt_lxc_var_run_t;
-files_pid_file(virt_lxc_var_run_t)
+type virtd_lxc_var_run_t;
+files_pid_file(virtd_lxc_var_run_t)
+
+# virt lxc container files
+type virt_lxc_file_t;
+files_mountpoint(virt_lxc_file_t)
 
 ########################################
 #
@@ -303,10 +308,10 @@ manage_files_pattern(virtd_t, virt_var_run_t, virt_var_run_t)
 manage_sock_files_pattern(virtd_t, virt_var_run_t, virt_var_run_t)
 files_pid_filetrans(virtd_t, virt_var_run_t, { file dir })
 
-manage_dirs_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
-manage_files_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
-filetrans_pattern(virtd_t, virt_var_run_t, virt_lxc_var_run_t, dir, "lxc")
-stream_connect_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t, virt_lxc_t)
+manage_dirs_pattern(virtd_t, virtd_lxc_var_run_t, virtd_lxc_var_run_t)
+manage_files_pattern(virtd_t, virtd_lxc_var_run_t, virtd_lxc_var_run_t)
+filetrans_pattern(virtd_t, virt_var_run_t, virtd_lxc_var_run_t, dir, "lxc")
+stream_connect_pattern(virtd_t, virtd_lxc_var_run_t, virtd_lxc_var_run_t, virtd_lxc_t)
 
 kernel_read_system_state(virtd_t)
 kernel_read_network_state(virtd_t)
@@ -744,59 +749,59 @@ optional_policy(`
 #
 # virt_lxc local policy
 #
-allow virt_lxc_t self:capability { net_admin net_raw setpcap chown sys_admin };
-allow virt_lxc_t self:process { setsched getcap setcap signal_perms };
-allow virt_lxc_t self:fifo_file rw_fifo_file_perms;
-allow virt_lxc_t self:netlink_route_socket rw_netlink_socket_perms;
-allow virt_lxc_t self:unix_stream_socket create_stream_socket_perms;
-allow virt_lxc_t self:packet_socket create_socket_perms;
+allow virtd_lxc_t self:capability { net_admin net_raw setpcap chown sys_admin };
+allow virtd_lxc_t self:process { setsched getcap setcap signal_perms };
+allow virtd_lxc_t self:fifo_file rw_fifo_file_perms;
+allow virtd_lxc_t self:netlink_route_socket rw_netlink_socket_perms;
+allow virtd_lxc_t self:unix_stream_socket create_stream_socket_perms;
+allow virtd_lxc_t self:packet_socket create_socket_perms;
 
-allow virt_lxc_t virt_image_type:dir mounton;
+allow virtd_lxc_t virt_image_type:dir mounton;
 
-allow virt_lxc_t virt_domain:process { getattr getsched setsched transition signal signull sigkill };
+allow virtd_lxc_t virt_domain:process { getattr getsched setsched transition signal signull sigkill };
 
-domtrans_pattern(virtd_t, virt_lxc_exec_t, virt_lxc_t)
-allow virtd_t virt_lxc_t:process { signal signull sigkill };
+domtrans_pattern(virtd_t, virtd_lxc_exec_t, virtd_lxc_t)
+allow virtd_t virtd_lxc_t:process { signal signull sigkill };
 
-manage_dirs_pattern(virt_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
-manage_files_pattern(virt_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
-manage_sock_files_pattern(virt_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
-files_pid_filetrans(virt_lxc_t, virt_lxc_var_run_t, { file dir })
+manage_dirs_pattern(virtd_lxc_t, virtd_lxc_var_run_t, virtd_lxc_var_run_t)
+manage_files_pattern(virtd_lxc_t, virtd_lxc_var_run_t, virtd_lxc_var_run_t)
+manage_sock_files_pattern(virtd_lxc_t, virtd_lxc_var_run_t, virtd_lxc_var_run_t)
+files_pid_filetrans(virtd_lxc_t, virtd_lxc_var_run_t, { file dir })
 
-kernel_read_network_state(virt_lxc_t)
-kernel_search_network_sysctl(virt_lxc_t)
-kernel_read_sysctl(virt_lxc_t)
+kernel_read_network_state(virtd_lxc_t)
+kernel_search_network_sysctl(virtd_lxc_t)
+kernel_read_sysctl(virtd_lxc_t)
 
-dev_read_sysfs(virt_lxc_t)
+dev_read_sysfs(virtd_lxc_t)
 
-domain_use_interactive_fds(virt_lxc_t)
+domain_use_interactive_fds(virtd_lxc_t)
 
-files_read_etc_files(virt_lxc_t)
-files_mounton_all_mountpoints(virt_lxc_t)
-files_mount_all_file_type_fs(virt_lxc_t)
-files_unmount_all_file_type_fs(virt_lxc_t)
-files_list_isid_type_dirs(virt_lxc_t)
+files_read_etc_files(virtd_lxc_t)
+files_mounton_all_mountpoints(virtd_lxc_t)
+files_mount_all_file_type_fs(virtd_lxc_t)
+files_unmount_all_file_type_fs(virtd_lxc_t)
+files_list_isid_type_dirs(virtd_lxc_t)
 
-fs_manage_tmpfs_dirs(virt_lxc_t)
-fs_manage_tmpfs_chr_files(virt_lxc_t)
-fs_manage_tmpfs_symlinks(virt_lxc_t)
-fs_manage_cgroup_dirs(virt_lxc_t)
-fs_rw_cgroup_files(virt_lxc_t)
-fs_remount_all_fs(virt_lxc_t)
+fs_manage_tmpfs_dirs(virtd_lxc_t)
+fs_manage_tmpfs_chr_files(virtd_lxc_t)
+fs_manage_tmpfs_symlinks(virtd_lxc_t)
+fs_manage_cgroup_dirs(virtd_lxc_t)
+fs_rw_cgroup_files(virtd_lxc_t)
+fs_remount_all_fs(virtd_lxc_t)
 
-selinux_mount_fs(virt_lxc_t)
-selinux_unmount_fs(virt_lxc_t)
+selinux_mount_fs(virtd_lxc_t)
+selinux_unmount_fs(virtd_lxc_t)
 
-term_use_generic_ptys(virt_lxc_t)
-term_use_ptmx(virt_lxc_t)
+term_use_generic_ptys(virtd_lxc_t)
+term_use_ptmx(virtd_lxc_t)
 
-auth_use_nsswitch(virt_lxc_t)
+auth_use_nsswitch(virtd_lxc_t)
 
-logging_send_syslog_msg(virt_lxc_t)
+logging_send_syslog_msg(virtd_lxc_t)
 
-miscfiles_read_localization(virt_lxc_t)
+miscfiles_read_localization(virtd_lxc_t)
 
-sysnet_domtrans_ifconfig(virt_lxc_t)
+sysnet_domtrans_ifconfig(virtd_lxc_t)
 
 type lxc_t;
 domain_type(lxc_t);
@@ -806,6 +811,79 @@ optional_policy(`
 ')
 
 optional_policy(`
-	unconfined_shell_domtrans(virt_lxc_t)
+	unconfined_shell_domtrans(virtd_lxc_t)
 	unconfined_signal(virtd_t)
 ')
+
+########################################
+#
+# virt_lxc_domain local policy
+#
+allow virtd_lxc_t virt_lxc_domain:process { getattr getsched setsched transition signal signull sigkill };
+allow virt_lxc_domain virtd_lxc_t:fd use;
+allow virt_lxc_domain virtd_lxc_var_run_t:dir search_dir_perms;
+dontaudit virt_lxc_domain virtd_lxc_t:unix_stream_socket { read write };
+
+allow virt_lxc_domain self:process { getattr signal_perms getsched setsched setpgid execstack execmem };
+allow virt_lxc_domain self:fifo_file manage_file_perms;
+allow virt_lxc_domain self:sem create_sem_perms;
+allow virt_lxc_domain self:shm create_shm_perms;
+allow virt_lxc_domain self:msgq create_msgq_perms;
+allow virt_lxc_domain self:unix_stream_socket create_stream_socket_perms;
+allow virt_lxc_domain self:unix_dgram_socket { sendto create_socket_perms };
+dontaudit virt_lxc_domain self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+
+manage_dirs_pattern(virt_lxc_domain, virt_lxc_file_t, virt_lxc_file_t)
+manage_files_pattern(virt_lxc_domain, virt_lxc_file_t, virt_lxc_file_t)
+manage_lnk_files_pattern(virt_lxc_domain, virt_lxc_file_t, virt_lxc_file_t)
+manage_sock_files_pattern(virt_lxc_domain, virt_lxc_file_t, virt_lxc_file_t)
+manage_fifo_files_pattern(virt_lxc_domain, virt_lxc_file_t, virt_lxc_file_t)
+can_exec(virt_lxc_domain, virt_lxc_file_t)
+
+kernel_getattr_proc(virt_lxc_domain)
+kernel_read_network_state(virt_lxc_domain)
+kernel_read_system_state(virt_lxc_domain)
+kernel_dontaudit_search_kernel_sysctl(virt_lxc_domain)
+
+corecmd_exec_all_executables(virt_lxc_domain)
+
+dev_read_urand(virt_lxc_domain)
+dev_dontaudit_read_rand(virt_lxc_domain)
+dev_read_sysfs(virt_lxc_domain)
+
+files_dontaudit_list_all_mountpoints(virt_lxc_domain)
+files_entrypoint_all_files(virt_lxc_domain)
+files_read_config_files(virt_lxc_domain)
+files_read_usr_files(virt_lxc_domain)
+files_read_usr_symlinks(virt_lxc_domain)
+
+fs_getattr_tmpfs(virt_lxc_domain)
+fs_getattr_xattr_fs(virt_lxc_domain)
+fs_list_inotifyfs(virt_lxc_domain)
+fs_dontaudit_getattr_xattr_fs(virt_lxc_domain)
+
+auth_dontaudit_read_login_records(virt_lxc_domain)
+auth_dontaudit_write_login_records(virt_lxc_domain)
+auth_search_pam_console_data(virt_lxc_domain)
+
+init_read_utmp(virt_lxc_domain)
+init_dontaudit_write_utmp(virt_lxc_domain)
+
+libs_dontaudit_setattr_lib_files(virt_lxc_domain)
+
+miscfiles_read_localization(virt_lxc_domain)
+miscfiles_dontaudit_setattr_fonts_cache_dirs(virt_lxc_domain)
+
+mta_dontaudit_read_spool_symlinks(virt_lxc_domain)
+
+selinux_get_fs_mount(virt_lxc_domain)
+selinux_validate_context(virt_lxc_domain)
+selinux_compute_access_vector(virt_lxc_domain)
+selinux_compute_create_context(virt_lxc_domain)
+selinux_compute_relabel_context(virt_lxc_domain)
+selinux_compute_user_contexts(virt_lxc_domain)
+seutil_read_default_contexts(virt_lxc_domain)
+
+miscfiles_read_fonts(virt_lxc_domain)
+
+virt_lxc_domain_template(virt_lxc)
