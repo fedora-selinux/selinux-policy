@@ -81,7 +81,13 @@ declare_nodes($1_node_t,shift($*))
 define(`declare_ports',`dnl
 ifelse(eval(range_start($3) < 1024),1,`typeattribute $1 reserved_port_type;
 ifelse(eval(range_start($3) >= 512),1,`typeattribute $1 rpc_port_type;',`dnl')
-',`typeattribute $1 unreserved_port_type;')
+',`
+ifelse(eval(range_start($3) < 32768),1,`typeattribute $1 unreserved_port_type;',`
+      ifelse(eval(range_start($3) > 61001),1,`typeattribute $1 unreserved_port_type;',`
+         typeattribute $1 ephemeral_port_type;
+      ')
+   ')
+')
 portcon $2 $3 gen_context(system_u:object_r:$1,$4)
 ifelse(`$5',`',`',`declare_ports($1,shiftn(4,$*))')dnl
 ')

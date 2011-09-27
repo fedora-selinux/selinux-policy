@@ -14,6 +14,7 @@ attribute port_type;
 attribute defined_port_type;
 attribute reserved_port_type;
 attribute unreserved_port_type;
+attribute ephemeral_port_type;
 attribute rpc_port_type;
 attribute server_packet_type;
 
@@ -66,9 +67,15 @@ type port_t, port_type;
 sid port gen_context(system_u:object_r:port_t,s0)
 
 #
-# port_t is the default type of INET port numbers.
+# unreserved_port_t is the default type of port numbers > 1024 and non ephemeral
 #
 type unreserved_port_t, port_type, unreserved_port_type;
+
+#
+# ephemeral_port_t is the default type of ephemeral port numbers.
+# cat /proc/sys/net/ipv4/ip_local_port_range 
+#
+type ephemeral_port_t, port_type, ephemeral_port_type;
 
 #
 # reserved_port_t is the type of INET port numbers below 1024.
@@ -293,9 +300,12 @@ portcon tcp 512-1023 gen_context(system_u:object_r:hi_reserved_port_t, s0)
 portcon udp 512-1023 gen_context(system_u:object_r:hi_reserved_port_t, s0)
 portcon tcp 1-511 gen_context(system_u:object_r:reserved_port_t, s0)
 portcon udp 1-511 gen_context(system_u:object_r:reserved_port_t, s0)
-portcon udp 1024-65535 gen_context(system_u:object_r:unreserved_port_t, s0)
-portcon tcp 1024-65535 gen_context(system_u:object_r:unreserved_port_t, s0)
-
+portcon tcp 1024-32767 gen_context(system_u:object_r:unreserved_port_t, s0)
+portcon tcp 32768-61000 gen_context(system_u:object_r:ephemeral_port_t, s0)
+portcon tcp 61001-65535 gen_context(system_u:object_r:unreserved_port_t, s0)
+portcon udp 1024-32767 gen_context(system_u:object_r:unreserved_port_t, s0)
+portcon udp 32768-61000 gen_context(system_u:object_r:ephemeral_port_t, s0)
+portcon tcp 61001-65535 gen_context(system_u:object_r:unreserved_port_t, s0)
 ########################################
 #
 # Network nodes
