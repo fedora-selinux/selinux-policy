@@ -128,6 +128,12 @@ ifdef(`enable_mls',`
 	init_ranged_daemon_domain(virtd_t, virtd_exec_t, s0 - mls_systemhigh)
 ')
 
+type virt_qmf_t;
+type virt_qmf_exec_t;
+init_daemon_domain(virt_qmf_t, virt_qmf_exec_t)
+
+permissive virt_qmf_t;
+
 ########################################
 #
 # Declarations
@@ -773,6 +779,7 @@ files_pid_filetrans(virtd_lxc_t, virtd_lxc_var_run_t, { file dir })
 kernel_read_network_state(virtd_lxc_t)
 kernel_search_network_sysctl(virtd_lxc_t)
 kernel_read_sysctl(virtd_lxc_t)
+kernel_read_system_state(virtd_lxc_t)
 
 corecmd_exec_bin(virtd_lxc_t)
 corecmd_exec_shell(virtd_lxc_t)
@@ -782,6 +789,7 @@ dev_read_sysfs(virtd_lxc_t)
 domain_use_interactive_fds(virtd_lxc_t)
 
 files_read_etc_files(virtd_lxc_t)
+files_read_usr_files(virtd_lxc_t)
 files_mounton_non_security(virtd_lxc_t)
 files_mount_all_file_type_fs(virtd_lxc_t)
 files_unmount_all_file_type_fs(virtd_lxc_t)
@@ -819,6 +827,8 @@ sysnet_domtrans_ifconfig(virtd_lxc_t)
 # virt_lxc_domain local policy
 #
 allow svirt_lxc_domain self:capability { setuid setgid dac_override };
+dontaudit svirt_lxc_domain self:capability sys_ptrace;
+
 allow virtd_t svirt_lxc_domain:process { signal_perms };
 allow virtd_lxc_t svirt_lxc_domain:process { getattr getsched setsched transition signal signull sigkill };
 allow svirt_lxc_domain virtd_lxc_t:fd use;
@@ -915,3 +925,27 @@ kernel_read_network_state(svirt_lxc_net_t)
 
 domain_entry_file(svirt_lxc_net_t, svirt_lxc_file_t)
 domtrans_pattern(virtd_lxc_t, svirt_lxc_file_t, svirt_lxc_net_t)
+
+########################################
+#
+# virt_qmf local policy
+#
+allow virt_qmf_t self:process signal;
+allow virt_qmf_t self:fifo_file rw_fifo_file_perms;
+allow virt_qmf_t self:unix_stream_socket create_stream_socket_perms;
+allow virt_qmf_t self:tcp_socket create_stream_socket_perms;
+
+kernel_read_network_state(virt_qmf_t)
+
+dev_list_sysfs(virt_qmf_t)
+dev_read_sysfs(virt_qmf_t)
+
+corenet_tcp_connect_matahari_port(virt_qmf_t)
+
+domain_use_interactive_fds(virt_qmf_t)
+
+files_read_etc_files(virt_qmf_t)
+
+logging_send_syslog_msg(virt_qmf_t)
+
+miscfiles_read_localization(virt_qmf_t)
