@@ -26,11 +26,17 @@ attribute telepathy_executable;
 
 telepathy_domain_template(gabble)
 
+type telepathy_cache_home_t;
+userdom_user_home_content(telepathy_cache_home_t)
+
 type telepathy_gabble_cache_home_t;
 userdom_user_home_content(telepathy_gabble_cache_home_t)
 
 telepathy_domain_template(idle)
 telepathy_domain_template(logger)
+
+type telepathy_data_home_t;
+userdom_user_home_content(telepathy_data_home_t)
 
 type telepathy_logger_cache_home_t;
 userdom_user_home_content(telepathy_logger_cache_home_t)
@@ -42,6 +48,9 @@ telepathy_domain_template(mission_control)
 
 type telepathy_mission_control_home_t;
 userdom_user_home_content(telepathy_mission_control_home_t)
+
+type telepathy_mission_control_data_home_t;
+userdom_user_home_content(telepathy_mission_control_data_home_t)
 
 type telepathy_mission_control_cache_home_t;
 userdom_user_home_content(telepathy_mission_control_cache_home_t)
@@ -68,12 +77,12 @@ manage_sock_files_pattern(telepathy_gabble_t, telepathy_gabble_tmp_t, telepathy_
 files_tmp_filetrans(telepathy_gabble_t, telepathy_gabble_tmp_t, { dir sock_file })
 
 # ~/.cache/gabble/caps-cache.db-journal
-# optional_policy(`
 optional_policy(`
-        manage_dirs_pattern(telepathy_gabble_t, telepathy_gabble_cache_home_t, telepathy_gabble_cache_home_t)
-        manage_files_pattern(telepathy_gabble_t, telepathy_gabble_cache_home_t, telepathy_gabble_cache_home_t)
-        gnome_cache_filetrans(telepathy_gabble_t, telepathy_gabble_cache_home_t, { dir file })
-')                         
+	manage_dirs_pattern(telepathy_gabble_t, { telepathy_cache_home_t telepathy_gabble_cache_home_t } , { telepathy_cache_home_t telepathy_gabble_cache_home_t })
+	manage_files_pattern(telepathy_gabble_t, telepathy_gabble_cache_home_t, telepathy_gabble_cache_home_t)
+	filetrans_pattern(telepathy_gabble_t, telepathy_cache_home_t, telepathy_gabble_cache_home_t, { dir file })
+	gnome_cache_filetrans(telepathy_gabble_t, telepathy_cache_home_t, dir)
+')
 
 corenet_all_recvfrom_netlabel(telepathy_gabble_t)
 corenet_all_recvfrom_unlabeled(telepathy_gabble_t)
@@ -121,7 +130,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-        gnome_read_home_config(telepathy_gabble_t)
+	gnome_manage_home_config(telepathy_gabble_t)
 ')
 
 #######################################
@@ -159,8 +168,10 @@ tunable_policy(`telepathy_tcp_connect_generic_network_ports',`
 
 allow telepathy_logger_t self:unix_stream_socket create_socket_perms;
 
+manage_dirs_pattern(telepathy_logger_t, { telepathy_cache_home_t telepathy_logger_cache_home_t }, { telepathy_cache_home_t telepathy_logger_cache_home_t })
 manage_files_pattern(telepathy_logger_t, telepathy_logger_cache_home_t, telepathy_logger_cache_home_t)
-gnome_cache_filetrans(telepathy_logger_t, telepathy_logger_cache_home_t, file)
+filetrans_pattern(telepathy_logger_t, telepathy_cache_home_t, telepathy_logger_cache_home_t, { dir file })
+gnome_cache_filetrans(telepathy_logger_t, telepathy_cache_home_t, dir)
 
 manage_dirs_pattern(telepathy_logger_t, telepathy_logger_data_home_t, telepathy_logger_data_home_t)
 manage_files_pattern(telepathy_logger_t, telepathy_logger_data_home_t, telepathy_logger_data_home_t)
@@ -183,7 +194,7 @@ tunable_policy(`use_samba_home_dirs',`
 ')
 
 optional_policy(`
-# ~/.config/dconf/user
+	# ~/.config/dconf/user
 	gnome_manage_home_config(telepathy_logger_t)
 ')
 
@@ -196,6 +207,11 @@ manage_dirs_pattern(telepathy_mission_control_t, telepathy_mission_control_home_
 manage_files_pattern(telepathy_mission_control_t, telepathy_mission_control_home_t, telepathy_mission_control_home_t)
 userdom_user_home_dir_filetrans(telepathy_mission_control_t, telepathy_mission_control_home_t, { dir file })
 userdom_search_user_home_dirs(telepathy_mission_control_t)
+
+manage_dirs_pattern(telepathy_mission_control_t, { telepathy_data_home_t telepathy_mission_control_data_home_t }, { telepathy_data_home_t telepathy_mission_control_date_home_t })
+manage_files_pattern(telepathy_mission_control_t, telepathy_mission_control_data_home_t, telepathy_mission_control_data_home_t)
+filetrans_pattern(telepathy_mission_control_t, telepathy_data_home_t, telepathy_mission_control_data_home-t, { dir file })
+gnome_data_filetrans(telepathy_mission_control_t, telepathy_data_home_t, dir)
 
 dev_read_rand(telepathy_mission_control_t)
 
@@ -220,8 +236,8 @@ optional_policy(`
 
 # ~/.cache/.mc_connections.
 optional_policy(`
-        manage_files_pattern(telepathy_mission_control_t, telepathy_mission_control_cache_home_t, telepathy_mission_control_cache_home_t)
-        gnome_cache_filetrans(telepathy_mission_control_t, telepathy_mission_control_cache_home_t, file)
+	manage_files_pattern(telepathy_mission_control_t, telepathy_mission_control_cache_home_t, telepathy_mission_control_cache_home_t)
+	gnome_cache_filetrans(telepathy_mission_control_t, telepathy_mission_control_cache_home_t, file)
 ')
 
 #######################################
@@ -279,7 +295,7 @@ tunable_policy(`telepathy_tcp_connect_generic_network_ports',`
 ')
 
 optional_policy(`
-        gnome_read_gconf_home_files(telepathy_msn_t)
+	gnome_read_gconf_home_files(telepathy_msn_t)
 ')
 
 optional_policy(`
@@ -412,8 +428,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-    gnome_read_generic_cache_files(telepathy_domain)
-    gnome_write_generic_cache_files(telepathy_domain)
+	gnome_read_generic_cache_files(telepathy_domain)
+	gnome_write_generic_cache_files(telepathy_domain)
 ')
 
 optional_policy(`
@@ -426,9 +442,9 @@ optional_policy(`
 
 # Just for F15
 optional_policy(`
-    gen_require(`
-        role unconfined_r;
-    ')
+	gen_require(`
+		role unconfined_r;
+	')
 
-    role unconfined_r types telepathy_domain;
+	role unconfined_r types telepathy_domain;
 ')
