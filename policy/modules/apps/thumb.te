@@ -13,6 +13,9 @@ role system_r types thumb_t;
 type thumb_tmp_t;
 files_tmp_file(thumb_tmp_t)
 
+type thumb_home_t;
+userdom_user_home_content(thumb_home_t)
+
 ########################################
 #
 # thumb local policy
@@ -23,9 +26,15 @@ allow thumb_t self:process { setsched signal setrlimit };
 allow thumb_t self:fifo_file manage_fifo_file_perms;
 allow thumb_t self:unix_stream_socket create_stream_socket_perms;
 
-domain_use_interactive_fds(thumb_t)
+manage_dirs_pattern(thumb_t, thumb_home_t, thumb_home_t)
+manage_files_pattern(thumb_t, thumb_home_t, thumb_home_t)
+userdom_user_home_dir_filetrans(thumb_t, thumb_home_t, { file dir })
 
 kernel_read_system_state(thumb_t)
+
+dev_read_sysfs(thumb_t)
+
+domain_use_interactive_fds(thumb_t)
 
 files_read_etc_files(thumb_t)
 files_read_usr_files(thumb_t)
@@ -40,6 +49,7 @@ userdom_read_user_tmp_files(thumb_t)
 userdom_read_user_home_content_files(thumb_t)
 userdom_dontaudit_write_user_tmp_files(thumb_t)
 userdom_use_inherited_user_ptys(thumb_t)
+userdom_write_inherited_user_tmp_files(thumb_t)
 
 optional_policy(`
 	dbus_dontaudit_session_bus_connect(thumb_t)
@@ -47,5 +57,6 @@ optional_policy(`
 
 optional_policy(`
 	gnome_read_gconf_home_files(thumb_t)
+	gnome_read_gstreamer_home_content(thumb_t)
 ')
 
