@@ -8,35 +8,96 @@ policy_module(thumb, 1.0.0)
 type thumb_t;
 type thumb_exec_t;
 application_domain(thumb_t, thumb_exec_t)
-role system_r types thumb_t;
+ubac_constrained(thumb_t)
+
+role system_r types thumb_t; # why is system_r needed
+
+# this is for liborc: ~/orcexec.*
+# these should normally go to /tmp but it goes to ~ if not executable in /tmp
+# there is also a bug in liborc where it does to ~ by default
+type thumb_home_t;
+userdom_user_home_content(thumb_home_t)
 
 type thumb_tmp_t;
 files_tmp_file(thumb_tmp_t)
+ubac_constrained(thumb_tmp_t)
 
 ########################################
 #
 # thumb local policy
 #
 
-allow thumb_t self:process { setsched signal setrlimit };
+# execmem is for totem-video-thumbnailer
+allow thumb_t self:process { setsched signal setrlimit execmem };
 
 allow thumb_t self:fifo_file manage_fifo_file_perms;
 allow thumb_t self:unix_stream_socket create_stream_socket_perms;
 
-domain_use_interactive_fds(thumb_t)
+# for totem-video-thumbnailer
+allow thumb_t self:netlink_route_socket r_netlink_socket_perms;
+allow thumb_t self:udp_socket create_socket_perms;
+allow thumb_t self:tcp_socket create_socket_perms;
+
+# gst-plugin-scanner/liborc, ~/orcexec.*
+exec_files_pattern(thumb_t, thumb_home_t, thumb_home_t)
+manage_files_pattern(thumb_t, thumb_home_t, thumb_home_t)
+userdom_user_home_dir_filetrans(thumb_t, thumb_home_t, file)
+
+manage_files_pattern(thumb_t, thumb_tmp_t, thumb_tmp_t)
+manage_dirs_pattern(thumb_t, thumb_tmp_t, thumb_tmp_t)
+exec_files_pattern(thumb_t, thumb_tmp_t, thumb_tmp_t)
+userdom_user_tmp_filetrans(thumb_t, thumb_tmp_t, file) # should reproduce this
+files_tmp_filetrans(thumb_t, thumb_tmp_t, { file dir })
 
 kernel_read_system_state(thumb_t)
+
+# /usr/libexec/gstreamer.*/gst-plugin-scanner
+corecmd_exec_bin(thumb_t)
+
+# gst-plugin-scanner
+dev_read_sysfs(thumb_t)
+
+domain_use_interactive_fds(thumb_t)
 
 files_read_etc_files(thumb_t)
 files_read_usr_files(thumb_t)
 
-manage_files_pattern(thumb_t, thumb_tmp_t, thumb_tmp_t)
-userdom_user_tmp_filetrans(thumb_t, thumb_tmp_t, file)
-
 miscfiles_read_fonts(thumb_t)
 miscfiles_read_localization(thumb_t)
 
+# totem-video-thumbnailer
+sysnet_read_config(thumb_t)
+
+# read files to be thumbed
 userdom_read_user_tmp_files(thumb_t)
 userdom_read_user_home_content_files(thumb_t)
-userdom_dontaudit_write_user_tmp_files(thumb_t)
+# .gnome_desktop_thumbnail.* is created by something in the user domain.
+# probably libgnome.
+userdom_write_user_tmp_files(thumb_t)
+
 userdom_use_inherited_user_ptys(thumb_t)
+
+# these two are inherited
+# should probably create and call xserver_ra_inherited_xdm_home_files()
+xserver_read_xdm_home_files(thumb_t)
+xserver_append_xdm_home_files(thumb_t)
+# seems to not be needed
+xserver_dontaudit_read_xdm_pid(thumb_t)
+# this is required for totem-video-thumbnailer
+# although thumb does not need to write xserver_tmp_t sock_files
+# we probably want a xserver_connect to support but unix stream socket
+# connections as well tcp connections
+# allow thumb_t xserver_port_t:tcp_socket name_connect;
+xserver_stream_connect(thumb_t)
+
+# This seems not strictly needed
+dbus_dontaudit_stream_connect_session_bus(thumb_t)
+dbus_dontaudit_chat_session_bus(thumb_t)
+
+optional_policy(`
+	# not sure if this is a good idea
+	# thumb_t searches data_home_t, config_home_t and gconf_home_t
+	gnome_dontaudit_search_config(thumb_t)
+	# totem-video-thumbnailer
+	gnome_manage_gstreamer_home_files(thumb_t)
+') 
