@@ -22,9 +22,6 @@ type thumb_tmp_t;
 files_tmp_file(thumb_tmp_t)
 ubac_constrained(thumb_tmp_t)
 
-type thumb_home_t;
-userdom_user_home_content(thumb_home_t)
-
 ########################################
 #
 # thumb local policy
@@ -36,10 +33,6 @@ allow thumb_t self:process { setsched signal setrlimit execmem };
 allow thumb_t self:fifo_file manage_fifo_file_perms;
 allow thumb_t self:unix_stream_socket create_stream_socket_perms;
 
-manage_dirs_pattern(thumb_t, thumb_home_t, thumb_home_t)
-manage_files_pattern(thumb_t, thumb_home_t, thumb_home_t)
-userdom_user_home_dir_filetrans(thumb_t, thumb_home_t, { file dir })
-domain_use_interactive_fds(thumb_t)
 # for totem-video-thumbnailer
 allow thumb_t self:netlink_route_socket r_netlink_socket_perms;
 allow thumb_t self:udp_socket create_socket_perms;
@@ -57,10 +50,6 @@ userdom_user_tmp_filetrans(thumb_t, thumb_tmp_t, file) # should reproduce this
 files_tmp_filetrans(thumb_t, thumb_tmp_t, { file dir })
 
 kernel_read_system_state(thumb_t)
-
-dev_read_sysfs(thumb_t)
-
-domain_use_interactive_fds(thumb_t)
 
 # /usr/libexec/gstreamer.*/gst-plugin-scanner
 corecmd_exec_bin(thumb_t)
@@ -87,16 +76,6 @@ userdom_read_user_home_content_files(thumb_t)
 userdom_write_user_tmp_files(thumb_t)
 
 userdom_use_inherited_user_ptys(thumb_t)
-userdom_write_inherited_user_tmp_files(thumb_t)
-
-optional_policy(`
-	dbus_dontaudit_session_bus_connect(thumb_t)
-')
-
-optional_policy(`
-	gnome_read_gconf_home_files(thumb_t)
-	gnome_read_gstreamer_home_content(thumb_t)
-')
 
 # these two are inherited
 # should probably create and call xserver_ra_inherited_xdm_home_files()
