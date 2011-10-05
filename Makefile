@@ -407,7 +407,7 @@ $(moddir)/kernel/corenetwork.if: $(moddir)/kernel/corenetwork.te.in $(moddir)/ke
 	@echo "#" >> $@
 	$(verbose) cat $@.in >> $@
 	$(verbose) $(GREP) "^[[:blank:]]*network_(interface|node|port|packet)(_controlled)?\(.*\)" $< \
-		| $(M4) -D self_contained_policy $(M4PARAM) $@.m4 - \
+		| $(M4) -D self_contained_policy $(M4PARAM) $(m4divert) $@.m4 $(m4undivert) - \
 		| $(SED) -e 's/dollarsone/\$$1/g' -e 's/dollarszero/\$$0/g' >> $@
 
 $(moddir)/kernel/corenetwork.te: $(moddir)/kernel/corenetwork.te.m4 $(moddir)/kernel/corenetwork.te.in
