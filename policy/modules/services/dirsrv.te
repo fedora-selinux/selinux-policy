@@ -52,7 +52,7 @@ files_type(dirsrv_share_t);
 #
 allow dirsrv_t self:process { getsched setsched setfscreate signal_perms};
 allow dirsrv_t self:capability { sys_nice setuid setgid fsetid chown dac_override fowner };
-allow dirsrv_t self:fifo_file rw_fifo_file_perms;
+allow dirsrv_t self:fifo_file manage_fifo_file_perms;
 allow dirsrv_t self:sem create_sem_perms;
 allow dirsrv_t self:tcp_socket create_stream_socket_perms;
 
@@ -87,8 +87,10 @@ manage_lnk_files_pattern(dirsrv_t, dirsrv_config_t, dirsrv_config_t)
 manage_files_pattern(dirsrv_t, dirsrv_tmp_t, dirsrv_tmp_t)
 manage_dirs_pattern(dirsrv_t, dirsrv_tmp_t, dirsrv_tmp_t)
 files_tmp_filetrans(dirsrv_t, dirsrv_tmp_t, { file dir })
+allow dirsrv_t dirsrv_tmp_t:file relabel_file_perms;
 
 kernel_read_system_state(dirsrv_t)
+ernel_read_kernel_sysctls(dirsrv_t)
 
 corecmd_search_sbin(dirsrv_t)
 
@@ -125,6 +127,11 @@ optional_policy(`
 
 optional_policy(`
 	kerberos_use(dirsrv_t)
+')
+
+# FIPS mode
+optional_policy(`
+	prelink_exec(dirsrv_t)
 ')
 
 optional_policy(`
