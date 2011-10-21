@@ -148,6 +148,7 @@ interface(`alsa_manage_home_files',`
 
 	userdom_search_user_home_dirs($1)
 	allow $1 alsa_home_t:file manage_file_perms;
+	alsa_filetrans_home_content(unpriv_userdomain)
 ')
 
 ########################################
@@ -217,10 +218,36 @@ interface(`alsa_read_lib',`
 ##	</summary>
 ## </param>
 #
-interface(`alsa_filetrans_named_content',`
+interface(`alsa_filetrans_home_content',`
 	gen_require(`
 		type alsa_home_t;
 	')
 
 	userdom_user_home_dir_filetrans($1, alsa_home_t, file, ".asoundrc")
+')
+
+########################################
+## <summary>
+##	Transition to alsa named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`alsa_filetrans_named_content',`
+	gen_require(`
+		type alsa_home_t;
+		type alsa_etc_rw_t;
+		type alsa_var_lib_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, alsa_home_t, file, ".asoundrc")
+	files_etc_filetrans($1, alsa_etc_rw_t, file, "asound.state")
+	files_etc_filetrans($1, alsa_etc_rw_t, dir, "pcm")
+	files_etc_filetrans($1, alsa_etc_rw_t, dir, "asound")
+	files_usr_filetrans($1, alsa_etc_rw_t, file, "alsa.conf")
+	files_usr_filetrans($1, alsa_etc_rw_t, dir, "pcm")
+	files_var_lib_filetrans($1, alsa_var_lib_t, dir, "alsa")
 ')
