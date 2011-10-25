@@ -17,6 +17,13 @@ type chrome_sandbox_tmpfs_t;
 files_tmpfs_file(chrome_sandbox_tmpfs_t)
 ubac_constrained(chrome_sandbox_tmpfs_t)
 
+type chrome_sandbox_bootstrap_t;
+type chrome_sandbox_bootstrap_exec_t;
+application_domain(chrome_sandbox_bootstrap_t, chrome_sandbox_bootstrap_exec_t)
+role system_r types chrome_sandbox_bootstrap_t;
+
+permissive chrome_sandbox_bootstrap_t;
+
 ########################################
 #
 # chrome_sandbox local policy
@@ -29,6 +36,7 @@ allow chrome_sandbox_t self:unix_stream_socket create_stream_socket_perms;
 allow chrome_sandbox_t self:unix_dgram_socket { create_socket_perms sendto };
 allow chrome_sandbox_t self:shm create_shm_perms;
 allow chrome_sandbox_t self:netlink_route_socket r_netlink_socket_perms;
+dontaudit chrome_sandbox_t self:memprotect mmap_zero;
 
 manage_dirs_pattern(chrome_sandbox_t, chrome_sandbox_tmp_t, chrome_sandbox_tmp_t)
 manage_files_pattern(chrome_sandbox_t, chrome_sandbox_tmp_t, chrome_sandbox_tmp_t)
@@ -124,3 +132,22 @@ tunable_policy(`use_fusefs_home_dirs',`
 optional_policy(`
 	sandbox_use_ptys(chrome_sandbox_t)
 ')
+
+
+########################################
+#
+# chrome_sandbox_bootstrap local policy
+#
+
+allow chrome_sandbox_bootstrap_t self:fifo_file manage_fifo_file_perms;
+allow chrome_sandbox_bootstrap_t self:unix_stream_socket create_stream_socket_perms;
+domain_use_interactive_fds(chrome_sandbox_bootstrap_t)
+allow chrome_sandbox_t chrome_sandbox_bootstrap_t:process share;
+
+dontaudit chrome_sandbox_bootstrap_t self:memprotect mmap_zero;
+
+domtrans_pattern(chrome_sandbox_t, chrome_sandbox_bootstrap_exec_t, chrome_sandbox_bootstrap_t)
+
+files_read_etc_files(chrome_sandbox_bootstrap_t)
+
+miscfiles_read_localization(chrome_sandbox_bootstrap_t)
