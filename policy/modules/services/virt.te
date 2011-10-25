@@ -17,6 +17,13 @@ gen_tunable(virt_use_comm, false)
 
 ## <desc>
 ##	<p>
+##	Allow confined virtual guests to use executable memory and executable stack
+##	</p>
+## </desc>
+gen_tunable(virt_use_execmem, false)
+
+## <desc>
+##	<p>
 ##	Allow confined virtual guests to read fuse files
 ##	</p>
 ## </desc>
@@ -547,7 +554,7 @@ optional_policy(`
 # virtual domains common policy
 #
 
-allow virt_domain self:process { execmem execstack signal getsched signull };
+allow virt_domain self:process { signal getsched signull };
 allow virt_domain self:fifo_file rw_fifo_file_perms;
 allow virt_domain self:shm create_shm_perms;
 allow virt_domain self:unix_stream_socket create_stream_socket_perms;
@@ -629,6 +636,10 @@ term_use_ptmx(virt_domain)
 logging_send_syslog_msg(virt_domain)
 
 miscfiles_read_localization(virt_domain)
+
+tunable_policy(`virt_use_execmem',`
+	allow virtd_t virt_domain:process { execmem execstack };
+')
 
 optional_policy(`
 	ptchown_domtrans(virt_domain)
