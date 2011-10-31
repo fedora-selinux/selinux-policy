@@ -74,15 +74,17 @@ dev_rwx_zero(chrome_sandbox_t)
 
 files_read_etc_files(chrome_sandbox_t)
 files_read_usr_files(chrome_sandbox_t)
-files_exec_usr_files(chrome_sandbox_t)
 
 fs_dontaudit_getattr_all_fs(chrome_sandbox_t)
 
 userdom_rw_inherited_user_tmpfs_files(chrome_sandbox_t)
+userdom_execute_user_tmpfs_files(chrome_sandbox_t)
+
 userdom_use_user_ptys(chrome_sandbox_t)
 userdom_write_inherited_user_tmp_files(chrome_sandbox_t)
 userdom_read_inherited_user_home_content_files(chrome_sandbox_t)
 userdom_dontaudit_use_user_terminals(chrome_sandbox_t)
+userdom_search_user_home_content(chrome_sandbox_t)
 
 miscfiles_read_localization(chrome_sandbox_t)
 miscfiles_read_fonts(chrome_sandbox_t)
@@ -143,7 +145,9 @@ allow chrome_sandbox_nacl_t self:process execmem;
 allow chrome_sandbox_nacl_t self:fifo_file manage_fifo_file_perms;
 allow chrome_sandbox_nacl_t self:unix_stream_socket create_stream_socket_perms;
 allow chrome_sandbox_nacl_t self:shm create_shm_perms;
-allow chrome_sandbox_nacl_t self:unix_dgram_socket create_socket_perms;
+allow chrome_sandbox_nacl_t self:unix_dgram_socket { create_socket_perms sendto };
+allow chrome_sandbox_nacl_t chrome_sandbox_t:unix_stream_socket { getattr write read };
+allow chrome_sandbox_t chrome_sandbox_nacl_t:unix_stream_socket { getattr write read };
 
 allow chrome_sandbox_nacl_t chrome_sandbox_t:shm rw_shm_perms;
 allow chrome_sandbox_nacl_t chrome_sandbox_tmpfs_t:file rw_inherited_file_perms;
@@ -157,6 +161,7 @@ domain_use_interactive_fds(chrome_sandbox_nacl_t)
 dontaudit chrome_sandbox_nacl_t self:memprotect mmap_zero;
 
 domtrans_pattern(chrome_sandbox_t, chrome_sandbox_nacl_exec_t, chrome_sandbox_nacl_t)
+ps_process_pattern(chrome_sandbox_t, chrome_sandbox_nacl_t)
 
 kernel_read_system_state(chrome_sandbox_nacl_t)
 
@@ -171,3 +176,4 @@ corecmd_sbin_entry_type(chrome_sandbox_nacl_t)
 userdom_use_inherited_user_ptys(chrome_sandbox_nacl_t)
 userdom_rw_inherited_user_tmpfs_files(chrome_sandbox_nacl_t)
 userdom_execute_user_tmpfs_files(chrome_sandbox_nacl_t)
+userdom_read_inherited_user_tmp_files(chrome_sandbox_nacl_t)
