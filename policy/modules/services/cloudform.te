@@ -138,14 +138,11 @@ tunable_policy(`use_nfs_home_dirs',`
 # mongod local policy
 #
 
-#WHY?
-allow mongod_t self:process execmem;
+allow mongod_t self:process { setsched signal };
 
-allow mongod_t self:process setsched;
-
-allow mongod_t self:process { fork signal };
-
+allow mongod_t self:netlink_route_socket r_netlink_socket_perms;
 allow mongod_t self:unix_stream_socket create_stream_socket_perms;
+allow mongod_t self:udp_socket create_socket_perms;
 
 manage_dirs_pattern(mongod_t, mongod_log_t, mongod_log_t)
 manage_files_pattern(mongod_t, mongod_log_t, mongod_log_t)
@@ -160,12 +157,21 @@ files_tmp_filetrans(mongod_t, mongod_tmp_t, { file dir sock_file })
 
 manage_dirs_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
 manage_files_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
+#needed by dbomatic
+files_pid_filetrans(mongod_t, mongod_var_run_t, { file })
 
 corenet_tcp_bind_generic_node(mongod_t)
-#temporary
 corenet_tcp_bind_generic_port(mongod_t)
 
-domain_use_interactive_fds(mongod_t)
+files_read_usr_files(mongod_t)
+
+optional_policy(`
+	mysql_stream_connect(mongod_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(mongod_t)
+')
 
 optional_policy(`
 	sysnet_dns_name_resolve(mongod_t)
