@@ -281,6 +281,8 @@ interface(`userdom_manage_home_role',`
 	relabel_sock_files_pattern($2, { user_home_dir_t user_home_type }, user_home_type)
 	relabel_fifo_files_pattern($2, { user_home_dir_t user_home_type }, user_home_type)
 	filetrans_pattern($2, user_home_dir_t, user_home_t, { dir file lnk_file sock_file fifo_file })
+	userdom_filetrans_home_content($2)
+
 	files_list_home($2)
 
 	# cjp: this should probably be removed:
@@ -4645,6 +4647,29 @@ interface(`userdom_read_home_certs',`
 	read_lnk_files_pattern($1, home_cert_t, home_cert_t)
 ')
 
+########################################
+## <summary>
+##	Manage system SSL certificates in the users homedir.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_manage_home_certs',`
+	gen_require(`
+		type home_cert_t;
+	')
+
+	allow $1 home_cert_t:dir list_dir_perms;
+	manage_files_pattern($1, home_cert_t, home_cert_t)
+	manage_lnk_files_pattern($1, home_cert_t, home_cert_t)
+
+	userdom_user_home_dir_filetrans($1, home_cert_t, dir, ".cert")
+	userdom_user_home_dir_filetrans($1, home_cert_t, dir, ".pki")
+')
+
 #######################################
 ## <summary>
 ##  Dontaudit Write system SSL certificates in the users homedir.
@@ -5012,4 +5037,31 @@ interface(`userdom_rw_unpriv_user_semaphores',`
    ')
 
    allow $1 unpriv_userdomain:sem rw_sem_perms;
+')
+
+########################################
+## <summary>
+##	Transition to userdom named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_filetrans_home_content',`
+	gen_require(`
+		type home_bin_t, home_cert_t;
+		type audio_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, home_bin_t, dir, "bin")
+	userdom_user_home_dir_filetrans($1, audio_home_t, dir, "Audio")
+	userdom_user_home_dir_filetrans($1, audio_home_t, dir, "Music")
+	userdom_user_home_dir_filetrans($1, home_cert_t, dir, ".cert")
+	userdom_user_home_dir_filetrans($1, home_cert_t, dir, ".pki")
+
+	optional_policy(`
+		gnome_admin_home_gconf_filetrans($1, home_bin_t, dir, "bin")
+	')
 ')
