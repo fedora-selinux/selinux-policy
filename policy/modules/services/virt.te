@@ -73,10 +73,13 @@ gen_tunable(virt_use_usb, true)
 
 virt_domain_template(svirt)
 role system_r types svirt_t;
+typealias svirt_t alias qemu_t;
 
 attribute virt_domain;
 attribute virt_image_type;
 attribute virt_tmpfs_type;
+
+type qemu_exec_t;
 
 type virt_cache_t alias svirt_cache_t;
 files_type(virt_cache_t)
@@ -274,6 +277,9 @@ manage_files_pattern(virtd_t, virt_content_t, virt_content_t)
 allow virtd_t virt_domain:process { getattr getsched setsched transition signal signull sigkill };
 allow virt_domain virtd_t:fd use;
 dontaudit virt_domain virtd_t:unix_stream_socket { read write };
+
+can_exec(virtd_t, qemu_exec_t)
+can_exec(virt_domain, qemu_exec_t)
 
 allow virtd_t qemu_var_run_t:file relabel_file_perms;
 manage_dirs_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t)
@@ -642,11 +648,6 @@ optional_policy(`
 
 optional_policy(`
 	pulseaudio_dontaudit_exec(virt_domain)
-')
-
-optional_policy(`
-    qemu_entry_type(virt_domain)
-    qemu_exec(virt_domain)
 ')
 
 optional_policy(`
