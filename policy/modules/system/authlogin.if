@@ -562,7 +562,6 @@ interface(`auth_domtrans_upd_passwd',`
 
 	domtrans_pattern($1, updpwd_exec_t, updpwd_t)
 	auth_dontaudit_read_shadow($1)
-
 ')
 
 ########################################
@@ -759,6 +758,10 @@ interface(`auth_manage_shadow',`
 
 	allow $1 shadow_t:file manage_file_perms;
 	typeattribute $1 can_read_shadow_passwords, can_write_shadow_passwords;
+	files_var_filetrans($1, shadow_t, file, "shadow")
+	files_var_filetrans($1, shadow_t, file, "shadow-")
+	files_etc_filetrans($1, shadow_t, file, ".pwd.lock")
+	files_etc_filetrans($1, shadow_t, file, "gshadow")
 ')
 
 #######################################
@@ -899,6 +902,9 @@ interface(`auth_manage_faillog',`
 	files_search_pids($1)
 	allow $1 faillog_t:dir manage_dir_perms;
 	allow $1 faillog_t:file manage_file_perms;
+	logging_log_named_filetrans($1, faillog_t, file, "tallylog")
+	logging_log_named_filetrans($1, faillog_t, file, "faillog")
+	logging_log_named_filetrans($1, faillog_t, file, "btmp")
 ')
 
 #######################################
@@ -1739,6 +1745,7 @@ interface(`auth_manage_login_records',`
 
 	logging_rw_generic_log_dirs($1)
 	allow $1 wtmp_t:file manage_file_perms;
+	logging_log_named_filetrans($1, wtmp_t, file, "wtmp")
 ')
 
 ########################################
@@ -1814,19 +1821,123 @@ interface(`auth_unconfined',`
 interface(`authlogin_filetrans_named_content',`
 	gen_require(`
 		type shadow_t;
+		type passwd_file_t;
 		type faillog_t;
 		type wtmp_t;
 	')
 
+	files_etc_filetrans($1, passwd_file_t, file, "group")
+	files_etc_filetrans($1, passwd_file_t, file, "group-")
+	files_etc_filetrans($1, passwd_file_t, file, "passwd")
+	files_etc_filetrans($1, passwd_file_t, file, "passwd-")
+	files_etc_filetrans($1, passwd_file_t, file, "ptmptmp")
 	files_etc_filetrans($1, shadow_t, file, "shadow")
 	files_etc_filetrans($1, shadow_t, file, "shadow-")
 	files_etc_filetrans($1, shadow_t, file, ".pwd.lock")
 	files_etc_filetrans($1, shadow_t, file, "gshadow")
-	files_var_filetrans($1, shadow_t, file, "shadow")
-	files_var_filetrans($1, shadow_t, file, "shadow-")
 	logging_log_named_filetrans($1, faillog_t, file, "tallylog")
 	logging_log_named_filetrans($1, faillog_t, file, "faillog")
 	logging_log_named_filetrans($1, faillog_t, file, "btmp")
 	files_pid_filetrans($1, faillog_t, file, "faillog")
 	logging_log_named_filetrans($1, wtmp_t, file, "wtmp")
+')
+
+########################################
+## <summary>
+##	Get the attributes of the passwd passwords file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_getattr_passwd',`
+	gen_require(`
+		type passwd_file_t;
+	')
+
+	files_search_etc($1)
+	allow $1 passwd_file_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of the passwd passwords file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`auth_dontaudit_getattr_passwd',`
+	gen_require(`
+		type passwd_file_t;
+	')
+
+	dontaudit $1 passwd_file_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Read the passwd passwords file (/etc/passwd)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_read_passwd',`
+	gen_require(`
+		type passwd_file_t;
+	')
+
+	allow $1 passwd_file_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read the passwd
+##	password file (/etc/passwd).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`auth_dontaudit_read_passwd',`
+	gen_require(`
+		type passwd_file_t;
+	')
+
+	dontaudit $1 passwd_file_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the passwd
+##	password file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_manage_passwd',`
+	gen_require(`
+		type passwd_file_t;
+	')
+
+	files_rw_etc_dirs($1)
+	allow $1 passwd_file_t:file manage_file_perms;
+	files_etc_filetrans($1, passwd_file_t, file, "passwd")
+	files_etc_filetrans($1, passwd_file_t, file, "passwd-")
+	files_etc_filetrans($1, passwd_file_t, file, "ptmptmp")
+	files_etc_filetrans($1, passwd_file_t, file, "group")
+	files_etc_filetrans($1, passwd_file_t, file, "group-")
 ')
