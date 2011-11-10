@@ -32,8 +32,11 @@ template(`polipo_role',`
 	# Policy
 	#
 
-	allow $2 polipo_session_t:process { ptrace signal_perms };
+	allow $2 polipo_session_t:process signal_perms;
 	ps_process_pattern($2, polipo_session_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $2 polipo_session_t:process ptrace;
+	')
 
 	tunable_policy(`polipo_session_users',`
 		domtrans_pattern($2, polipo_exec_t, polipo_session_t)
@@ -163,8 +166,11 @@ interface(`polipo_admin',`
 		type polipo_etc_t, polipo_log_t, polipo_initrc_exec_t;
 	')
 
-	allow $1 polipo_t:process { ptrace signal_perms };
+	allow $1 polipo_t:process signal_perms;
 	ps_process_pattern($1, polipo_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 polipo_t:process ptrace;
+	')
 
 	init_labeled_script_domtrans($1, polipo_initrc_exec_t)
 	domain_system_change_exemption($1)

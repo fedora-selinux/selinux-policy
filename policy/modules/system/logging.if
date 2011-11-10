@@ -1095,8 +1095,12 @@ interface(`logging_admin_audit',`
 		type auditd_initrc_exec_t;
 	')
 
-	allow $1 auditd_t:process { ptrace signal_perms };
+	allow $1 auditd_t:process signal_perms;
 	ps_process_pattern($1, auditd_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 auditd_t:process ptrace;
+	')
 
 	manage_dirs_pattern($1, auditd_etc_t, auditd_etc_t)
 	manage_files_pattern($1, auditd_etc_t, auditd_etc_t)
@@ -1142,10 +1146,14 @@ interface(`logging_admin_syslog',`
 	')
 
 	allow $1 self:capability2 syslog;
-	allow $1 syslogd_t:process { ptrace signal_perms };
-	allow $1 klogd_t:process { ptrace signal_perms };
+	allow $1 syslogd_t:process signal_perms;
+	allow $1 klogd_t:process signal_perms;
 	ps_process_pattern($1, syslogd_t)
 	ps_process_pattern($1, klogd_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 syslogd_t:process ptrace;
+		allow $1 klogd_t:process ptrace;
+	')
 
 	manage_dirs_pattern($1, klogd_var_run_t, klogd_var_run_t)
 	manage_files_pattern($1, klogd_var_run_t, klogd_var_run_t)

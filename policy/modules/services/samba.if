@@ -784,13 +784,18 @@ interface(`samba_admin',`
 		type winbind_var_run_t, winbind_tmp_t, samba_unconfined_script_t;
 	')
 
-	allow $1 smbd_t:process { ptrace signal_perms };
+	allow $1 smbd_t:process signal_perms;
 	ps_process_pattern($1, smbd_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 smbd_t:process ptrace;
+		allow $1 nmbd_t:process ptrace;
+		allow $1 samba_unconfined_script_t:process ptrace;
+	')
 
-	allow $1 nmbd_t:process { ptrace signal_perms };
+	allow $1 nmbd_t:process signal_perms;
 	ps_process_pattern($1, nmbd_t)
 
-	allow $1 samba_unconfined_script_t:process { ptrace signal_perms };
+	allow $1 samba_unconfined_script_t:process signal_perms;
 	ps_process_pattern($1, samba_unconfined_script_t)
 
 	samba_run_smbcontrol($1, $2, $3)

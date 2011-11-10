@@ -245,7 +245,10 @@ interface(`mock_role',`
 	mock_run($2, $1)
 
 	ps_process_pattern($2, mock_t)
-	allow $2 mock_t:process { ptrace signal_perms };
+	allow $2 mock_t:process signal_perms;
+	tunable_policy(`deny_ptrace',`',`
+		allow $2 mock_t:process ptrace;
+	')
 ')
 
 #######################################
@@ -289,10 +292,14 @@ interface(`mock_admin',`
 		type mock_build_t, mock_etc_t, mock_tmp_t;
 	')
 
-	allow $1 mock_t:process { ptrace signal_perms };
+	allow $1 mock_t:process signal_perms;
 	ps_process_pattern($1, mock_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 mock_t:process ptrace;
+		allow $1 mock_build_t:process ptrace;
+	')
 
-	allow $1 mock_build_t:process { ptrace signal_perms };
+	allow $1 mock_build_t:process signal_perms;
 	ps_process_pattern($1, mock_build_t)
 
 	files_list_var_lib($1)

@@ -408,11 +408,19 @@ interface(`bind_admin',`
 		type dnssec_t, ndc_t, named_keytab_t;
 	')
 
-	allow $1 named_t:process { ptrace signal_perms };
+	allow $1 named_t:process signal_perms;
 	ps_process_pattern($1, named_t)
 
-	allow $1 ndc_t:process { ptrace signal_perms };
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 named_t:process ptrace;
+	')
+
+	allow $1 ndc_t:process signal_perms;
 	ps_process_pattern($1, ndc_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 ndc_t:process ptrace;
+	')
 
 	bind_run_ndc($1, $2)
 

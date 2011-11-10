@@ -340,13 +340,18 @@ interface(`kerberos_admin',`
 		type krb5kdc_var_run_t, krb5_host_rcache_t;
 	')
 
-	allow $1 kadmind_t:process { ptrace signal_perms };
+	allow $1 kadmind_t:process signal_perms;
 	ps_process_pattern($1, kadmind_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 kadmind_t:process ptrace;
+		allow $1 krb5kdc_t:process ptrace;
+		allow $1 kpropd_t:process ptrace;
+	')
 
-	allow $1 krb5kdc_t:process { ptrace signal_perms };
+	allow $1 krb5kdc_t:process signal_perms;
 	ps_process_pattern($1, krb5kdc_t)
 
-	allow $1 kpropd_t:process { ptrace signal_perms };
+	allow $1 kpropd_t:process signal_perms;
 	ps_process_pattern($1, kpropd_t)
 
 	init_labeled_script_domtrans($1, kerberos_initrc_exec_t)

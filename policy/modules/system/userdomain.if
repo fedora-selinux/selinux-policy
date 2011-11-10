@@ -47,7 +47,10 @@ template(`userdom_base_user_template',`
 	term_user_tty($1_t, user_tty_device_t)
 	term_dontaudit_getattr_generic_ptys($1_t)
 
-	allow $1_usertype $1_usertype:process { ptrace signal_perms getsched setsched share getpgid setpgid getcap setcap getsession getattr };
+	allow $1_usertype $1_usertype:process { signal_perms getsched setsched share getpgid setpgid getcap setcap getsession getattr };
+	tunable_policy(`deny_ptrace',`',`
+		allow $1_usertype $1_usertype:process ptrace;
+	')
 	allow $1_usertype $1_usertype:fd use;
 	allow $1_usertype $1_t:key { create view read write search link setattr };
 
@@ -905,7 +908,7 @@ template(`userdom_login_user_template', `
 	allow $1_t self:capability { setgid chown fowner };
 	dontaudit $1_t self:capability { sys_nice fsetid };
 
-	allow $1_t self:process ~{ setcurrent setexec setrlimit execmem execstack execheap };
+	allow $1_t self:process ~{ ptrace setcurrent setexec setrlimit execmem execstack execheap };
 	dontaudit $1_t self:process setrlimit;
 	dontaudit $1_t self:netlink_route_socket { create ioctl read getattr write setattr append bind connect getopt setopt shutdown nlmsg_read nlmsg_write };
 
@@ -1374,7 +1377,10 @@ template(`userdom_admin_user_template',`
 	# $1_t local policy
 	#
 
-	allow $1_t self:capability ~{ sys_module audit_control audit_write };
+	allow $1_t self:capability ~{ sys_ptrace sys_module audit_control audit_write };
+	tunable_policy(`deny_ptrace',`',`
+		allow $1_t self:capability sys_ptrace;
+	')
 	allow $1_t self:capability2 syslog;
 	allow $1_t self:process { setexec setfscreate };
 	allow $1_t self:netlink_audit_socket nlmsg_readpriv;
@@ -4011,7 +4017,9 @@ interface(`userdom_ptrace_all_users',`
 		attribute userdomain;
 	')
 
-	allow $1 userdomain:process ptrace;
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 userdomain:process ptrace;
+	')
 ')
 
 ########################################

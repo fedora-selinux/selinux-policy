@@ -176,13 +176,19 @@ interface(`clamav_admin',`
 		type freshclam_t, freshclam_var_log_t;
 	')
 
-	allow $1 clamd_t:process { ptrace signal_perms };
+	allow $1 clamd_t:process signal_perms;
 	ps_process_pattern($1, clamd_t)
 
-	allow $1 clamscan_t:process { ptrace signal_perms };
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 clamd_t:process ptrace;
+		allow $1 clamscan_t:process ptrace;
+		allow $1 freshclam_t:process ptrace;
+	')
+
+	allow $1 clamscan_t:process signal_perms;
 	ps_process_pattern($1, clamscan_t)
 
-	allow $1 freshclam_t:process { ptrace signal_perms };
+	allow $1 freshclam_t:process signal_perms;
 	ps_process_pattern($1, freshclam_t)
 
 	init_labeled_script_domtrans($1, clamd_initrc_exec_t)

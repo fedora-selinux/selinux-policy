@@ -44,13 +44,17 @@ init_system_domain(wpa_cli_t, wpa_cli_exec_t)
 
 # networkmanager will ptrace itself if gdb is installed
 # and it receives a unexpected signal (rh bug #204161)
-allow NetworkManager_t self:capability { chown fsetid kill setgid setuid sys_admin sys_nice sys_ptrace dac_override net_admin net_raw net_bind_service ipc_lock };
-dontaudit NetworkManager_t self:capability { sys_tty_config sys_ptrace };
+allow NetworkManager_t self:capability { chown fsetid kill setgid setuid sys_admin sys_nice dac_override net_admin net_raw net_bind_service ipc_lock };
+dontaudit NetworkManager_t self:capability sys_tty_config;
 ifdef(`hide_broken_symptoms',`
 	# caused by some bogus kernel code
 	dontaudit NetworkManager_t self:capability sys_module;
 ')
-allow NetworkManager_t self:process { ptrace getcap setcap setpgid getsched setsched signal_perms };
+allow NetworkManager_t self:process { getcap setcap setpgid getsched setsched signal_perms };
+tunable_policy(`deny_ptrace',`',`
+	allow NetworkManager_t self:process ptrace;
+')
+
 allow NetworkManager_t self:fifo_file rw_fifo_file_perms;
 allow NetworkManager_t self:unix_dgram_socket { sendto create_socket_perms };
 allow NetworkManager_t self:unix_stream_socket create_stream_socket_perms;

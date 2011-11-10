@@ -28,7 +28,11 @@ interface(`bluetooth_role',`
 
 	# allow ps to show cdrecord and allow the user to kill it
 	ps_process_pattern($2, bluetooth_helper_t)
-	allow $2 bluetooth_helper_t:process { ptrace signal_perms };
+	allow $2 bluetooth_helper_t:process signal_perms;
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $2 bluetooth_helper_t:process ptrace;
+	')
 
 	manage_dirs_pattern($2, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
 	manage_files_pattern($2, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
@@ -220,8 +224,12 @@ interface(`bluetooth_admin',`
 		type bluetooth_conf_t, bluetooth_conf_rw_t;
 	')
 
-	allow $1 bluetooth_t:process { ptrace signal_perms };
+	allow $1 bluetooth_t:process signal_perms;
 	ps_process_pattern($1, bluetooth_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 bluetooth_t:process ptrace;
+	')
 
 	init_labeled_script_domtrans($1, bluetooth_initrc_exec_t)
 	domain_system_change_exemption($1)

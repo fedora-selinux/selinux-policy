@@ -620,10 +620,14 @@ interface(`virt_admin',`
 		type virt_lxc_t;
 	')
 
-	allow $1 virtd_t:process { ptrace signal_perms };
+	allow $1 virtd_t:process signal_perms;
 	ps_process_pattern($1, virtd_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 virtd_t:process ptrace;
+		allow $1 virt_lxc_t:process ptrace;
+	')
 
-	allow $1 virt_lxc_t:process { ptrace signal_perms };
+	allow $1 virt_lxc_t:process signal_perms;
 	ps_process_pattern($1, virt_lxc_t)
 
 	init_labeled_script_domtrans($1, virtd_initrc_exec_t)
@@ -639,7 +643,7 @@ interface(`virt_admin',`
 
 	virt_manage_images($1)
 
-	allow $1 virt_domain:process { ptrace signal_perms };
+	allow $1 virt_domain:process signal_perms;
 ')
 
 ########################################
