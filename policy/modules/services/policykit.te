@@ -5,21 +5,27 @@ policy_module(policykit, 1.1.0)
 # Declarations
 #
 
+attribute policykit_domain;
+
 type policykit_t alias polkit_t;
 type policykit_exec_t alias polkit_exec_t;
 init_daemon_domain(policykit_t, policykit_exec_t)
+policykit_domain(policykit_t)
 
 type policykit_auth_t alias polkit_auth_t;
 type policykit_auth_exec_t alias polkit_auth_exec_t;
 init_daemon_domain(policykit_auth_t, policykit_auth_exec_t)
+policykit_domain(policykit_auth_t)
 
 type policykit_grant_t alias polkit_grant_t;
 type policykit_grant_exec_t alias polkit_grant_exec_t;
 init_system_domain(policykit_grant_t, policykit_grant_exec_t)
+policykit_domain(policykit_grant_t)
 
 type policykit_resolve_t alias polkit_resolve_t;
 type policykit_resolve_exec_t alias polkit_resolve_exec_t;
 init_system_domain(policykit_resolve_t, policykit_resolve_exec_t)
+policykit_domain(policykit_resolve_t)
 
 type policykit_reload_t alias polkit_reload_t;
 files_type(policykit_reload_t)
@@ -33,14 +39,29 @@ files_type(policykit_var_lib_t)
 type policykit_var_run_t alias polkit_var_run_t;
 files_pid_file(policykit_var_run_t)
 
+#######################################
+#
+# policykit_domain local policy
+#
+
+allow policykit_domain self:process getattr;
+allow policykit_domain self:fifo_file rw_fifo_file_perms;
+
+dev_read_sysfs(policykit_domain)
+
+auth_use_nsswitch(policykit_domain)
+
+logging_send_syslog_msg(policykit_domain)
+
+miscfiles_read_localization(policykit_domain)
+
 ########################################
 #
 # policykit local policy
 #
 
 allow policykit_t self:capability { dac_override dac_read_search setgid setuid };
-allow policykit_t self:process { getsched getattr signal };
-allow policykit_t self:fifo_file rw_fifo_file_perms;
+allow policykit_t self:process { getscheda signal };
 allow policykit_t self:unix_dgram_socket create_socket_perms;
 allow policykit_t self:unix_stream_socket { create_stream_socket_perms connectto };
 
@@ -71,12 +92,6 @@ files_read_usr_files(policykit_t)
 files_dontaudit_search_all_mountpoints(policykit_t)
 
 fs_list_inotifyfs(policykit_t)
-
-auth_use_nsswitch(policykit_t)
-
-logging_send_syslog_msg(policykit_t)
-
-miscfiles_read_localization(policykit_t)
 
 userdom_getattr_all_users(policykit_t)
 userdom_read_all_users_state(policykit_t)
@@ -112,8 +127,7 @@ optional_policy(`
 
 allow policykit_auth_t self:capability { ipc_lock setgid setuid };
 dontaudit policykit_auth_t self:capability sys_tty_config;
-allow policykit_auth_t self:process { getattr getsched signal };
-allow policykit_auth_t self:fifo_file rw_fifo_file_perms;
+allow policykit_auth_t self:process { getsched signal };
 
 allow policykit_auth_t self:unix_dgram_socket create_socket_perms;
 allow policykit_auth_t self:unix_stream_socket create_stream_socket_perms;
@@ -148,13 +162,9 @@ files_search_home(policykit_auth_t)
 fs_getattr_all_fs(polkit_auth_t)
 fs_search_tmpfs(polkit_auth_t)
 
-auth_use_nsswitch(policykit_auth_t)
 auth_rw_var_auth(policykit_auth_t)
 auth_domtrans_chk_passwd(policykit_auth_t)
 
-logging_send_syslog_msg(policykit_auth_t)
-
-miscfiles_read_localization(policykit_auth_t)
 miscfiles_read_fonts(policykit_auth_t)
 miscfiles_setattr_fonts_cache_dirs(policykit_auth_t)
 
@@ -190,8 +200,6 @@ optional_policy(`
 #
 
 allow policykit_grant_t self:capability setuid;
-allow policykit_grant_t self:process getattr;
-allow policykit_grant_t self:fifo_file rw_fifo_file_perms;
 
 allow policykit_grant_t self:unix_dgram_socket create_socket_perms;
 allow policykit_grant_t self:unix_stream_socket create_stream_socket_perms;
@@ -212,12 +220,7 @@ manage_files_pattern(policykit_grant_t, policykit_var_lib_t, policykit_var_lib_t
 files_read_etc_files(policykit_grant_t)
 files_read_usr_files(policykit_grant_t)
 
-auth_use_nsswitch(policykit_grant_t)
 auth_domtrans_chk_passwd(policykit_grant_t)
-
-logging_send_syslog_msg(policykit_grant_t)
-
-miscfiles_read_localization(policykit_grant_t)
 
 userdom_read_all_users_state(policykit_grant_t)
 
@@ -238,8 +241,6 @@ optional_policy(`
 #
 
 allow policykit_resolve_t self:capability { setuid sys_nice };
-allow policykit_resolve_t self:process getattr;
-allow policykit_resolve_t self:fifo_file rw_fifo_file_perms;
 
 allow policykit_resolve_t self:unix_dgram_socket create_socket_perms;
 allow policykit_resolve_t self:unix_stream_socket create_stream_socket_perms;
@@ -257,12 +258,6 @@ files_read_etc_files(policykit_resolve_t)
 files_read_usr_files(policykit_resolve_t)
 
 mcs_ptrace_all(policykit_resolve_t)
-
-auth_use_nsswitch(policykit_resolve_t)
-
-logging_send_syslog_msg(policykit_resolve_t)
-
-miscfiles_read_localization(policykit_resolve_t)
 
 userdom_read_all_users_state(policykit_resolve_t)
 
