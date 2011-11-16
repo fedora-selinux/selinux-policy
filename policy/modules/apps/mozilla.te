@@ -1,4 +1,110 @@
+policy_module(mozilla, 2.3.3)
 
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow confined web browsers to read home directory content
+## </p>
+## </desc>
+gen_tunable(mozilla_read_content, false)
+
+type mozilla_t;
+type mozilla_exec_t;
+typealias mozilla_t alias { user_mozilla_t staff_mozilla_t sysadm_mozilla_t };
+typealias mozilla_t alias { auditadm_mozilla_t secadm_mozilla_t };
+application_domain(mozilla_t, mozilla_exec_t)
+ubac_constrained(mozilla_t)
+
+type mozilla_conf_t;
+files_config_file(mozilla_conf_t)
+
+type mozilla_home_t;
+typealias mozilla_home_t alias { user_mozilla_home_t staff_mozilla_home_t sysadm_mozilla_home_t };
+typealias mozilla_home_t alias { auditadm_mozilla_home_t secadm_mozilla_home_t };
+files_poly_member(mozilla_home_t)
+userdom_user_home_content(mozilla_home_t)
+
+type mozilla_plugin_t;
+type mozilla_plugin_exec_t;
+application_domain(mozilla_plugin_t, mozilla_plugin_exec_t)
+role system_r types mozilla_plugin_t;
+
+type mozilla_plugin_tmp_t;
+userdom_user_tmp_content(mozilla_plugin_tmp_t)
+files_tmp_file(mozilla_plugin_tmp_t)
+ubac_constrained(mozilla_plugin_tmp_t)
+
+type mozilla_plugin_tmpfs_t;
+userdom_user_tmpfs_content(mozilla_plugin_tmpfs_t)
+files_tmpfs_file(mozilla_plugin_tmpfs_t)
+ubac_constrained(mozilla_plugin_tmpfs_t)
+
+type mozilla_tmp_t;
+files_tmp_file(mozilla_tmp_t)
+ubac_constrained(mozilla_tmp_t)
+
+type mozilla_tmpfs_t;
+typealias mozilla_tmpfs_t alias { user_mozilla_tmpfs_t staff_mozilla_tmpfs_t sysadm_mozilla_tmpfs_t };
+typealias mozilla_tmpfs_t alias { auditadm_mozilla_tmpfs_t secadm_mozilla_tmpfs_t };
+files_tmpfs_file(mozilla_tmpfs_t)
+ubac_constrained(mozilla_tmpfs_t)
+
+########################################
+#
+# Local policy
+#
+
+allow mozilla_t self:capability { sys_nice setgid setuid };
+allow mozilla_t self:process { sigkill signal setsched getsched setrlimit };
+allow mozilla_t self:fifo_file rw_fifo_file_perms;
+allow mozilla_t self:shm { unix_read unix_write read write destroy create };
+allow mozilla_t self:sem create_sem_perms;
+allow mozilla_t self:socket create_socket_perms;
+allow mozilla_t self:unix_stream_socket { listen accept };
+# Browse the web, connect to printer
+allow mozilla_t self:tcp_socket create_socket_perms;
+allow mozilla_t self:netlink_route_socket r_netlink_socket_perms;
+
+# for bash - old mozilla binary
+can_exec(mozilla_t, mozilla_exec_t)
+
+# X access, Home files
+manage_dirs_pattern(mozilla_t, mozilla_home_t, mozilla_home_t)
+manage_files_pattern(mozilla_t, mozilla_home_t, mozilla_home_t)
+manage_lnk_files_pattern(mozilla_t, mozilla_home_t, mozilla_home_t)
+userdom_search_user_home_dirs(mozilla_t)
+userdom_user_home_dir_filetrans(mozilla_t, mozilla_home_t, dir)
+
+# Mozpluggerrc
+allow mozilla_t mozilla_conf_t:file read_file_perms;
+
+manage_files_pattern(mozilla_t, mozilla_tmp_t, mozilla_tmp_t)
+manage_dirs_pattern(mozilla_t, mozilla_tmp_t, mozilla_tmp_t)
+files_tmp_filetrans(mozilla_t, mozilla_tmp_t, { file dir })
+
+manage_files_pattern(mozilla_t, mozilla_tmpfs_t, mozilla_tmpfs_t)
+manage_lnk_files_pattern(mozilla_t, mozilla_tmpfs_t, mozilla_tmpfs_t)
+manage_fifo_files_pattern(mozilla_t, mozilla_tmpfs_t, mozilla_tmpfs_t)
+manage_sock_files_pattern(mozilla_t, mozilla_tmpfs_t, mozilla_tmpfs_t)
+fs_tmpfs_filetrans(mozilla_t, mozilla_tmpfs_t, { file lnk_file sock_file fifo_file })
+
+kernel_read_kernel_sysctls(mozilla_t)
+kernel_read_network_state(mozilla_t)
+# Access /proc, sysctl
+kernel_read_system_state(mozilla_t)
+kernel_read_net_sysctls(mozilla_t)
+
+# Look for plugins
+corecmd_list_bin(mozilla_t)
+# for bash - old mozilla binary
+corecmd_exec_shell(mozilla_t)
+corecmd_exec_bin(mozilla_t)
+
+# Browse the web, connect to printer
 corenet_all_recvfrom_unlabeled(mozilla_t)
 corenet_all_recvfrom_netlabel(mozilla_t)
 corenet_tcp_sendrecv_generic_if(mozilla_t)
@@ -245,8 +351,6 @@ corenet_tcp_connect_ipp_port(mozilla_plugin_t)
 corenet_tcp_connect_mmcc_port(mozilla_plugin_t)
 corenet_tcp_connect_speech_port(mozilla_plugin_t)
 corenet_tcp_connect_streaming_port(mozilla_plugin_t)
-corenet_tcp_connect_ftp_port(mozilla_plugin_t)
-corenet_tcp_connect_all_ephemeral_ports(mozilla_plugin_t)
 corenet_tcp_bind_generic_node(mozilla_plugin_t)
 corenet_udp_bind_generic_node(mozilla_plugin_t)
 
