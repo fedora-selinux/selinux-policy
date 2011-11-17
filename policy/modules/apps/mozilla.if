@@ -208,10 +208,12 @@ interface(`mozilla_domtrans',`
 interface(`mozilla_domtrans_plugin',`
 	gen_require(`
 		type mozilla_plugin_t, mozilla_plugin_exec_t;
+		type mozilla_plugin_config_t, mozilla_plugin_config_exec_t;
 		class dbus send_msg;
 	')
 
 	domtrans_pattern($1, mozilla_plugin_exec_t, mozilla_plugin_t)
+	domtrans_pattern($2, mozilla_plugin_config_exec_t, mozilla_plugin_config_t)
 	allow mozilla_plugin_t $1:process signull;
 	allow $1 mozilla_plugin_t:unix_stream_socket { connectto rw_socket_perms };
 	allow $1 mozilla_plugin_t:fd use;
@@ -247,6 +249,7 @@ interface(`mozilla_run_plugin',`
 
 	mozilla_domtrans_plugin($1)
 	role $2 types mozilla_plugin_t;
+	role $2 types mozilla_plugin_config_t;
 ')
 
 #######################################
@@ -266,6 +269,7 @@ interface(`mozilla_role_plugin',`
     ')
 
     role $1 types mozilla_plugin_t;
+    role $1 types mozilla_plugin_config_t;
 ')
 
 ########################################
@@ -359,4 +363,24 @@ interface(`mozilla_plugin_dontaudit_leaks',`
 	')
 
 	dontaudit $1 mozilla_plugin_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	mozilla_plugin rw files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_plugin_manage_rw_files',`
+	gen_require(`
+		type mozilla_plugin_rw_t;
+	')
+
+	allow $1 mozilla_plugin_rw_t:file manage_file_perms;
+	allow $1 mozilla_plugin_rw_t:dir rw_dir_perms;
 ')
