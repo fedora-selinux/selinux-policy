@@ -108,6 +108,7 @@ interface(`auth_login_pgm_domain',`
 	gen_require(`
 		type var_auth_t, auth_cache_t;
 		attribute polydomain;
+		type auth_home_t;
 	')
 
 	domain_type($1)
@@ -137,6 +138,11 @@ interface(`auth_login_pgm_domain',`
 	manage_files_pattern($1, auth_cache_t, auth_cache_t)
 	manage_sock_files_pattern($1, auth_cache_t, auth_cache_t)
 	files_var_filetrans($1, auth_cache_t, dir)
+
+	manage_dirs_pattern($1, auth_home_t, auth_home_t)
+	manage_files_pattern($1, auth_home_t, auth_home_t)
+	auth_filetrans_admin_home_content($1)
+	auth_filetrans_home_content($1)
 
 	# needed for afs - https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=253321
 	kernel_rw_afs_state($1)
@@ -1818,7 +1824,7 @@ interface(`auth_unconfined',`
 ##	</summary>
 ## </param>
 #
-interface(`authlogin_filetrans_named_content',`
+interface(`auth_filetrans_named_content',`
 	gen_require(`
 		type shadow_t;
 		type passwd_file_t;
@@ -1941,4 +1947,43 @@ interface(`auth_manage_passwd',`
 	files_etc_filetrans($1, passwd_file_t, file, "ptmptmp")
 	files_etc_filetrans($1, passwd_file_t, file, "group")
 	files_etc_filetrans($1, passwd_file_t, file, "group-")
+')
+
+########################################
+## <summary>
+##	Create auth directory in the /root directory
+##	with an correct label.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_filetrans_admin_home_content',`
+	gen_require(`
+		type auth_home_t;
+	')
+
+	userdom_admin_home_dir_filetrans($1, auth_home_t, file, ".google_authenticator")
+')
+
+########################################
+## <summary>
+##	Create auth directory in the user home directory
+##	with an correct label.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_filetrans_home_content',`
+	
+	gen_require(`
+		type auth_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, auth_home_t, file, ".google_authenticator")
 ')
