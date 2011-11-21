@@ -1302,7 +1302,7 @@ tunable_policy(`init_systemd',`
 	allow daemon init_t:unix_dgram_socket sendto;
 	# need write to /var/run/systemd/notify
 	init_write_pid_socket(daemon)
-	dontaudit daemon init_t:unix_stream_socket { read ioctl getattr };
+	allow daemon init_t:unix_stream_socket { append write read getattr ioctl };
 ')
 
 # daemons started from init will
@@ -1339,16 +1339,13 @@ allow initrc_t systemprocess:process siginh;
 allow systemprocess initrc_transition_domain:fifo_file rw_inherited_fifo_file_perms;
 allow systemprocess initrc_transition_domain:fd use;
 
-dontaudit systemprocess init_t:unix_stream_socket getattr;
-
-
 tunable_policy(`init_systemd',`
 	# Handle upstart/systemd direct transition to a executable
 	allow init_t systemprocess:process { dyntransition siginh };
 	allow init_t systemprocess:unix_stream_socket create_stream_socket_perms;
 	allow init_t systemprocess:unix_dgram_socket create_socket_perms;
 	allow systemprocess init_t:unix_dgram_socket sendto;
-	dontaudit systemprocess init_t:unix_stream_socket { read getattr ioctl };
+	allow systemprocess init_t:unix_stream_socket { append write read getattr ioctl };
 ')
 
 ifdef(`hide_broken_symptoms',`
