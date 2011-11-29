@@ -23,6 +23,10 @@ init_script_file(zabbix_agent_initrc_exec_t)
 type zabbix_log_t;
 logging_log_file(zabbix_log_t)
 
+# tmp files
+type zabbix_tmp_t;
+files_tmp_file(zabbix_tmp_t)
+
 # shared memory
 type zabbix_tmpfs_t;
 files_tmpfs_file(zabbix_tmpfs_t)
@@ -50,6 +54,11 @@ allow zabbix_t zabbix_log_t:dir setattr_dir_perms;
 manage_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
 logging_log_filetrans(zabbix_t, zabbix_log_t, file)
 
+# tmp files
+manage_dirs_pattern(zabbix_t, zabbix_tmp_t, zabbix_tmp_t)
+manage_files_pattern(zabbix_t, zabbix_tmp_t, zabbix_tmp_t)
+files_tmp_filetrans(zabbix_t, zabbix_tmp_t, { dir file })
+
 # shared memory
 rw_files_pattern(zabbix_t, zabbix_tmpfs_t, zabbix_tmpfs_t)
 fs_tmpfs_filetrans(zabbix_t, zabbix_tmpfs_t, file)
@@ -59,18 +68,25 @@ manage_dirs_pattern(zabbix_t, zabbix_var_run_t, zabbix_var_run_t)
 manage_files_pattern(zabbix_t, zabbix_var_run_t, zabbix_var_run_t)
 files_pid_filetrans(zabbix_t, zabbix_var_run_t, { dir file })
 
+kernel_read_system_state(zabbix_t)
 kernel_read_kernel_sysctls(zabbix_t)
+
+corecmd_exec_bin(zabbix_t)
+corecmd_exec_shell(zabbix_t)
 
 corenet_tcp_bind_generic_node(zabbix_t)
 corenet_tcp_bind_zabbix_port(zabbix_t)
+#needed by zabbix-server-mysql
+corenet_tcp_connect_http_port(zabbix_t)
+
+dev_read_urand(zabbix_t)
 
 files_read_etc_files(zabbix_t)
+files_read_usr_files(zabbix_t)
 
 auth_use_nsswitch(zabbix_t)
 
 miscfiles_read_localization(zabbix_t)
-
-sysnet_dns_name_resolve(zabbix_t)
 
 zabbix_agent_tcp_connect(zabbix_t)
 
@@ -79,7 +95,19 @@ optional_policy(`
 ')
 
 optional_policy(`
+	netutils_domtrans_ping(zabbix_t)
+')
+
+optional_policy(`
 	postgresql_stream_connect(zabbix_t)
+')
+
+optional_policy(`
+	snmp_read_snmp_var_lib_dirs(zabbix_t)
+')
+
+optional_policy(`
+	sysnet_dns_name_resolve(zabbix_t)
 ')
 
 ########################################
