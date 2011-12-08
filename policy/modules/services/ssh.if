@@ -35,6 +35,7 @@ template(`ssh_basic_client_template',`
 	gen_require(`
 		attribute ssh_server;
 		type ssh_exec_t, sshd_key_t, sshd_tmp_t;
+		type ssh_keysign_exec_t, ssh_keysign_t;
 		type ssh_home_t;
 	')
 
@@ -84,6 +85,10 @@ template(`ssh_basic_client_template',`
 	# cjp: should probably fix target to be an attribute for ssh servers
 	# or "regular" (not special like sshd_extern_t) servers
 	allow $2 ssh_server:unix_stream_socket rw_stream_socket_perms;
+
+	# derived domain can execute ssh-keysign
+	domtrans_pattern($1_ssh_t, ssh_keysign_exec_t, ssh_keysign_t)
+	role $3 types ssh_keysign_t;
 
 	# allow ps to show ssh
 	ps_process_pattern($2, $1_ssh_t)
