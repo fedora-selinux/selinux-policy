@@ -5,6 +5,14 @@ policy_module(zoneminder, 1.0.0)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow ZoneMinder to modify public files
+## used for public file transfer services.
+## </p>
+## </desc>
+gen_tunable(zoneminder_anon_write, false)
+
 type zoneminder_t;
 type zoneminder_exec_t;
 init_daemon_domain(zoneminder_t, zoneminder_exec_t)
@@ -14,6 +22,9 @@ init_script_file(zoneminder_initrc_exec_t)
 
 type zoneminder_log_t;
 logging_log_file(zoneminder_log_t)
+
+type zoneminder_tmpfs_t;
+files_tmpfs_file(zoneminder_tmpfs_t)
 
 type zoneminder_var_lib_t;
 files_type(zoneminder_var_lib_t)
@@ -26,12 +37,19 @@ files_type(zoneminder_spool_t)
 # zoneminder local policy
 #
 
+allow zoneminder_t self:process signal_perms;
+
+allow zoneminder_t self:shm create_shm_perms;
 allow zoneminder_t self:fifo_file rw_fifo_file_perms;
 allow zoneminder_t self:unix_stream_socket create_stream_socket_perms;
 
 manage_dirs_pattern(zoneminder_t, zoneminder_log_t, zoneminder_log_t)
 manage_files_pattern(zoneminder_t, zoneminder_log_t, zoneminder_log_t)
 logging_log_filetrans(zoneminder_t, zoneminder_log_t, { dir file })
+
+manage_dirs_pattern(zoneminder_t, zoneminder_tmpfs_t, zoneminder_tmpfs_t)
+manage_files_pattern(zoneminder_t, zoneminder_tmpfs_t, zoneminder_tmpfs_t)
+fs_tmpfs_filetrans(zoneminder_t, zoneminder_tmpfs_t, { dir file })
 
 manage_dirs_pattern(zoneminder_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
 manage_files_pattern(zoneminder_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
@@ -43,7 +61,11 @@ manage_files_pattern(zoneminder_t, zoneminder_spool_t, zoneminder_spool_t)
 manage_lnk_files_pattern(zoneminder_t, zoneminder_spool_t, zoneminder_spool_t)
 files_spool_filetrans(zoneminder_t, zoneminder_spool_t, { dir file })
 
+corecmd_exec_bin(zoneminder_t)
+corecmd_exec_shell(zoneminder_t)
+
 dev_read_sysfs(zoneminder_t)
+dev_read_rand(zoneminder_t)
 dev_read_urand(zoneminder_t)
 
 domain_use_interactive_fds(zoneminder_t)
@@ -51,14 +73,44 @@ domain_use_interactive_fds(zoneminder_t)
 files_read_etc_files(zoneminder_t)
 files_read_usr_files(zoneminder_t)
 
+auth_use_nsswitch(zoneminder_t)
+
+logging_send_syslog_msg(zoneminder_t)
+
 miscfiles_read_localization(zoneminder_t)
+
+tunable_policy(`zoneminder_anon_write',`
+	miscfiles_manage_public_files(zoneminder_t)
+')
+
+optional_policy(`
+    mysql_stream_connect(zoneminder_t)
+')
+
+optional_policy(`
+	sysnet_read_config(zoneminder_t)
+')
 
 ########################################
 #
 # zoneminder cgi local policy
 #
 
-apache_content_template(zoneminder)
+optional_policy(`
+	apache_content_template(zoneminder)
 
-manage_sock_files_pattern(httpd_zoneminder_script_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
-zoneminder_stream_connect(httpd_zoneminder_script_t)
+	# need more testing
+	#allow httpd_zoneminder_script_t self:shm create_shm_perms;
+
+	manage_sock_files_pattern(httpd_zoneminder_script_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+	zoneminder_stream_connect(httpd_zoneminder_script_t)
+	
+	files_search_var_lib(httpd_zoneminder_script_t)
+
+	logging_send_syslog_msg(httpd_zoneminder_script_t)
+
+	optional_policy(`
+    	mysql_stream_connect(httpd_zoneminder_script_t)
+	')
+
+')
