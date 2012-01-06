@@ -1,0 +1,104 @@
+policy_module(glance, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute glance_domain;
+
+type glance_registry_t, glance_domain;
+type glance_registry_exec_t;
+init_daemon_domain(glance_registry_t, glance_registry_exec_t)
+
+type glance_registry_initrc_exec_t;
+init_script_file(glance_registry_initrc_exec_t)
+
+type glance_registry_tmp_t;
+files_tmp_file(glance_registry_tmp_t)
+
+type glance_api_t, glance_domain;
+type glance_api_exec_t;
+init_daemon_domain(glance_api_t, glance_api_exec_t)
+
+type glance_api_initrc_exec_t;
+init_script_file(glance_api_initrc_exec_t)
+
+type glance_log_t;
+logging_log_file(glance_log_t)
+
+type glance_var_lib_t;
+files_type(glance_var_lib_t)
+
+type glance_tmp_t;
+files_tmp_file(glance_tmp_t)
+
+type glance_var_run_t;
+files_pid_file(glance_var_run_t)
+
+#######################################
+#
+# glance general domain local policy
+#
+
+allow glance_domain self:fifo_file rw_fifo_file_perms;
+allow glance_domain self:unix_stream_socket create_stream_socket_perms;
+allow glance_domain self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(glance_domain, glance_log_t, glance_log_t)
+manage_files_pattern(glance_domain, glance_log_t, glance_log_t)
+
+manage_dirs_pattern(glance_domain, glance_var_lib_t, glance_var_lib_t)
+manage_files_pattern(glance_domain, glance_var_lib_t, glance_var_lib_t)
+
+manage_dirs_pattern(glance_domain, glance_var_run_t, glance_var_run_t)
+manage_files_pattern(glance_domain, glance_var_run_t, glance_var_run_t)
+
+kernel_read_system_state(glance_domain)
+
+corecmd_exec_bin(glance_domain)
+
+dev_read_urand(glance_domain)
+
+files_read_etc_files(glance_domain)
+files_read_usr_files(glance_domain)
+
+miscfiles_read_localization(glance_domain)
+
+optional_policy(`
+	sysnet_dns_name_resolve(glance_domain)
+')
+
+########################################
+#
+# glance-registry local policy
+#
+
+manage_dirs_pattern(glance_registry_t, glance_registry_tmp_t, glance_registry_tmp_t)
+manage_files_pattern(glance_registry_t, glance_registry_tmp_t, glance_registry_tmp_t)
+files_tmp_filetrans(glance_registry_t, glance_registry_tmp_t, { file dir })
+
+corenet_tcp_bind_generic_node(glance_registry_t)
+corenet_tcp_bind_glance_registry_port(glance_registry_t)
+
+########################################
+#
+# glance-api local policy
+#
+
+manage_dirs_pattern(glance_api_t, glance_tmp_t, glance_tmp_t)
+manage_files_pattern(glance_api_t, glance_tmp_t, glance_tmp_t)
+files_tmp_filetrans(glance_api_t, glance_tmp_t, { dir file })
+can_exec(glance_api_t, glance_tmp_t)
+
+corecmd_exec_shell(glance_api_t)
+
+corenet_tcp_bind_generic_node(glance_api_t)
+corenet_tcp_bind_hplip_port(glance_api_t)
+corenet_tcp_connect_glance_registry_port(glance_api_t)
+
+dev_read_urand(glance_api_t)
+
+fs_getattr_xattr_fs(glance_api_t)
+
+libs_exec_ldconfig(glance_api_t)
