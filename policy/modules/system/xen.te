@@ -167,6 +167,10 @@ files_pid_filetrans(evtchnd_t, evtchnd_var_run_t, { file sock_file dir })
 #
 # qemu-dm local policy
 #
+
+# TODO: This part of policy should be removed
+#       qemu-dm should run in xend_t domain
+
 # Do we need to allow execution of qemu-dm?
 tunable_policy(`xend_run_qemu',`
 	allow qemu_dm_t self:capability sys_resource;
@@ -208,6 +212,11 @@ tunable_policy(`xend_run_qemu',`
 allow xend_t self:capability { dac_override ipc_lock net_admin setuid sys_admin sys_nice sys_tty_config net_raw };
 dontaudit xend_t self:capability { sys_ptrace };
 allow xend_t self:process { signal sigkill };
+
+# needed by qemu_dm
+allow xend_t self:capability sys_resource;
+allow xend_t self:process setrlimit;
+
 dontaudit xend_t self:process ptrace;
 # internal communication is often done using fifo and unix sockets.
 allow xend_t self:fifo_file rw_fifo_file_perms;
@@ -319,7 +328,6 @@ logging_send_syslog_msg(xend_t)
 
 miscfiles_read_localization(xend_t)
 miscfiles_read_hwdata(xend_t)
-
 
 sysnet_domtrans_dhcpc(xend_t)
 sysnet_signal_dhcpc(xend_t)
