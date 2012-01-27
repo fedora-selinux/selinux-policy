@@ -18,15 +18,11 @@ domain_type(nsd_crond_t)
 domain_entry_file(nsd_crond_t, nsd_exec_t)
 role system_r types nsd_crond_t;
 
-# a type for nsd.db
-type nsd_db_t;
-files_type(nsd_db_t)
-
 type nsd_var_run_t;
 files_pid_file(nsd_var_run_t)
 
 # A type for zone files
-type nsd_zone_t;
+type nsd_zone_t alias nsd_db_t;
 files_type(nsd_zone_t)
 
 ########################################
@@ -45,15 +41,13 @@ allow nsd_t nsd_conf_t:dir list_dir_perms;
 read_files_pattern(nsd_t, nsd_conf_t, nsd_conf_t)
 read_lnk_files_pattern(nsd_t, nsd_conf_t, nsd_conf_t)
 
-allow nsd_t nsd_db_t:file manage_file_perms;
-filetrans_pattern(nsd_t, nsd_zone_t, nsd_db_t, file)
-
 manage_files_pattern(nsd_t, nsd_var_run_t, nsd_var_run_t)
 files_pid_filetrans(nsd_t, nsd_var_run_t, file)
 
-allow nsd_t nsd_zone_t:dir list_dir_perms;
-read_files_pattern(nsd_t, nsd_zone_t, nsd_zone_t)
-read_lnk_files_pattern(nsd_t, nsd_zone_t, nsd_zone_t)
+manage_dirs_pattern(nsd_t, nsd_zone_t, nsd_zone_t)
+manage_files_pattern(nsd_t, nsd_zone_t, nsd_zone_t)
+manage_lnk_files_pattern(nsd_t, nsd_zone_t, nsd_zone_t)
+files_var_lib_filetrans(nsd_t, nsd_zone_t, dir)
 
 can_exec(nsd_t, nsd_exec_t)
 
@@ -121,8 +115,6 @@ allow nsd_crond_t self:udp_socket create_socket_perms;
 
 allow nsd_crond_t nsd_conf_t:file read_file_perms;
 
-allow nsd_crond_t nsd_db_t:file manage_file_perms;
-filetrans_pattern(nsd_crond_t, nsd_zone_t, nsd_db_t, file)
 files_search_var_lib(nsd_crond_t)
 
 allow nsd_crond_t nsd_t:process signal;
