@@ -11,6 +11,7 @@ gen_require(`
 
 attribute can_write_binary_policy;
 attribute can_relabelto_binary_policy;
+attribute setfiles_domain;
 
 #
 # selinux_config_t is the type applied to
@@ -522,19 +523,11 @@ seutil_manage_config(setsebool_t)
 
 ########################################
 #
-# Setfiles local policy
+# Setfiles mac local policy
 #
-
-seutil_setfiles(setfiles_t)
-# During boot in Rawhide
-term_use_generic_ptys(setfiles_t)
-
 seutil_setfiles(setfiles_mac_t)
 allow setfiles_mac_t self:capability2 mac_admin;
 kernel_relabelto_unlabeled(setfiles_mac_t)
-
-# needs to be able to read symlinks to make restorecon on symlink working
-files_read_all_symlinks(setfiles_t)
 
 optional_policy(`
 	files_dontaudit_write_isid_chr_files(setfiles_mac_t)
@@ -544,21 +537,128 @@ optional_policy(`
 ')
 
 optional_policy(`
+	unconfined_domain(setfiles_mac_t)
+')
+
+########################################
+#
+# Setfiles local policy
+#
+
+seutil_setfiles(setfiles_t)
+# During boot in Rawhide
+term_use_generic_ptys(setfiles_t)
+
+# needs to be able to read symlinks to make restorecon on symlink working
+files_read_all_symlinks(setfiles_t)
+
+optional_policy(`
 	devicekit_dontaudit_read_pid_files(setfiles_t)
 	devicekit_dontaudit_rw_log(setfiles_t)
 ')
 
-optional_policy(`
-	hal_dontaudit_leaks(setfiles_t)
-')
-
 ifdef(`hide_broken_symptoms',`
+	optional_policy(`
+		hal_dontaudit_leaks(setfiles_t)
+	')
+
 	optional_policy(`
 		setroubleshoot_fixit_dontaudit_leaks(setfiles_t)
 		setroubleshoot_fixit_dontaudit_leaks(setsebool_t)
 	')
 ')
 
+ifdef(`distro_ubuntu',`
+  	optional_policy(`
+		unconfined_domain(setfiles_t)
+	')
+')
+
+########################################
+#
+# Setfiles common policy
+#
+allow setfiles_domain self:capability { dac_override dac_read_search fowner };
+dontaudit setfiles_domain self:capability sys_tty_config;
+allow setfiles_domain self:fifo_file rw_file_perms;
+dontaudit setfiles_domain self:dir relabelfrom;
+dontaudit setfiles_domain self:file relabelfrom;
+dontaudit setfiles_domain self:lnk_file relabelfrom;
+
+allow setfiles_domain { policy_src_t policy_config_t file_context_t default_context_t }:dir list_dir_perms;
+allow setfiles_domain { policy_src_t policy_config_t file_context_t default_context_t }:file read_file_perms;
+allow setfiles_domain { policy_src_t policy_config_t file_context_t default_context_t }:lnk_file { read_lnk_file_perms ioctl lock };
+
+logging_send_audit_msgs(setfiles_domain)
+
+kernel_read_system_state(setfiles_domain)
+kernel_relabelfrom_unlabeled_dirs(setfiles_domain)
+kernel_relabelfrom_unlabeled_files(setfiles_domain)
+kernel_relabelfrom_unlabeled_symlinks(setfiles_domain)
+kernel_relabelfrom_unlabeled_pipes(setfiles_domain)
+kernel_relabelfrom_unlabeled_sockets(setfiles_domain)
+kernel_use_fds(setfiles_domain)
+kernel_rw_pipes(setfiles_domain)
+kernel_rw_unix_dgram_sockets(setfiles_domain)
+kernel_dontaudit_list_all_proc(setfiles_domain)
+kernel_read_all_sysctls(setfiles_domain)
+kernel_read_network_state_symlinks(setfiles_domain)
+
+dev_relabel_all_dev_nodes(setfiles_domain)
+
+domain_use_interactive_fds(setfiles_domain)
+domain_read_all_domains_state(setfiles_domain)
+ 
+files_read_etc_runtime_files(setfiles_domain)
+files_read_etc_files(setfiles_domain)
+files_list_all(setfiles_domain)
+files_list_isid_type_dirs(setfiles_domain)
+files_read_isid_type_files(setfiles_domain)
+files_dontaudit_read_all_symlinks(setfiles_domain)
+
+fs_getattr_all_fs(setfiles_domain)
+fs_list_all(setfiles_domain)
+fs_getattr_all_files(setfiles_domain)
+fs_search_auto_mountpoints(setfiles_domain)
+fs_relabelfrom_noxattr_fs(setfiles_domain)
+
+selinux_validate_context(setfiles_domain)
+selinux_compute_access_vector(setfiles_domain)
+selinux_compute_create_context(setfiles_domain)
+selinux_compute_relabel_context(setfiles_domain)
+selinux_compute_user_contexts(setfiles_domain)
+
+term_use_all_inherited_terms(setfiles_domain)
+
+init_use_fds(setfiles_domain)
+init_use_script_fds(setfiles_domain)
+init_use_script_ptys(setfiles_domain)
+init_exec_script_files(setfiles_domain)
+
+logging_send_syslog_msg(setfiles_domain)
+
+miscfiles_read_localization(setfiles_domain)
+
+seutil_libselinux_linked(setfiles_domain)
+
+userdom_use_all_users_fds(setfiles_domain)
+# for config files in a home directory
+userdom_read_user_home_content_files(setfiles_domain)
+
+ifdef(`distro_debian',`
+	# udev tmpfs is populated with static device nodes
+	# and then relabeled afterwards; thus
+	# /dev/console has the tmpfs type
+	fs_rw_tmpfs_chr_files(setfiles_domain)
+')
+
+ifdef(`distro_redhat',`
+	fs_rw_tmpfs_chr_files(setfiles_domain)
+	fs_rw_tmpfs_blk_files(setfiles_domain)
+	fs_relabel_tmpfs_blk_file(setfiles_domain)
+	fs_relabel_tmpfs_chr_file(setfiles_domain)
+')
+
 optional_policy(`
-	unconfined_domain(setfiles_mac_t)
+	hotplug_use_fds(setfiles_domain)
 ')
