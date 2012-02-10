@@ -816,6 +816,7 @@ domain_use_interactive_fds(virtd_lxc_t)
 
 files_read_etc_files(virtd_lxc_t)
 files_read_usr_files(virtd_lxc_t)
+files_relabel_rootfs(virtd_lxc_t)
 files_mounton_non_security(virtd_lxc_t)
 files_mount_all_file_type_fs(virtd_lxc_t)
 files_unmount_all_file_type_fs(virtd_lxc_t)
@@ -834,12 +835,16 @@ selinux_unmount_fs(virtd_lxc_t)
 
 term_use_generic_ptys(virtd_lxc_t)
 term_use_ptmx(virtd_lxc_t)
+term_relabel_pty_fs(virtd_lxc_t)
 
 auth_use_nsswitch(virtd_lxc_t)
 
 logging_send_syslog_msg(virtd_lxc_t)
 
 miscfiles_read_localization(virtd_lxc_t)
+
+seutil_domtrans_setfiles(virtd_lxc_t)
+seutil_read_default_contexts(virtd_lxc_t)
 
 sysnet_domtrans_ifconfig(virtd_lxc_t)
 
@@ -859,12 +864,12 @@ optional_policy(`
 allow svirt_lxc_domain self:capability { kill setuid setgid dac_override };
 dontaudit svirt_lxc_domain self:capability sys_ptrace;
 
+allow virtd_t svirt_lxc_domain:unix_stream_socket { create_stream_socket_perms connectto };
 allow virtd_t svirt_lxc_domain:process { signal_perms };
 allow virtd_lxc_t svirt_lxc_domain:process { getattr getsched setsched transition signal signull sigkill };
-
 allow svirt_lxc_domain virtd_lxc_t:fd use;
 allow svirt_lxc_domain virtd_lxc_var_run_t:dir search_dir_perms;
-dontaudit svirt_lxc_domain virtd_lxc_t:unix_stream_socket { read write };
+allow svirt_lxc_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
 
 allow svirt_lxc_domain self:process { getattr signal_perms getsched setsched setcap setpgid execstack execmem };
 allow svirt_lxc_domain self:fifo_file manage_file_perms;
