@@ -1,7 +1,5 @@
 ## <summary>SELinux policy for obex-data-server</summary>
 
-
-
 ########################################
 ## <summary>
 ##  Transition to obex.
@@ -40,4 +38,40 @@ interface(`obex_dbus_chat',`
 
     allow $1 obex_t:dbus send_msg;
     allow obex_t $1:dbus send_msg;
+')
+
+#######################################
+## <summary>
+##	Role access for obex domains
+##	that executes via dbus-session
+## </summary>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+## <param name="domain_prefix">
+##	<summary>
+##	User domain prefix to be used.
+##	</summary>
+## </param>
+#
+template(`obex_role',`
+	gen_require(`
+	        type obex_t, obex_exec_t;
+	')
+
+	role $1 types obex_t;
+
+	allow $2 obex_t:process signal_perms;
+	ps_process_pattern($2, obex_t)
+
+	dbus_session_domain($3, obex_exec_t, obex_t)
+
+	obex_dbus_chat($2)
 ')
