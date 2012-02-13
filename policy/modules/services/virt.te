@@ -142,6 +142,13 @@ type virt_qmf_t;
 type virt_qmf_exec_t;
 init_daemon_domain(virt_qmf_t, virt_qmf_exec_t)
 
+type virt_bridgehelper_t;
+domain_type(virt_bridgehelper_t)
+
+type virt_bridgehelper_exec_t;
+domain_entry_file(virt_bridgehelper_t, virt_bridgehelper_exec_t)
+role system_r types virt_bridgehelper_t;
+
 ########################################
 #
 # Declarations
@@ -242,6 +249,10 @@ optional_policy(`
 	tunable_policy(`virt_use_xserver',`
 		xserver_stream_connect(svirt_t)
 	')
+')
+
+optional_policy(`
+	virt_domtrans_bridgehelper(svirt_t)
 ')
 
 optional_policy(`
@@ -992,3 +1003,21 @@ files_read_etc_files(virt_qmf_t)
 logging_send_syslog_msg(virt_qmf_t)
 
 miscfiles_read_localization(virt_qmf_t)
+
+########################################
+#
+# virt_bridgehelper local policy
+#
+allow virt_bridgehelper_t self:process { setcap getcap };
+allow virt_bridgehelper_t self:capability { setpcap setgid setuid net_admin };
+allow virt_bridgehelper_t self:tcp_socket create_stream_socket_perms;
+allow virt_bridgehelper_t self:tun_socket create_socket_perms;
+allow virt_bridgehelper_t self:unix_dgram_socket create_socket_perms;
+
+kernel_read_network_state(virt_bridgehelper_t)
+
+corenet_rw_tun_tap_dev(virt_bridgehelper_t)
+
+files_read_etc_files(virt_bridgehelper_t)
+
+userdom_use_inherited_user_ptys(virt_bridgehelper_t)
