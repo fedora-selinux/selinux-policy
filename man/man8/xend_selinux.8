@@ -1,0 +1,94 @@
+.TH  "xend_selinux"  "8"  "16 Feb 2012" "dwalsh@redhat.com" "xend Selinux Policy documentation"
+.SH "NAME"
+xend_selinux \- Security Enhanced Linux Policy for the xend processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the xend processes via flexible mandatory access
+control.  
+.SH FILE_CONTEXTS
+SELinux requires files to have an extended attribute to define the file type. 
+Policy governs the access confined processes have to these files. 
+SELinux xend policy is very flexible allowing users to setup their xend processes in as secure a method as possible.
+.PP 
+The following file types are defined for xend:
+
+
+.EX
+.B xend_exec_t 
+.EE
+
+- Set files with the xend_exec_t context, if you want to a executable to transition to the xend_t domain.
+
+
+.EX
+.B xend_tmp_t 
+.EE
+
+- Set files with the xend_tmp_t context, if you want to store xend temporary files in the /tmp directories.
+
+
+.EX
+.B xend_var_lib_t 
+.EE
+
+- Set files with the xend_var_lib_t context, if you want to store the xend files under the /var/lib directory.
+
+
+.EX
+.B xend_var_log_t 
+.EE
+
+- Set files with the xend_var_log_t context, if you want to treat the data as xend var log data, usually stored in /var/log.
+
+
+.EX
+.B xend_var_run_t 
+.EE
+
+- Set files with the xend_var_run_t context, if you want to store the xend files under the /run directory.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  xend policy is extremely flexible and has several booleans that allow you to manipulate the policy and run xend with the tightest access possible.
+
+
+.PP
+If you want to allow xen to manage nfs files, you must turn on the xen_use_nfs boolean.
+
+.EX
+.B setsebool -P xen_use_nfs 1
+.EE
+
+.PP
+If you want to allow xend to run qemu-dm. Not required if using paravirt and no vfb., you must turn on the xend_run_qemu boolean.
+
+.EX
+.B setsebool -P xend_run_qemu 1
+.EE
+
+.PP
+If you want to allow xend to run blktapctrl/tapdisk. Not required if using dedicated logical volumes for disk images., you must turn on the xend_run_blktap boolean.
+
+.EX
+.B setsebool -P xend_run_blktap 1
+.EE
+
+.SH "COMMANDS"
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR	
+This manual page was written by Dan Walsh <dwalsh@redhat.com>.
+
+.SH "SEE ALSO"
+selinux(8), xend(8), semanage(8), restorecon(8), chcon(1), setsebool(8)

@@ -1,0 +1,248 @@
+.TH  "ssh_selinux"  "8"  "16 Feb 2012" "dwalsh@redhat.com" "ssh Selinux Policy documentation"
+.SH "NAME"
+ssh_selinux \- Security Enhanced Linux Policy for the ssh processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the ssh processes via flexible mandatory access
+control.  
+.SH FILE_CONTEXTS
+SELinux requires files to have an extended attribute to define the file type. 
+Policy governs the access confined processes have to these files. 
+SELinux ssh policy is very flexible allowing users to setup their ssh processes in as secure a method as possible.
+.PP 
+The following file types are defined for ssh:
+
+
+.EX
+.B ssh_agent_exec_t 
+.EE
+
+- Set files with the ssh_agent_exec_t context, if you want to a executable to transition to the ssh_agent_t domain.
+
+
+.EX
+.B ssh_agent_tmp_t 
+.EE
+
+- Set files with the ssh_agent_tmp_t context, if you want to store ssh agent temporary files in the /tmp directories.
+
+
+.EX
+.B ssh_exec_t 
+.EE
+
+- Set files with the ssh_exec_t context, if you want to a executable to transition to the ssh_t domain.
+
+
+.EX
+.B ssh_home_t 
+.EE
+
+- Set files with the ssh_home_t context, if you want to store ssh files in the users home directory.
+
+
+.EX
+.B ssh_keygen_exec_t 
+.EE
+
+- Set files with the ssh_keygen_exec_t context, if you want to a executable to transition to the ssh_keygen_t domain.
+
+
+.EX
+.B ssh_keysign_exec_t 
+.EE
+
+- Set files with the ssh_keysign_exec_t context, if you want to a executable to transition to the ssh_keysign_t domain.
+
+
+.EX
+.B ssh_tmpfs_t 
+.EE
+
+- Set files with the ssh_tmpfs_t context, if you want to store ssh files on a tmpfs file system.
+
+
+.EX
+.B sshd_exec_t 
+.EE
+
+- Set files with the sshd_exec_t context, if you want to a executable to transition to the sshd_t domain.
+
+
+.EX
+.B sshd_initrc_exec_t 
+.EE
+
+- Set files with the sshd_initrc_exec_t context, if you want to a executable to transition to the sshd_initrc_t domain.
+
+
+.EX
+.B sshd_key_t 
+.EE
+
+- Set files with the sshd_key_t context, if you want to treat the files as sshd key data.
+
+
+.EX
+.B sshd_keytab_t 
+.EE
+
+- Set files with the sshd_keytab_t context, if you want to treat the files as kerberos keytab files.
+
+
+.EX
+.B sshd_tmpfs_t 
+.EE
+
+- Set files with the sshd_tmpfs_t context, if you want to store sshd files on a tmpfs file system.
+
+
+.EX
+.B sshd_var_run_t 
+.EE
+
+- Set files with the sshd_var_run_t context, if you want to store the sshd files under the /run directory.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  ssh policy is extremely flexible and has several booleans that allow you to manipulate the policy and run ssh with the tightest access possible.
+
+
+.PP
+If you want to allow user spamassassin clients to use the network., you must turn on the spamassassin_can_network boolean.
+
+.EX
+.B setsebool -P spamassassin_can_network 1
+.EE
+
+.PP
+If you want to allow ssh with chroot env to read and write files in the user home directories, you must turn on the ssh_chroot_rw_homedirs boolean.
+
+.EX
+.B setsebool -P ssh_chroot_rw_homedirs 1
+.EE
+
+.PP
+If you want to allow ftp servers to login to local users and read/write all files on the system, governed by DAC., you must turn on the allow_ftpd_full_access boolean.
+
+.EX
+.B setsebool -P allow_ftpd_full_access 1
+.EE
+
+.PP
+If you want to allow ssh logins as sysadm_r:sysadm_t, you must turn on the ssh_sysadm_login boolean.
+
+.EX
+.B setsebool -P ssh_sysadm_login 1
+.EE
+
+.PP
+If you want to determine whether Polipo session daemon can send syslog messages., you must turn on the polipo_session_send_syslog_msg boolean.
+
+.EX
+.B setsebool -P polipo_session_send_syslog_msg 1
+.EE
+
+.PP
+If you want to allow host key based authentication, you must turn on the allow_ssh_keysign boolean.
+
+.EX
+.B setsebool -P allow_ssh_keysign 1
+.EE
+
+.PP
+If you want to allow users to login using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow the Irssi IRC Client to connect to any port, and to bind to any unreserved port., you must turn on the irssi_use_full_network boolean.
+
+.EX
+.B setsebool -P irssi_use_full_network 1
+.EE
+
+.PP
+If you want to determine whether Polipo session daemon can bind tcp sockets to all unreserved ports., you must turn on the polipo_session_bind_all_unreserved_ports boolean.
+
+.EX
+.B setsebool -P polipo_session_bind_all_unreserved_ports 1
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains., you must turn on the global_ssp boolean.
+
+.EX
+.B setsebool -P global_ssp 1
+.EE
+
+.PP
+If you want to determine whether calling user domains can execute Polipo daemon in the polipo_session_t domain., you must turn on the polipo_session_users boolean.
+
+.EX
+.B setsebool -P polipo_session_users 1
+.EE
+
+.PP
+If you want to allow fenced domain to execute ssh., you must turn on the fenced_can_ssh boolean.
+
+.EX
+.B setsebool -P fenced_can_ssh 1
+.EE
+
+.PP
+If you want to allow sftp-internal to login to local users and read/write all files on the system, governed by DAC., you must turn on the sftpd_full_access boolean.
+
+.EX
+.B setsebool -P sftpd_full_access 1
+.EE
+
+.PP
+If you want to allow gssd to read temp directory.  For access to kerberos tgt., you must turn on the allow_gssd_read_tmp boolean.
+
+.EX
+.B setsebool -P allow_gssd_read_tmp 1
+.EE
+
+.PP
+If you want to allow Git daemon session to bind tcp sockets to all unreserved ports., you must turn on the git_session_bind_all_unreserved_ports boolean.
+
+.EX
+.B setsebool -P git_session_bind_all_unreserved_ports 1
+.EE
+
+.PP
+If you want to allow HTTPD to run SSI executables in the same domain as system CGI scripts., you must turn on the httpd_ssi_exec boolean.
+
+.EX
+.B setsebool -P httpd_ssi_exec 1
+.EE
+
+.PP
+If you want to allow internal-sftp to read and write files in the user ssh home directories., you must turn on the sftpd_write_ssh_home boolean.
+
+.EX
+.B setsebool -P sftpd_write_ssh_home 1
+.EE
+
+.SH "COMMANDS"
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR	
+This manual page was written by Dan Walsh <dwalsh@redhat.com>.
+
+.SH "SEE ALSO"
+selinux(8), ssh(8), semanage(8), restorecon(8), chcon(1), setsebool(8)

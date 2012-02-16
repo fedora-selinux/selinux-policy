@@ -19,25 +19,35 @@ Policy governs the access daemons have to these files.
 SELinux httpd policy is very flexible allowing users to setup their web services in as secure a method as possible.
 .PP 
 The following file contexts types are defined for httpd:
+
 .EX
-httpd_sys_content_t 
+.B httpd_sys_content_t 
 .EE 
+
 - Set files with httpd_sys_content_t if you want httpd_sys_script_exec_t scripts and the daemon to read the file, and disallow other non sys scripts from access.
+
 .EX
-httpd_sys_script_exec_t  
+.B httpd_sys_script_exec_t  
 .EE 
+
 - Set cgi scripts with httpd_sys_script_exec_t to allow them to run with access to all sys types.
+
 .EX
-httpd_sys_rw_content_t 
+.B httpd_sys_rw_content_t 
 .EE
+
 - Set files with httpd_sys_rw_content_t if you want httpd_sys_script_exec_t scripts and the daemon to read/write the data, and disallow other non sys scripts from access.
+
 .EX
-httpd_sys_content_ra_t 
+.B httpd_sys_content_ra_t 
 .EE
+
 - Set files with httpd_sys_content_ra_t if you want httpd_sys_script_exec_t scripts and the daemon to read/append to the file, and disallow other non sys scripts from access.
+
 .EX
-httpd_unconfined_script_exec_t  
+.B httpd_unconfined_script_exec_t  
 .EE 
+
 - Set cgi scripts with httpd_unconfined_script_exec_t to allow them to run without any SELinux protection. This should only be used for a very complex httpd scripts, after exhausting all other options.  It is better to use this script rather than turning off SELinux protection for httpd.
 
 .SH NOTE
@@ -47,13 +57,13 @@ With certain policies you can define additional file contexts based on roles lik
 If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.  allow_DOMAIN_anon_write.  So for httpd you would execute:
 
 .EX
-setsebool -P allow_httpd_anon_write=1
+.B setsebool -P allow_httpd_anon_write=1
 .EE
 
 or 
 
 .EX
-setsebool -P allow_httpd_sys_script_anon_write=1
+.B setsebool -P allow_httpd_sys_script_anon_write=1
 .EE
 
 .SH BOOLEANS
@@ -62,42 +72,59 @@ SELinux policy is customizable based on least access required.  SELinux can be s
 httpd can be setup to allow cgi scripts to be executed, set httpd_enable_cgi to allow this
 
 .EX
-setsebool -P httpd_enable_cgi 1
+.B setsebool -P httpd_enable_cgi 1
 .EE
 
 .PP
 SELinux policy for httpd can be setup to not allowed to access users home directories.  If you want to allow access to users home directories you need to set the httpd_enable_homedirs boolean and change the context of the files that you want people to access off the home dir.
 
 .EX
-setsebool -P httpd_enable_homedirs 1
-chcon -R -t httpd_sys_content_t ~user/public_html
+
+.B setsebool -P httpd_enable_homedirs 1
+.B chcon -R -t httpd_user_content_t ~user/public_html
+
+.EE
+
+.PP
+If those homedirs are on NFS then you need to turn on the use_nfs_home_dirs boolean also.
+
+.EX
+.B setsebool -P use_nfs_home_dirs 1
+.EE
+
+.PP
+SELinux policy for httpd can be setup to allow the httpd server to use nfs.
+If you want to allow access to nfs directories you need to set the httpd_use_nfs boolean.
+
+.EX
+.B setsebool -P httpd_use_nfs 1
 .EE
 
 .PP
 SELinux policy for httpd can be setup to not allow access to the controlling terminal.  In most cases this is preferred, because an intruder might be able to use the access to the terminal to gain privileges. But in certain situations httpd needs to prompt for a password to open a certificate file, in these cases, terminal access is required.  Set the httpd_tty_comm boolean to allow terminal access.
 
 .EX
-setsebool -P httpd_tty_comm 1
+.B setsebool -P httpd_tty_comm 1
 .EE
 
 .PP
 httpd can be configured to not differentiate file controls based on context, i.e. all files labeled as httpd context can be read/write/execute.  Setting this boolean to false allows you to setup the security policy such that one httpd service can not interfere with another.
 
 .EX
-setsebool -P httpd_unified 0
+.B setsebool -P httpd_unified 0
 .EE
 
 .PP
 SELinu policy for httpd can be configured to turn on sending email. This is a security feature, since it would prevent a vulnerabiltiy in http from causing a spam attack.  I certain situations, you may want http modules to send mail.  You can turn on the httpd_send_mail boolean.
 
 .EX
-setsebool -P httpd_can_sendmail 1
+.B setsebool -P httpd_can_sendmail 1
 .PP
 httpd can be configured to turn off internal scripting (PHP).  PHP and other
 loadable modules run under the same context as httpd. Therefore several policy rules allow httpd greater access to the system then is needed if you only use external cgi scripts.
 
 .EX
-setsebool -P httpd_builtin_scripting 0
+.B setsebool -P httpd_builtin_scripting 0
 .EE
 
 .PP
@@ -106,7 +133,21 @@ This would prevent a hacker from breaking into you httpd server and attacking
 other machines.  If you need scripts to be able to connect you can set the httpd_can_network_connect boolean on.
 
 .EX
-setsebool -P httpd_can_network_connect 1
+.B setsebool -P httpd_can_network_connect 1
+.EE
+
+If you want to allow HTTPD scripts and modules to connect to databases over the network, you can turn on the httpd_can_network_connect_db boolean.
+
+.EX
+.B setsebool -P httpd_can_network_connect_db 1
+.EE
+
+.PP
+SELinux policy can be setup such that httpd can act as a network relay.
+If you need httpf to act as a newrork relay turn on the httpd_can_network_relay boolean.
+
+.EX
+.B setsebool -P httpd_can_network_relay 1
 .EE
 
 .PP

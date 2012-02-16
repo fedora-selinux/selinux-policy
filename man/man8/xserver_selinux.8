@@ -1,0 +1,94 @@
+.TH  "xserver_selinux"  "8"  "16 Feb 2012" "dwalsh@redhat.com" "xserver Selinux Policy documentation"
+.SH "NAME"
+xserver_selinux \- Security Enhanced Linux Policy for the xserver processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the xserver processes via flexible mandatory access
+control.  
+.SH FILE_CONTEXTS
+SELinux requires files to have an extended attribute to define the file type. 
+Policy governs the access confined processes have to these files. 
+SELinux xserver policy is very flexible allowing users to setup their xserver processes in as secure a method as possible.
+.PP 
+The following file types are defined for xserver:
+
+
+.EX
+.B xserver_exec_t 
+.EE
+
+- Set files with the xserver_exec_t context, if you want to a executable to transition to the xserver_t domain.
+
+
+.EX
+.B xserver_log_t 
+.EE
+
+- Set files with the xserver_log_t context, if you want to treat the data as xserver log data, usually stored in /var/log.
+
+
+.EX
+.B xserver_tmpfs_t 
+.EE
+
+- Set files with the xserver_tmpfs_t context, if you want to store xserver files on a tmpfs file system.
+
+
+.EX
+.B xserver_var_lib_t 
+.EE
+
+- Set files with the xserver_var_lib_t context, if you want to store the xserver files under the /var/lib directory.
+
+
+.EX
+.B xserver_var_run_t 
+.EE
+
+- Set files with the xserver_var_run_t context, if you want to store the xserver files under the /run directory.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  xserver policy is extremely flexible and has several booleans that allow you to manipulate the policy and run xserver with the tightest access possible.
+
+
+.PP
+If you want to allow confined virtual guests to interact with the xserver, you must turn on the virt_use_xserver boolean.
+
+.EX
+.B setsebool -P virt_use_xserver 1
+.EE
+
+.PP
+If you want to support X userspace object manager, you must turn on the xserver_object_manager boolean.
+
+.EX
+.B setsebool -P xserver_object_manager 1
+.EE
+
+.PP
+If you want to allows XServer to execute writable memory, you must turn on the allow_xserver_execmem boolean.
+
+.EX
+.B setsebool -P allow_xserver_execmem 1
+.EE
+
+.SH "COMMANDS"
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR	
+This manual page was written by Dan Walsh <dwalsh@redhat.com>.
+
+.SH "SEE ALSO"
+selinux(8), xserver(8), semanage(8), restorecon(8), chcon(1), setsebool(8)
