@@ -368,6 +368,48 @@ interface(`mysql_search_pid_files',`
 
 ########################################
 ## <summary>
+##	Execute mysqld server in the mysqld domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`mysqld_systemctl',`
+	gen_require(`
+		type mysqld_unit_file_t;
+		type mysqld_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 mysqld_unit_file_t:file read_file_perms;
+	allow $1 mysqld_unit_file_t:service all_service_perms;
+
+	ps_process_pattern($1, mysqld_t)
+')
+
+########################################
+## <summary>
+##	Transition to mysqld named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mysqld_filetrans_named_content',`
+	gen_require(`
+		type mysqld_home_t;
+	')
+
+	userdom_admin_home_dir_filetrans($1, mysqld_home_t, file, ".my.cnf")
+	userdom_user_home_dir_filetrans($1, mysqld_home_t, file, ".my.cnf")
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate an mysql environment
 ## </summary>
 ## <param name="domain">
@@ -387,6 +429,7 @@ interface(`mysql_admin',`
 		type mysqld_t, mysqld_var_run_t, mysqld_initrc_exec_t;
 		type mysqld_tmp_t, mysqld_db_t, mysqld_log_t;
 		type mysqld_etc_t;
+		type mysqld_home_t;
 	')
 
 	allow $1 mysqld_t:process signal_perms;
@@ -413,6 +456,12 @@ interface(`mysql_admin',`
 
 	files_list_tmp($1)
 	admin_pattern($1, mysqld_tmp_t)
+
+	userdom_search_user_home_dirs($1)
+	files_list_root($1)
+	admin_pattern($1, mysqld_home_t)
+
+	mysqld_systemctl($1)
 
 	mysql_stream_connect($1)
 ')
