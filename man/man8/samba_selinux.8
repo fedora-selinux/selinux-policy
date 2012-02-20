@@ -1,56 +1,192 @@
-.TH  "samba_selinux"  "8"  "17 Jan 2005" "dwalsh@redhat.com" "Samba Selinux Policy documentation"
+.TH  "samba_selinux"  "8"  "20 Feb 2012" "dwalsh@redhat.com" "samba Selinux Policy documentation"
 .SH "NAME"
-samba_selinux \- Security Enhanced Linux Policy for Samba
+samba_selinux \- Security Enhanced Linux Policy for the samba processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the Samba server via flexible mandatory access
+Security-Enhanced Linux secures the samba processes via flexible mandatory access
 control.  
 .SH FILE_CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
-Policy governs the access daemons have to these files. 
-If you want to share files other than home directories, those files must be 
-labeled samba_share_t.  So if you created a special directory /var/eng, you 
-would need to label the directory with the chcon tool.
-.TP
-chcon -t samba_share_t /var/eng
-.TP
-To make this change permanent (survive a relabel), use the semanage command to add the change to file context configuration:
-.TP
-semanage fcontext -a -t samba_share_t "/var/eng(/.*)?"
-.TP
-This command adds the following entry to /etc/selinux/POLICYTYPE/contexts/files/file_contexts.local:
-.TP
-/var/eng(/.*)? system_u:object_r:samba_share_t:s0
-.TP
-Run the restorecon command to apply the changes:
-.TP
-restorecon -R -v /var/eng/
+Policy governs the access confined processes have to these files. 
+SELinux samba policy is very flexible allowing users to setup their samba processes in as secure a method as possible.
+.PP 
+The following file types are defined for samba:
 
-.SH SHARING FILES
-If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.  allow_DOMAIN_anon_write.  So for samba you would execute:
 
-setsebool -P allow_smbd_anon_write=1
+.EX
+.B samba_etc_t 
+.EE
+
+- Set files with the samba_etc_t context, if you want to store samba files in the /etc directories.
+
+
+.EX
+.B samba_initrc_exec_t 
+.EE
+
+- Set files with the samba_initrc_exec_t context, if you want to a executable to transition to the samba_initrc_t domain.
+
+
+.EX
+.B samba_log_t 
+.EE
+
+- Set files with the samba_log_t context, if you want to treat the data as samba log data, usually stored in /var/log.
+
+
+.EX
+.B samba_net_exec_t 
+.EE
+
+- Set files with the samba_net_exec_t context, if you want to a executable to transition to the samba_net_t domain.
+
+
+.EX
+.B samba_net_tmp_t 
+.EE
+
+- Set files with the samba_net_tmp_t context, if you want to store samba net temporary files in the /tmp directories.
+
+
+.EX
+.B samba_secrets_t 
+.EE
+
+- Set files with the samba_secrets_t context, if you want to treat the files as samba secrets data.
+
+
+.EX
+.B samba_share_t 
+.EE
+
+- Set files with the samba_share_t context, if you want to treat the files as samba share data.
+
+
+.EX
+.B samba_unconfined_script_exec_t 
+.EE
+
+- Set files with the samba_unconfined_script_exec_t context, if you want to a executable to transition to the samba_unconfined_script_t domain.
+
+
+.EX
+.B samba_unit_file_t 
+.EE
+
+- Set files with the samba_unit_file_t context, if you want to treat the files as samba unit content.
+
+
+.EX
+.B samba_var_t 
+.EE
+
+- Set files with the samba_var_t context, if you want to store the s files under the /var directory.
+
+
+.EX
+.B sambagui_exec_t 
+.EE
+
+- Set files with the sambagui_exec_t context, if you want to a executable to transition to the sambagui_t domain.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH BOOLEANS
-.br 
-SELinux policy is customizable based on least access required.  So by 
-default SELinux policy turns off SELinux sharing of home directories and 
-the use of Samba shares from a remote machine as a home directory.
-.TP
-If you are setting up this machine as a Samba server and wish to share the home directories, you need to set the samba_enable_home_dirs boolean. 
-.br
+SELinux policy is customizable based on least access required.  samba policy is extremely flexible and has several booleans that allow you to manipulate the policy and run samba with the tightest access possible.
 
-setsebool -P samba_enable_home_dirs 1
-.TP
-If you want to use a remote Samba server for the home directories on this machine, you must set the use_samba_home_dirs boolean.
-.br 
 
-setsebool -P use_samba_home_dirs 1
-.TP
-system-config-selinux is a GUI tool available to customize SELinux policy settings.
+.PP
+If you want to allow samba to act as the domain controller, add users, groups and change passwords, you must turn on the samba_domain_controller boolean.
+
+.EX
+.B setsebool -P samba_domain_controller 1
+.EE
+
+.PP
+If you want to allow samba to share any file/directory read only, you must turn on the samba_export_all_ro boolean.
+
+.EX
+.B setsebool -P samba_export_all_ro 1
+.EE
+
+.PP
+If you want to support SAMBA home directorie, you must turn on the use_samba_home_dirs boolean.
+
+.EX
+.B setsebool -P use_samba_home_dirs 1
+.EE
+
+.PP
+If you want to allow samba to create new home directories (e.g. via PAM, you must turn on the samba_create_home_dirs boolean.
+
+.EX
+.B setsebool -P samba_create_home_dirs 1
+.EE
+
+.PP
+If you want to allow samba to share users home directories, you must turn on the samba_enable_home_dirs boolean.
+
+.EX
+.B setsebool -P samba_enable_home_dirs 1
+.EE
+
+.PP
+If you want to allow samba to export ntfs/fusefs volumes, you must turn on the samba_share_fusefs boolean.
+
+.EX
+.B setsebool -P samba_share_fusefs 1
+.EE
+
+.PP
+If you want to allow samba to export NFS volumes, you must turn on the samba_share_nfs boolean.
+
+.EX
+.B setsebool -P samba_share_nfs 1
+.EE
+
+.PP
+If you want to allow samba to run unconfined script, you must turn on the samba_run_unconfined boolean.
+
+.EX
+.B setsebool -P samba_run_unconfined 1
+.EE
+
+.PP
+If you want to allow confined virtual guests to manage cifs file, you must turn on the sanlock_use_samba boolean.
+
+.EX
+.B setsebool -P sanlock_use_samba 1
+.EE
+
+.PP
+If you want to allow samba to share any file/directory read/write, you must turn on the samba_export_all_rw boolean.
+
+.EX
+.B setsebool -P samba_export_all_rw 1
+.EE
+
+.PP
+If you want to allow confined virtual guests to manage cifs file, you must turn on the virt_use_samba boolean.
+
+.EX
+.B setsebool -P virt_use_samba 1
+.EE
+
+.SH "COMMANDS"
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
 This manual page was written by Dan Walsh <dwalsh@redhat.com>.
 
 .SH "SEE ALSO"
-selinux(8), samba(7), chcon(1), setsebool(8), semanage(8)
+selinux(8), samba(8), semanage(8), restorecon(8), chcon(1), setsebool(8)

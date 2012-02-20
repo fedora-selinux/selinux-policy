@@ -1,4 +1,4 @@
-.TH  "cobblerd_selinux"  "8"  "16 Feb 2012" "dwalsh@redhat.com" "cobblerd Selinux Policy documentation"
+.TH  "cobblerd_selinux"  "8"  "20 Feb 2012" "dwalsh@redhat.com" "cobblerd Selinux Policy documentation"
 .SH "NAME"
 cobblerd_selinux \- Security Enhanced Linux Policy for the cobblerd processes
 .SH "DESCRIPTION"
@@ -37,38 +37,59 @@ SELinux policy is customizable based on least access required.  cobblerd policy 
 
 
 .PP
-If you want to allow Cobbler to connect to the network using TCP., you must turn on the cobbler_can_network_connect boolean.
+If you want to allow Cobbler to connect to the network using TCP, you must turn on the cobbler_can_network_connect boolean.
 
 .EX
 .B setsebool -P cobbler_can_network_connect 1
 .EE
 
 .PP
-If you want to allow Cobbler to access nfs file systems., you must turn on the cobbler_use_nfs boolean.
+If you want to allow Cobbler to access nfs file systems, you must turn on the cobbler_use_nfs boolean.
 
 .EX
 .B setsebool -P cobbler_use_nfs 1
 .EE
 
 .PP
-If you want to allow Cobbler to modify public files used for public file transfer services., you must turn on the cobbler_anon_write boolean.
-
-.EX
-.B setsebool -P cobbler_anon_write 1
-.EE
-
-.PP
-If you want to allow HTTPD scripts and modules to connect to cobbler over the network., you must turn on the httpd_can_network_connect_cobbler boolean.
+If you want to allow HTTPD scripts and modules to connect to cobbler over the network, you must turn on the httpd_can_network_connect_cobbler boolean.
 
 .EX
 .B setsebool -P httpd_can_network_connect_cobbler 1
 .EE
 
 .PP
-If you want to allow Cobbler to access cifs file systems., you must turn on the cobbler_use_cifs boolean.
+If you want to allow Cobbler to access cifs file systems, you must turn on the cobbler_use_cifs boolean.
 
 .EX
 .B setsebool -P cobbler_use_cifs 1
+.EE
+
+.SH SHARING FILES
+If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
+.TP
+Allow cobblerd servers to read the /var/cobblerd directory by adding the public_content_t file type to the directory and by restoring the file type.
+.PP
+.B
+semanage fcontext -a -t public_content_t "/var/cobblerd(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/cobblerd
+.pp
+.TP
+Allow cobblerd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_cobblerdd_anon_write boolean to be set.
+.PP
+.B
+semanage fcontext -a -t public_content_rw_t "/var/cobblerd/incoming(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/cobblerd/incoming
+
+
+.PP
+If you want to allow Cobbler to modify public files used for public file transfer services., you must turn on the cobbler_anon_write boolean.
+
+.EX
+.B setsebool -P cobbler_anon_write 1
 .EE
 
 .SH "COMMANDS"

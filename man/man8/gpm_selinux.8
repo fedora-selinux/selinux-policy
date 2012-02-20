@@ -1,4 +1,4 @@
-.TH  "gpm_selinux"  "8"  "16 Feb 2012" "dwalsh@redhat.com" "gpm Selinux Policy documentation"
+.TH  "gpm_selinux"  "8"  "20 Feb 2012" "dwalsh@redhat.com" "gpm Selinux Policy documentation"
 .SH "NAME"
 gpm_selinux \- Security Enhanced Linux Policy for the gpm processes
 .SH "DESCRIPTION"
@@ -58,18 +58,39 @@ SELinux policy is customizable based on least access required.  gpm policy is ex
 
 
 .PP
-If you want to allow usage of the gpg-agent --write-env-file option. This also allows gpg-agent to manage user files., you must turn on the gpg_agent_env_file boolean.
+If you want to allow usage of the gpg-agent --write-env-file option. This also allows gpg-agent to manage user files, you must turn on the gpg_agent_env_file boolean.
 
 .EX
 .B setsebool -P gpg_agent_env_file 1
 .EE
 
 .PP
-If you want to allow httpd to run gpg in gpg-web domain, you must turn on the httpd_use_gpg boolean.
+If you want to allow httpd to run gpg in gpg-web domai, you must turn on the httpd_use_gpg boolean.
 
 .EX
 .B setsebool -P httpd_use_gpg 1
 .EE
+
+.SH SHARING FILES
+If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
+.TP
+Allow gpm servers to read the /var/gpm directory by adding the public_content_t file type to the directory and by restoring the file type.
+.PP
+.B
+semanage fcontext -a -t public_content_t "/var/gpm(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/gpm
+.pp
+.TP
+Allow gpm servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_gpmd_anon_write boolean to be set.
+.PP
+.B
+semanage fcontext -a -t public_content_rw_t "/var/gpm/incoming(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/gpm/incoming
+
 
 .PP
 If you want to allow gpg web domain to modify public files used for public file transfer services., you must turn on the gpg_web_anon_write boolean.

@@ -1,52 +1,122 @@
-.TH  "rsync_selinux"  "8"  "17 Jan 2005" "dwalsh@redhat.com" "rsync Selinux Policy documentation"
-.de EX
-.nf
-.ft CW
-..
-.de EE
-.ft R
-.fi
-..
+.TH  "rsync_selinux"  "8"  "20 Feb 2012" "dwalsh@redhat.com" "rsync Selinux Policy documentation"
 .SH "NAME"
-rsync_selinux \- Security Enhanced Linux Policy for the rsync daemon
+rsync_selinux \- Security Enhanced Linux Policy for the rsync processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the rsync server via flexible mandatory access
+Security-Enhanced Linux secures the rsync processes via flexible mandatory access
 control.  
 .SH FILE_CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
-Policy governs the access daemons have to these files. 
-If you want to share files using the rsync daemon, you must label the files and directories public_content_t.  So if you created a special directory /var/rsync, you 
-would need to label the directory with the chcon tool.
-.TP
-chcon -t public_content_t /var/rsync
-.TP
-.TP
-To make this change permanent (survive a relabel), use the semanage command to add the change to file context configuration:
-.TP
-semanage fcontext -a -t public_content_t "/var/rsync(/.*)?"
-.TP
-This command adds the following entry to /etc/selinux/POLICYTYPE/contexts/files/file_contexts.local:
-.TP
-/var/rsync(/.*)? system_u:object_r:publix_content_t:s0
-.TP
-Run the restorecon command to apply the changes:
-.TP
-restorecon -R -v /var/rsync/
+Policy governs the access confined processes have to these files. 
+SELinux rsync policy is very flexible allowing users to setup their rsync processes in as secure a method as possible.
+.PP 
+The following file types are defined for rsync:
+
+
+.EX
+.B rsync_data_t 
+.EE
+
+- Set files with the rsync_data_t context, if you want to treat the files as rsync content.
+
+
+.EX
+.B rsync_etc_t 
+.EE
+
+- Set files with the rsync_etc_t context, if you want to store rsync files in the /etc directories.
+
+
+.EX
+.B rsync_exec_t 
+.EE
+
+- Set files with the rsync_exec_t context, if you want to a executable to transition to the rsync_t domain.
+
+
+.EX
+.B rsync_log_t 
+.EE
+
+- Set files with the rsync_log_t context, if you want to treat the data as rsync log data, usually stored in /var/log.
+
+
+.EX
+.B rsync_tmp_t 
+.EE
+
+- Set files with the rsync_tmp_t context, if you want to store rsync temporary files in the /tmp directories.
+
+
+.EX
+.B rsync_var_run_t 
+.EE
+
+- Set files with the rsync_var_run_t context, if you want to store the rsync files under the /run directory.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  rsync policy is extremely flexible and has several booleans that allow you to manipulate the policy and run rsync with the tightest access possible.
+
+
+.PP
+If you want to allow rsync to run as a clien, you must turn on the rsync_client boolean.
+
+.EX
+.B setsebool -P rsync_client 1
+.EE
+
+.PP
+If you want to allow rsync to export any files/directories read only, you must turn on the rsync_export_all_ro boolean.
+
+.EX
+.B setsebool -P rsync_export_all_ro 1
 .EE
 
 .SH SHARING FILES
-If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.  allow_DOMAIN_anon_write.  So for rsync you would execute:
+If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
+.TP
+Allow rsync servers to read the /var/rsync directory by adding the public_content_t file type to the directory and by restoring the file type.
+.PP
+.B
+semanage fcontext -a -t public_content_t "/var/rsync(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/rsync
+.pp
+.TP
+Allow rsync servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_rsyncd_anon_write boolean to be set.
+.PP
+.B
+semanage fcontext -a -t public_content_rw_t "/var/rsync/incoming(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/rsync/incoming
+
+
+.PP
+If you want to allow rsync to modify public files used for public file transfer services.  Files/Directories must be labeled public_content_rw_t., you must turn on the allow_rsync_anon_write boolean.
 
 .EX
-setsebool -P allow_rsync_anon_write=1
+.B setsebool -P allow_rsync_anon_write 1
 .EE
 
-.SH BOOLEANS
-.TP
-system-config-selinux is a GUI tool available to customize SELinux policy settings.
+.SH "COMMANDS"
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
+
 .SH AUTHOR	
 This manual page was written by Dan Walsh <dwalsh@redhat.com>.
 
 .SH "SEE ALSO"
-selinux(8), rsync(1), chcon(1), setsebool(8), semanage(8)
+selinux(8), rsync(8), semanage(8), restorecon(8), chcon(1), setsebool(8)
