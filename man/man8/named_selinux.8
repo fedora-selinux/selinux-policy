@@ -1,30 +1,130 @@
-.TH  "named_selinux"  "8"  "17 Jan 2005" "dwalsh@redhat.com" "named Selinux Policy documentation"
-.de EX
-.nf
-.ft CW
-..
-.de EE
-.ft R
-.fi
-..
+.TH  "named_selinux"  "8"  "20 Feb 2012" "dwalsh@redhat.com" "named Selinux Policy documentation"
 .SH "NAME"
-named_selinux \- Security Enhanced Linux Policy for the Internet Name server (named) daemon
+named_selinux \- Security Enhanced Linux Policy for the named processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the named server via flexible mandatory access
+Security-Enhanced Linux secures the named processes via flexible mandatory access
 control.  
-.SH BOOLEANS
-SELinux policy is customizable based on least access required.  So by 
-default SELinux policy does not allow named to write master zone files.  If you want to have named update the master zone files you need to set the named_write_master_zones boolean.
+.SH FILE_CONTEXTS
+SELinux requires files to have an extended attribute to define the file type. 
+Policy governs the access confined processes have to these files. 
+SELinux named policy is very flexible allowing users to setup their named processes in as secure a method as possible.
+.PP 
+The following file types are defined for named:
+
+
 .EX
-setsebool -P named_write_master_zones 1
+.B named_cache_t 
 .EE
+
+- Set files with the named_cache_t context, if you want to store the files under the /var/cache directory.
+
+
+.EX
+.B named_checkconf_exec_t 
+.EE
+
+- Set files with the named_checkconf_exec_t context, if you want to a executable to transition to the named_checkconf_t domain.
+
+
+.EX
+.B named_conf_t 
+.EE
+
+- Set files with the named_conf_t context, if you want to treat the files as named configuration data, usually stored under the /etc directory.
+
+
+.EX
+.B named_exec_t 
+.EE
+
+- Set files with the named_exec_t context, if you want to a executable to transition to the named_t domain.
+
+
+.EX
+.B named_initrc_exec_t 
+.EE
+
+- Set files with the named_initrc_exec_t context, if you want to a executable to transition to the named_initrc_t domain.
+
+
+.EX
+.B named_keytab_t 
+.EE
+
+- Set files with the named_keytab_t context, if you want to treat the files as kerberos keytab files.
+
+
+.EX
+.B named_log_t 
+.EE
+
+- Set files with the named_log_t context, if you want to treat the data as named log data, usually stored under the /var/log directory.
+
+
+.EX
+.B named_tmp_t 
+.EE
+
+- Set files with the named_tmp_t context, if you want to store named temporary files in the /tmp directories.
+
+
+.EX
+.B named_unit_file_t 
+.EE
+
+- Set files with the named_unit_file_t context, if you want to treat the files as named unit content.
+
+
+.EX
+.B named_var_run_t 
+.EE
+
+- Set files with the named_var_run_t context, if you want to store the named files under the /run directory.
+
+
+.EX
+.B named_zone_t 
+.EE
+
+- Set files with the named_zone_t context, if you want to treat the files as named zone data.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  named policy is extremely flexible and has several booleans that allow you to manipulate the policy and run named with the tightest access possible.
+
+
 .PP
-system-config-selinux is a GUI tool available to customize SELinux policy settings.
+If you want to allow BIND to write the master zone files. Generally this is used for dynamic DNS or zone transfers, you must turn on the named_write_master_zones boolean.
+
+.EX
+.B setsebool -P named_write_master_zones 1
+.EE
+
+.PP
+If you want to allow BIND to bind apache port, you must turn on the named_bind_http_port boolean.
+
+.EX
+.B setsebool -P named_bind_http_port 1
+.EE
+
+.SH "COMMANDS"
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
+
 .SH AUTHOR	
 This manual page was written by Dan Walsh <dwalsh@redhat.com>.
 
 .SH "SEE ALSO"
-selinux(8), named(8), chcon(1), setsebool(8)
-
-
+selinux(8), named(8), semanage(8), restorecon(8), chcon(1)
+, setsebool(8)

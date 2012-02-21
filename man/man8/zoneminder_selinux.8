@@ -1,4 +1,4 @@
-.TH  "zoneminder_selinux"  "8"  "16 Feb 2012" "dwalsh@redhat.com" "zoneminder Selinux Policy documentation"
+.TH  "zoneminder_selinux"  "8"  "20 Feb 2012" "dwalsh@redhat.com" "zoneminder Selinux Policy documentation"
 .SH "NAME"
 zoneminder_selinux \- Security Enhanced Linux Policy for the zoneminder processes
 .SH "DESCRIPTION"
@@ -31,14 +31,14 @@ The following file types are defined for zoneminder:
 .B zoneminder_log_t 
 .EE
 
-- Set files with the zoneminder_log_t context, if you want to treat the data as zoneminder log data, usually stored in /var/log.
+- Set files with the zoneminder_log_t context, if you want to treat the data as zoneminder log data, usually stored under the /var/log directory.
 
 
 .EX
 .B zoneminder_spool_t 
 .EE
 
-- Set files with the zoneminder_spool_t context, if you want to store the zoneminder files in the /var/spool directories.
+- Set files with the zoneminder_spool_t context, if you want to store the zoneminder files under the /var/spool directory.
 
 
 .EX
@@ -67,8 +67,25 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH BOOLEANS
-SELinux policy is customizable based on least access required.  zoneminder policy is extremely flexible and has several booleans that allow you to manipulate the policy and run zoneminder with the tightest access possible.
+.SH SHARING FILES
+If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
+.TP
+Allow zoneminder servers to read the /var/zoneminder directory by adding the public_content_t file type to the directory and by restoring the file type.
+.PP
+.B
+semanage fcontext -a -t public_content_t "/var/zoneminder(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/zoneminder
+.pp
+.TP
+Allow zoneminder servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_zoneminderd_anon_write boolean to be set.
+.PP
+.B
+semanage fcontext -a -t public_content_rw_t "/var/zoneminder/incoming(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/zoneminder/incoming
 
 
 .PP
@@ -80,9 +97,6 @@ If you want to allow ZoneMinder to modify public files used for public file tran
 
 .SH "COMMANDS"
 
-.B semanage boolean
-can also be used to manipulate the booleans
-
 .PP
 .B system-config-selinux 
 is a GUI tool available to customize SELinux policy settings.
@@ -91,4 +105,4 @@ is a GUI tool available to customize SELinux policy settings.
 This manual page was written by Dan Walsh <dwalsh@redhat.com>.
 
 .SH "SEE ALSO"
-selinux(8), zoneminder(8), semanage(8), restorecon(8), chcon(1), setsebool(8)
+selinux(8), zoneminder(8), semanage(8), restorecon(8), chcon(1)

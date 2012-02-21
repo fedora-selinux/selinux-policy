@@ -1,4 +1,4 @@
-.TH  "abrt_selinux"  "8"  "16 Feb 2012" "dwalsh@redhat.com" "abrt Selinux Policy documentation"
+.TH  "abrt_selinux"  "8"  "20 Feb 2012" "dwalsh@redhat.com" "abrt Selinux Policy documentation"
 .SH "NAME"
 abrt_selinux \- Security Enhanced Linux Policy for the abrt processes
 .SH "DESCRIPTION"
@@ -59,7 +59,7 @@ The following file types are defined for abrt:
 .B abrt_retrace_cache_t 
 .EE
 
-- Set files with the abrt_retrace_cache_t context, if you want to store the files in the /var/cache directories.
+- Set files with the abrt_retrace_cache_t context, if you want to store the files under the /var/cache directory.
 
 
 .EX
@@ -73,7 +73,7 @@ The following file types are defined for abrt:
 .B abrt_retrace_spool_t 
 .EE
 
-- Set files with the abrt_retrace_spool_t context, if you want to store the abrt retrace files in the /var/spool directories.
+- Set files with the abrt_retrace_spool_t context, if you want to store the abrt retrace files under the /var/spool directory.
 
 
 .EX
@@ -94,14 +94,14 @@ The following file types are defined for abrt:
 .B abrt_var_cache_t 
 .EE
 
-- Set files with the abrt_var_cache_t context, if you want to store the files in the /var/cache directories.
+- Set files with the abrt_var_cache_t context, if you want to store the files under the /var/cache directory.
 
 
 .EX
 .B abrt_var_log_t 
 .EE
 
-- Set files with the abrt_var_log_t context, if you want to treat the data as abrt var log data, usually stored in /var/log.
+- Set files with the abrt_var_log_t context, if you want to treat the data as abrt var log data, usually stored under the /var/log directory.
 
 
 .EX
@@ -121,17 +121,38 @@ SELinux policy is customizable based on least access required.  abrt policy is e
 
 
 .PP
+If you want to allow ABRT to run in abrt_handle_event_t domain to handle ABRT event script, you must turn on the abrt_handle_event boolean.
+
+.EX
+.B setsebool -P abrt_handle_event 1
+.EE
+
+.SH SHARING FILES
+If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
+.TP
+Allow abrt servers to read the /var/abrt directory by adding the public_content_t file type to the directory and by restoring the file type.
+.PP
+.B
+semanage fcontext -a -t public_content_t "/var/abrt(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/abrt
+.pp
+.TP
+Allow abrt servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_abrtd_anon_write boolean to be set.
+.PP
+.B
+semanage fcontext -a -t public_content_rw_t "/var/abrt/incoming(/.*)?"
+.TP
+.B
+restorecon -F -R -v /var/abrt/incoming
+
+
+.PP
 If you want to allow ABRT to modify public files used for public file transfer services., you must turn on the abrt_anon_write boolean.
 
 .EX
 .B setsebool -P abrt_anon_write 1
-.EE
-
-.PP
-If you want to allow ABRT to run in abrt_handle_event_t domain to handle ABRT event scripts, you must turn on the abrt_handle_event boolean.
-
-.EX
-.B setsebool -P abrt_handle_event 1
 .EE
 
 .SH "COMMANDS"
@@ -147,4 +168,5 @@ is a GUI tool available to customize SELinux policy settings.
 This manual page was written by Dan Walsh <dwalsh@redhat.com>.
 
 .SH "SEE ALSO"
-selinux(8), abrt(8), semanage(8), restorecon(8), chcon(1), setsebool(8)
+selinux(8), abrt(8), semanage(8), restorecon(8), chcon(1)
+, setsebool(8)

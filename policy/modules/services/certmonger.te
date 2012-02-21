@@ -23,7 +23,7 @@ files_type(certmonger_var_lib_t)
 # certmonger local policy
 #
 
-allow certmonger_t self:capability { dac_override dac_read_search kill sys_nice };
+allow certmonger_t self:capability { dac_override dac_read_search setgid setuid kill sys_nice };
 dontaudit certmonger_t self:capability sys_tty_config;
 allow certmonger_t self:process { getsched setsched sigkill };
 allow certmonger_t self:fifo_file rw_file_perms;
@@ -39,7 +39,11 @@ manage_dirs_pattern(certmonger_t, certmonger_var_run_t, certmonger_var_run_t)
 manage_files_pattern(certmonger_t, certmonger_var_run_t, certmonger_var_run_t)
 files_pid_filetrans(certmonger_t, certmonger_var_run_t, { file dir })
 
+kernel_read_kernel_sysctls(certmonger_t)
+kernel_read_system_state(certmonger_t)
+
 corecmd_exec_bin(certmonger_t)
+corecmd_exec_shell(certmonger_t)
 
 corenet_tcp_sendrecv_generic_if(certmonger_t)
 corenet_tcp_sendrecv_generic_node(certmonger_t)
@@ -55,6 +59,7 @@ files_read_etc_files(certmonger_t)
 files_read_usr_files(certmonger_t)
 files_list_tmp(certmonger_t)
 
+auth_use_nsswitch(certmonger_t)
 auth_rw_cache(certmonger_t)
 
 logging_send_syslog_msg(certmonger_t)
@@ -68,6 +73,8 @@ userdom_search_user_home_content(certmonger_t)
 
 optional_policy(`
 	apache_search_config(certmonger_t)
+	apache_signal(certmonger_t)
+	apache_signull(certmonger_t)
 ')
 
 optional_policy(`
@@ -80,7 +87,9 @@ optional_policy(`
 ')
 
 optional_policy(`
-    dirsrv_manage_config(certmonger_t)
+	dirsrv_manage_config(certmonger_t)
+	dirsrv_signal(certmonger_t)
+	dirsrv_signull(certmonger_t)
 ')
 
 optional_policy(`
@@ -92,4 +101,3 @@ optional_policy(`
 	pcscd_read_pub_files(certmonger_t)
 	pcscd_stream_connect(certmonger_t)
 ')
-
