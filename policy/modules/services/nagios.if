@@ -13,36 +13,20 @@
 #
 template(`nagios_plugin_template',`
 	gen_require(`
-		type nagios_t, nrpe_t, nagios_log_t;
+		attribute nagios_plugin_domain;
+		type nagios_t, nrpe_t;
 	')
 
-	type nagios_$1_plugin_t;
+	type nagios_$1_plugin_t, nagios_plugin_domain;
 	type nagios_$1_plugin_exec_t;
 	application_domain(nagios_$1_plugin_t, nagios_$1_plugin_exec_t)
 	role system_r types nagios_$1_plugin_t;
 
-	allow nagios_$1_plugin_t self:fifo_file rw_fifo_file_perms;
-
 	domtrans_pattern(nrpe_t, nagios_$1_plugin_exec_t, nagios_$1_plugin_t)
-	allow nrpe_t nagios_$1_plugin_t:process { signal sigkill };
 
 	# needed by command.cfg
 	domtrans_pattern(nagios_t, nagios_$1_plugin_exec_t, nagios_$1_plugin_t)
-	allow nagios_t nagios_$1_plugin_exec_t:file ioctl;
 
-	allow nagios_t nagios_$1_plugin_t:process signal_perms;
-
-	# cjp: leaked file descriptor
-	dontaudit nagios_$1_plugin_t nrpe_t:tcp_socket { read write };
-	dontaudit nagios_$1_plugin_t nagios_log_t:file { read write };
-
-	# FIXME
-	# Probably add nagios_plugin_domain attribute
-	kernel_read_system_state(nagios_$1_plugin_t)
-
-	files_read_usr_files(nagios_$1_plugin_t)
-
-	miscfiles_read_localization(nagios_$1_plugin_t)
 ')
 
 ########################################
