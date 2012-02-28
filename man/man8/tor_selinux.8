@@ -5,6 +5,18 @@ tor_selinux \- Security Enhanced Linux Policy for the tor processes
 
 Security-Enhanced Linux secures the tor processes via flexible mandatory access
 control.  
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  tor policy is extremely flexible and has several booleans that allow you to manipulate the policy and run tor with the tightest access possible.
+
+
+.PP
+If you want to allow tor daemon to bind tcp sockets to all unreserved ports, you must turn on the tor_bind_all_unreserved_ports boolean.
+
+.EX
+.B setsebool -P tor_bind_all_unreserved_ports 1
+.EE
+
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
 .PP
@@ -20,78 +32,117 @@ The following file types are defined for tor:
 .B tor_etc_t 
 .EE
 
-- Set files with the tor_etc_t context, if you want to store tor files in the /etc directories.
+- Set files with the tor_etc_t type, if you want to store tor files in the /etc directories.
 
-.br
-Path: 
-/etc/tor(/.*)?
-
-.EX
-.B tor_exec_t 
-.EE
-
-- Set files with the tor_exec_t context, if you want to a executable to transition to the tor_t domain.
-
-.br
-Paths: 
-/usr/sbin/tor, /usr/bin/tor
-
-.EX
-.B tor_initrc_exec_t 
-.EE
-
-- Set files with the tor_initrc_exec_t context, if you want to a executable to transition to the tor_initrc_t domain.
-
-.br
-Path: 
-/etc/rc\.d/init\.d/tor
-
-.EX
-.B tor_var_lib_t 
-.EE
-
-- Set files with the tor_var_lib_t context, if you want to store the tor files under the /var/lib directory.
-
-.br
-Paths: 
-/var/lib/tor(/.*)?, /var/lib/tor-data(/.*)?
-
-.EX
-.B tor_var_log_t 
-.EE
-
-- Set files with the tor_var_log_t context, if you want to treat the data as tor var log data, usually stored under the /var/log directory.
-
-.br
-Path: 
-/var/log/tor(/.*)?
-
-.EX
-.B tor_var_run_t 
-.EE
-
-- Set files with the tor_var_run_t context, if you want to store the tor files under the /run directory.
-
-.br
-Path: 
-/var/run/tor(/.*)?
 Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH BOOLEANS
-SELinux policy is customizable based on least access required.  tor policy is extremely flexible and has several booleans that allow you to manipulate the policy and run tor with the tightest access possible.
-
-
-.PP
-If you want to allow tor daemon to bind tcp sockets to all unreserved ports, you must turn on the tor_bind_all_unreserved_ports boolean.
 
 .EX
-.B setsebool -P tor_bind_all_unreserved_ports 1
+.B tor_exec_t 
 .EE
 
+- Set files with the tor_exec_t type, if you want to transition an executable to the tor_t domain.
+
+.br
+Paths: 
+/usr/sbin/tor, /usr/bin/tor
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B tor_initrc_exec_t 
+.EE
+
+- Set files with the tor_initrc_exec_t type, if you want to transition an executable to the tor_initrc_t domain.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B tor_var_lib_t 
+.EE
+
+- Set files with the tor_var_lib_t type, if you want to store the tor files under the /var/lib directory.
+
+.br
+Paths: 
+/var/lib/tor(/.*)?, /var/lib/tor-data(/.*)?
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B tor_var_log_t 
+.EE
+
+- Set files with the tor_var_log_t type, if you want to treat the data as tor var log data, usually stored under the /var/log directory.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B tor_var_run_t 
+.EE
+
+- Set files with the tor_var_run_t type, if you want to store the tor files under the /run directory.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH PORT TYPES
+SELinux defines port types to represent TCP and UDP ports. 
+.PP
+You can see the types associated with a port by using the following command: 
+
+.B semanage port -l
+
+.PP
+Policy governs the access confined processes have to these ports. 
+SELinux tor policy is very flexible allowing users to setup their tor processes in as secure a method as possible.
+.PP 
+The following port types are defined for tor:
+.EX
+
+.B tor_port_t 
+.EE
+
+.EX
+Default Defined Ports:
+
+.B tcp 6969,9001,9030,9051
+.EE
+.EX
+
+.B tor_socks_port_t 
+.EE
+
+.EX
+Default Defined Ports:
+
+.B tcp 9050
+.EE
 .SH "COMMANDS"
 
 .B semanage boolean

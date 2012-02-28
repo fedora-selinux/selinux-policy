@@ -5,6 +5,18 @@ dhcpc_selinux \- Security Enhanced Linux Policy for the dhcpc processes
 
 Security-Enhanced Linux secures the dhcpc processes via flexible mandatory access
 control.  
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  dhcpc policy is extremely flexible and has several booleans that allow you to manipulate the policy and run dhcpc with the tightest access possible.
+
+
+.PP
+If you want to allow dhcpc client applications to execute iptables command, you must turn on the dhcpc_exec_iptables boolean.
+
+.EX
+.B setsebool -P dhcpc_exec_iptables 1
+.EE
+
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
 .PP
@@ -20,65 +32,90 @@ The following file types are defined for dhcpc:
 .B dhcpc_exec_t 
 .EE
 
-- Set files with the dhcpc_exec_t context, if you want to a executable to transition to the dhcpc_t domain.
+- Set files with the dhcpc_exec_t type, if you want to transition an executable to the dhcpc_t domain.
 
 .br
 Paths: 
 /sbin/dhcpcd, /usr/sbin/pump, /sbin/dhclient.*, /usr/sbin/dhcpcd, /sbin/pump, /usr/sbin/dhclient.*, /usr/sbin/dhcdbd, /sbin/dhcdbd
-
-.EX
-.B dhcpc_helper_exec_t 
-.EE
-
-- Set files with the dhcpc_helper_exec_t context, if you want to a executable to transition to the dhcpc_helper_t domain.
-
-.br
-Path: 
-/etc/firestarter/firestarter\.sh
-
-.EX
-.B dhcpc_state_t 
-.EE
-
-- Set files with the dhcpc_state_t context, if you want to treat the files as dhcpc state data.
-
-.br
-Paths: 
-/var/lib/dhclient(/.*)?, /var/lib/dhcp3?/dhclient.*, /var/lib/wifiroamd(/.*)?, /var/lib/dhcpcd(/.*)?
-
-.EX
-.B dhcpc_tmp_t 
-.EE
-
-- Set files with the dhcpc_tmp_t context, if you want to store dhcpc temporary files in the /tmp directories.
-
-
-.EX
-.B dhcpc_var_run_t 
-.EE
-
-- Set files with the dhcpc_var_run_t context, if you want to store the dhcpc files under the /run directory.
-
-.br
-Path: 
-/var/run/dhclient.*
 Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH BOOLEANS
-SELinux policy is customizable based on least access required.  dhcpc policy is extremely flexible and has several booleans that allow you to manipulate the policy and run dhcpc with the tightest access possible.
-
-
-.PP
-If you want to allow dhcpc client applications to execute iptables command, you must turn on the dhcpc_exec_iptables boolean.
 
 .EX
-.B setsebool -P dhcpc_exec_iptables 1
+.B dhcpc_helper_exec_t 
 .EE
 
+- Set files with the dhcpc_helper_exec_t type, if you want to transition an executable to the dhcpc_helper_t domain.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B dhcpc_state_t 
+.EE
+
+- Set files with the dhcpc_state_t type, if you want to treat the files as dhcpc state data.
+
+.br
+Paths: 
+/var/lib/dhclient(/.*)?, /var/lib/dhcp3?/dhclient.*, /var/lib/wifiroamd(/.*)?, /var/lib/dhcpcd(/.*)?
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B dhcpc_tmp_t 
+.EE
+
+- Set files with the dhcpc_tmp_t type, if you want to store dhcpc temporary files in the /tmp directories.
+
+
+.EX
+.B dhcpc_var_run_t 
+.EE
+
+- Set files with the dhcpc_var_run_t type, if you want to store the dhcpc files under the /run directory.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH PORT TYPES
+SELinux defines port types to represent TCP and UDP ports. 
+.PP
+You can see the types associated with a port by using the following command: 
+
+.B semanage port -l
+
+.PP
+Policy governs the access confined processes have to these ports. 
+SELinux dhcpc policy is very flexible allowing users to setup their dhcpc processes in as secure a method as possible.
+.PP 
+The following port types are defined for dhcpc:
+.EX
+
+.B dhcpc_port_t 
+.EE
+
+.EX
+Default Defined Ports:
+
+.B tcp 68,546
+.EE
+.B udp 68,546
+.EE
 .SH "COMMANDS"
 
 .B semanage boolean
