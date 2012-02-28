@@ -5,6 +5,18 @@ dhcpd_selinux \- Security Enhanced Linux Policy for the dhcpd processes
 
 Security-Enhanced Linux secures the dhcpd processes via flexible mandatory access
 control.  
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  dhcpd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run dhcpd with the tightest access possible.
+
+
+.PP
+If you want to allow dhcpc client applications to execute iptables command, you must turn on the dhcpc_exec_iptables boolean.
+
+.EX
+.B setsebool -P dhcpc_exec_iptables 1
+.EE
+
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
 .PP
@@ -20,75 +32,115 @@ The following file types are defined for dhcpd:
 .B dhcpd_exec_t 
 .EE
 
-- Set files with the dhcpd_exec_t context, if you want to a executable to transition to the dhcpd_t domain.
+- Set files with the dhcpd_exec_t type, if you want to transition an executable to the dhcpd_t domain.
 
-.br
-Path: 
-/usr/sbin/dhcpd.*
-
-.EX
-.B dhcpd_initrc_exec_t 
-.EE
-
-- Set files with the dhcpd_initrc_exec_t context, if you want to a executable to transition to the dhcpd_initrc_t domain.
-
-.br
-Path: 
-/etc/rc\.d/init\.d/dhcpd(6)?
-
-.EX
-.B dhcpd_state_t 
-.EE
-
-- Set files with the dhcpd_state_t context, if you want to treat the files as dhcpd state data.
-
-.br
-Paths: 
-/var/lib/dhcp(3)?/dhcpd\.leases.*, /var/lib/dhcpd(/.*)?
-
-.EX
-.B dhcpd_tmp_t 
-.EE
-
-- Set files with the dhcpd_tmp_t context, if you want to store dhcpd temporary files in the /tmp directories.
-
-
-.EX
-.B dhcpd_unit_file_t 
-.EE
-
-- Set files with the dhcpd_unit_file_t context, if you want to treat the files as dhcpd unit content.
-
-.br
-Paths: 
-/usr/lib/systemd/system/dhcpcd.*, /lib/systemd/system/dhcpcd.*
-
-.EX
-.B dhcpd_var_run_t 
-.EE
-
-- Set files with the dhcpd_var_run_t context, if you want to store the dhcpd files under the /run directory.
-
-.br
-Path: 
-/var/run/dhcpd(6)?\.pid
 Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH BOOLEANS
-SELinux policy is customizable based on least access required.  dhcpd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run dhcpd with the tightest access possible.
-
-
-.PP
-If you want to allow dhcpc client applications to execute iptables command, you must turn on the dhcpc_exec_iptables boolean.
 
 .EX
-.B setsebool -P dhcpc_exec_iptables 1
+.B dhcpd_initrc_exec_t 
 .EE
 
+- Set files with the dhcpd_initrc_exec_t type, if you want to transition an executable to the dhcpd_initrc_t domain.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B dhcpd_state_t 
+.EE
+
+- Set files with the dhcpd_state_t type, if you want to treat the files as dhcpd state data.
+
+.br
+Paths: 
+/var/lib/dhcp(3)?/dhcpd\.leases.*, /var/lib/dhcpd(/.*)?
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B dhcpd_tmp_t 
+.EE
+
+- Set files with the dhcpd_tmp_t type, if you want to store dhcpd temporary files in the /tmp directories.
+
+
+.EX
+.B dhcpd_unit_file_t 
+.EE
+
+- Set files with the dhcpd_unit_file_t type, if you want to treat the files as dhcpd unit content.
+
+.br
+Paths: 
+/usr/lib/systemd/system/dhcpcd.*, /lib/systemd/system/dhcpcd.*
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+
+.EX
+.B dhcpd_var_run_t 
+.EE
+
+- Set files with the dhcpd_var_run_t type, if you want to store the dhcpd files under the /run directory.
+
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH PORT TYPES
+SELinux defines port types to represent TCP and UDP ports. 
+.PP
+You can see the types associated with a port by using the following command: 
+
+.B semanage port -l
+
+.PP
+Policy governs the access confined processes have to these ports. 
+SELinux dhcpd policy is very flexible allowing users to setup their dhcpd processes in as secure a method as possible.
+.PP 
+The following port types are defined for dhcpd:
+.EX
+
+.B dhcpc_port_t 
+.EE
+
+.EX
+Default Defined Ports:
+
+.B tcp 68,546
+.EE
+.B udp 68,546
+.EE
+.EX
+
+.B dhcpd_port_t 
+.EE
+
+.EX
+Default Defined Ports:
+
+.B tcp 547,548,647,847,7911
+.EE
+.B udp 67,547,548,647,847
+.EE
 .SH "COMMANDS"
 
 .B semanage boolean
