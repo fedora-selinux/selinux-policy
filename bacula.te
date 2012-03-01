@@ -1,0 +1,122 @@
+policy_module(bacula, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type bacula_t;
+type bacula_exec_t;
+init_daemon_domain(bacula_t, bacula_exec_t)
+
+type bacula_etc_t;
+files_type(bacula_etc_t)
+
+type bacula_store_t;
+files_type(bacula_store_t)
+files_mountpoint(bacula_store_t)
+
+type bacula_var_lib_t;
+files_type(bacula_var_lib_t)
+
+type bacula_var_run_t;
+files_pid_file(bacula_var_run_t)
+
+type bacula_admin_t;
+type bacula_admin_exec_t;
+application_domain(bacula_admin_t, bacula_admin_exec_t)
+
+########################################
+#
+# Local policy - bacula daemon
+#
+
+allow bacula_t self:capability { dac_read_search dac_override chown fowner fsetid};
+allow bacula_t self:process signal;
+allow bacula_t self:fifo_file rw_fifo_file_perms;
+allow bacula_t self:tcp_socket create_stream_socket_perms;
+allow bacula_t self:udp_socket create_socket_perms;
+allow bacula_t self:netlink_route_socket create_netlink_socket_perms;
+
+read_files_pattern(bacula_t, bacula_etc_t, bacula_etc_t)
+
+manage_files_pattern(bacula_t, bacula_store_t, bacula_store_t)
+manage_lnk_files_pattern(bacula_t, bacula_store_t, bacula_store_t)
+manage_dirs_pattern(bacula_t, bacula_store_t, bacula_store_t)
+
+manage_files_pattern(bacula_t, bacula_var_lib_t, bacula_var_lib_t)
+files_var_lib_filetrans(bacula_t, bacula_var_lib_t, file)
+
+allow bacula_t bacula_var_run_t:file { create_file_perms write_file_perms unlink};
+files_pid_filetrans(bacula_t, bacula_var_run_t, file)
+
+kernel_read_kernel_sysctls(bacula_t)
+kernel_read_system_state(bacula_t)
+
+corecmd_exec_bin(bacula_t)
+corecmd_exec_shell(bacula_t)
+
+corenet_tcp_bind_generic_node(bacula_t)
+corenet_udp_bind_generic_node(bacula_t)
+corenet_tcp_bind_generic_port(bacula_t)
+corenet_udp_bind_generic_port(bacula_t)
+corenet_tcp_bind_hplip_port(bacula_t)
+corenet_udp_bind_hplip_port(bacula_t)
+corenet_tcp_connect_all_ports(bacula_t)
+corenet_tcp_connect_smtp_port(bacula_t)
+# Bacula's default port are listed already under hplip
+
+dev_getattr_all_blk_files(bacula_t)
+dev_getattr_all_chr_files(bacula_t)
+
+files_dontaudit_getattr_all_sockets(bacula_t)
+files_read_all_files(bacula_t)
+files_read_all_symlinks(bacula_t)
+
+fs_getattr_xattr_fs(bacula_t)
+fs_list_all(bacula_t)
+
+auth_read_shadow(bacula_t)
+
+logging_send_syslog_msg(bacula_t)
+
+optional_policy(`
+	mysql_stream_connect(bacula_t)
+	mysql_tcp_connect(bacula_t)
+')
+	
+optional_policy(`
+	nis_use_ypbind(bacula_t)
+')
+
+optional_policy(`
+	sysnet_use_ldap(bacula_t)
+	ldap_stream_connect(bacula_t)
+')
+
+
+########################################
+#
+# Local policy - bacula admin client
+#
+allow bacula_admin_t self:process signal;
+allow bacula_admin_t self:tcp_socket create_stream_socket_perms;
+allow bacula_admin_t self:dgram_socket_class_set create_socket_perms;
+
+read_files_pattern(bacula_admin_t, bacula_etc_t, bacula_etc_t)
+
+corenet_tcp_connect_hplip_port(bacula_admin_t)
+corenet_udp_sendrecv_hplip_port(bacula_admin_t)
+
+domain_use_interactive_fds(bacula_admin_t)
+
+files_read_etc_files(bacula_admin_t)
+
+miscfiles_read_localization(bacula_admin_t)
+
+sysnet_dns_name_resolve(bacula_admin_t)
+
+userdom_dontaudit_search_user_home_dirs(bacula_admin_t)
+userdom_use_user_ptys(bacula_admin_t)
+
+
