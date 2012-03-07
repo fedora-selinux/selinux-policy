@@ -1,131 +1,65 @@
-.TH  "unconfined_selinux"  "8"  "unconfined" "dwalsh@redhat.com" "unconfined SELinux Policy documentation"
+.TH  "unconfined_selinux"  "8"  "unconfined" "mgrepl@redhat.com" "unconfined SELinux Policy documentation"
 .SH "NAME"
-unconfined_selinux \- Security Enhanced Linux Policy for the unconfined processes
-.SH "DESCRIPTION"
+unconfined_r \- \fBUnconfiend user role\fP - Security Enhanced Linux Policy 
 
+.SH DESCRIPTION
 
-SELinux Linux secures
-.B unconfined
-(The unconfined domain)
-processes via flexible mandatory access
-control.  
+SELinux supports Roles Based Access Control, some Linux roles are login roles, while other roles need to be transition to. 
 
+Note: The examples in the man page will user the staff_u user.
 
+Non login roles are usually used for administrative tasks.
 
-.SH BOOLEANS
-SELinux policy is customizable based on least access required.  unconfined policy is extremely flexible and has several booleans that allow you to manipulate the policy and run unconfined with the tightest access possible.
+Roles usually have default types assigned to them. 
 
+The default type for the unconfined_r role is unconfined_t.
 
-.PP
-If you want to allow database admins to execute DML statemen, you must turn on the sepgsql_unconfined_dbadm boolean.
+You can use the 
+.B newrole 
+program to transition directly to this role.
 
-.EX
-.B setsebool -P sepgsql_unconfined_dbadm 1
-.EE
+.B newrole -r unconfined_r -t unconfined_t
 
-.PP
-If you want to allow unconfined users to transition to the Mozilla plugin domain when running xulrunner plugin-container, you must turn on the unconfined_mozilla_plugin_transition boolean.
+.B sudo 
+can also be setup to transition to this role using the visudo command.
 
-.EX
-.B setsebool -P unconfined_mozilla_plugin_transition 1
-.EE
-
-.PP
-If you want to allow a user to login as an unconfined domai, you must turn on the unconfined_login boolean.
-
-.EX
-.B setsebool -P unconfined_login 1
-.EE
-
-.PP
-If you want to allow unconfined users to transition to the chrome sandbox domains when running chrome-sandbo, you must turn on the unconfined_chrome_sandbox_transition boolean.
-
-.EX
-.B setsebool -P unconfined_chrome_sandbox_transition 1
-.EE
-
-.PP
-If you want to allow samba to run unconfined script, you must turn on the samba_run_unconfined boolean.
-
-.EX
-.B setsebool -P samba_run_unconfined 1
-.EE
-
-.PP
-If you want to allow video playing tools to run unconfine, you must turn on the unconfined_mplayer boolean.
-
-.EX
-.B setsebool -P unconfined_mplayer 1
-.EE
-
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type. 
-.PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files. 
-SELinux unconfined policy is very flexible allowing users to setup their unconfined processes in as secure a method as possible.
-.PP 
-The following file types are defined for unconfined:
-
-
-.EX
-.PP
-.B unconfined_exec_t 
-.EE
-
-- Set files with the unconfined_exec_t type, if you want to transition an executable to the unconfined_t domain.
-
+USERNAME ALL=(ALL) ROLE=unconfined_r TYPE=unconfined_t COMMAND
 .br
-.TP 5
-Paths: 
-/usr/bin/vncserver, /usr/sbin/xrdp, /usr/sbin/xrdp-sesman
+sudo will run COMMAND as staff_u:unconfined_r:unconfined_t:LEVEL
 
-.PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext 
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to use a non login role, you need to make sure the SELinux user you are using can reach this role.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux unconfined policy is very flexible allowing users to setup their unconfined processes in as secure a method as possible.
-.PP 
-The following process types are defined for unconfined:
+You can see all of the assigned SELinux roles using the following
 
-.EX
-.B unconfined_cronjob_t, unconfined_dbusd_t, unconfined_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage user -l
+
+If you wanted to add unconfined_r to the staff_u user, you would execute:
+
+.B $ semanage user -m -R 'staff_r unconfined_r' staff_u 
+
+
+
+SELinux policy also controls which roles can transition to a different role.  
+You can list these rules using the following command.
+
+.B sesearch --role_allow
+
+SELinux policy allows the staff_r role can transition to the unconfined_r role.
+
 
 .SH "COMMANDS"
-.B semanage fcontext
-can also be used to manipulate default file context mappings.
-.PP
-.B semanage permissive
-can also be used to manipulate whether or not a process type is permissive.
-.PP
-.B semanage module
-can also be used to enable/disable/install/remove policy modules.
 
-.B semanage boolean
-can also be used to manipulate the booleans
+.B semanage login
+can also be used to manipulate the Linux User to SELinux User mappings
 
-.PP
+.B semanage user
+can also be used to manipulate SELinux user definitions.
+
 .B system-config-selinux 
 is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
-This manual page was autogenerated by genman.py.
+This manual page was autogenerated by genuserman.py.
 
 .SH "SEE ALSO"
-selinux(8), unconfined(8), semanage(8), restorecon(8), chcon(1)
-, setsebool(8)
+selinux(8), semanage(8).
