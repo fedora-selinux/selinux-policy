@@ -1,0 +1,67 @@
+policy_module(keystone, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type keystone_t;
+type keystone_exec_t;
+init_daemon_domain(keystone_t, keystone_exec_t)
+
+permissive keystone_t;
+
+type keystone_log_t;
+logging_log_file(keystone_log_t)
+
+type keystone_var_lib_t;
+files_type(keystone_var_lib_t)
+
+type keystone_tmp_t;
+files_tmp_file(keystone_tmp_t)
+
+type keystone_unit_file_t;
+systemd_unit_file(keystone_unit_file_t)
+
+########################################
+#
+# keystone local policy
+#
+allow keystone_t self:fifo_file rw_fifo_file_perms;
+allow keystone_t self:unix_stream_socket create_stream_socket_perms;
+allow keystone_t self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(keystone_t, keystone_log_t, keystone_log_t)
+manage_files_pattern(keystone_t, keystone_log_t, keystone_log_t)
+logging_log_filetrans(keystone_t, keystone_log_t, { dir file })
+
+manage_dirs_pattern(keystone_t, keystone_tmp_t, keystone_tmp_t)
+manage_files_pattern(keystone_t, keystone_tmp_t, keystone_tmp_t)
+manage_lnk_files_pattern(keystone_t, keystone_tmp_t, keystone_tmp_t)
+files_tmp_filetrans(keystone_t, keystone_tmp_t, { file dir lnk_file })
+can_exec(keystone_t, keystone_tmp_t)
+
+manage_dirs_pattern(keystone_t, keystone_var_lib_t, keystone_var_lib_t)
+manage_files_pattern(keystone_t, keystone_var_lib_t, keystone_var_lib_t)
+files_var_lib_filetrans(keystone_t, keystone_var_lib_t, { dir file })
+
+kernel_read_system_state(keystone_t)
+
+corecmd_exec_bin(keystone_t)
+corecmd_exec_shell(keystone_t)
+
+corenet_tcp_bind_commplex_port(keystone_t)
+corenet_tcp_bind_generic_node(keystone_t)
+
+dev_read_urand(keystone_t)
+
+domain_use_interactive_fds(keystone_t)
+
+files_read_etc_files(keystone_t)
+files_read_usr_files(keystone_t)
+
+auth_use_pam(keystone_t)
+
+libs_exec_ldconfig(keystone_t)
+
+miscfiles_read_localization(keystone_t)
