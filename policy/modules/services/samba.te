@@ -181,7 +181,6 @@ files_tmp_filetrans(samba_net_t, samba_net_tmp_t, { file dir })
 manage_dirs_pattern(samba_net_t, samba_var_t, samba_var_t)
 manage_files_pattern(samba_net_t, samba_var_t, samba_var_t)
 manage_lnk_files_pattern(samba_net_t, samba_var_t, samba_var_t)
-
 kernel_read_proc_symlinks(samba_net_t)
 kernel_read_system_state(samba_net_t)
 
@@ -249,6 +248,7 @@ allow smbd_t self:unix_stream_socket { create_stream_socket_perms connectto };
 
 allow smbd_t nmbd_t:process { signal signull };
 
+allow winbind_t smbd_var_run_t:dir search_dir_perms;
 allow smbd_t nmbd_var_run_t:file rw_file_perms;
 stream_connect_pattern(smbd_t, nmbd_var_run_t, nmbd_var_run_t, nmbd_t)
 
@@ -271,6 +271,7 @@ manage_dirs_pattern(smbd_t, samba_var_t, samba_var_t)
 manage_files_pattern(smbd_t, samba_var_t, samba_var_t)
 manage_lnk_files_pattern(smbd_t, samba_var_t, samba_var_t)
 manage_sock_files_pattern(smbd_t, samba_var_t, samba_var_t)
+files_var_filetrans(smbd_t, samba_var_t, dir)
 
 allow smbd_t smbcontrol_t:process { signal signull };
 
@@ -318,6 +319,7 @@ corenet_tcp_connect_smbd_port(smbd_t)
 
 dev_read_sysfs(smbd_t)
 dev_read_urand(smbd_t)
+dev_dontaudit_write_urand(smbd_t)
 dev_getattr_mtrr_dev(smbd_t)
 dev_dontaudit_getattr_usbfs_dirs(smbd_t)
 # For redhat bug 566984
@@ -424,6 +426,10 @@ optional_policy(`
 optional_policy(`
 	kerberos_use(smbd_t)
 	kerberos_keytab_template(smbd, smbd_t)
+')
+
+optional_policy(`
+	ldap_stream_connect(smbd_t)
 ')
 
 optional_policy(`
@@ -808,6 +814,7 @@ allow winbind_t self:udp_socket create_socket_perms;
 
 allow winbind_t nmbd_t:process { signal signull };
 
+allow winbind_t smbd_var_run_t:dir search_dir_perms;
 read_files_pattern(winbind_t, nmbd_var_run_t, nmbd_var_run_t)
 
 allow winbind_t samba_etc_t:dir list_dir_perms;
@@ -971,21 +978,21 @@ optional_policy(`
 	userdom_use_inherited_user_terminals(samba_unconfined_net_t)
 ')
 
-	type samba_unconfined_script_t;
-	type samba_unconfined_script_exec_t;
-	domain_type(samba_unconfined_script_t)
-	domain_entry_file(samba_unconfined_script_t, samba_unconfined_script_exec_t)
-	corecmd_shell_entry_type(samba_unconfined_script_t)
-	role system_r types samba_unconfined_script_t;
+type samba_unconfined_script_t;
+type samba_unconfined_script_exec_t;
+domain_type(samba_unconfined_script_t)
+domain_entry_file(samba_unconfined_script_t, samba_unconfined_script_exec_t)
+corecmd_shell_entry_type(samba_unconfined_script_t)
+role system_r types samba_unconfined_script_t;
 
-	allow smbd_t samba_unconfined_script_exec_t:dir search_dir_perms;
-	allow smbd_t samba_unconfined_script_exec_t:file ioctl;
+allow smbd_t samba_unconfined_script_exec_t:dir search_dir_perms;
+allow smbd_t samba_unconfined_script_exec_t:file ioctl;
 
 optional_policy(`
 	unconfined_domain(samba_unconfined_script_t)
 ')
 
-	tunable_policy(`samba_run_unconfined',`
+tunable_policy(`samba_run_unconfined',`
 		domtrans_pattern(smbd_t, samba_unconfined_script_exec_t, samba_unconfined_script_t)
 ',`
 	can_exec(smbd_t, samba_unconfined_script_exec_t)
