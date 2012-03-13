@@ -9,6 +9,9 @@ type couchdb_t;
 type couchdb_exec_t;
 init_daemon_domain(couchdb_t, couchdb_exec_t)
 
+type couchdb_etc_t;
+files_config_file(couchdb_etc_t)
+
 type couchdb_tmp_t;
 files_tmp_file(couchdb_tmp_t)
 
@@ -28,10 +31,14 @@ systemd_unit_file(couchdb_unit_file_t)
 #
 # couchdb local policy
 #
+allow couchdb_t self:process { setsched signal signull sigkill };
 allow couchdb_t self:fifo_file rw_fifo_file_perms;
 allow couchdb_t self:unix_stream_socket create_stream_socket_perms;
 allow couchdb_t self:tcp_socket create_stream_socket_perms;
 allow couchdb_t self:udp_socket create_socket_perms;
+
+allow couchdb_t couchdb_etc_t:dir list_dir_perms;
+read_files_pattern(couchdb_t, couchdb_etc_t, couchdb_etc_t)
 
 manage_dirs_pattern(couchdb_t, couchdb_log_t, couchdb_log_t)
 manage_files_pattern(couchdb_t, couchdb_log_t, couchdb_log_t)
@@ -67,12 +74,12 @@ dev_read_urand(couchdb_t)
 domain_use_interactive_fds(couchdb_t)
 
 files_read_etc_files(couchdb_t)
+files_read_usr_files(couchdb_t)
 
-fs_getattr_tmpfs(couchdb_t)
+fs_getattr_xattr_fs(couchdb_t)
 
 auth_use_nsswitch(couchdb_t)
 
 libs_exec_lib_files(couchdb_t)
 
 miscfiles_read_localization(couchdb_t)
-
