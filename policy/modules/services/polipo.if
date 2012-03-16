@@ -146,6 +146,29 @@ interface(`polipo_named_filetrans_log_files',`
 
 ########################################
 ## <summary>
+##	Execute polipo server in the polipo domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`polipo_systemctl',`
+	gen_require(`
+		type polipo_t;
+		type polipo_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 polipo_unit_file_t:file read_file_perms;
+	allow $1 polipo_unit_file_t:service all_service_perms;
+
+	ps_process_pattern($1, polipo_t)
+')
+
+########################################
+## <summary>
 ##	Administrate an polipo environment.
 ## </summary>
 ## <param name="domain">
@@ -164,6 +187,7 @@ interface(`polipo_admin',`
 	gen_require(`
 		type polipo_t, polipo_pid_t, polipo_cache_t;
 		type polipo_etc_t, polipo_log_t, polipo_initrc_exec_t;
+		type polipo_unit_file_t;
 	')
 
 	allow $1 polipo_t:process signal_perms;
@@ -188,4 +212,7 @@ interface(`polipo_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, polipo_pid_t)
+
+	admin_pattern($1, polipo_unit_file_t)
+	polipo_systemctl($1)
 ')
