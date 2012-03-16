@@ -1273,6 +1273,29 @@ interface(`apache_cgi_domain',`
 
 ########################################
 ## <summary>
+##	Execute httpd server in the httpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`httpd_systemctl',`
+	gen_require(`
+		type httpd_t;
+		type httpd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 httpd_unit_file_t:file read_file_perms;
+	allow $1 httpd_unit_file_t:service all_service_perms;
+
+	ps_process_pattern($1, httpd_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate an apache environment
 ## </summary>
 ## <param name="domain">
@@ -1336,7 +1359,8 @@ interface(`apache_admin',`
 	admin_pattern($1, httpd_php_tmp_t)
 	admin_pattern($1, httpd_suexec_tmp_t)
 
-	allow $1 httpd_unit_file_t:service all_service_perms;
+	admin_pattern($1, httpd_unit_file_t)
+	httpd_systemctl($1)
 
 	ifdef(`TODO',`
 		apache_set_booleans($1, $2, $3, httpd_bool_t)
