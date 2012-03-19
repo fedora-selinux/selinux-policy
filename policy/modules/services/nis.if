@@ -335,7 +335,7 @@ interface(`nis_systemctl_ypbind',`
 
 	systemd_exec_systemctl($1)
 	allow $1 ypbind_unit_file_t:file read_file_perms;
-	allow $1 ypbind_unit_file_t:service all_service_perms;
+	allow $1 ypbind_unit_file_t:service manage_service_perms;
 
 	ps_process_pattern($1, ypbind_t)
 ')
@@ -352,13 +352,13 @@ interface(`nis_systemctl_ypbind',`
 #
 interface(`nis_systemctl',`
 	gen_require(`
-		type nis_unit_file_t;
+		type nis_unit_file_t, ypbind_unit_file_t;
 		type ypbind_t, yppasswdd_t, ypserv_t, ypxfr_t;
 	')
 
 	systemd_exec_systemctl($1)
 	allow $1 nis_unit_file_t:file read_file_perms;
-	allow $1 nis_unit_file_t:service all_service_perms;
+	allow $1 nis_unit_file_t:service manage_service_perms;
 
 	ps_process_pattern($1, ypbind_t)
 	ps_process_pattern($1, yppasswdd_t)
@@ -389,6 +389,8 @@ interface(`nis_admin',`
 		type ypserv_conf_t;
 		type ypbind_var_run_t, yppasswdd_var_run_t, ypserv_var_run_t;
 		type ypbind_initrc_exec_t, nis_initrc_exec_t, ypxfr_t;
+		type nis_unit_file_t;
+		type ypbind_unit_file_t;
 	')
 
 	allow $1 ypbind_t:process signal_perms;
@@ -419,6 +421,8 @@ interface(`nis_admin',`
 	files_list_pids($1)
 	admin_pattern($1, ypbind_var_run_t)
 	nis_systemctl_ypbind($1)
+	admin_pattern($1, ypbind_unit_file_t)
+	allow $1 ypbind_unit_file_t:service all_service_perms;
 
 	admin_pattern($1, yppasswdd_var_run_t)
 
@@ -426,5 +430,8 @@ interface(`nis_admin',`
 	admin_pattern($1, ypserv_conf_t)
 
 	admin_pattern($1, ypserv_var_run_t)
+
 	nis_systemctl($1)
+	admin_pattern($1, nis_unit_file_t)
+	allow $1 nis_unit_file_t:service all_service_perms;
 ')

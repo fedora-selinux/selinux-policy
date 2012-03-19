@@ -384,7 +384,7 @@ interface(`mysql_systemctl',`
 
 	systemd_exec_systemctl($1)
 	allow $1 mysqld_unit_file_t:file read_file_perms;
-	allow $1 mysqld_unit_file_t:service all_service_perms;
+	allow $1 mysqld_unit_file_t:service manage_service_perms;
 
 	ps_process_pattern($1, mysqld_t)
 ')
@@ -449,6 +449,7 @@ interface(`mysql_admin',`
 		type mysqld_tmp_t, mysqld_db_t, mysqld_log_t;
 		type mysqld_etc_t;
 		type mysqld_home_t;
+		type mysqld_unit_file_t;
 	')
 
 	allow $1 mysqld_t:process signal_perms;
@@ -481,6 +482,8 @@ interface(`mysql_admin',`
 	admin_pattern($1, mysqld_home_t)
 
 	mysql_systemctl($1)
+	admin_pattern($1, mysql_unit_file_t)
+	allow $1 mysql_unit_file_t:service all_service_perms;
 
 	mysql_stream_connect($1)
 ')

@@ -193,7 +193,7 @@ interface(`couchdb_systemctl',`
 	systemd_exec_systemctl($1)
         systemd_read_fifo_file_password_run($1)
 	allow $1 couchdb_unit_file_t:file read_file_perms;
-	allow $1 couchdb_unit_file_t:service all_service_perms;
+	allow $1 couchdb_unit_file_t:service manage_service_perms;
 
 	ps_process_pattern($1, couchdb_t)
 ')
@@ -218,11 +218,8 @@ interface(`couchdb_systemctl',`
 #
 interface(`couchdb_admin',`
 	gen_require(`
-		type couchdb_t;
-		type couchdb_etc_t;
-		type couchdb_log_t;
-		type couchdb_var_lib_t;
-		type couchdb_var_run_t;
+		type couchdb_t, couchdb_etc_t, couchdb_log_t;
+		type couchdb_var_lib_t, couchdb_var_run_t;
 		type couchdb_unit_file_t;
 	')
 
@@ -241,7 +238,10 @@ interface(`couchdb_admin',`
 	files_search_pids($1)
 	admin_pattern($1, couchdb_var_run_t)
 
+	admin_pattern($1, couchdb_unit_file_t)
 	couchdb_systemctl($1)
+	allow $1 couchdb_unit_file_t:service all_service_perms;
+
 	optional_policy(`
 		systemd_passwd_agent_exec($1)
 		systemd_read_fifo_file_passwd_run($1)

@@ -25,8 +25,8 @@ template(`matahari_domain_template',`
         type matahari_$1_exec_t;
         init_daemon_domain(matahari_$1_t, matahari_$1_exec_t)
 
-		type matahari_$1_unit_file_t;
-		systemd_unit_file(matahari_$1_unit_file_t)
+	type matahari_$1_unit_file_t;
+	systemd_unit_file(matahari_$1_unit_file_t)
 ')		
 
 ########################################
@@ -210,14 +210,15 @@ interface(`matahari_serviced_domtrans',`
 #
 interface(`matahari_systemctl',`
     gen_require(`
-		type matahari_hostd_t;
-		type matahari_netd_t;
-		type matahari_serviced_t;
-		type matahari_sysconfigd_t;
+	    type matahari_hostd_t;
+	    type matahari_netd_t;
+	    type matahari_serviced_t;
+	    type matahari_sysconfigd_t;
 	    type matahari_hostd_unit_file_t;
 	    type matahari_netd_unit_file_t;
 	    type matahari_serviced_unit_file_t;
 	    type matahari_sysconfigd_unit_file_t;
+	    attribute matahari_domain;
     ')
 
     systemd_exec_systemctl($1)
@@ -227,15 +228,12 @@ interface(`matahari_systemctl',`
     allow $1 matahari_serviced_unit_file_t:file read_file_perms;
     allow $1 matahari_sysconfigd_unit_file_t:file read_file_perms;
 
-    allow $1 matahari_hostd_unit_file_t:service all_service_perms;
-    allow $1 matahari_netd_unit_file_t:service all_service_perms;
-    allow $1 matahari_serviced_unit_file_t:service all_service_perms;
-    allow $1 matahari_sysconfigd_unit_file_t:service all_service_perms;
+    allow $1 matahari_hostd_unit_file_t:service manage_service_perms;
+    allow $1 matahari_netd_unit_file_t:service manage_service_perms;
+    allow $1 matahari_serviced_unit_file_t:service manage_service_perms;
+    allow $1 matahari_sysconfigd_unit_file_t:service manage_service_perms;
 
-    ps_process_pattern($1, matahari_hostd_t)
-    ps_process_pattern($1, matahari_netd_t)
-    ps_process_pattern($1, matahari_serviced_t)
-    ps_process_pattern($1, matahari_sysconfigd_t)
+    ps_process_pattern($1, matahari_domain)
 ')
 
 ########################################
@@ -260,6 +258,11 @@ interface(`matahari_admin',`
 		type matahari_initrc_exec_t, matahari_hostd_t;
 		type matahari_netd_t, matahari_serviced_t, matahari_sysconfigd_t;
 		type matahari_var_lib_t, matahari_var_run_t;
+                attribute matahari_domain;
+		type matahari_hostd_unit_file_t;
+		type matahari_netd_unit_file_t;
+		type matahari_serviced_unit_file_t;
+		type matahari_sysconfigd_unit_file_t;
 	')
 
 	init_labeled_script_domtrans($1, matahari_initrc_exec_t)
@@ -267,17 +270,8 @@ interface(`matahari_admin',`
 	role_transition $2 matahari_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	allow $1 matahari_netd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, matahari_netd_t)
-
-	allow $1 matahari_hostd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, matahari_hostd_t)
-
-	allow $1 matahari_serviced_t:process { ptrace signal_perms };
-	ps_process_pattern($1, matahari_serviced_t)
-
-	allow $1 matahari_sysconfigd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, matahari_sysconfigd_t)
+	allow $1 matahari_domain:process { ptrace signal_perms };
+	ps_process_pattern($1, matahari_domain)
 
 	files_search_var_lib($1)
 	admin_pattern($1, matahari_var_lib_t)
@@ -286,4 +280,12 @@ interface(`matahari_admin',`
 	admin_pattern($1, matahari_var_run_t)
 
 	matahari_systemctl($1)
+	admin_pattern($1, matahari_hostd_unit_file_t)
+	allow $1 matahari_hostd_unit_file_t:service all_service_perms;
+	admin_pattern($1, matahari_netd_unit_file_t)
+	allow $1 matahari_netd_unit_file_t:service all_service_perms;
+	admin_pattern($1, matahari_serviced_unit_file_t)
+	allow $1 matahari_serviced_unit_file_t:service all_service_perms;
+	admin_pattern($1, matahari_sysconfigd_unit_file_t)
+	allow $1 matahari_sysconfigd_unit_file_t:service all_service_perms;
 ')
