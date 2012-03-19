@@ -1,7 +1,6 @@
 
 ## <summary>policy for collectd</summary>
 
-
 ########################################
 ## <summary>
 ##	Transition to collectd.
@@ -117,6 +116,28 @@ interface(`collectd_manage_lib_dirs',`
 	manage_dirs_pattern($1, collectd_var_lib_t, collectd_var_lib_t)
 ')
 
+########################################
+## <summary>
+##	Execute collectd server in the collectd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`collectd_systemctl',`
+	gen_require(`
+		type collectd_t;
+		type collectd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 collectd_unit_file_t:file read_file_perms;
+	allow $1 collectd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, collectd_t)
+')
 
 ########################################
 ## <summary>
@@ -138,8 +159,9 @@ interface(`collectd_manage_lib_dirs',`
 interface(`collectd_admin',`
 	gen_require(`
 		type collectd_t;
-	type collectd_initrc_exec_t;
-	type collectd_var_lib_t;
+		type collectd_initrc_exec_t;
+		type collectd_var_lib_t;
+		type collectd_unit_file_t;
 	')
 
 	allow $1 collectd_t:process signal_perms;
@@ -157,5 +179,8 @@ interface(`collectd_admin',`
 	files_search_var_lib($1)
 	admin_pattern($1, collectd_var_lib_t)
 
+	collectd_systemctl($1)
+	admin_pattern($1, collectd_unit_file_t)
+	allow $1 collectd_unit_file_t:service all_service_perms;
 ')
 

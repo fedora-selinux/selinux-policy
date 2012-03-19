@@ -204,6 +204,29 @@ interface(`bluetooth_dontaudit_read_helper_state',`
 
 ########################################
 ## <summary>
+##	Execute bluetooth server in the bluetooth domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`bluetooth_systemctl',`
+	gen_require(`
+		type bluetooth_t;
+		type bluetooth_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 bluetooth_unit_file_t:file read_file_perms;
+	allow $1 bluetooth_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, bluetooth_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an bluetooth environment
 ## </summary>
@@ -224,6 +247,7 @@ interface(`bluetooth_admin',`
 		type bluetooth_t, bluetooth_lock_t;
 		type bluetooth_var_lib_t, bluetooth_var_run_t, bluetooth_initrc_exec_t;
 		type bluetooth_conf_t, bluetooth_conf_rw_t;
+		type bluetooth_unit_file_t;
 	')
 
 	allow $1 bluetooth_t:process signal_perms;
@@ -250,4 +274,8 @@ interface(`bluetooth_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, bluetooth_var_run_t)
+
+	bluetooth_systemctl($1)
+	admin_pattern($1, bluetooth_unit_file_t)
+	allow $1 bluetooth_unit_file_t:service all_service_perms;
 ')

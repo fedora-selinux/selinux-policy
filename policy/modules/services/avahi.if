@@ -134,6 +134,29 @@ interface(`avahi_dontaudit_search_pid',`
 
 ########################################
 ## <summary>
+##	Execute avahi server in the avahi domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`avahi_systemctl',`
+	gen_require(`
+		type avahi_t;
+		type avahi_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 avahi_unit_file_t:file read_file_perms;
+	allow $1 avahi_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, avahi_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an avahi environment
 ## </summary>
@@ -152,6 +175,7 @@ interface(`avahi_dontaudit_search_pid',`
 interface(`avahi_admin',`
 	gen_require(`
 		type avahi_t, avahi_var_run_t, avahi_initrc_exec_t;
+		type avahi_unit_file_t;
 	')
 
 	allow $1 avahi_t:process signal_perms;
@@ -168,4 +192,8 @@ interface(`avahi_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, avahi_var_run_t)
+
+	avahi_systemctl($1)
+	admin_pattern($1, avahi_unit_file_t)
+	allow $1 avahi_unit_file_t:service all_service_perms;
 ')

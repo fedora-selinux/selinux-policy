@@ -57,3 +57,26 @@ interface(`colord_read_lib_files',`
 	files_search_var_lib($1)
 	read_files_pattern($1, colord_var_lib_t, colord_var_lib_t)
 ')
+
+########################################
+## <summary>
+##	Execute colord server in the colord domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`colord_systemctl',`
+	gen_require(`
+		type colord_t;
+		type colord_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 colord_unit_file_t:file read_file_perms;
+	allow $1 colord_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, colord_t)
+')

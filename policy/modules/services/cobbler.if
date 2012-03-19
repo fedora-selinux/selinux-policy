@@ -167,6 +167,29 @@ interface(`cobbler_dontaudit_rw_log',`
 
 ########################################
 ## <summary>
+##	Execute cobblerd server in the cobblerd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`cobblerd_systemctl',`
+	gen_require(`
+		type cobblerd_t;
+		type cobblerd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 cobblerd_unit_file_t:file read_file_perms;
+	allow $1 cobblerd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, cobblerd_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an cobblerd environment
 ## </summary>
@@ -187,6 +210,7 @@ interface(`cobblerd_admin',`
 		type cobblerd_t, cobbler_var_lib_t, cobbler_var_log_t;
 		type cobbler_etc_t, cobblerd_initrc_exec_t, httpd_cobbler_content_t;
 		type httpd_cobbler_content_ra_t, httpd_cobbler_content_rw_t;
+		type cobblerd_unit_file_t;
 	')
 
 	allow $1 cobblerd_t:process signal_perms;
@@ -219,4 +243,8 @@ interface(`cobblerd_admin',`
 		# traverse /var/lib/tftpdir to get to cobbler_var_lib_t there.
 		tftp_search_rw_content($1)
 	')
+
+	cobblerd_systemctl($1)
+	admin_pattern($1, cobblerd_unit_file_t)
+	allow $1 cobblerd_unit_file_t:service all_service_perms;
 ')
