@@ -118,6 +118,29 @@ interface(`accountsd_manage_lib_files',`
 
 ########################################
 ## <summary>
+##	Execute accountsd server in the accountsd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`accountsd_systemctl',`
+	gen_require(`
+		type accountsd_t;
+		type accountsd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 accountsd_unit_file_t:file read_file_perms;
+	allow $1 accountsd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, accountsd_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an accountsd environment
 ## </summary>
@@ -136,6 +159,7 @@ interface(`accountsd_manage_lib_files',`
 interface(`accountsd_admin',`
 	gen_require(`
 		type accountsd_t;
+		type accountsd_unit_file_t;
 	')
 
 	allow $1 accountsd_t:process signal_perms;
@@ -146,4 +170,8 @@ interface(`accountsd_admin',`
 	')
 
 	accountsd_manage_lib_files($1)
+
+	accountsd_systemctl($1)
+	admin_pattern($1, accountsd_unit_file_t)
+	allow $1 accountsd_unit_file_t:service all_service_perms;
 ')

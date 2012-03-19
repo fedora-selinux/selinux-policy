@@ -311,6 +311,29 @@ interface(`abrt_rw_fifo_file',`
 	allow $1 abrt_t:fifo_file rw_inherited_fifo_file_perms;
 ')
 
+########################################
+## <summary>
+##	Execute abrt server in the abrt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`abrt_systemctl',`
+	gen_require(`
+		type abrt_t;
+		type abrt_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 abrt_unit_file_t:file read_file_perms;
+	allow $1 abrt_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, abrt_t)
+')
+
 #####################################
 ## <summary>
 ##	All of the rules required to administrate
@@ -334,6 +357,7 @@ interface(`abrt_admin',`
 		type abrt_var_cache_t, abrt_var_log_t;
 		type abrt_var_run_t, abrt_tmp_t;
 		type abrt_initrc_exec_t;
+		type abrt_unit_file_t;
 	')
 
 	allow $1 abrt_t:process { signal_perms };
@@ -362,6 +386,10 @@ interface(`abrt_admin',`
 
 	files_list_tmp($1)
 	admin_pattern($1, abrt_tmp_t)
+
+	abrt_systemctl($1)
+	admin_pattern($1, abrt_unit_file_t)
+	allow $1 abrt_unit_file_t:service all_service_perms;
 ')
 
 ####################################
