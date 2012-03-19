@@ -77,7 +77,7 @@ interface(`dhcpd_systemctl',`
 	systemd_exec_systemctl($1)
 	systemd_search_unit_dirs($1)
 	allow $1 dhcpd_unit_file_t:file read_file_perms;
-	allow $1 dhcpd_unit_file_t:service all_service_perms;
+	allow $1 dhcpd_unit_file_t:service manage_service_perms;
 
 	ps_process_pattern($1, dhcpd_t)
 ')
@@ -103,6 +103,7 @@ interface(`dhcpd_admin',`
 	gen_require(`
 		type dhcpd_t, dhcpd_tmp_t, dhcpd_state_t;
 		type dhcpd_var_run_t, dhcpd_initrc_exec_t;
+		type dhcpd_unit_file_t;
 	')
 
 	allow $1 dhcpd_t:process signal_perms;
@@ -125,4 +126,6 @@ interface(`dhcpd_admin',`
 	admin_pattern($1, dhcpd_var_run_t)
 
 	dhcpd_systemctl($1)
+	admin_pattern($1, dhcpd_unit_file_t)
+	allow $1 dhcpd_unit_file_t:service all_service_perms;
 ')
