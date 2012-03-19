@@ -77,6 +77,29 @@ interface(`corosync_stream_connect',`
 	stream_connect_pattern($1, corosync_var_run_t, corosync_var_run_t, corosync_t)
 ')
 
+########################################
+## <summary>
+##	Execute corosync server in the corosync domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`corosync_systemctl',`
+	gen_require(`
+		type corosync_t;
+		type corosync_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 corosync_unit_file_t:file read_file_perms;
+	allow $1 corosync_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, corosync_t)
+')
+
 ######################################
 ## <summary>
 ##	All of the rules required to administrate
@@ -99,6 +122,7 @@ interface(`corosyncd_admin',`
 		type corosync_t, corosync_var_lib_t, corosync_var_log_t;
 		type corosync_var_run_t, corosync_tmp_t, corosync_tmpfs_t;
 		type corosync_initrc_exec_t;
+		type corosync_unit_file_t;
 	')
 
 	allow $1 corosync_t:process signal_perms;
@@ -126,4 +150,8 @@ interface(`corosyncd_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, corosync_var_run_t)
+
+	corosync_systemctl($1)
+	admin_pattern($1, corosync_unit_file_t)
+	allow $1 corosync_unit_file_t:service all_service_perms;
 ')
