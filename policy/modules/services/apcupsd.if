@@ -123,6 +123,29 @@ interface(`apcupsd_cgi_script_domtrans',`
 
 ########################################
 ## <summary>
+##	Execute apcupsd server in the apcupsd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`apcupsd_systemctl',`
+	gen_require(`
+		type apcupsd_t;
+		type apcupsd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 apcupsd_unit_file_t:file read_file_perms;
+	allow $1 apcupsd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, apcupsd_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate 
 ##	an apcupsd environment
 ## </summary>
@@ -144,6 +167,7 @@ interface(`apcupsd_admin',`
 		type apcupsd_log_t, apcupsd_lock_t;
 		type apcupsd_var_run_t;
 		type apcupsd_initrc_exec_t;
+		type apcupsd_unit_file_t;
 	')
 
 	allow $1 apcupsd_t:process signal_perms;
@@ -169,4 +193,8 @@ interface(`apcupsd_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, apcupsd_var_run_t)
+
+	apcupsd_systemctl($1)
+	admin_pattern($1, apcupsd_unit_file_t)
+	allow $1 apcupsd_unit_file_t:service all_service_perms;
 ')

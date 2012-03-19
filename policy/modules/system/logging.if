@@ -1094,6 +1094,7 @@ interface(`logging_admin_audit',`
 		type auditd_t, auditd_etc_t, auditd_log_t;
 		type auditd_var_run_t;
 		type auditd_initrc_exec_t;
+		type auditd_unit_file_t;
 	')
 
 	allow $1 auditd_t:process signal_perms;
@@ -1118,6 +1119,33 @@ interface(`logging_admin_audit',`
 	domain_system_change_exemption($1)
 	role_transition $2 auditd_initrc_exec_t system_r;
 	allow $2 system_r;
+
+	logging_systemctl_audit($1)
+	admin_pattern($1, auditd_unit_file_t)
+	allow $1 auditd_unit_file_t:service all_service_perms;
+')
+
+########################################
+## <summary>
+##	Execute auditd server in the auditd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`login_systemctl_audit',`
+	gen_require(`
+		type auditd_t;
+		type auditd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 auditd_unit_file_t:file read_file_perms;
+	allow $1 auditd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, auditd_t)
 ')
 
 ########################################

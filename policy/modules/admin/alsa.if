@@ -250,3 +250,26 @@ interface(`alsa_filetrans_named_content',`
 	files_usr_filetrans($1, alsa_etc_rw_t, dir, "pcm")
 	files_var_lib_filetrans($1, alsa_var_lib_t, dir, "alsa")
 ')
+
+########################################
+## <summary>
+##	Execute alsa server in the alsa domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`alsa_systemctl',`
+	gen_require(`
+		type alsa_t;
+		type alsa_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 alsa_unit_file_t:file read_file_perms;
+	allow $1 alsa_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, alsa_t)
+')

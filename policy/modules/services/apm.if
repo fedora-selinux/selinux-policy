@@ -111,3 +111,26 @@ interface(`apm_stream_connect',`
 	files_search_pids($1)
 	stream_connect_pattern($1, apmd_var_run_t, apmd_var_run_t, apmd_t)
 ')
+
+########################################
+## <summary>
+##	Execute apmd server in the apmd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`apmd_systemctl',`
+	gen_require(`
+		type apmd_t;
+		type apmd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 apmd_unit_file_t:file read_file_perms;
+	allow $1 apmd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, apmd_t)
+')
