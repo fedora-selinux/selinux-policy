@@ -1,0 +1,67 @@
+policy_module(quantum, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type quantum_t;
+type quantum_exec_t;
+init_daemon_domain(quantum_t, quantum_exec_t)
+
+permissive quantum_t;
+
+type quantum_log_t;
+logging_log_file(quantum_log_t)
+
+type quantum_tmp_t;
+files_tmp_file(quantum_tmp_t)
+
+type quantum_var_lib_t;
+files_type(quantum_var_lib_t)
+
+type quantum_unit_file_t;
+systemd_unit_file(quantum_unit_file_t)
+
+########################################
+#
+# quantum local policy
+#
+allow quantum_t self:fifo_file rw_fifo_file_perms;
+allow quantum_t self:unix_stream_socket create_stream_socket_perms;
+allow quantum_t self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(quantum_t, quantum_log_t, quantum_log_t)
+manage_files_pattern(quantum_t, quantum_log_t, quantum_log_t)
+logging_log_filetrans(quantum_t, quantum_log_t, { dir file })
+
+manage_files_pattern(quantum_t, quantum_tmp_t, quantum_tmp_t)
+files_tmp_filetrans(quantum_t, quantum_tmp_t, file)
+can_exec(quantum_t, quantum_tmp_t)
+
+manage_dirs_pattern(quantum_t, quantum_var_lib_t, quantum_var_lib_t)
+manage_files_pattern(quantum_t, quantum_var_lib_t, quantum_var_lib_t)
+files_var_lib_filetrans(quantum_t, quantum_var_lib_t, { dir file })
+
+kernel_read_system_state(quantum_t)
+
+corecmd_exec_shell(quantum_t)
+corecmd_exec_bin(quantum_t)
+
+corenet_tcp_bind_generic_node(quantum_t)
+corenet_tcp_bind_quantum_port(quantum_t)
+
+dev_read_urand(quantum_t)
+
+domain_use_interactive_fds(quantum_t)
+
+files_read_etc_files(quantum_t)
+files_read_usr_files(quantum_t)
+
+auth_use_nsswitch(quantum_t)
+
+libs_exec_ldconfig(quantum_t)
+
+logging_send_syslog_msg(quantum_t)
+
+miscfiles_read_localization(quantum_t)
