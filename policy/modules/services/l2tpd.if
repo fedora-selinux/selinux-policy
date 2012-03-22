@@ -1,5 +1,4 @@
-
-## <summary>policy for l2tpd</summary>
+## <summary>Layer 2 Tunneling Protocol daemons.</summary>
 
 ########################################
 ## <summary>
@@ -19,7 +18,6 @@ interface(`l2tpd_domtrans',`
 	corecmd_search_bin($1)
 	domtrans_pattern($1, l2tpd_exec_t, l2tpd_t)
 ')
-
 
 ########################################
 ## <summary>
@@ -51,11 +49,11 @@ interface(`l2tpd_initrc_domtrans',`
 #
 interface(`l2tpd_dgram_send',`
 	gen_require(`
-		type l2tpd_t, l2tpd_tmp_t;
+		type l2tpd_t, l2tpd_tmp_t, l2tpd_var_run_t;
 	')
 
 	files_search_tmp($1)
-	dgram_send_pattern($1, l2tpd_tmp_t, l2tpd_tmp_t, l2tpd_t)
+	dgram_send_pattern($1, { l2tpd_tmp_t l2tpd_var_run_t }, { l2tpd_tmp_t l2tpd_var_run_t }, l2tpd_t)
 ')
 
 ########################################
@@ -132,13 +130,13 @@ interface(`l2tpd_rw_pipes',`
 #
 interface(`l2tpd_admin',`
 	gen_require(`
-		type l2tpd_t;
-	type l2tpd_initrc_exec_t;
-	type l2tpd_var_run_t;
+		type l2tpd_t, l2tpd_initrc_exec_t. l2tpd_var_run_t;
+		type l2tp_etc_t, l2tpd_tmp_t;
 	')
 
 	allow $1 l2tpd_t:process signal_perms;
 	ps_process_pattern($1, l2tpd_t)
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 l2tpd_t:process ptrace;
 	')
@@ -148,7 +146,12 @@ interface(`l2tpd_admin',`
 	role_transition $2 l2tpd_initrc_exec_t system_r;
 	allow $2 system_r;
 
+	files_search_etc($1)
+	admin_pattern($1, l2tp_etc_t)
+
 	files_search_pids($1)
 	admin_pattern($1, l2tpd_var_run_t)
-')
 
+	files_search_tmp($1)
+	admin_pattern($1, l2tpd_tmp_t)
+')
