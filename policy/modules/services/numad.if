@@ -1,0 +1,78 @@
+
+## <summary>policy for numad</summary>
+
+########################################
+## <summary>
+##	Transition to numad.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`numad_domtrans',`
+	gen_require(`
+		type numad_t, numad_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, numad_exec_t, numad_t)
+')
+########################################
+## <summary>
+##	Execute numad server in the numad domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`numad_systemctl',`
+	gen_require(`
+		type numad_t;
+		type numad_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_password_run($1)
+	allow $1 numad_unit_file_t:file read_file_perms;
+	allow $1 numad_unit_file_t:service all_service_perms;
+
+	ps_process_pattern($1, numad_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an numad environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`numad_admin',`
+	gen_require(`
+		type numad_t;
+		type numad_unit_file_t;
+	')
+
+	allow $1 numad_t:process { ptrace signal_perms };
+	ps_process_pattern($1, numad_t)
+
+	numad_systemctl($1)
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
