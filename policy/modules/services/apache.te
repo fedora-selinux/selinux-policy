@@ -181,6 +181,13 @@ gen_tunable(httpd_read_user_content, false)
 
 ## <desc>
 ##	<p>
+##	Allow Apache to run in stickshift mode, not transition to passenger
+##	</p>
+## </desc>
+gen_tunable(httpd_run_stickshift, false)
+
+## <desc>
+##	<p>
 ##	Allow HTTPD to run SSI executables in the same domain as system CGI scripts.
 ##	</p>
 ## </desc>
@@ -865,9 +872,18 @@ optional_policy(`
 ')
 
 optional_policy(`
-	passenger_domtrans(httpd_t)
-	passenger_manage_pid_content(httpd_t)
-	passenger_read_lib_files(httpd_t)
+	tunable_policy(`httpd_run_stickshift', `
+		allow httpd_t self:capability sys_resource;
+		allow httpd_t self:capability { fowner fsetid };
+		allow httpd_t self:process setexec;
+		passenger_exec(httpd_t)
+		passenger_manage_pid_content(httpd_t)
+		passenger_manage_lib_files(httpd_t)
+	',`
+		passenger_domtrans(httpd_t)
+		passenger_manage_pid_content(httpd_t)
+		passenger_read_lib_files(httpd_t)
+	')
 ')
 
 optional_policy(`
