@@ -229,14 +229,25 @@ genfscon ntfs / gen_context(system_u:object_r:dosfs_t,s0)
 genfscon vfat / gen_context(system_u:object_r:dosfs_t,s0)
 
 type fusefs_t;
-fs_noxattr_type(fusefs_t)
+fs_type(fusefs_t)
+files_type(fusefs_t)
 files_mountpoint(fusefs_t)
+files_poly_parent(fusefs_t)
+dev_associate(fusefs_t)
+
 allow fusefs_t self:filesystem associate;
 allow fusefs_t fs_t:filesystem associate;
-genfscon fuse / gen_context(system_u:object_r:fusefs_t,s0)
-genfscon fuseblk / gen_context(system_u:object_r:fusefs_t,s0)
-genfscon fusectl / gen_context(system_u:object_r:fusefs_t,s0)
 
+# Use a transition SID based on the allocating task SID and the
+# filesystem SID to label inodes in the following filesystem types,
+# and label the filesystem itself with the specified context.
+# This is appropriate for pseudo filesystems like devpts and tmpfs
+# where we want to label objects with a derived type.
+fs_use_trans fuse gen_context(system_u:object_r:fusefs_t,s0)
+fs_use_trans fuseblk gen_context(system_u:object_r:fusefs_t,s0)
+fs_use_trans fusectl gen_context(system_u:object_r:fusefs_t,s0)
+
+allow fusefs_t noxattrfs:filesystem associate;
 #
 # iso9660_t is the type for CD filesystems
 # and their files.
