@@ -25,6 +25,10 @@ systemd_unit_file(quantum_unit_file_t)
 #
 # quantum local policy
 #
+allow quantum_t self:capability { setuid sys_resource setgid audit_write };
+allow quantum_t self:process { setsched setrlimit };
+allow quantum_t self:key manage_key_perms;
+
 allow quantum_t self:fifo_file rw_fifo_file_perms;
 allow quantum_t self:unix_stream_socket create_stream_socket_perms;
 allow quantum_t self:tcp_socket create_stream_socket_perms;
@@ -41,6 +45,7 @@ manage_dirs_pattern(quantum_t, quantum_var_lib_t, quantum_var_lib_t)
 manage_files_pattern(quantum_t, quantum_var_lib_t, quantum_var_lib_t)
 files_var_lib_filetrans(quantum_t, quantum_var_lib_t, { dir file })
 
+kernel_read_kernel_sysctls(quantum_t)
 kernel_read_system_state(quantum_t)
 
 corecmd_exec_shell(quantum_t)
@@ -48,6 +53,7 @@ corecmd_exec_bin(quantum_t)
 
 corenet_tcp_bind_generic_node(quantum_t)
 corenet_tcp_bind_quantum_port(quantum_t)
+corenet_tcp_connect_mysqld_port(quantum_t)
 
 dev_read_urand(quantum_t)
 
@@ -60,6 +66,13 @@ auth_use_nsswitch(quantum_t)
 
 libs_exec_ldconfig(quantum_t)
 
+logging_send_audit_msgs(quantum_t)
 logging_send_syslog_msg(quantum_t)
 
 miscfiles_read_localization(quantum_t)
+
+sysnet_domtrans_ifconfig(quantum_t)
+
+optional_policy(`
+	brctl_domtrans(quantum_t)
+')
