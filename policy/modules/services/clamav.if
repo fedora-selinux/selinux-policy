@@ -151,6 +151,30 @@ interface(`clamav_manage_clamd_pid',`
 	manage_files_pattern($1, clamd_var_run_t, clamd_var_run_t)
 ')
 
+#######################################
+## <summary>
+##      Execute clamd server in the clamd domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to transition.
+##      </summary>
+## </param>
+#
+interface(`clamd_systemctl',`
+        gen_require(`
+                type clamd_t;
+                type clamd_unit_file_t;
+        ')
+
+        systemd_exec_systemctl($1)
+        systemd_read_fifo_file_password_run($1)
+        allow $1 clamd_unit_file_t:file read_file_perms;
+        allow $1 clamd_unit_file_t:service manage_service_perms;
+
+        ps_process_pattern($1, clamd_t)
+')
+
 ########################################
 ## <summary>
 ##	All of the rules required to administrate
@@ -174,6 +198,7 @@ interface(`clamav_admin',`
 		type clamd_var_log_t, clamd_var_lib_t, clamd_var_run_t;
 		type clamscan_t, clamscan_tmp_t, clamd_initrc_exec_t;
 		type freshclam_t, freshclam_var_log_t;
+		type clamd_unit_file_t;
 	')
 
 	allow $1 clamd_t:process signal_perms;
@@ -196,6 +221,10 @@ interface(`clamav_admin',`
 	role_transition $2 clamd_initrc_exec_t system_r;
 	allow $2 system_r;
 
+	clamd_systemctl($1)
+	admin_pattern($1, clamd_unit_file_t)
+	allow $1 clamd_unit_file_t:service all_service_perms;
+
 	files_list_etc($1)
 	admin_pattern($1, clamd_etc_t)
 
@@ -214,4 +243,10 @@ interface(`clamav_admin',`
 	admin_pattern($1, clamscan_tmp_t)
 
 	admin_pattern($1, freshclam_var_log_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+
 ')
