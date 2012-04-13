@@ -24,6 +24,9 @@ condor_domain_template(schedd)
 condor_domain_template(startd)
 condor_domain_template(procd)
 
+type condor_schedd_tmp_t;
+files_tmp_file(condor_schedd_tmp_t)
+
 type condor_startd_tmp_t;
 files_tmp_file(condor_startd_tmp_t)
 
@@ -114,9 +117,12 @@ optional_policy(`
 # condor master local policy
 #
 
-allow condor_master_t self:capability { setuid setgid dac_override };
+allow condor_master_t self:capability { setuid setgid dac_override sys_ptrace };
 
 allow condor_master_t condor_domain:process signal;
+
+corenet_tcp_bind_condor_port(condor_master_t)
+corenet_udp_bind_condor_port(condor_master_t)
 
 domain_read_all_domains_state(condor_master_t)
 
@@ -129,8 +135,8 @@ auth_use_nsswitch(condor_master_t)
 
 allow condor_collector_t self:capability { setuid setgid };
 
-allow condor_collector_t condor_master_t:tcp_socket { getopt getattr setopt accept };
-allow condor_collector_t condor_master_t:udp_socket { getopt getattr setopt };
+allow condor_collector_t condor_master_t:tcp_socket rw_stream_socket_perms;
+allow condor_collector_t condor_master_t:udp_socket rw_socket_perms;
 
 kernel_read_network_state(condor_collector_t)
 
@@ -141,6 +147,10 @@ auth_use_nsswitch(condor_collector_t)
 # condor negotiator local policy
 #
 allow condor_negotiator_t self:capability { setuid setgid };
+allow condor_negotiator_t condor_master_t:tcp_socket rw_stream_socket_perms;
+allow condor_negotiator_t condor_master_t:udp_socket getattr;
+
+corenet_tcp_connect_ephemeral_port(condor_negotiator_t)
 
 auth_use_nsswitch(condor_negotiator_t)
 
@@ -149,7 +159,7 @@ auth_use_nsswitch(condor_negotiator_t)
 # condor procd local policy
 #
 
-allow condor_procd_t self:capability { fowner chown dac_override };
+allow condor_procd_t self:capability { fowner chown dac_override sys_ptrace };
 
 domain_read_all_domains_state(condor_procd_t)
 
@@ -162,6 +172,19 @@ domtrans_pattern(condor_schedd_t, condor_procd_exec_t, condor_procd_t)
 
 # dac_override because of /var/log/condor
 allow condor_schedd_t self:capability { setuid chown setgid dac_override };
+allow condor_schedd_t condor_master_t:tcp_socket rw_stream_socket_perms;
+allow condor_schedd_t condor_master_t:udp_socket getattr;
+
+allow condor_schedd_t condor_var_lock_t:dir manage_file_perms;
+
+manage_dirs_pattern(condor_schedd_t, condor_schedd_tmp_t, condor_schedd_tmp_t)
+manage_files_pattern(condor_schedd_t, condor_schedd_tmp_t, condor_schedd_tmp_t)
+files_tmp_filetrans(condor_schedd_t, condor_schedd_tmp_t, { file dir })
+allow condor_schedd_t condor_schedd_tmp_t:file { relabelfrom relabelto };
+
+kernel_read_kernel_sysctls(condor_schedd_t)
+
+corenet_tcp_connect_ephemeral_port(condor_schedd_t)
 
 auth_use_nsswitch(condor_schedd_t)
 
@@ -201,4 +224,3 @@ optional_policy(`
 optional_policy(`
 	unconfined_domain(condor_startd_t)
 ')
-
