@@ -211,6 +211,13 @@ gen_tunable(httpd_unified, false)
 
 ## <desc>
 ##	<p>
+##	Allow httpd to access openstack ports
+##	</p>
+## </desc>
+gen_tunable(httpd_use_openstack, false)
+
+## <desc>
+##	<p>
 ##	Allow httpd to access cifs file systems
 ##	</p>
 ## </desc>
@@ -1377,3 +1384,97 @@ systemd_manage_passwd_run(httpd_t)
 domtrans_pattern(httpd_t, httpd_passwd_exec_t, httpd_passwd_t)
 dontaudit httpd_passwd_t httpd_config_t:file read;
 
+
+search_dirs_pattern(httpd_script_type, httpd_sys_content_t, httpd_script_exec_type)
+corecmd_shell_entry_type(httpd_script_type)
+
+allow httpd_script_type self:fifo_file rw_file_perms;
+allow httpd_script_type self:unix_stream_socket connectto;
+
+allow httpd_script_type httpd_t:fifo_file write;
+# apache should set close-on-exec
+apache_dontaudit_leaks(httpd_script_type)
+
+append_files_pattern(httpd_script_type, httpd_log_t, httpd_log_t)
+logging_search_logs(httpd_script_type)
+
+kernel_dontaudit_search_sysctl(httpd_script_type)
+kernel_dontaudit_search_kernel_sysctl(httpd_script_type)
+
+dev_read_rand(httpd_script_type)
+dev_read_urand(httpd_script_type)
+
+corecmd_exec_all_executables(httpd_script_type)
+application_exec_all(httpd_script_type)
+
+files_exec_etc_files(httpd_script_type)
+files_read_etc_files(httpd_script_type)
+files_search_home(httpd_script_type)
+
+libs_exec_ld_so(httpd_script_type)
+libs_exec_lib_files(httpd_script_type)
+
+miscfiles_read_fonts(httpd_script_type)
+miscfiles_read_public_files(httpd_script_type)
+
+seutil_dontaudit_search_config(httpd_script_type)
+allow httpd_t httpd_script_type:unix_stream_socket connectto;
+
+allow httpd_t httpd_script_exec_type:file read_file_perms;
+allow httpd_t httpd_script_exec_type:lnk_file read_lnk_file_perms;
+allow httpd_t httpd_script_type:process { signal sigkill sigstop };
+allow httpd_t httpd_script_exec_type:dir list_dir_perms;
+
+allow httpd_script_type self:process { setsched signal_perms };
+allow httpd_script_type self:unix_stream_socket create_stream_socket_perms;
+allow httpd_script_type self:unix_dgram_socket create_socket_perms;
+
+allow httpd_script_type httpd_t:fd use;
+allow httpd_script_type httpd_t:process sigchld;
+
+dontaudit httpd_script_type httpd_t:tcp_socket { read write };
+
+kernel_read_system_state(httpd_script_type)
+
+dev_read_urand(httpd_script_type)
+
+fs_getattr_xattr_fs(httpd_script_type)
+
+files_read_etc_runtime_files(httpd_script_type)
+files_read_usr_files(httpd_script_type)
+
+libs_read_lib_files(httpd_script_type)
+
+miscfiles_read_localization(httpd_script_type)
+allow httpd_script_type httpd_sys_content_t:dir search_dir_perms;
+
+tunable_policy(`httpd_enable_cgi && allow_ypbind',`
+	nis_use_ypbind_uncond(httpd_script_type)
+')
+
+optional_policy(`
+	nscd_socket_use(httpd_script_type)
+')
+
+read_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
+
+tunable_policy(`httpd_builtin_scripting',`
+	allow httpd_t httpd_content_type:dir search_dir_perms;
+	allow httpd_suexec_t httpd_content_type:dir search_dir_perms;
+
+	allow httpd_t httpd_content_type:dir list_dir_perms;
+	read_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
+	read_lnk_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
+
+	allow httpd_t httpd_content_type:dir list_dir_perms;
+	read_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
+	read_lnk_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
+')
+
+tunable_policy(`httpd_use_openstack',`
+	corenet_tcp_connect_keystone_port(httpd_sys_script_t)
+	corenet_tcp_connect_all_ephemeral_ports(httpd_t)
+	corenet_tcp_connect_glance_port(httpd_sys_script_t)
+')
+
+>>>>>>> cd91863... Add support for apache to use openstack, change port definitions to match openstack definitions
