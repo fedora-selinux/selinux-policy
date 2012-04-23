@@ -95,6 +95,10 @@ files_type(abrt_retrace_cache_t)
 type abrt_retrace_spool_t;
 files_spool_file(abrt_retrace_spool_t)
 
+type abrt_watch_log_t;
+type abrt_watch_log_exec_t;
+init_daemon_domain(abrt_watch_log_t, abrt_watch_log_exec_t)
+
 ########################################
 #
 # abrt local policy
@@ -423,6 +427,24 @@ domain_use_interactive_fds(abrt_dump_oops_t)
 fs_list_inotifyfs(abrt_dump_oops_t)
 
 logging_read_generic_logs(abrt_dump_oops_t)
+
+#######################################
+#
+# abrt_watch_log local policy
+#
+
+allow abrt_watch_log_t self:fifo_file rw_fifo_file_perms;
+allow abrt_watch_log_t self:unix_stream_socket create_stream_socket_perms;
+
+read_files_pattern(abrt_watch_log_t, abrt_etc_t, abrt_etc_t)
+
+domtrans_pattern(abrt_watch_log_t, abrt_dump_oops_exec_t, abrt_dump_oops_t)
+
+logging_read_all_logs(abrt_watch_log_t)
+
+optional_policy(`
+	unconfined_domain(abrt_watch_log_t)
+')
 
 #######################################
 #
