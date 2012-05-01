@@ -800,7 +800,7 @@ optional_policy(`
 # virt_lxc local policy
 #
 allow virtd_lxc_t self:capability { dac_override net_admin net_raw setpcap chown sys_admin sys_resource };
-allow virtd_lxc_t self:process { setrlimit setsched getcap setcap signal_perms };
+allow virtd_lxc_t self:process { setexec setrlimit setsched getcap setcap signal_perms };
 allow virtd_lxc_t self:fifo_file rw_fifo_file_perms;
 allow virtd_lxc_t self:netlink_route_socket rw_netlink_socket_perms;
 allow virtd_lxc_t self:unix_stream_socket create_stream_socket_perms;
@@ -825,6 +825,7 @@ manage_lnk_files_pattern(virtd_lxc_t, svirt_lxc_file_t, svirt_lxc_file_t)
 manage_sock_files_pattern(virtd_lxc_t, svirt_lxc_file_t, svirt_lxc_file_t)
 manage_fifo_files_pattern(virtd_lxc_t, svirt_lxc_file_t, svirt_lxc_file_t)
 allow virtd_lxc_t svirt_lxc_file_t:dir_file_class_set { relabelto relabelfrom };
+allow virtd_lxc_t svirt_lxc_file_t:filesystem { relabelto relabelfrom };
 files_associate_rootfs(svirt_lxc_file_t)
 
 storage_manage_fixed_disk(virtd_lxc_t)
@@ -842,6 +843,8 @@ dev_rw_sysfs(virtd_lxc_t)
 
 domain_use_interactive_fds(virtd_lxc_t)
 
+files_search_all(virtd_lxc_t)
+files_getattr_all_files(virtd_lxc_t)
 files_read_etc_files(virtd_lxc_t)
 files_read_usr_files(virtd_lxc_t)
 files_relabel_rootfs(virtd_lxc_t)
@@ -865,6 +868,7 @@ fs_relabelfrom_tmpfs(virtd_lxc_t)
 
 selinux_mount_fs(virtd_lxc_t)
 selinux_unmount_fs(virtd_lxc_t)
+seutil_read_config(virtd_lxc_t)
 
 term_use_generic_ptys(virtd_lxc_t)
 term_use_ptmx(virtd_lxc_t)
@@ -895,6 +899,7 @@ allow svirt_lxc_domain self:capability { kill setuid setgid dac_override };
 allow virtd_t svirt_lxc_domain:unix_stream_socket { create_stream_socket_perms connectto };
 allow virtd_t svirt_lxc_domain:process { signal_perms };
 allow virtd_lxc_t svirt_lxc_domain:process { getattr getsched setsched transition signal signull sigkill };
+allow svirt_lxc_domain virtd_lxc_t:process sigchld;
 allow svirt_lxc_domain virtd_lxc_t:fd use;
 allow svirt_lxc_domain virtd_lxc_var_run_t:dir search_dir_perms;
 allow svirt_lxc_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
@@ -945,6 +950,8 @@ auth_dontaudit_read_login_records(svirt_lxc_domain)
 auth_dontaudit_write_login_records(svirt_lxc_domain)
 auth_search_pam_console_data(svirt_lxc_domain)
 
+clock_read_adjtime(svirt_lxc_domain)
+
 init_read_utmp(svirt_lxc_domain)
 init_dontaudit_write_utmp(svirt_lxc_domain)
 
@@ -966,6 +973,10 @@ seutil_read_default_contexts(svirt_lxc_domain)
 miscfiles_read_fonts(svirt_lxc_domain)
 
 optional_policy(`
+	udev_read_pid_files(svirt_lxc_domain)
+')
+
+optional_policy(`
 	apache_exec_modules(svirt_lxc_domain)
 ')
 
@@ -980,7 +991,7 @@ allow svirt_lxc_net_t self:udp_socket create_socket_perms;
 corenet_tcp_bind_generic_node(svirt_lxc_net_t)
 corenet_udp_bind_generic_node(svirt_lxc_net_t)
 
-allow svirt_lxc_net_t self:capability { net_raw net_admin net_bind_service };
+allow svirt_lxc_net_t self:capability { net_raw net_admin net_bind_service sys_nice };
 
 corenet_tcp_sendrecv_all_ports(svirt_lxc_net_t)
 corenet_udp_sendrecv_all_ports(svirt_lxc_net_t)
