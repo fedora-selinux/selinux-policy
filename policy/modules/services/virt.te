@@ -453,6 +453,7 @@ seutil_read_config(virtd_t)
 seutil_read_default_contexts(virtd_t)
 seutil_read_file_contexts(virtd_t)
 
+sysnet_signull_ifconfig(virtd_t)
 sysnet_signal_ifconfig(virtd_t)
 sysnet_domtrans_ifconfig(virtd_t)
 sysnet_read_config(virtd_t)
@@ -911,7 +912,8 @@ allow virtd_t svirt_lxc_domain:process { signal_perms };
 allow virtd_lxc_t svirt_lxc_domain:process { getattr getsched setsched transition signal signull sigkill };
 allow svirt_lxc_domain virtd_lxc_t:process sigchld;
 allow svirt_lxc_domain virtd_lxc_t:fd use;
-allow svirt_lxc_domain virtd_lxc_var_run_t:dir search_dir_perms;
+allow svirt_lxc_domain virtd_lxc_var_run_t:dir list_dir_perms;
+allow svirt_lxc_domain virtd_lxc_var_run_t:file read_file_perms;
 allow svirt_lxc_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
 
 allow svirt_lxc_domain self:process { execstack execmem getattr signal_perms getsched setsched setcap setpgid };
@@ -919,9 +921,10 @@ allow svirt_lxc_domain self:fifo_file manage_file_perms;
 allow svirt_lxc_domain self:sem create_sem_perms;
 allow svirt_lxc_domain self:shm create_shm_perms;
 allow svirt_lxc_domain self:msgq create_msgq_perms;
-allow svirt_lxc_domain self:unix_stream_socket create_stream_socket_perms;
+allow svirt_lxc_domain self:unix_stream_socket { create_stream_socket_perms connectto };
 allow svirt_lxc_domain self:unix_dgram_socket { sendto create_socket_perms };
 dontaudit svirt_lxc_domain self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+
 
 manage_dirs_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
 manage_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
@@ -931,25 +934,28 @@ manage_fifo_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
 rw_chr_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
 rw_blk_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
 can_exec(svirt_lxc_domain, svirt_lxc_file_t)
+allow svirt_lxc_net_t svirt_lxc_file_t:dir mounton;
+allow svirt_lxc_net_t svirt_lxc_file_t:filesystem getattr;
 
 kernel_getattr_proc(svirt_lxc_domain)
 kernel_read_kernel_sysctls(svirt_lxc_domain)
+kernel_read_net_sysctls(svirt_lxc_domain)
 kernel_read_system_state(svirt_lxc_domain)
 kernel_dontaudit_search_kernel_sysctl(svirt_lxc_domain)
 
 corecmd_exec_all_executables(svirt_lxc_domain)
 
+files_read_kernel_modules(svirt_lxc_net_t)
 files_dontaudit_list_all_mountpoints(svirt_lxc_domain)
+files_dontaudit_write_etc_runtime_files(svirt_lxc_domain)
 files_entrypoint_all_files(svirt_lxc_domain)
 files_search_all(svirt_lxc_domain)
 files_read_config_files(svirt_lxc_domain)
 files_read_usr_files(svirt_lxc_domain)
 files_read_usr_symlinks(svirt_lxc_domain)
 
-fs_getattr_tmpfs(svirt_lxc_domain)
-fs_getattr_xattr_fs(svirt_lxc_domain)
+fs_getattr_all_fs(svirt_lxc_domain)
 fs_list_inotifyfs(svirt_lxc_domain)
-fs_dontaudit_getattr_xattr_fs(svirt_lxc_domain)
 
 auth_dontaudit_read_passwd(svirt_lxc_domain)
 auth_dontaudit_read_login_records(svirt_lxc_domain)
@@ -984,7 +990,9 @@ allow svirt_lxc_net_t self:udp_socket create_socket_perms;
 allow svirt_lxc_net_t self:tcp_socket create_stream_socket_perms;
 allow svirt_lxc_net_t self:netlink_route_socket create_netlink_socket_perms;
 allow svirt_lxc_net_t self:packet_socket create_socket_perms;
-allow svirt_lxc_net_t self:udp_socket create_socket_perms;
+allow svirt_lxc_net_t self:socket create_socket_perms;
+allow svirt_lxc_net_t self:rawip_socket create_socket_perms;
+allow svirt_lxc_net_t self:netlink_tcpdiag_socket create_socket_perms;
 
 corenet_tcp_bind_generic_node(svirt_lxc_net_t)
 corenet_udp_bind_generic_node(svirt_lxc_net_t)
@@ -1000,6 +1008,8 @@ kernel_read_network_state(svirt_lxc_net_t)
 
 fs_noxattr_type(svirt_lxc_file_t)
 term_pty(svirt_lxc_file_t)
+
+auth_use_nsswitch(svirt_lxc_net_t)
 
 #######################################
 #
