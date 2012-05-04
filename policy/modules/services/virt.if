@@ -316,6 +316,28 @@ interface(`virt_read_pid_files',`
 
 ########################################
 ## <summary>
+##	Manage virt pid directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_pid_dirs',`
+	gen_require(`
+		type virt_var_run_t;
+		type virt_lxc_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_dirs_pattern($1, virt_var_run_t, virt_var_run_t)
+	manage_dirs_pattern($1, virt_lxc_var_run_t, virt_lxc_var_run_t)
+	virt_filetrans_named_content($1)
+')
+
+########################################
+## <summary>
 ##	Manage virt pid files.
 ## </summary>
 ## <param name="domain">
@@ -327,10 +349,12 @@ interface(`virt_read_pid_files',`
 interface(`virt_manage_pid_files',`
 	gen_require(`
 		type virt_var_run_t;
+		type virt_lxc_var_run_t;
 	')
 
 	files_search_pids($1)
 	manage_files_pattern($1, virt_var_run_t, virt_var_run_t)
+	manage_files_pattern($1, virt_lxc_var_run_t, virt_lxc_var_run_t)
 ')
 
 ########################################
@@ -905,3 +929,20 @@ interface(`virt_exec_qemu',`
 	can_exec($1, qemu_exec_t)
 ')
 
+########################################
+## <summary>
+##	Transition to virt named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_filetrans_named_content',`
+	gen_require(`
+		type virt_lxc_var_run_t;
+	')
+
+	files_pid_filetrans($1, virt_lxc_var_run_t, dir, "libvirt-sandbox")
+')
