@@ -631,6 +631,26 @@ interface(`corenet_udp_bind_$1_port',`
 
 ########################################
 ## <summary>
+##	Do not audit attempts to sbind to $1 port.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+## <infoflow type="none"/>
+#
+interface(`corenet_dontaudit_udp_bind_$1_port',`
+	gen_require(`
+		$3 $1_$2;
+	')
+
+	dontaudit dollarsone $1_$2:udp_socket name_bind;
+	$4
+')
+
+########################################
+## <summary>
 ##	Make a TCP connection to the $1 port.
 ## </summary>
 ## <param name="domain">
