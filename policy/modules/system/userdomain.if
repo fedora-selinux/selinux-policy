@@ -908,10 +908,11 @@ template(`userdom_login_user_template', `
 	# User domain Local policy
 	#
 
-	allow $1_t self:capability { setgid chown fowner };
+	allow $1_t self:capability { setgid setuid chown fowner };
+	allow $1 self:process setcurrent;
 	dontaudit $1_t self:capability { sys_nice fsetid };
 
-	allow $1_t self:process ~{ ptrace setcurrent setrlimit execmem execstack execheap };
+	allow $1_t self:process ~{ ptrace setrlimit execmem execstack execheap };
 	dontaudit $1_t self:process setrlimit;
 	dontaudit $1_t self:netlink_route_socket { create ioctl read getattr write setattr append bind connect getopt setopt shutdown nlmsg_read nlmsg_write };
 
@@ -921,6 +922,7 @@ template(`userdom_login_user_template', `
 	kernel_dontaudit_list_all_proc($1_usertype)
 
 	dev_read_sysfs($1_usertype)
+	dev_read_rand($1_usertype)
 	dev_read_urand($1_usertype)
 
 	domain_use_interactive_fds($1_usertype)
@@ -938,8 +940,11 @@ template(`userdom_login_user_template', `
 	fs_list_inotifyfs($1_usertype)
 	fs_rw_anon_inodefs_files($1_usertype)
 
-	auth_dontaudit_write_login_records($1_t)
+	auth_role($1_r, $1_t)
 	auth_rw_cache($1_t)
+	auth_search_pam_console_data($1_t)
+	auth_dontaudit_read_login_records($1_t)
+	auth_dontaudit_write_login_records($1_t)
 
 	application_exec_all($1_t)
 	# The library functions always try to open read-write first,
@@ -1070,10 +1075,6 @@ template(`userdom_restricted_xwindows_user_template',`
 	#
 	# Local policy
 	#
-
-	auth_role($1_r, $1_t)
-	auth_search_pam_console_data($1_usertype)
-	auth_dontaudit_read_login_records($1_usertype)
 
 	dev_read_sound($1_usertype)
 	dev_write_sound($1_usertype)
