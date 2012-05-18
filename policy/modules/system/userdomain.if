@@ -909,7 +909,8 @@ template(`userdom_login_user_template', `
 	#
 
 	allow $1_t self:capability { setgid setuid chown fowner };
-	allow $1 self:process setcurrent;
+	allow $1_t self:process setcurrent;
+	domain_dyntrans_type($1_t)
 	dontaudit $1_t self:capability { sys_nice fsetid };
 
 	allow $1_t self:process ~{ ptrace setrlimit execmem execstack execheap };
@@ -1497,6 +1498,10 @@ template(`userdom_admin_user_template',`
 	',`
 		fs_read_noxattr_fs_files($1_t)
 	')
+
+	tunable_policy(`user_tcp_server',`
+        corenet_tcp_bind_all_unreserved_ports($1_t)
+    ')
 
 	optional_policy(`
 		postgresql_unconfined($1_t)
