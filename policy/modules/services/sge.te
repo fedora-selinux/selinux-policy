@@ -12,6 +12,13 @@ policy_module(sge, 1.0.0)
 ## </desc>
 gen_tunable(sge_use_nfs, false)
 
+## <desc>
+## <p>
+## Allow sge to connect to the network using any TCP port
+## </p>
+## </desc>
+gen_tunable(sge_domain_can_network_connect, false)
+
 attribute sge_domain;
 
 type sge_execd_t, sge_domain;
@@ -52,9 +59,15 @@ dev_read_sysfs(sge_execd_t)
 files_exec_usr_files(sge_execd_t)
 files_search_spool(sge_execd_t)
 
+fs_getattr_xattr_fs(sge_execd_t)
+
 auth_use_nsswitch(sge_execd_t)
 
 init_read_utmp(sge_execd_t)
+
+optional_policy(`
+	sendmail_domtrans(sge_execd_t)
+')
 
 ######################################
 #
@@ -62,9 +75,12 @@ init_read_utmp(sge_execd_t)
 #
 
 allow sge_shepherd_t self:capability { setuid sys_nice chown kill setgid dac_override };
+allow sge_shepherd_t self:process { setsched setrlimit setpgid };
 allow sge_shepherd_t self:process signal_perms;
 
 domtrans_pattern(sge_execd_t, sge_shepherd_exec_t, sge_shepherd_t)
+
+allow sge_shepherd_t sge_job_ssh_t:process sigkill;
 
 kernel_read_sysctl(sge_shepherd_t)
 kernel_read_kernel_sysctls(sge_shepherd_t)
@@ -75,6 +91,14 @@ fs_getattr_all_fs(sge_shepherd_t)
 
 optional_policy(`
 	mta_send_mail(sge_shepherd_t)
+')
+
+optional_policy(`
+	ssh_domtrans(sge_shepherd_t)
+')
+
+optional_policy(`
+	unconfined_domain(sge_shepherd_t)
 ')
 
 #####################################
@@ -146,6 +170,10 @@ dev_read_urand(sge_domain)
 logging_send_syslog_msg(sge_domain)
 
 miscfiles_read_localization(sge_domain)
+
+tunable_policy(`sge_domain_can_network_connect',`
+    corenet_tcp_connect_all_ports(sge_domain)
+')
 
 tunable_policy(`sge_use_nfs',`
     fs_list_auto_mountpoints(sge_domain)
