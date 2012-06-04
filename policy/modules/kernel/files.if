@@ -79,10 +79,30 @@
 #
 interface(`files_type',`
 	gen_require(`
-		attribute file_type, non_security_file_type;
+		attribute file_type, non_security_file_type, non_auth_file_type;
 	')
 
-	typeattribute $1 file_type, non_security_file_type;
+	typeattribute $1 file_type, non_security_file_type, non_auth_file_type;
+')
+
+########################################
+## <summary>
+##	Mark the specified type as a file
+##	that is related to authentication.
+## </summary>
+## <param name="file_type">
+##	<summary>
+##	Type of the authentication-related
+##	file.
+##	</summary>
+## </param>
+#
+interface(`files_auth_file',`
+	gen_require(`
+		attribute file_type, security_file_type, auth_file_type;
+	')
+
+	typeattribute $1 file_type, security_file_type, auth_file_type;
 ')
 
 ########################################
@@ -100,10 +120,10 @@ interface(`files_type',`
 #
 interface(`files_security_file',`
 	gen_require(`
-		attribute file_type, security_file_type;
+		attribute file_type, security_file_type, non_auth_file_type;
 	')
 
-	typeattribute $1 file_type, security_file_type;
+	typeattribute $1 file_type, security_file_type, non_auth_file_type;
 ')
 
 ########################################
@@ -1344,6 +1364,141 @@ interface(`files_unmount_all_file_type_fs',`
 	allow $1 file_type:filesystem unmount;
 ')
 
+########################################
+## <summary>
+##	Read all non-authentication related
+##	directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_list_non_auth_dirs',`
+	gen_require(`
+		attribute non_auth_file_type;
+	')
+
+	allow $1 non_auth_file_type:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read all non-authentication related
+##	files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_read_non_auth_files',`
+	gen_require(`
+		attribute non_auth_file_type;
+	')
+
+	read_files_pattern($1, non_auth_file_type, non_auth_file_type)
+')
+
+########################################
+## <summary>
+##	Read all non-authentication related
+## symbolic links.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_read_non_auth_symlinks',`
+	gen_require(`
+		attribute non_auth_file_type;
+	')
+
+	read_lnk_files_pattern($1, non_auth_file_type, non_auth_file_type)
+')
+
+########################################
+## <summary>
+##	rw non-authentication related files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_rw_non_auth_files',`
+	gen_require(`
+		attribute non_auth_file_type;
+	')
+
+	rw_files_pattern($1, non_auth_file_type, non_auth_file_type)
+')
+
+########################################
+## <summary>
+##	Manage non-authentication related
+##	files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`files_manage_non_auth_files',`
+	gen_require(`
+		attribute non_auth_file_type;
+	')
+
+	manage_dirs_pattern($1, non_auth_file_type, non_auth_file_type)
+	manage_files_pattern($1, non_auth_file_type, non_auth_file_type)
+	manage_lnk_files_pattern($1, non_auth_file_type, non_auth_file_type)
+	manage_fifo_files_pattern($1, non_auth_file_type, non_auth_file_type)
+	manage_sock_files_pattern($1, non_auth_file_type, non_auth_file_type)
+
+	# satisfy the assertions:
+	seutil_create_bin_policy($1)
+	files_manage_kernel_modules($1)
+')
+
+########################################
+## <summary>
+##	Relabel all non-authentication related
+##	files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`files_relabel_non_auth_files',`
+	gen_require(`
+		attribute non_auth_file_type;
+	')
+
+	allow $1 non_auth_file_type:dir list_dir_perms;
+	relabel_dirs_pattern($1, non_auth_file_type, non_auth_file_type)
+	relabel_files_pattern($1, non_auth_file_type, non_auth_file_type)
+	relabel_lnk_files_pattern($1, non_auth_file_type, non_auth_file_type)
+	relabel_fifo_files_pattern($1, non_auth_file_type, non_auth_file_type)
+	relabel_sock_files_pattern($1, non_auth_file_type, non_auth_file_type)
+	# this is only relabelfrom since there should be no
+	# device nodes with file types.
+	relabelfrom_blk_files_pattern($1, non_auth_file_type, non_auth_file_type)
+	relabelfrom_chr_files_pattern($1, non_auth_file_type, non_auth_file_type)
+
+	# satisfy the assertions:
+	seutil_relabelto_bin_policy($1)
+')
+
 #############################################
 ## <summary>
 ##	Manage all configuration directories on filesystem
@@ -1497,6 +1652,24 @@ interface(`files_setattr_all_mountpoints',`
 
 ########################################
 ## <summary>
+##	Do not audit attempts to set the attributes on all mount points.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`files_dontaudit_setattr_all_mountpoints',`
+	gen_require(`
+		attribute mountpoint;
+	')
+
+	dontaudit $1 mountpoint:dir setattr;
+')
+
+########################################
+## <summary>
 ##	Search all mount points.
 ## </summary>
 ## <param name="domain">
@@ -1551,6 +1724,7 @@ interface(`files_dontaudit_list_all_mountpoints',`
 
 ########################################
 ## <summary>
+<<<<<<< HEAD
 ##	Write all mount points.
 ## </summary>
 ## <param name="domain">
@@ -1560,10 +1734,22 @@ interface(`files_dontaudit_list_all_mountpoints',`
 ## </param>
 #
 interface(`files_write_all_mountpoints',`
+=======
+##	Do not audit attempts to write to mount points.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`files_dontaudit_write_all_mountpoints',`
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	gen_require(`
 		attribute mountpoint;
 	')
 
+<<<<<<< HEAD
 	allow $1 mountpoint:dir write;
 ')
 
@@ -1583,6 +1769,9 @@ interface(`files_write_all_dirs',`
 	')
 
 	allow $1 file_type:dir write;
+=======
+	dontaudit $1 mountpoint:dir write;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 ')
 
 ########################################
@@ -1659,6 +1848,11 @@ interface(`files_dontaudit_rw_root_dir',`
 ## <param name="object">
 ##	<summary>
 ##	The object class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
 ##	</summary>
 ## </param>
 #
@@ -1999,6 +2193,11 @@ interface(`files_manage_boot_dirs',`
 ## <param name="object_class">
 ##	<summary>
 ##	The object class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
 ##	</summary>
 ## </param>
 #
@@ -2832,6 +3031,11 @@ interface(`files_manage_etc_symlinks',`
 ##	Object classes to be created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`files_etc_filetrans',`
 	gen_require(`
@@ -2856,6 +3060,11 @@ interface(`files_etc_filetrans',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 ## <rolecap/>
 #
 interface(`files_create_boot_flag',`
@@ -2864,7 +3073,7 @@ interface(`files_create_boot_flag',`
 	')
 
 	allow $1 etc_runtime_t:file manage_file_perms;
-	filetrans_pattern($1, root_t, etc_runtime_t, file)
+	filetrans_pattern($1, root_t, etc_runtime_t, file, $2)
 ')
 
 ########################################
@@ -3047,13 +3256,18 @@ interface(`files_manage_etc_runtime_files',`
 ##	The class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`files_etc_filetrans_etc_runtime',`
 	gen_require(`
 		type etc_t, etc_runtime_t;
 	')
 
-	filetrans_pattern($1, etc_t, etc_runtime_t, $2)
+	filetrans_pattern($1, etc_t, etc_runtime_t, $2, $3)
 ')
 
 ########################################
@@ -3629,6 +3843,11 @@ interface(`files_relabelto_home',`
 ##	The class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`files_home_filetrans',`
 	gen_require(`
@@ -4085,6 +4304,11 @@ interface(`files_relabel_kernel_modules',`
 ## <param name="object_class">
 ##	<summary>
 ##	The object class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
 ##	</summary>
 ## </param>
 #
@@ -4822,6 +5046,11 @@ interface(`files_read_all_tmp_files',`
 ##	The object class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`files_tmp_filetrans',`
 	gen_require(`
@@ -5193,6 +5422,11 @@ interface(`files_read_usr_symlinks',`
 ## <param name="object_class">
 ##	<summary>
 ##	The object class.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
 ##	</summary>
 ## </param>
 #
@@ -5616,6 +5850,11 @@ interface(`files_manage_var_symlinks',`
 ##	The object class.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`files_var_filetrans',`
 	gen_require(`
@@ -5748,6 +5987,11 @@ interface(`files_rw_var_lib_dirs',`
 ## <param name="object_class">
 ##	<summary>
 ##	The object class.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
 ##	</summary>
 ## </param>
 #
@@ -5893,7 +6137,10 @@ interface(`files_search_locks',`
 		type var_t, var_lock_t;
 	')
 
+<<<<<<< HEAD
 	files_search_pids($1)
+=======
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
 	search_dirs_pattern($1, var_t, var_lock_t)
 ')
@@ -5937,6 +6184,7 @@ interface(`files_create_lock_dirs',`
 	allow $1 var_lock_t:dir create_dir_perms;
 ')
 
+<<<<<<< HEAD
 ########################################
 ## <summary>
 ##	Set the attributes of the /var/lock directory.
@@ -5953,6 +6201,10 @@ interface(`files_setattr_lock_dirs',`
 	')
 
 	allow $1 var_lock_t:dir setattr;
+=======
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
+	list_dirs_pattern($1, var_t, var_lock_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 ')
 
 ########################################
@@ -5971,7 +6223,11 @@ interface(`files_rw_lock_dirs',`
 		type var_t, var_lock_t;
 	')
 
+<<<<<<< HEAD
 	files_search_locks($1)
+=======
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	rw_dirs_pattern($1, var_t, var_lock_t)
 ')
 
@@ -5988,10 +6244,11 @@ interface(`files_rw_lock_dirs',`
 interface(`files_relabel_all_lock_dirs',`
 	gen_require(`
 		attribute lockfile;
-		type var_t;
+		type var_t, var_lock_t;
 	')
 
 	allow $1 var_t:dir search_dir_perms;
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
 	relabel_dirs_pattern($1, lockfile, lockfile)
 ')
 
@@ -6010,7 +6267,12 @@ interface(`files_getattr_generic_locks',`
 		type var_t, var_lock_t;
 	')
 
+<<<<<<< HEAD
 	files_search_locks($1)
+=======
+	allow $1 var_t:dir search_dir_perms;
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	allow $1 var_lock_t:dir list_dir_perms;
 	getattr_files_pattern($1, var_lock_t, var_lock_t)
 ')
@@ -6030,8 +6292,14 @@ interface(`files_delete_generic_locks',`
 		type var_t, var_lock_t;
        ')
 
+<<<<<<< HEAD
        files_search_locks($1)
        delete_files_pattern($1, var_lock_t, var_lock_t)
+=======
+	allow $1 var_t:dir search_dir_perms;
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
+	delete_files_pattern($1, var_lock_t, var_lock_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 ')
 
 ########################################
@@ -6050,7 +6318,12 @@ interface(`files_manage_generic_locks',`
 		type var_t, var_lock_t;
 	')
 
+<<<<<<< HEAD
 	files_search_locks($1)
+=======
+	allow $1 var_t:dir search_dir_perms;
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	manage_files_pattern($1, var_lock_t, var_lock_t)
 ')
 
@@ -6068,10 +6341,11 @@ interface(`files_manage_generic_locks',`
 interface(`files_delete_all_locks',`
 	gen_require(`
 		attribute lockfile;
-		type var_t;
+		type var_t, var_lock_t;
 	')
 
 	allow $1 var_t:dir search_dir_perms;
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
 	delete_files_pattern($1, lockfile, lockfile)
 ')
 
@@ -6091,7 +6365,12 @@ interface(`files_read_all_locks',`
 		type var_t, var_lock_t;
 	')
 
+<<<<<<< HEAD
 	files_search_locks($1)
+=======
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
+	allow $1 { var_t var_lock_t }:dir search_dir_perms;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	allow $1 lockfile:dir list_dir_perms;
 	read_files_pattern($1, lockfile, lockfile)
 	read_lnk_files_pattern($1, lockfile, lockfile)
@@ -6113,7 +6392,12 @@ interface(`files_manage_all_locks',`
 		type var_t, var_lock_t;
 	')
 
+<<<<<<< HEAD
 	files_search_locks($1)
+=======
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
+	allow $1 { var_t var_lock_t }:dir search_dir_perms;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	manage_dirs_pattern($1, lockfile, lockfile)
 	manage_files_pattern($1, lockfile, lockfile)
 	manage_lnk_files_pattern($1, lockfile, lockfile)
@@ -6139,13 +6423,23 @@ interface(`files_manage_all_locks',`
 ##	The object class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`files_lock_filetrans',`
 	gen_require(`
 		type var_t, var_lock_t;
 	')
 
+<<<<<<< HEAD
 	files_search_locks($1)
+=======
+	allow $1 var_t:dir search_dir_perms;
+	allow $1 var_lock_t:lnk_file read_lnk_file_perms;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	filetrans_pattern($1, var_lock_t, $2, $3, $4)
 ')
 
@@ -6165,6 +6459,7 @@ interface(`files_dontaudit_getattr_pid_dirs',`
 		type var_run_t;
 	')
 
+	dontaudit $1 var_run_t:lnk_file read_lnk_file_perms;
 	dontaudit $1 var_run_t:dir getattr;
 ')
 
@@ -6183,6 +6478,7 @@ interface(`files_setattr_pid_dirs',`
 		type var_run_t;
 	')
 
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
 	allow $1 var_run_t:dir setattr;
 ')
 
@@ -6259,6 +6555,7 @@ interface(`files_dontaudit_search_pids',`
 		type var_run_t;
 	')
 
+	dontaudit $1 var_run_t:lnk_file read_lnk_file_perms;
 	dontaudit $1 var_run_t:dir search_dir_perms;
 ')
 
@@ -6278,7 +6575,12 @@ interface(`files_dontaudit_search_all_pids',`
 		attribute pidfile;
 	')
 
+<<<<<<< HEAD
 	dontaudit $1 pidfile:dir search_dir_perms;
+=======
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
+	list_dirs_pattern($1, var_t, var_run_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 ')
 
 ########################################
@@ -6297,6 +6599,7 @@ interface(`files_list_pids',`
 		type var_t, var_run_t;
 	')
 
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
 	list_dirs_pattern($1, var_t, var_run_t)
 ')
 
@@ -6334,6 +6637,7 @@ interface(`files_write_generic_pid_pipes',`
 		type var_run_t;
 	')
 
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
 	allow $1 var_run_t:fifo_file write;
 ')
 
@@ -6382,6 +6686,11 @@ interface(`files_write_generic_pid_pipes',`
 ##	The object class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 ## <infoflow type="write" weight="10"/>
 #
 interface(`files_pid_filetrans',`
@@ -6390,6 +6699,10 @@ interface(`files_pid_filetrans',`
 	')
 
 	allow $1 var_t:dir search_dir_perms;
+<<<<<<< HEAD
+=======
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	filetrans_pattern($1, var_run_t, $2, $3, $4)
 ')
 
@@ -6408,6 +6721,7 @@ interface(`files_rw_generic_pids',`
 		type var_t, var_run_t;
 	')
 
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
 	list_dirs_pattern($1, var_t, var_run_t)
 	rw_files_pattern($1, var_run_t, var_run_t)
 ')
@@ -6426,8 +6740,10 @@ interface(`files_rw_generic_pids',`
 interface(`files_dontaudit_getattr_all_pids',`
 	gen_require(`
 		attribute pidfile;
+		type var_run_t;
 	')
 
+	dontaudit $1 var_run_t:lnk_file read_lnk_file_perms;
 	dontaudit $1 pidfile:file getattr;
 ')
 
@@ -6446,6 +6762,7 @@ interface(`files_dontaudit_write_all_pids',`
 		attribute pidfile;
 	')
 
+	dontaudit $1 var_run_t:lnk_file read_lnk_file_perms;
 	dontaudit $1 pidfile:file write;
 ')
 
@@ -6462,8 +6779,10 @@ interface(`files_dontaudit_write_all_pids',`
 interface(`files_dontaudit_ioctl_all_pids',`
 	gen_require(`
 		attribute pidfile;
+		type var_run_t;
 	')
 
+	dontaudit $1 var_run_t:lnk_file read_lnk_file_perms;
 	dontaudit $1 pidfile:file ioctl;
 ')
 
@@ -6591,9 +6910,10 @@ interface(`files_manage_all_pid_dirs',`
 interface(`files_read_all_pids',`
 	gen_require(`
 		attribute pidfile;
-		type var_t;
+		type var_t, var_run_t;
 	')
 
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
 	list_dirs_pattern($1, var_t, pidfile)
 	read_files_pattern($1, pidfile, pidfile)
 	read_lnk_files_pattern($1, pidfile, pidfile)
@@ -6691,6 +7011,7 @@ interface(`files_delete_all_pids',`
 	')
 
 	allow $1 var_t:dir search_dir_perms;
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
 	allow $1 var_run_t:dir rmdir;
 	allow $1 var_run_t:lnk_file delete_lnk_file_perms;
 	delete_files_pattern($1, pidfile, pidfile)
@@ -6711,10 +7032,11 @@ interface(`files_delete_all_pids',`
 interface(`files_delete_all_pid_dirs',`
 	gen_require(`
 		attribute pidfile;
-		type var_t;
+		type var_t, var_run_t;
 	')
 
 	allow $1 var_t:dir search_dir_perms;
+	allow $1 var_run_t:lnk_file read_lnk_file_perms;
 	delete_dirs_pattern($1, pidfile, pidfile)
 ')
 
@@ -6937,6 +7259,11 @@ interface(`files_manage_generic_spool',`
 ##	<summary>
 ##	Object class(es) (single or set including {}) for which this
 ##	the transition will occur.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
 ##	</summary>
 ## </param>
 #

@@ -86,11 +86,14 @@ define(`add_port_attribute',`dnl
 ifelse(eval(range_start($2) < 1024),1,`typeattribute $1 reserved_port_type;',`typeattribute $1 unreserved_port_type;')
 ')
 
+<<<<<<< HEAD
 define(`add_ephemeral_attribute',`dnl
 ifelse(eval(range_start($3) >= 32768 && range_start($3) < 61001),1,`typeattribute $1 ephemeral_port_type;
 ',`ifelse(`$5',`',`',`add_ephemeral_attribute($1,shiftn(4,$*))')')dnl
 ')
 
+=======
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 # bindresvport in glibc starts searching for reserved ports at 512
 define(`add_rpc_attribute',`dnl
 ifelse(eval(range_start($3) >= 512 && range_start($3) < 1024),1,`typeattribute $1 rpc_port_type;
@@ -106,7 +109,10 @@ type $1_client_packet_t, packet_type, client_packet_type;
 type $1_server_packet_t, packet_type, server_packet_type;
 ifelse(`$2',`',`',`add_port_attribute($1_port_t,$3)')dnl
 ifelse(`$2',`',`',`add_rpc_attribute($1_port_t,shift($*))')dnl
+<<<<<<< HEAD
 ifelse(`$2',`',`',`add_ephemeral_attribute($1_port_t,shift($*))')dnl
+=======
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 ifelse(`$2',`',`',`declare_portcons($1_port_t,shift($*))')dnl
 ')
 

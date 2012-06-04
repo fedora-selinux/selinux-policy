@@ -38,10 +38,11 @@ interface(`sysnet_domtrans_dhcpc',`
 #
 interface(`sysnet_run_dhcpc',`
 	gen_require(`
-		type dhcpc_t;
+		attribute_role dhcpc_roles;
 	')
 
 	sysnet_domtrans_dhcpc($1)
+<<<<<<< HEAD
 	role $2 types dhcpc_t;
 
 	modutils_run_insmod(dhcpc_t, $2)
@@ -74,6 +75,9 @@ interface(`sysnet_run_dhcpc',`
 	')
 
 	seutil_run_setfiles(dhcpc_t, $2)
+=======
+	roleattribute $2 dhcpc_roles;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 ')
 
 ########################################
@@ -93,6 +97,25 @@ interface(`sysnet_dontaudit_use_dhcpc_fds',`
 	')
 
 	dontaudit $1 dhcpc_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read/write to the
+##	dhcp unix stream socket descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dontaudit_rw_dhcpc_unix_stream_sockets',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	dontaudit $1 dhcpc_t:unix_stream_socket { read write };
 ')
 
 ########################################
@@ -488,6 +511,11 @@ interface(`sysnet_create_config',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`sysnet_etc_filetrans_config',`
 	gen_require(`
@@ -750,6 +778,11 @@ interface(`sysnet_search_dhcp_state',`
 ##	The object class.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`sysnet_dhcp_state_filetrans',`
 	gen_require(`
@@ -757,7 +790,7 @@ interface(`sysnet_dhcp_state_filetrans',`
 	')
 
 	files_search_var_lib($1)
-	filetrans_pattern($1, dhcp_state_t, $2, $3)
+	filetrans_pattern($1, dhcp_state_t, $2, $3, $4)
 ')
 
 ########################################
@@ -828,6 +861,10 @@ interface(`sysnet_use_ldap',`
 	corenet_tcp_sendrecv_ldap_port($1)
 	corenet_tcp_connect_ldap_port($1)
 	corenet_sendrecv_ldap_client_packets($1)
+
+	# Support for LDAPS
+	dev_read_rand($1)
+	dev_read_urand($1)
 
 	sysnet_read_config($1)
 

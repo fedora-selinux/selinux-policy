@@ -1,4 +1,4 @@
-policy_module(kernel, 1.13.3)
+policy_module(kernel, 1.15.3)
 
 ## <desc>
 ## <p>
@@ -12,12 +12,19 @@ gen_bool(secure_mode_insmod,false)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Disable kernel module loading.
+## </p>
+## </desc>
+gen_bool(secure_mode_insmod, false)
+
 # assertion related attributes
 attribute can_load_kernmodule;
 attribute can_receive_kernel_messages;
 attribute can_dump_kernel;
 
-neverallow ~{ can_load_kernmodule kern_unconfined } self:capability sys_module;
+neverallow ~can_load_kernmodule self:capability sys_module;
 
 # domains with unconfined access to kernel resources
 attribute kern_unconfined;
@@ -56,6 +63,7 @@ sid kernel gen_context(system_u:system_r:kernel_t,mls_systemhigh)
 #
 
 type debugfs_t;
+files_mountpoint(debugfs_t)
 fs_type(debugfs_t)
 files_mountpoint(debugfs_t)
 
@@ -191,7 +199,7 @@ sid tcp_socket		gen_context(system_u:object_r:unlabeled_t,mls_systemhigh)
 # kernel local policy
 #
 
-allow kernel_t self:capability *;
+allow kernel_t self:capability ~sys_module;
 allow kernel_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
 allow kernel_t self:shm create_shm_perms;
 allow kernel_t self:sem create_sem_perms;
@@ -376,6 +384,7 @@ optional_policy(`
 
 	rpc_manage_nfs_ro_content(kernel_t)
 	rpc_manage_nfs_rw_content(kernel_t)
+	rpc_tcp_rw_nfs_sockets(kernel_t)
 	rpc_udp_rw_nfs_sockets(kernel_t)
 
 	tunable_policy(`nfs_export_all_ro',`
@@ -384,7 +393,13 @@ optional_policy(`
 		fs_read_noxattr_fs_files(kernel_t)
 		fs_read_noxattr_fs_symlinks(kernel_t)
 
+<<<<<<< HEAD
 		files_read_non_security_files(kernel_t)
+=======
+		files_list_non_auth_dirs(kernel_t)
+		files_read_non_auth_files(kernel_t)
+		files_read_non_auth_symlinks(kernel_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	')
 
 	tunable_policy(`nfs_export_all_rw',`
@@ -393,7 +408,11 @@ optional_policy(`
 		fs_read_noxattr_fs_files(kernel_t)
 		fs_read_noxattr_fs_symlinks(kernel_t)
 
+<<<<<<< HEAD
 		files_manage_non_security_files(kernel_t)
+=======
+		files_manage_non_auth_files(kernel_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	')
 ')
 
@@ -427,6 +446,20 @@ optional_policy(`
 	# since you may have compromised system security.
 	init_sigchld(unlabeled_t)
 ')
+
+########################################
+#
+# Kernel module loading policy
+#
+
+if( ! secure_mode_insmod ) {
+	allow can_load_kernmodule self:capability sys_module;
+
+	# load_module() calls stop_machine() which
+	# calls sched_setscheduler()
+	allow can_load_kernmodule self:capability sys_nice;
+	kernel_setsched(can_load_kernmodule)
+}
 
 ########################################
 #

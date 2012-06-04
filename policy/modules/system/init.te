@@ -1,4 +1,4 @@
-policy_module(init, 1.16.4)
+policy_module(init, 1.18.4)
 
 gen_require(`
 	class passwd rootok;
@@ -113,6 +113,11 @@ files_tmp_file(initrc_tmp_t)
 
 type initrc_var_run_t;
 files_pid_file(initrc_var_run_t)
+
+ifdef(`distro_gentoo',`
+	type rc_exec_t;
+	domain_entry_file(initrc_t, rc_exec_t)
+')
 
 ifdef(`enable_mls',`
 	kernel_ranged_domtrans_to(init_t, init_exec_t, s0 - mls_systemhigh)
@@ -249,6 +254,8 @@ allow init_t self:process setsched;
 
 ifdef(`distro_gentoo',`
 	allow init_t self:process { getcap setcap };
+
+	init_exec_rc(initrc_t)
 ')
 
 ifdef(`distro_redhat',`
@@ -897,6 +904,11 @@ optional_policy(`
 ')
 
 optional_policy(`
+	asterisk_setattr_logs(initrc_t)
+	asterisk_setattr_pid_files(initrc_t)
+')
+
+optional_policy(`
 	bind_read_config(initrc_t)
 
 	# for chmod in start script
@@ -1205,6 +1217,7 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	virt_manage_pid_dirs(initrc_t)
 	virt_manage_cache(initrc_t)
 	virt_manage_lib_files(initrc_t)
@@ -1218,6 +1231,10 @@ optional_policy(`
 
 optional_policy(`
 	cfengine_append_inherited_log(daemon)
+=======
+	virt_stream_connect(initrc_t)
+	virt_manage_svirt_cache(initrc_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 ')
 
 optional_policy(`

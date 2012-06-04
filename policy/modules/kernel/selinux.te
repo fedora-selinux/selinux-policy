@@ -1,4 +1,4 @@
-policy_module(selinux, 1.9.1)
+policy_module(selinux, 1.11.2)
 
 ## <desc>
 ## <p>
@@ -14,6 +14,15 @@ gen_bool(secure_mode_policyload,false)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Boolean to determine whether the system permits loading policy, setting
+## enforcing mode, and changing boolean values.  Set this to true and you
+## have to reboot to set it back.
+## </p>
+## </desc>
+gen_bool(secure_mode_policyload,false)
+
 attribute boolean_type;
 attribute can_load_policy;
 attribute can_setenforce;
@@ -21,12 +30,16 @@ attribute can_setbool;
 attribute can_setsecparam;
 attribute selinux_unconfined_type;
 
+type secure_mode_policyload_t;
+selinux_labeled_boolean(secure_mode_policyload_t, secure_mode_policyload)
+
 # 
 # security_t is the target type when checking
 # the permissions in the security class.  It is also
 # applied to selinuxfs inodes.
 #
 type security_t, boolean_type;
+files_mountpoint(security_t)
 fs_type(security_t)
 files_mountpoint(security_t)
 mls_trusted_object(security_t)
@@ -47,11 +60,18 @@ neverallow ~{ can_setsecparam } security_t:security setsecparam;
 allow selinux_unconfined_type security_t:dir list_dir_perms;
 allow selinux_unconfined_type security_t:file rw_file_perms;
 allow selinux_unconfined_type boolean_type:file read_file_perms;
+allow selinux_unconfined_type { boolean_type -secure_mode_policyload_t }:file write_file_perms;
 
 # Access the security API.
-allow selinux_unconfined_type security_t:security ~{ load_policy setenforce setbool };
+allow selinux_unconfined_type security_t:security ~{ load_policy setenforce };
+
+ifdef(`distro_rhel4',`
+	# needed for systems without audit support
+	auditallow selinux_unconfined_type security_t:security setbool;
+')
 
 if(!secure_mode_policyload) {
+<<<<<<< HEAD
 	allow can_setenforce security_t:security setenforce;
 	dev_getattr_sysfs_fs(can_setenforce)
 	dev_search_sysfs(can_setenforce)
@@ -75,5 +95,13 @@ if(!secure_mode_policyload) {
 	ifdef(`distro_rhel4',`
 		# needed for systems without audit support
 		auditallow can_setbool boolean_type:security setbool;
+=======
+	allow selinux_unconfined_type security_t:security { load_policy setenforce };
+	allow selinux_unconfined_type secure_mode_policyload_t:file write_file_perms;
+
+	ifdef(`distro_rhel4',`
+		# needed for systems without audit support
+		auditallow selinux_unconfined_type security_t:security { load_policy setenforce };
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 	')
 }

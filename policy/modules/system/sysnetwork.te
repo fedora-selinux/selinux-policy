@@ -1,16 +1,21 @@
-policy_module(sysnetwork, 1.11.2)
+policy_module(sysnetwork, 1.13.2)
 
 ########################################
 #
 # Declarations
 #
 
+<<<<<<< HEAD
 ## <desc>
 ## <p>
 ## Allow dhcpc client applications to execute iptables commands
 ## </p>
 ## </desc>
 gen_tunable(dhcpc_exec_iptables, false)
+=======
+attribute_role dhcpc_roles;
+roleattribute system_r dhcpc_roles;
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 
 # this is shared between dhcpc and dhcpd:
 type dhcp_etc_t;
@@ -24,7 +29,7 @@ files_type(dhcp_state_t)
 type dhcpc_t;
 type dhcpc_exec_t;
 init_daemon_domain(dhcpc_t, dhcpc_exec_t)
-role system_r types dhcpc_t;
+role dhcpc_roles types dhcpc_t;
 
 type dhcpc_helper_exec_t;
 init_script_file(dhcpc_helper_exec_t)
@@ -60,7 +65,7 @@ allow dhcpc_t self:fifo_file rw_fifo_file_perms;
 allow dhcpc_t self:tcp_socket create_stream_socket_perms;
 allow dhcpc_t self:udp_socket create_socket_perms;
 allow dhcpc_t self:packet_socket create_socket_perms;
-allow dhcpc_t self:netlink_route_socket { create_socket_perms nlmsg_read };
+allow dhcpc_t self:netlink_route_socket { create_socket_perms nlmsg_read nlmsg_write };
 
 allow dhcpc_t dhcp_etc_t:dir list_dir_perms;
 read_lnk_files_pattern(dhcpc_t, dhcp_etc_t, dhcp_etc_t)
@@ -91,15 +96,13 @@ files_tmp_filetrans(dhcpc_t, dhcpc_tmp_t, { file dir })
 
 can_exec(dhcpc_t, dhcpc_exec_t)
 
-# transition to ifconfig
-domtrans_pattern(dhcpc_t, ifconfig_exec_t, ifconfig_t)
-
 kernel_read_system_state(dhcpc_t)
 kernel_read_network_state(dhcpc_t)
 kernel_search_network_sysctl(dhcpc_t)
 kernel_read_kernel_sysctls(dhcpc_t)
 kernel_request_load_module(dhcpc_t)
 kernel_use_fds(dhcpc_t)
+kernel_rw_net_sysctls(dhcpc_t)
 
 corecmd_exec_bin(dhcpc_t)
 corecmd_exec_shell(dhcpc_t)
@@ -158,6 +161,13 @@ logging_send_syslog_msg(dhcpc_t)
 miscfiles_read_generic_certs(dhcpc_t)
 miscfiles_read_localization(dhcpc_t)
 
+<<<<<<< HEAD
+=======
+modutils_run_insmod(dhcpc_t, dhcpc_roles)
+
+sysnet_run_ifconfig(dhcpc_t, dhcpc_roles)
+
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 userdom_use_user_terminals(dhcpc_t)
 userdom_dontaudit_search_user_home_dirs(dhcpc_t)
 
@@ -172,6 +182,7 @@ ifdef(`distro_ubuntu',`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	consoletype_exec(dhcpc_t)
 ')
 
@@ -184,6 +195,9 @@ optional_policy(`
 optional_policy(`
 	devicekit_dontaudit_rw_log(dhcpc_t)
 	devicekit_dontaudit_read_pid_files(dhcpc_t)
+=======
+	consoletype_run(dhcpc_t, dhcpc_roles)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 ')
 
 optional_policy(`
@@ -198,7 +212,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	hostname_domtrans(dhcpc_t)
+	hostname_run(dhcpc_t, dhcpc_roles)
 ')
 
 optional_policy(`
@@ -218,8 +232,8 @@ optional_policy(`
 
 # for the dhcp client to run ping to check IP addresses
 optional_policy(`
-	netutils_domtrans_ping(dhcpc_t)
-	netutils_domtrans(dhcpc_t)
+	netutils_run_ping(dhcpc_t, dhcpc_roles)
+	netutils_run(dhcpc_t, dhcpc_roles)
 ',`
 	allow dhcpc_t self:capability setuid;
 	allow dhcpc_t self:rawip_socket create_socket_perms;

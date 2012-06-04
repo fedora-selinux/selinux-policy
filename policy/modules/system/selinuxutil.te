@@ -1,4 +1,4 @@
-policy_module(selinuxutil, 1.14.1)
+policy_module(selinuxutil, 1.16.4)
 
 gen_require(`
 	bool secure_mode;
@@ -12,6 +12,14 @@ gen_require(`
 attribute can_write_binary_policy;
 attribute can_relabelto_binary_policy;
 attribute setfiles_domain;
+
+attribute_role newrole_roles;
+
+attribute_role run_init_roles;
+role system_r types run_init_t;
+
+attribute_role semanage_roles;
+roleattribute system_r semanage_roles;
 
 #
 # selinux_config_t is the type applied to
@@ -36,7 +44,7 @@ role system_r types checkpolicy_t;
 # /etc/selinux/*/contexts/*
 #
 type default_context_t;
-files_type(default_context_t) 
+files_type(default_context_t)
 
 #
 # file_context_t is the type applied to
@@ -56,6 +64,7 @@ application_domain(newrole_t, newrole_exec_t)
 domain_role_change_exemption(newrole_t)
 domain_obj_id_change_exemption(newrole_t)
 domain_interactive_fd(newrole_t)
+role newrole_roles types newrole_t;
 
 #
 # policy_config_t is the type of /etc/security/selinux/*
@@ -91,7 +100,7 @@ type run_init_t;
 type run_init_exec_t;
 application_domain(run_init_t, run_init_exec_t)
 domain_system_change_exemption(run_init_t)
-role system_r types run_init_t;
+role run_init_roles types run_init_t;
 
 type semanage_t;
 type semanage_exec_t;
@@ -99,7 +108,7 @@ application_domain(semanage_t, semanage_exec_t)
 dbus_system_domain(semanage_t, semanage_exec_t)
 init_daemon_domain(semanage_t, semanage_exec_t)
 domain_interactive_fd(semanage_t)
-role system_r types semanage_t;
+role semanage_roles types semanage_t;
 
 type setsebool_t;
 type setsebool_exec_t;
@@ -111,11 +120,19 @@ files_type(semanage_store_t)
 type semanage_read_lock_t;
 files_lock_file(semanage_read_lock_t)
 
-type semanage_tmp_t; 
+type semanage_tmp_t;
 files_tmp_file(semanage_tmp_t)
 
+<<<<<<< HEAD
 type semanage_trans_lock_t; 
 files_lock_file(semanage_trans_lock_t)
+=======
+type semanage_trans_lock_t;
+files_type(semanage_trans_lock_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
+
+type semanage_var_lib_t;
+files_type(semanage_var_lib_t)
 
 type setfiles_t alias restorecon_t, can_relabelto_binary_policy;
 type setfiles_exec_t alias restorecon_exec_t;
@@ -175,7 +192,7 @@ ifdef(`distro_ubuntu',`
 allow load_policy_t self:capability dac_override;
 
 # only allow read of policy config files
-read_files_pattern(load_policy_t,{ policy_src_t policy_config_t },policy_config_t)
+read_files_pattern(load_policy_t, { policy_src_t policy_config_t }, policy_config_t)
 
 domain_use_interactive_fds(load_policy_t)
 
@@ -218,6 +235,10 @@ ifdef(`hide_broken_symptoms',`
 	optional_policy(`
 		unconfined_dontaudit_read_pipes(load_policy_t)
 	')
+')
+
+optional_policy(`
+	portage_dontaudit_use_fds(load_policy_t)
 ')
 
 ########################################
@@ -282,7 +303,14 @@ term_relabel_all_ptys(newrole_t)
 term_getattr_unallocated_ttys(newrole_t)
 term_dontaudit_use_unallocated_ttys(newrole_t)
 
+<<<<<<< HEAD
 auth_use_pam(newrole_t)
+=======
+auth_use_nsswitch(newrole_t)
+auth_run_chk_passwd(newrole_t, newrole_roles)
+auth_run_upd_passwd(newrole_t, newrole_roles)
+auth_rw_faillog(newrole_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 
 # Write to utmp.
 init_rw_utmp(newrole_t)
@@ -354,8 +382,13 @@ selinux_compute_create_context(restorecond_t)
 selinux_compute_relabel_context(restorecond_t)
 selinux_compute_user_contexts(restorecond_t)
 
+<<<<<<< HEAD
 files_relabel_all_files(restorecond_t )
 files_read_non_security_files(restorecond_t)
+=======
+files_relabel_non_auth_files(restorecond_t )
+files_read_non_auth_files(restorecond_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 auth_use_nsswitch(restorecond_t)
 
 locallogin_dontaudit_use_fds(restorecond_t)
@@ -382,6 +415,8 @@ optional_policy(`
 #
 # Run_init local policy
 #
+
+allow run_init_roles system_r;
 
 allow run_init_t self:process setexec;
 allow run_init_t self:capability setuid;
@@ -419,8 +454,8 @@ selinux_compute_user_contexts(run_init_t)
 term_use_console(run_init_t)
 
 auth_use_nsswitch(run_init_t)
-auth_domtrans_chk_passwd(run_init_t)
-auth_domtrans_upd_passwd(run_init_t)
+auth_run_chk_passwd(run_init_t, run_init_roles)
+auth_run_upd_passwd(run_init_t, run_init_roles)
 auth_dontaudit_read_shadow(run_init_t)
 
 init_spec_domtrans_script(run_init_t)
@@ -441,6 +476,8 @@ ifndef(`direct_sysadm_daemon',`
 	ifdef(`distro_gentoo',`
 		# Gentoo integrated run_init:
 		init_script_file_entry_type(run_init_t)
+
+		init_exec_rc(run_init_t)
 	')
 ')
 
@@ -472,8 +509,28 @@ optional_policy(`
 # semodule local policy
 #
 
+<<<<<<< HEAD
 seutil_semanage_policy(semanage_t)
 allow semanage_t self:fifo_file rw_fifo_file_perms;
+=======
+allow semanage_t self:capability { dac_override audit_write };
+allow semanage_t self:unix_stream_socket create_stream_socket_perms;
+allow semanage_t self:unix_dgram_socket create_socket_perms;
+allow semanage_t self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+allow semanage_t self:fifo_file rw_fifo_file_perms;
+
+allow semanage_t policy_config_t:file rw_file_perms;
+
+allow semanage_t semanage_tmp_t:dir manage_dir_perms;
+allow semanage_t semanage_tmp_t:file manage_file_perms;
+files_tmp_filetrans(semanage_t, semanage_tmp_t, { file dir })
+
+manage_dirs_pattern(semanage_t, semanage_var_lib_t, semanage_var_lib_t)
+manage_files_pattern(semanage_t, semanage_var_lib_t, semanage_var_lib_t)
+
+kernel_read_system_state(semanage_t)
+kernel_read_kernel_sysctls(semanage_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 
 manage_dirs_pattern(semanage_t, selinux_var_lib_t,  selinux_var_lib_t)
 manage_files_pattern(semanage_t, selinux_var_lib_t,  selinux_var_lib_t)
@@ -486,8 +543,18 @@ files_read_non_security_files(semanage_t)
 
 seutil_manage_file_contexts(semanage_t)
 seutil_manage_config(semanage_t)
+<<<<<<< HEAD
 seutil_domtrans_setfiles(semanage_t)
 
+=======
+seutil_run_setfiles(semanage_t, semanage_roles)
+seutil_run_loadpolicy(semanage_t, semanage_roles)
+seutil_manage_bin_policy(semanage_t)
+seutil_use_newrole_fds(semanage_t)
+seutil_manage_module_store(semanage_t)
+seutil_get_semanage_trans_lock(semanage_t)
+seutil_get_semanage_read_lock(semanage_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 # netfilter_contexts:
 seutil_manage_default_contexts(semanage_t)
 
@@ -562,9 +629,14 @@ optional_policy(`
 	devicekit_dontaudit_rw_log(setfiles_t)
 ')
 
+<<<<<<< HEAD
 optional_policy(`
 	xserver_append_xdm_tmp_files(setfiles_t)
 ')
+=======
+logging_send_audit_msgs(setfiles_t)
+logging_send_syslog_msg(setfiles_t)
+>>>>>>> f825edc28a6c8a75a42a889a780a83dcec2fa9e1
 
 ifdef(`hide_broken_symptoms',`
 	optional_policy(`
