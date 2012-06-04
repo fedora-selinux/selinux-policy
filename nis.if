@@ -34,7 +34,11 @@ interface(`nis_use_ypbind_uncond',`
 	allow $1 self:udp_socket create_socket_perms;
 
 	allow $1 var_yp_t:dir list_dir_perms;
+<<<<<<< HEAD
 	allow $1 var_yp_t:lnk_file read_lnk_file_perms;
+=======
+	allow $1 var_yp_t:lnk_file { getattr read };
+>>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	allow $1 var_yp_t:file read_file_perms;
 
 	corenet_all_recvfrom_unlabeled($1)
@@ -49,6 +53,7 @@ interface(`nis_use_ypbind_uncond',`
 	corenet_udp_bind_generic_node($1)
 	corenet_tcp_bind_generic_port($1)
 	corenet_udp_bind_generic_port($1)
+<<<<<<< HEAD
 	corenet_tcp_bind_all_rpc_ports($1)
 	corenet_udp_bind_all_rpc_ports($1)
 	corenet_dontaudit_tcp_bind_all_ports($1)
@@ -58,6 +63,16 @@ interface(`nis_use_ypbind_uncond',`
 	corenet_tcp_connect_generic_port($1)
 #	Attempt to see if this is actually needed
 #	corenet_dontaudit_tcp_connect_all_ports($1)
+=======
+	corenet_dontaudit_tcp_bind_all_reserved_ports($1)
+	corenet_dontaudit_udp_bind_all_reserved_ports($1)
+	corenet_dontaudit_tcp_bind_all_ports($1)
+	corenet_dontaudit_udp_bind_all_ports($1)
+	corenet_tcp_connect_portmap_port($1)
+	corenet_tcp_connect_reserved_port($1)
+	corenet_tcp_connect_generic_port($1)
+	corenet_dontaudit_tcp_connect_all_ports($1)
+>>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	corenet_sendrecv_portmap_client_packets($1)
 	corenet_sendrecv_generic_client_packets($1)
 	corenet_sendrecv_generic_server_packets($1)
@@ -244,6 +259,28 @@ interface(`nis_read_ypbind_pid',`
 
 ########################################
 ## <summary>
+<<<<<<< HEAD
+=======
+##	Delete ypbind pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_delete_ypbind_pid',`
+	gen_require(`
+		type ypbind_t;
+	')
+
+	# TODO: add delete pid from dir call to files
+	allow $1 ypbind_t:file unlink;
+')
+
+########################################
+## <summary>
+>>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ##	Read ypserv configuration files.
 ## </summary>
 ## <param name="domain">
@@ -319,6 +356,7 @@ interface(`nis_initrc_domtrans_ypbind',`
 
 ########################################
 ## <summary>
+<<<<<<< HEAD
 ##	Execute ypbind server in the ypbind domain.
 ## </summary>
 ## <param name="domain">
@@ -368,6 +406,8 @@ interface(`nis_systemctl',`
 
 ########################################
 ## <summary>
+=======
+>>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ##	All of the rules required to administrate
 ##	an nis environment
 ## </summary>
@@ -385,6 +425,7 @@ interface(`nis_systemctl',`
 #
 interface(`nis_admin',`
 	gen_require(`
+<<<<<<< HEAD
 		type ypbind_t, yppasswdd_t, ypserv_t;
 		type ypserv_conf_t;
 		type ypbind_var_run_t, yppasswdd_var_run_t, ypserv_var_run_t;
@@ -409,6 +450,24 @@ interface(`nis_admin',`
 	ps_process_pattern($1, ypserv_t)
 
 	allow $1 ypxfr_t:process signal_perms;
+=======
+		type ypbind_t, yppasswdd_t, ypserv_t, ypxfr_t;
+		type ypbind_tmp_t, ypserv_tmp_t, ypserv_conf_t;
+		type ypbind_var_run_t, yppasswdd_var_run_t, ypserv_var_run_t;
+		type ypbind_initrc_exec_t, nis_initrc_exec_t;
+	')
+
+	allow $1 ypbind_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ypbind_t)
+
+	allow $1 yppasswdd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, yppasswdd_t)
+
+	allow $1 ypserv_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ypserv_t)
+
+	allow $1 ypxfr_t:process { ptrace signal_perms };
+>>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	ps_process_pattern($1, ypxfr_t)
 
 	nis_initrc_domtrans($1)
@@ -418,20 +477,34 @@ interface(`nis_admin',`
 	role_transition $2 ypbind_initrc_exec_t system_r;
 	allow $2 system_r;
 
+<<<<<<< HEAD
 	files_list_pids($1)
 	admin_pattern($1, ypbind_var_run_t)
 	nis_systemctl_ypbind($1)
 	admin_pattern($1, ypbind_unit_file_t)
 	allow $1 ypbind_unit_file_t:service all_service_perms;
+=======
+	files_list_tmp($1)
+	admin_pattern($1, ypbind_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, ypbind_var_run_t)
+>>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 
 	admin_pattern($1, yppasswdd_var_run_t)
 
 	files_list_etc($1)
 	admin_pattern($1, ypserv_conf_t)
 
+<<<<<<< HEAD
 	admin_pattern($1, ypserv_var_run_t)
 
 	nis_systemctl($1)
 	admin_pattern($1, nis_unit_file_t)
 	allow $1 nis_unit_file_t:service all_service_perms;
+=======
+	admin_pattern($1, ypserv_tmp_t)
+
+	admin_pattern($1, ypserv_var_run_t)
+>>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ')
