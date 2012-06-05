@@ -13,7 +13,6 @@
 #
 template(`apache_content_template',`
 	gen_require(`
-<<<<<<< HEAD
 		attribute httpd_exec_scripts, httpd_script_exec_type;
 		type httpd_t, httpd_suexec_t, httpd_log_t;
 		type httpd_sys_content_t;
@@ -23,43 +22,21 @@ template(`apache_content_template',`
 	#This type is for webpages
 	type httpd_$1_content_t; # customizable;
 	typeattribute httpd_$1_content_t httpd_content_type;
-=======
-		attribute httpdcontent;
-		attribute httpd_exec_scripts;
-		attribute httpd_script_exec_type;
-		type httpd_t, httpd_suexec_t, httpd_log_t;
-	')
-	# allow write access to public file transfer
-	# services files.
-	gen_tunable(allow_httpd_$1_script_anon_write, false)
-
-	#This type is for webpages
-	type httpd_$1_content_t, httpdcontent; # customizable
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	typealias httpd_$1_content_t alias httpd_$1_script_ro_t;
 	files_type(httpd_$1_content_t)
 
 	# This type is used for .htaccess files
-<<<<<<< HEAD
 	type httpd_$1_htaccess_t, httpd_content_type; # customizable;
 	typeattribute httpd_$1_htaccess_t httpd_content_type;
 	files_type(httpd_$1_htaccess_t)
 
 	# Type that CGI scripts run as
 	type httpd_$1_script_t,	httpd_script_type;
-=======
-	type httpd_$1_htaccess_t; # customizable;
-	files_type(httpd_$1_htaccess_t)
-
-	# Type that CGI scripts run as
-	type httpd_$1_script_t;
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	domain_type(httpd_$1_script_t)
 	role system_r types httpd_$1_script_t;
 
 	# This type is used for executable scripts files
 	type httpd_$1_script_exec_t, httpd_script_exec_type; # customizable;
-<<<<<<< HEAD
 	typeattribute httpd_$1_script_exec_t httpd_content_type;
 	domain_entry_file(httpd_$1_script_t, httpd_$1_script_exec_t)
 
@@ -76,39 +53,6 @@ template(`apache_content_template',`
 	# Allow the script process to search the cgi directory, and users directory
 	allow httpd_$1_script_t httpd_$1_content_t:dir search_dir_perms;
 
-=======
-	corecmd_shell_entry_type(httpd_$1_script_t)
-	domain_entry_file(httpd_$1_script_t, httpd_$1_script_exec_t)
-
-	type httpd_$1_rw_content_t, httpdcontent; # customizable
-	typealias httpd_$1_rw_content_t alias { httpd_$1_script_rw_t httpd_$1_content_rw_t };
-	files_type(httpd_$1_rw_content_t)
-
-	type httpd_$1_ra_content_t, httpdcontent; # customizable
-	typealias httpd_$1_ra_content_t alias { httpd_$1_script_ra_t httpd_$1_content_ra_t };
-	files_type(httpd_$1_ra_content_t)
-
-	read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_htaccess_t)
-
-	domtrans_pattern(httpd_suexec_t, httpd_$1_script_exec_t, httpd_$1_script_t)
-
-	allow httpd_t { httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
-	allow httpd_suexec_t { httpd_$1_content_t httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
-
-	allow httpd_$1_script_t self:fifo_file rw_file_perms;
-	allow httpd_$1_script_t self:unix_stream_socket connectto;
-
-	allow httpd_$1_script_t httpd_t:fifo_file write;
-	# apache should set close-on-exec
-	dontaudit httpd_$1_script_t httpd_t:unix_stream_socket { read write };
-
-	# Allow the script process to search the cgi directory, and users directory
-	allow httpd_$1_script_t httpd_$1_content_t:dir search_dir_perms;
-
-	append_files_pattern(httpd_$1_script_t, httpd_log_t, httpd_log_t)
-	logging_search_logs(httpd_$1_script_t)
-
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	can_exec(httpd_$1_script_t, httpd_$1_script_exec_t)
 	allow httpd_$1_script_t httpd_$1_script_exec_t:dir list_dir_perms;
 
@@ -126,43 +70,6 @@ template(`apache_content_template',`
 	manage_lnk_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 	manage_fifo_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 	manage_sock_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
-<<<<<<< HEAD
-=======
-	files_tmp_filetrans(httpd_$1_script_t, httpd_$1_rw_content_t, { dir file lnk_file sock_file fifo_file })
-
-	kernel_dontaudit_search_sysctl(httpd_$1_script_t)
-	kernel_dontaudit_search_kernel_sysctl(httpd_$1_script_t)
-
-	dev_read_rand(httpd_$1_script_t)
-	dev_read_urand(httpd_$1_script_t)
-
-	corecmd_exec_all_executables(httpd_$1_script_t)
-
-	files_exec_etc_files(httpd_$1_script_t)
-	files_read_etc_files(httpd_$1_script_t)
-	files_search_home(httpd_$1_script_t)
-
-	libs_exec_ld_so(httpd_$1_script_t)
-	libs_exec_lib_files(httpd_$1_script_t)
-
-	miscfiles_read_fonts(httpd_$1_script_t)
-	miscfiles_read_public_files(httpd_$1_script_t)
-
-	seutil_dontaudit_search_config(httpd_$1_script_t)
-
-	tunable_policy(`httpd_enable_cgi && httpd_unified',`
-		allow httpd_$1_script_t httpdcontent:file entrypoint;
-
-		manage_dirs_pattern(httpd_$1_script_t, httpdcontent, httpdcontent)
-		manage_files_pattern(httpd_$1_script_t, httpdcontent, httpdcontent)
-		manage_lnk_files_pattern(httpd_$1_script_t, httpdcontent, httpdcontent)
-		can_exec(httpd_$1_script_t, httpdcontent)
-	')
-
-	tunable_policy(`allow_httpd_$1_script_anon_write',`
-		miscfiles_manage_public_files(httpd_$1_script_t)
-	')
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 
 	# Allow the web server to run scripts and serve pages
 	tunable_policy(`httpd_builtin_scripting',`
@@ -171,31 +78,16 @@ template(`apache_content_template',`
 		manage_lnk_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 		rw_sock_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 
-<<<<<<< HEAD
 		allow httpd_t httpd_$1_ra_content_t:dir { add_entry_dir_perms };
-=======
-		allow httpd_t httpd_$1_ra_content_t:dir { list_dir_perms add_entry_dir_perms };
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 		read_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
 		append_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
 		read_lnk_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
 
-<<<<<<< HEAD
-=======
-		allow httpd_t httpd_$1_content_t:dir list_dir_perms;
-		read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
-		read_lnk_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
-
-		allow httpd_t httpd_$1_content_t:dir list_dir_perms;
-		read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
-		read_lnk_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	')
 
 	tunable_policy(`httpd_enable_cgi',`
 		allow httpd_$1_script_t httpd_$1_script_exec_t:file entrypoint;
 
-<<<<<<< HEAD
 		domtrans_pattern(httpd_suexec_t, httpd_$1_script_exec_t, httpd_$1_script_t)
 
 		# privileged users run the script:
@@ -205,53 +97,6 @@ template(`apache_content_template',`
 
 		# apache runs the script:
 		domtrans_pattern(httpd_t, httpd_$1_script_exec_t, httpd_$1_script_t)
-=======
-		# privileged users run the script:
-		domtrans_pattern(httpd_exec_scripts, httpd_$1_script_exec_t, httpd_$1_script_t)
-
-		# apache runs the script:
-		domtrans_pattern(httpd_t, httpd_$1_script_exec_t, httpd_$1_script_t)
-
-		allow httpd_t httpd_$1_script_t:process { signal sigkill sigstop };
-		allow httpd_t httpd_$1_script_exec_t:dir list_dir_perms;
-
-		allow httpd_$1_script_t self:process { setsched signal_perms };
-		allow httpd_$1_script_t self:unix_stream_socket create_stream_socket_perms;
-
-		allow httpd_$1_script_t httpd_t:fd use;
-		allow httpd_$1_script_t httpd_t:process sigchld;
-
-		kernel_read_system_state(httpd_$1_script_t)
-
-		dev_read_urand(httpd_$1_script_t)
-
-		fs_getattr_xattr_fs(httpd_$1_script_t)
-
-		files_read_etc_runtime_files(httpd_$1_script_t)
-		files_read_usr_files(httpd_$1_script_t)
-
-		libs_read_lib_files(httpd_$1_script_t)
-
-		miscfiles_read_localization(httpd_$1_script_t)
-	')
-
-	optional_policy(`
-		tunable_policy(`httpd_enable_cgi && allow_ypbind',`
-			nis_use_ypbind_uncond(httpd_$1_script_t)
-		')
-	')
-
-	optional_policy(`
-		postgresql_unpriv_client(httpd_$1_script_t)
-
-		tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
-			postgresql_tcp_connect(httpd_$1_script_t)
-		')
-	')
-
-	optional_policy(`
-		nscd_socket_use(httpd_$1_script_t)
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	')
 ')
 
@@ -273,14 +118,8 @@ template(`apache_content_template',`
 interface(`apache_role',`
 	gen_require(`
 		attribute httpdcontent;
-<<<<<<< HEAD
 		type httpd_user_content_t, httpd_user_htaccess_t, httpd_user_script_t;
 		type httpd_user_ra_content_t, httpd_user_rw_content_t, httpd_user_script_exec_t;
-=======
-		type httpd_user_content_t, httpd_user_htaccess_t;
-		type httpd_user_script_t, httpd_user_script_exec_t;
-		type httpd_user_ra_content_t, httpd_user_rw_content_t;
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	')
 
 	role $1 types httpd_user_script_t;
@@ -301,7 +140,6 @@ interface(`apache_role',`
 	relabel_files_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
 	relabel_lnk_files_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
 
-<<<<<<< HEAD
 	manage_dirs_pattern($2, httpd_user_content_t, httpd_user_content_t)
 	manage_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
 	manage_lnk_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
@@ -309,8 +147,6 @@ interface(`apache_role',`
 	relabel_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
 	relabel_lnk_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
 
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	manage_dirs_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
 	manage_files_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
 	manage_lnk_files_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
@@ -325,12 +161,9 @@ interface(`apache_role',`
 	relabel_files_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
 	relabel_lnk_files_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
 
-<<<<<<< HEAD
 	apache_exec_modules($2)
 	apache_filetrans_home_content($2)
 
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	tunable_policy(`httpd_enable_cgi',`
 		# If a user starts a script by hand it gets the proper context
 		domtrans_pattern($2, httpd_user_script_exec_t, httpd_user_script_t)
@@ -400,7 +233,6 @@ interface(`apache_domtrans',`
 	domtrans_pattern($1, httpd_exec_t, httpd_t)
 ')
 
-<<<<<<< HEAD
 ######################################
 ## <summary>
 ##	Allow the specified domain to execute apache
@@ -420,8 +252,6 @@ interface(`apache_exec',`
 	can_exec($1, httpd_exec_t)
 ')
 
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 #######################################
 ## <summary>
 ##	Send a generic signal to apache.
@@ -510,11 +340,7 @@ interface(`apache_dontaudit_rw_fifo_file',`
 		type httpd_t;
 	')
 
-<<<<<<< HEAD
 	dontaudit $1 httpd_t:fifo_file rw_inherited_fifo_file_perms;
-=======
-	dontaudit $1 httpd_t:fifo_file rw_fifo_file_perms;
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ')
 
 ########################################
@@ -596,11 +422,7 @@ interface(`apache_setattr_cache_dirs',`
 		type httpd_cache_t;
 	')
 
-<<<<<<< HEAD
 	allow $1 httpd_cache_t:dir setattr_dir_perms;
-=======
-	allow $1 httpd_cache_t:dir setattr;
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ')
 
 ########################################
@@ -644,7 +466,6 @@ interface(`apache_rw_cache_files',`
 ########################################
 ## <summary>
 ##	Allow the specified domain to delete
-<<<<<<< HEAD
 ##	Apache cache dirs.
 ## </summary>
 ## <param name="domain">
@@ -664,8 +485,6 @@ interface(`apache_delete_cache_dirs',`
 ########################################
 ## <summary>
 ##	Allow the specified domain to delete
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ##	Apache cache.
 ## </summary>
 ## <param name="domain">
@@ -684,7 +503,6 @@ interface(`apache_delete_cache_files',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Allow the specified domain to search
 ##	apache configuration dirs.
 ## </summary>
@@ -705,8 +523,6 @@ interface(`apache_search_config',`
 
 ########################################
 ## <summary>
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ##	Allow the specified domain to read
 ##	apache configuration files.
 ## </summary>
@@ -857,11 +673,7 @@ interface(`apache_dontaudit_append_log',`
 		type httpd_log_t;
 	')
 
-<<<<<<< HEAD
 	dontaudit $1 httpd_log_t:file append_file_perms;
-=======
-	dontaudit $1 httpd_log_t:file { getattr append };
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ')
 
 ########################################
@@ -907,7 +719,6 @@ interface(`apache_dontaudit_search_modules',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Allow the specified domain to read
 ##	the apache module directories.
 ## </summary>
@@ -927,8 +738,6 @@ interface(`apache_read_modules',`
 
 ########################################
 ## <summary>
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ##	Allow the specified domain to list
 ##	the contents of the apache modules
 ##	directory.
@@ -945,10 +754,7 @@ interface(`apache_list_modules',`
 	')
 
 	allow $1 httpd_modules_t:dir list_dir_perms;
-<<<<<<< HEAD
 	read_lnk_files_pattern($1, httpd_modules_t, httpd_modules_t)
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ')
 
 ########################################
@@ -990,7 +796,6 @@ interface(`apache_domtrans_rotatelogs',`
 	domtrans_pattern($1, httpd_rotatelogs_exec_t, httpd_rotatelogs_t)
 ')
 
-<<<<<<< HEAD
 #######################################
 ## <summary>
 ##  Execute httpd_rotatelogs in the caller domain.
@@ -1028,8 +833,6 @@ interface(`apache_exec_sys_script',`
 	can_exec($1, httpd_sys_script_exec_t)
 ')
 
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ########################################
 ## <summary>
 ##	Allow the specified domain to list
@@ -1047,10 +850,7 @@ interface(`apache_list_sys_content',`
 	')
 
 	list_dirs_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
-<<<<<<< HEAD
 	read_lnk_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	files_search_var($1)
 ')
 
@@ -1078,7 +878,6 @@ interface(`apache_manage_sys_content',`
 	manage_lnk_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
 ')
 
-<<<<<<< HEAD
 ######################################
 ## <summary>
 ##	Allow the specified domain to read
@@ -1147,8 +946,6 @@ interface(`apache_delete_sys_content_rw',`
 	delete_sock_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
 ')
 
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ########################################
 ## <summary>
 ##	Execute all web scripts in the system
@@ -1165,16 +962,12 @@ interface(`apache_delete_sys_content_rw',`
 interface(`apache_domtrans_sys_script',`
 	gen_require(`
 		attribute httpdcontent;
-<<<<<<< HEAD
 		type httpd_sys_script_exec_t;
 		type httpd_sys_script_t, httpd_sys_content_t;
 	')
 
 	tunable_policy(`httpd_enable_cgi',`
 		domtrans_pattern($1, httpd_sys_script_exec_t, httpd_sys_script_t)
-=======
-		type httpd_sys_script_t;
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	')
 
 	tunable_policy(`httpd_enable_cgi && httpd_unified',`
@@ -1233,16 +1026,10 @@ interface(`apache_domtrans_all_scripts',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-<<<<<<< HEAD
 ##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
-=======
-##	Role allowed access..
-##	</summary>
-## </param>
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 #
 interface(`apache_run_all_scripts',`
 	gen_require(`
@@ -1269,11 +1056,7 @@ interface(`apache_read_squirrelmail_data',`
 		type httpd_squirrelmail_t;
 	')
 
-<<<<<<< HEAD
 	read_files_pattern($1, httpd_squirrelmail_t, httpd_squirrelmail_t)
-=======
-	allow $1 httpd_squirrelmail_t:file read_file_perms;
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ')
 
 ########################################
@@ -1414,7 +1197,6 @@ interface(`apache_read_tmp_files',`
 	read_files_pattern($1, httpd_tmp_t, httpd_tmp_t)
 ')
 
-<<<<<<< HEAD
 ######################################
 ## <summary>
 ##	Dontaudit attempts to read and write
@@ -1434,8 +1216,6 @@ interface(`apache_dontaudit_rw_tmp_files',`
 	dontaudit $1 httpd_tmp_t:file { read write };
 ')
 
-=======
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ########################################
 ## <summary>
 ##	Dontaudit attempts to write
@@ -1452,11 +1232,7 @@ interface(`apache_dontaudit_write_tmp_files',`
 		type httpd_tmp_t;
 	')
 
-<<<<<<< HEAD
 	dontaudit $1 httpd_tmp_t:file write;
-=======
-	dontaudit $1 httpd_tmp_t:file write_file_perms;
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ')
 
 ########################################
@@ -1497,7 +1273,6 @@ interface(`apache_cgi_domain',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Execute httpd server in the httpd domain.
 ## </summary>
 ## <param name="domain">
@@ -1523,16 +1298,6 @@ interface(`httpd_systemctl',`
 ## <summary>
 ##	All of the rules required to administrate an apache environment
 ## </summary>
-=======
-##	All of the rules required to administrate an apache environment
-## </summary>
-## <param name="prefix">
-##	<summary>
-##	Prefix of the domain. Example, user would be
-##	the prefix for the uder_t domain.
-##	</summary>
-## </param>
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
@@ -1547,7 +1312,6 @@ interface(`httpd_systemctl',`
 #
 interface(`apache_admin',`
 	gen_require(`
-<<<<<<< HEAD
 		attribute httpdcontent, httpd_script_exec_type;
 		type httpd_t, httpd_config_t, httpd_log_t;
 		type httpd_modules_t, httpd_lock_t, httpd_bool_t;
@@ -1563,21 +1327,6 @@ interface(`apache_admin',`
 		allow $1 httpd_t:process ptrace;
 	')
 
-=======
-		attribute httpdcontent;
-		attribute httpd_script_exec_type;
-
-		type httpd_t, httpd_config_t, httpd_log_t;
-		type httpd_modules_t, httpd_lock_t;
-		type httpd_var_run_t, httpd_php_tmp_t;
-		type httpd_suexec_tmp_t, httpd_tmp_t;
-		type httpd_initrc_exec_t;
-	')
-
-	allow $1 httpd_t:process { getattr ptrace signal_perms };
-	ps_process_pattern($1, httpd_t)
-
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	init_labeled_script_domtrans($1, httpd_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 httpd_initrc_exec_t system_r;
@@ -1586,17 +1335,10 @@ interface(`apache_admin',`
 	apache_manage_all_content($1)
 	miscfiles_manage_public_files($1)
 
-<<<<<<< HEAD
 	files_list_etc($1)
 	admin_pattern($1, httpd_config_t)
 
 	logging_list_logs($1)
-=======
-	files_search_etc($1)
-	admin_pattern($1, httpd_config_t)
-
-	logging_search_logs($1)
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 	admin_pattern($1, httpd_log_t)
 
 	admin_pattern($1, httpd_modules_t)
@@ -1607,7 +1349,6 @@ interface(`apache_admin',`
 	admin_pattern($1, httpd_var_run_t)
 	files_pid_filetrans($1, httpd_var_run_t, file)
 
-<<<<<<< HEAD
 	admin_pattern($1, httpdcontent)
 	admin_pattern($1, httpd_script_exec_type)
 
@@ -1697,16 +1438,4 @@ interface(`apache_filetrans_home_content',`
 	filetrans_pattern($1, httpd_user_content_t, httpd_user_script_exec_t, dir, "cgi-bin")
 	filetrans_pattern($1, httpd_user_content_t, httpd_user_content_ra_t, dir, "logs")
 	filetrans_pattern($1, { httpd_user_content_t httpd_user_script_exec_t }, httpd_user_htaccess_t, file, ".htaccess")
-=======
-	kernel_search_proc($1)
-	allow $1 httpd_t:dir list_dir_perms;
-
-	read_lnk_files_pattern($1, httpd_t, httpd_t)
-
-	admin_pattern($1, httpdcontent)
-	admin_pattern($1, httpd_script_exec_type)
-	admin_pattern($1, httpd_tmp_t)
-	admin_pattern($1, httpd_php_tmp_t)
-	admin_pattern($1, httpd_suexec_tmp_t)
->>>>>>> 9f8a6a356b99a19e09256fc37630cd6c22da66b4
 ')
