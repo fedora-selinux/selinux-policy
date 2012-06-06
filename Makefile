@@ -609,6 +609,8 @@ resetlabels:
 # Clean everything
 #
 bare: clean
+	echo "hehe kde jsem asi tak"
+	pwd
 	rm -f $(polxml)
 	rm -f $(layerxml)
 	rm -f $(modxml)
