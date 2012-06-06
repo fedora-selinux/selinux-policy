@@ -611,15 +611,15 @@ resetlabels:
 bare: clean
 	echo "hehe kde jsem asi tak"
 	pwd
-	rm -f $(polxml)
-	rm -f $(layerxml)
-	rm -f $(modxml)
-	rm -f $(tunxml)
-	rm -f $(boolxml)
-	rm -f $(mod_conf)
-	rm -f $(booleans)
-	rm -fR $(htmldir)
-	rm -f $(tags)
+	#rm -f $(polxml)
+	#rm -f $(layerxml)
+	#rm -f $(modxml)
+	#rm -f $(tunxml)
+	#rm -f $(boolxml)
+	#rm -f $(mod_conf)
+	#rm -f $(booleans)
+	#rm -fR $(htmldir)
+	#rm -f $(tags)
 # don't remove these files if we're given a local root
 ifndef LOCAL_ROOT
 	rm -f $(fcsort)
