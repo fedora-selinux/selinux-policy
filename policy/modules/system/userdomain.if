@@ -156,7 +156,7 @@ template(`userdom_base_user_template',`
 		allow $1_t self:process execmem;
 	')
 
-	tunable_policy(`allow_execstack',`
+	tunable_policy(`selinuxuser_execstack',`
 		# Allow making the stack executable via mprotect.
 		allow $1_t self:process execstack;
 	')
@@ -811,7 +811,7 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		tunable_policy(`allow_user_mysql_connect',`
+		tunable_policy(`user_mysql_connect',`
 			mysql_stream_connect($1_t)
 		')
 	')
@@ -832,7 +832,7 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		tunable_policy(`allow_user_postgresql_connect',`
+		tunable_policy(`user_postgresql_connect',`
 			postgresql_stream_connect($1_usertype)
 			postgresql_tcp_connect($1_usertype)
 		')
@@ -906,17 +906,17 @@ template(`userdom_login_user_template', `
 	userdom_manage_tmpfs_role($1_r, $1_usertype)
 
 	ifelse(`$1',`unconfined',`',`
-		gen_tunable(allow_$1_exec_content, true)
+		gen_tunable($1_exec_content, true)
 
-		tunable_policy(`allow_$1_exec_content',`
+		tunable_policy(`$1_exec_content',`
 			userdom_exec_user_tmp_files($1_usertype)
 			userdom_exec_user_home_content_files($1_usertype)
 		')
-		tunable_policy(`allow_$1_exec_content && use_nfs_home_dirs',`
+		tunable_policy(`$1_exec_content && use_nfs_home_dirs',`
                         fs_exec_nfs_files($1_usertype)
 		')
 
-		tunable_policy(`allow_$1_exec_content && use_samba_home_dirs',`
+		tunable_policy(`$1_exec_content && use_samba_home_dirs',`
 			fs_exec_cifs_files($1_usertype)
 		')
 	')
