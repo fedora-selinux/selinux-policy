@@ -265,7 +265,6 @@ allow smbd_t self:unix_stream_socket { create_stream_socket_perms connectto };
 
 allow smbd_t nmbd_t:process { signal signull };
 
-allow winbind_t smbd_var_run_t:dir search_dir_perms;
 allow smbd_t nmbd_var_run_t:file rw_file_perms;
 stream_connect_pattern(smbd_t, nmbd_var_run_t, nmbd_var_run_t, nmbd_t)
 
@@ -520,10 +519,11 @@ allow nmbd_t self:udp_socket create_socket_perms;
 allow nmbd_t self:unix_dgram_socket { create_socket_perms sendto };
 allow nmbd_t self:unix_stream_socket { create_stream_socket_perms connectto };
 
-manage_dirs_pattern(nmbd_t, nmbd_var_run_t, nmbd_var_run_t)
+manage_dirs_pattern(nmbd_t, { smbd_var_run_t nmbd_var_run_t }, nmbd_var_run_t)
 manage_files_pattern(nmbd_t, nmbd_var_run_t, nmbd_var_run_t)
 manage_sock_files_pattern(nmbd_t, nmbd_var_run_t, nmbd_var_run_t)
 files_pid_filetrans(nmbd_t, nmbd_var_run_t, { dir file sock_file })
+filetrans_pattern(nmbd_t, smbd_var_run_t, nmbd_var_run_t, dir)
 
 read_files_pattern(nmbd_t, samba_etc_t, samba_etc_t)
 read_lnk_files_pattern(nmbd_t, samba_etc_t, samba_etc_t)
@@ -534,8 +534,6 @@ manage_files_pattern(nmbd_t, samba_log_t, samba_log_t)
 manage_files_pattern(nmbd_t, samba_var_t, samba_var_t)
 
 allow nmbd_t smbcontrol_t:process signal;
-
-allow nmbd_t smbd_var_run_t:dir rw_dir_perms;
 
 kernel_getattr_core_if(nmbd_t)
 kernel_getattr_message_if(nmbd_t)
@@ -844,7 +842,6 @@ allow winbind_t self:udp_socket create_socket_perms;
 
 allow winbind_t nmbd_t:process { signal signull };
 
-allow winbind_t smbd_var_run_t:dir search_dir_perms;
 read_files_pattern(winbind_t, nmbd_var_run_t, nmbd_var_run_t)
 
 allow winbind_t samba_etc_t:dir list_dir_perms;
@@ -872,10 +869,13 @@ userdom_manage_user_tmp_dirs(winbind_t)
 userdom_manage_user_tmp_files(winbind_t)
 userdom_tmp_filetrans_user_tmp(winbind_t, { file dir })
 
-manage_dirs_pattern(winbind_t, winbind_var_run_t, winbind_var_run_t)
+manage_dirs_pattern(winbind_t, { smbd_var_run_t winbind_var_run_t }, winbind_var_run_t)
 manage_files_pattern(winbind_t, winbind_var_run_t, winbind_var_run_t)
 manage_sock_files_pattern(winbind_t, winbind_var_run_t, winbind_var_run_t)
-files_pid_filetrans(winbind_t, winbind_var_run_t, { file dir })
+files_pid_filetrans(winbind_t, winbind_var_run_t, { sock_file file dir })
+filetrans_pattern(winbind_t, smbd_var_run_t, winbind_var_run_t, dir)
+# /run/samba/krb5cc_samba
+manage_files_pattern(winbind_t, smbd_var_run_t, smbd_var_run_t)
 
 kernel_read_network_state(winbind_t)
 kernel_read_kernel_sysctls(winbind_t)
