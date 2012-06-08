@@ -42,6 +42,25 @@ interface(`samba_signal_nmbd',`
 
 ########################################
 ## <summary>
+##	Search the samba pid directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`samba_search_pid',`
+	gen_require(`
+		type smbd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 smbd_var_run_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
 ##	Connect to nmbd.
 ## </summary>
 ## <param name="domain">
@@ -55,7 +74,7 @@ interface(`samba_stream_connect_nmbd',`
 		type nmbd_t, nmbd_var_run_t;
 	')
 
-	files_search_pids($1)
+	samba_search_pid($1)
 	stream_connect_pattern($1, nmbd_var_run_t, nmbd_var_run_t, nmbd_t)
 ')
 
@@ -433,6 +452,7 @@ interface(`samba_search_var',`
 		type samba_var_t;
 	')
 
+	files_search_var($1)
 	files_search_var_lib($1)
 	allow $1 samba_var_t:dir search_dir_perms;
 ')
@@ -453,6 +473,7 @@ interface(`samba_read_var_files',`
 		type samba_var_t;
 	')
 
+	files_search_var($1)
 	files_search_var_lib($1)
 	read_files_pattern($1, samba_var_t, samba_var_t)
 ')
@@ -492,6 +513,7 @@ interface(`samba_rw_var_files',`
 		type samba_var_t;
 	')
 
+	files_search_var($1)
 	files_search_var_lib($1)
 	rw_files_pattern($1, samba_var_t, samba_var_t)
 ')
@@ -513,6 +535,7 @@ interface(`samba_manage_var_files',`
 	')
 
 	files_search_var_lib($1)
+	files_search_var_lib($1)
 	manage_files_pattern($1, samba_var_t, samba_var_t)
 	manage_lnk_files_pattern($1, samba_var_t, samba_var_t)
 ')
@@ -522,14 +545,15 @@ interface(`samba_manage_var_files',`
 ##	Execute a domain transition to run smbcontrol.
 ## </summary>
 ## <param name="domain">
-##	<summary>
+## <summary>
 ##	Domain allowed to transition.
-##	</summary>
+## </summary>
 ## </param>
 #
 interface(`samba_domtrans_smbcontrol',`
 	gen_require(`
-		type smbcontrol_t, smbcontrol_exec_t;
+		type smbcontrol_t;
+		type smbcontrol_exec_t;
 	')
 
 	domtrans_pattern($1, smbcontrol_exec_t, smbcontrol_t)
@@ -710,7 +734,7 @@ interface(`samba_read_winbind_pid',`
 		type winbind_var_run_t;
 	')
 
-	files_search_pids($1)
+	samba_search_pid($1)
 	allow $1 winbind_var_run_t:file read_file_perms;
 ')
 
@@ -729,9 +753,10 @@ interface(`samba_stream_connect_winbind',`
 		type samba_var_t, winbind_t, winbind_var_run_t;
 	')
 
-	files_search_pids($1)
+	samba_search_pid($1)
 	allow $1 samba_var_t:dir search_dir_perms;
 	stream_connect_pattern($1, winbind_var_run_t, winbind_var_run_t, winbind_t)
+	samba_read_config($1)
 
 	ifndef(`distro_redhat',`
 		gen_require(`
@@ -842,6 +867,9 @@ interface(`samba_admin',`
 
 	admin_pattern($1, samba_var_t)
 	files_list_var($1)
+
+	admin_pattern($1, smbd_spool_t)
+	files_list_spool($1)
 
 	admin_pattern($1, smbd_var_run_t)
 	files_list_pids($1)
