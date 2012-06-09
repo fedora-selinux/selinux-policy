@@ -12,7 +12,7 @@ policy_module(portage, 1.12.4)
 ## </desc>
 gen_tunable(portage_use_nfs, false)
 
-attribute_role portage_roles;
+#attribute_role portage_roles;
 
 type gcc_config_t;
 type gcc_config_exec_t;
@@ -25,7 +25,8 @@ application_domain(portage_t, portage_exec_t)
 domain_obj_id_change_exemption(portage_t)
 rsync_entry_type(portage_t)
 corecmd_shell_entry_type(portage_t)
-role portage_roles types portage_t;
+#role portage_roles types portage_t;
+role system_r types portage_t;
 
 # portage compile sandbox domain
 type portage_sandbox_t;
@@ -33,7 +34,8 @@ application_domain(portage_sandbox_t, portage_exec_t)
 # the shell is the entrypoint if regular sandbox is disabled
 # portage_exec_t is the entrypoint if regular sandbox is enabled
 corecmd_shell_entry_type(portage_sandbox_t)
-role portage_roles types portage_sandbox_t;
+#role portage_roles types portage_sandbox_t;
+role system_r types portage_sandbox_t;
 
 # portage package fetching domain
 type portage_fetch_t;
@@ -41,7 +43,8 @@ type portage_fetch_exec_t;
 application_domain(portage_fetch_t, portage_fetch_exec_t)
 corecmd_shell_entry_type(portage_fetch_t)
 rsync_entry_type(portage_fetch_t)
-role portage_roles types portage_fetch_t;
+#role portage_roles types portage_fetch_t;
+role system_r types portage_fetch_t;
 
 type portage_devpts_t;
 term_pty(portage_devpts_t)
@@ -115,7 +118,8 @@ files_list_all(gcc_config_t)
 init_dontaudit_read_script_status_files(gcc_config_t)
 
 libs_read_lib_files(gcc_config_t)
-libs_run_ldconfig(gcc_config_t, portage_roles)
+#libs_run_ldconfig(gcc_config_t, portage_roles)
+libs_domtrans_ldconfig(gcc_config_t)
 libs_manage_shared_libs(gcc_config_t)
 # gcc-config creates a temp dir for the libs
 libs_manage_lib_dirs(gcc_config_t)
@@ -196,33 +200,41 @@ auth_manage_shadow(portage_t)
 init_exec(portage_t)
 
 # run setfiles -r
-seutil_run_setfiles(portage_t, portage_roles)
+#seutil_run_setfiles(portage_t, portage_roles)
 # run semodule
-seutil_run_semanage(portage_t, portage_roles)
+#seutil_run_semanage(portage_t, portage_roles)
 
-portage_run_gcc_config(portage_t, portage_roles)
+#portage_run_gcc_config(portage_t, portage_roles)
 # if sesandbox is disabled, compiling is performed in this domain
 portage_compile_domain(portage_t)
 
-optional_policy(`
-	bootloader_run(portage_t, portage_roles)
-')
+#optional_policy(`
+#	bootloader_run(portage_t, portage_roles)
+#')
 
 optional_policy(`
 	cron_system_entry(portage_t, portage_exec_t)
 	cron_system_entry(portage_fetch_t, portage_fetch_exec_t)
 ')
 
-optional_policy(`
-	modutils_run_depmod(portage_t, portage_roles)
-	modutils_run_update_mods(portage_t, portage_roles)
+#optional_policy(`
+#	modutils_run_depmod(portage_t, portage_roles)
+#	modutils_run_update_mods(portage_t, portage_roles)
 	#dontaudit update_modules_t portage_tmp_t:dir search_dir_perms;
 ')
 
-optional_policy(`
-	usermanage_run_groupadd(portage_t, portage_roles)
-	usermanage_run_useradd(portage_t, portage_roles)
-')
+#optional_policy(`
+#	usermanage_run_groupadd(portage_t, portage_roles)
+#	usermanage_run_useradd(portage_t, portage_roles)
+#')
+
+seutil_domtrans_setfiles(portage_t)
+seutil_domtrans_semanage(portage_t)
+bootloader_domtrans(portage_t)
+modutils_domtrans_depmod(portage_t)
+modutils_domtrans_update_mods(portage_t)
+usermanage_domtrans_groupadd(portage_t)
+usermanage_domtrans_useradd(portage_t)
 
 ifdef(`TODO',`
 # seems to work ok without these

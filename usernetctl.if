@@ -37,9 +37,26 @@ interface(`usernetctl_domtrans',`
 #
 interface(`usernetctl_run',`
 	gen_require(`
-		attribute_role usernetctl_roles;
+		type usernetctl_t;
+		#attribute_role usernetctl_roles;
 	')
 
-	usernetctl_domtrans($1)
-	roleattribute $2 usernetctl_roles;
+	#usernetctl_domtrans($1)
+	#roleattribute $2 usernetctl_roles;
+
+	sysnet_run_ifconfig(usernetctl_t, $2)
+        sysnet_run_dhcpc(usernetctl_t, $2)
+
+        optional_policy(`
+                iptables_run(usernetctl_t, $2)
+        ')
+
+        optional_policy(`
+                modutils_run_insmod(usernetctl_t, $2)
+        ')
+
+        optional_policy(`
+                ppp_run(usernetctl_t, $2)
+        ')
+
 ')
