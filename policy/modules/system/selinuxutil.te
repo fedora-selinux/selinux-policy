@@ -14,13 +14,13 @@ attribute can_relabelto_binary_policy;
 attribute setfiles_domain;
 attribute seutil_semanage_domain;
 
-attribute_role newrole_roles;
+#attribute_role newrole_roles;
 
-attribute_role run_init_roles;
-role system_r types run_init_t;
+#attribute_role run_init_roles;
+#role system_r types run_init_t;
 
-attribute_role semanage_roles;
-roleattribute system_r semanage_roles;
+#attribute_role semanage_roles;
+#roleattribute system_r semanage_roles;
 
 #
 # selinux_config_t is the type applied to
@@ -65,7 +65,8 @@ application_domain(newrole_t, newrole_exec_t)
 domain_role_change_exemption(newrole_t)
 domain_obj_id_change_exemption(newrole_t)
 domain_interactive_fd(newrole_t)
-role newrole_roles types newrole_t;
+#role newrole_roles types newrole_t;
+role system_r types newrole_t;
 
 #
 # policy_config_t is the type of /etc/security/selinux/*
@@ -101,7 +102,8 @@ type run_init_t;
 type run_init_exec_t;
 application_domain(run_init_t, run_init_exec_t)
 domain_system_change_exemption(run_init_t)
-role run_init_roles types run_init_t;
+#role run_init_roles types run_init_t;
+role system_r types run_init_t;
 
 type semanage_t;
 type semanage_exec_t;
@@ -109,7 +111,8 @@ application_domain(semanage_t, semanage_exec_t)
 dbus_system_domain(semanage_t, semanage_exec_t)
 init_daemon_domain(semanage_t, semanage_exec_t)
 domain_interactive_fd(semanage_t)
-role semanage_roles types semanage_t;
+#role semanage_roles types semanage_t;
+role system_r types semanage_t;
 
 type setsebool_t;
 type setsebool_exec_t;
@@ -299,10 +302,11 @@ term_relabel_all_ptys(newrole_t)
 term_getattr_unallocated_ttys(newrole_t)
 term_dontaudit_use_unallocated_ttys(newrole_t)
 
-auth_use_nsswitch(newrole_t)
-auth_run_chk_passwd(newrole_t, newrole_roles)
-auth_run_upd_passwd(newrole_t, newrole_roles)
-auth_rw_faillog(newrole_t)
+#auth_use_nsswitch(newrole_t)
+#auth_run_chk_passwd(newrole_t, newrole_roles)
+#auth_run_upd_passwd(newrole_t, newrole_roles)
+#auth_rw_faillog(newrole_t)
+auth_use_pam(newrole_t)
 
 # Write to utmp.
 init_rw_utmp(newrole_t)
@@ -322,9 +326,9 @@ optional_policy(`
     dbus_system_bus_client(newrole_t)
 ')
 
-optional_policy(`
-	namespace_init_run(newrole_t, newrole_roles)
-')
+#optional_policy(`
+#	namespace_init_run(newrole_t, newrole_roles)
+#')
 
 
 optional_policy(`
@@ -409,7 +413,7 @@ optional_policy(`
 # Run_init local policy
 #
 
-allow run_init_roles system_r;
+#allow run_init_roles system_r;
 
 allow run_init_t self:process setexec;
 allow run_init_t self:capability setuid;
@@ -446,10 +450,16 @@ selinux_compute_user_contexts(run_init_t)
 
 term_use_console(run_init_t)
 
+#auth_use_nsswitch(run_init_t)
+#auth_run_chk_passwd(run_init_t, run_init_roles)
+#auth_run_upd_passwd(run_init_t, run_init_roles)
+#auth_dontaudit_read_shadow(run_init_t)
+
 auth_use_nsswitch(run_init_t)
-auth_run_chk_passwd(run_init_t, run_init_roles)
-auth_run_upd_passwd(run_init_t, run_init_roles)
+auth_domtrans_chk_passwd(run_init_t)
+auth_domtrans_upd_passwd(run_init_t)
 auth_dontaudit_read_shadow(run_init_t)
+
 
 init_spec_domtrans_script(run_init_t)
 # for utmp
@@ -528,14 +538,15 @@ files_read_non_security_files(semanage_t)
 
 seutil_manage_file_contexts(semanage_t)
 seutil_manage_config(semanage_t)
+seutil_domtrans_setfiles(semanage_t)
 
-seutil_run_setfiles(semanage_t, semanage_roles)
-seutil_run_loadpolicy(semanage_t, semanage_roles)
-seutil_manage_bin_policy(semanage_t)
-seutil_use_newrole_fds(semanage_t)
-seutil_manage_module_store(semanage_t)
-seutil_get_semanage_trans_lock(semanage_t)
-seutil_get_semanage_read_lock(semanage_t)
+#seutil_run_setfiles(semanage_t, semanage_roles)
+#seutil_run_loadpolicy(semanage_t, semanage_roles)
+#seutil_manage_bin_policy(semanage_t)
+#seutil_use_newrole_fds(semanage_t)
+#seutil_manage_module_store(semanage_t)
+#seutil_get_semanage_trans_lock(semanage_t)
+#seutil_get_semanage_read_lock(semanage_t)
 # netfilter_contexts:
 seutil_manage_default_contexts(semanage_t)
 

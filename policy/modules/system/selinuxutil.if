@@ -192,11 +192,22 @@ interface(`seutil_domtrans_newrole',`
 #
 interface(`seutil_run_newrole',`
 	gen_require(`
-		attribute_role newrole_roles;
+		type newrole_t;
+		#attribute_role newrole_roles;
 	')
 
+	#seutil_domtrans_newrole($1)
+	#roleattribute $2 newrole_roles;
+
 	seutil_domtrans_newrole($1)
-	roleattribute $2 newrole_roles;
+        role $2 types newrole_t;
+
+        auth_run_upd_passwd(newrole_t, $2)
+
+        optional_policy(`
+                namespace_init_run(newrole_t, $2)
+        ')
+
 ')
 
 ########################################
@@ -446,11 +457,20 @@ interface(`seutil_init_script_domtrans_runinit',`
 #
 interface(`seutil_run_runinit',`
 	gen_require(`
-		attribute_role run_init_roles;
+		#attribute_role run_init_roles;
+		type run_init_t;
+                role system_r;
 	')
 
-	seutil_domtrans_runinit($1)
-	roleattribute $2 run_init_roles;
+	#seutil_domtrans_runinit($1)
+	#roleattribute $2 run_init_roles;
+
+	        auth_run_chk_passwd(run_init_t, $2)
+        seutil_domtrans_runinit($1)
+        role $2 types run_init_t;
+
+        allow $2 system_r;
+
 ')
 
 ########################################
@@ -482,11 +502,19 @@ interface(`seutil_run_runinit',`
 #
 interface(`seutil_init_script_run_runinit',`
 	gen_require(`
-		attribute_role run_init_roles;
+		#attribute_role run_init_roles;
+		type run_init_t;
+                role system_r;
 	')
 
-	seutil_init_script_domtrans_runinit($1)
-	roleattribute $2 run_init_roles;
+	#seutil_init_script_domtrans_runinit($1)
+	#roleattribute $2 run_init_roles;
+	        auth_run_chk_passwd(run_init_t, $2)
+        seutil_init_script_domtrans_runinit($1)
+        role $2 types run_init_t;
+
+        allow $2 system_r;
+
 ')
 
 ########################################
@@ -1129,11 +1157,18 @@ interface(`seutil_domtrans_setsebool',`
 #
 interface(`seutil_run_semanage',`
 	gen_require(`
-		attribute_role semanage_roles;
+		#attribute_role semanage_roles;
+		type semanage_t;
 	')
 
+	#seutil_domtrans_semanage($1)
+	#roleattribute $2 semanage_roles;
+
 	seutil_domtrans_semanage($1)
-	roleattribute $2 semanage_roles;
+        seutil_run_setfiles(semanage_t, $2)
+        seutil_run_loadpolicy(semanage_t, $2)
+        role $2 types semanage_t;
+
 ')
 
 ########################################

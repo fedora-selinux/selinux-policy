@@ -12,13 +12,14 @@ policy_module(mount, 1.14.2)
 ## </desc>
 gen_tunable(mount_anyfile, false)
 
-attribute_role mount_roles;
-roleattribute system_r mount_roles;
+#attribute_role mount_roles;
+#roleattribute system_r mount_roles;
 
 type mount_t;
 type mount_exec_t;
 init_system_domain(mount_t, mount_exec_t)
-role mount_roles types mount_t;
+#role mount_roles types mount_t;
+role system_r types mount_t;
 
 type fusermount_exec_t;
 domain_entry_file(mount_t, fusermount_exec_t)
@@ -286,25 +287,28 @@ optional_policy(`
 
 # Needed for mount crypt https://bugzilla.redhat.com/show_bug.cgi?id=418711
 optional_policy(`
-	lvm_run(mount_t, mount_roles)
+#	lvm_run(mount_t, mount_roles)
+	lvm_domtrans(mount_t)
 ')
 
 optional_policy(`
-	modutils_run_insmod(mount_t, mount_roles)
+	#modutils_run_insmod(mount_t, mount_roles)
+	modutils_domtrans_insmod(mount_t)
 	modutils_read_module_deps(mount_t)
 ')
 
 optional_policy(`
-	fstools_run(mount_t, mount_roles)
+	fstools_domtrans(mount_t)
+	#fstools_run(mount_t, mount_roles)
 ')
 
 optional_policy(`
 	rhcs_stream_connect_gfs_controld(mount_t)
 ')
 
-optional_policy(`
-	rpc_run_rpcd(mount_t, mount_roles)
-')
+#optional_policy(`
+#	rpc_run_rpcd(mount_t, mount_roles)
+#')
 
 # for kernel package installation
 optional_policy(`
@@ -314,7 +318,8 @@ optional_policy(`
 
 optional_policy(`
 	samba_read_config(mount_t)
-	samba_run_smbmount(mount_t, mount_roles)
+	samba_domtrans_smbmount(mount_t)
+	#samba_run_smbmount(mount_t, mount_roles)
 ')
 
 optional_policy(`

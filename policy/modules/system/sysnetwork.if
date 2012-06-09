@@ -38,11 +38,47 @@ interface(`sysnet_domtrans_dhcpc',`
 #
 interface(`sysnet_run_dhcpc',`
 	gen_require(`
-		attribute_role dhcpc_roles;
+		type dhcpc_t;
+		#attribute_role dhcpc_roles;
 	')
 
+	#sysnet_domtrans_dhcpc($1)
+	#roleattribute $2 dhcpc_roles;
+
 	sysnet_domtrans_dhcpc($1)
-	roleattribute $2 dhcpc_roles;
+        role $2 types dhcpc_t;
+
+        modutils_run_insmod(dhcpc_t, $2)
+
+        sysnet_run_ifconfig(dhcpc_t, $2)
+
+        optional_policy(`
+                hostname_run(dhcpc_t, $2)
+        ')
+
+        optional_policy(`
+                netutils_run(dhcpc_t, $2)
+                netutils_run_ping(dhcpc_t, $2)
+        ')
+
+        optional_policy(`
+                networkmanager_run(dhcpc_t, $2)
+        ')
+
+        optional_policy(`
+                nis_run_ypbind(dhcpc_t, $2)
+        ')
+
+        optional_policy(`
+                nscd_run(dhcpc_t, $2)
+        ')
+
+        optional_policy(`
+                ntp_run(dhcpc_t, $2)
+        ')
+
+        seutil_run_setfiles(dhcpc_t, $2)
+
 ')
 
 ########################################
