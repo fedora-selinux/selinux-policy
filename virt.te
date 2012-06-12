@@ -279,7 +279,7 @@ allow virtd_t self:capability { chown dac_override fowner ipc_lock kill mknod ne
 allow virtd_t self:process { getcap getsched setcap sigkill signal signull execmem setexec setfscreate setsockcreate setsched };
 ifdef(`hide_broken_symptoms',`
 	# caused by some bogus kernel code
-	dontaudit virtd_t self:capability sys_module;
+	dontaudit virtd_t self:capability { sys_module sys_ptrace };
 ')
 
 allow virtd_t self:fifo_file { manage_fifo_file_perms relabelfrom relabelto };
@@ -520,10 +520,10 @@ optional_policy(`
 	dnsmasq_domtrans(virtd_t)
 	dnsmasq_signal(virtd_t)
 	dnsmasq_kill(virtd_t)
-	dnsmasq_read_pid_files(virtd_t)
 	dnsmasq_signull(virtd_t)
 	dnsmasq_create_pid_dirs(virtd_t)
 	dnsmasq_filetrans_named_content_fromdir(virtd_t, virt_var_run_t);
+	dnsmasq_manage_pid_files(virtd_t)
 ')
 
 optional_policy(`
@@ -572,6 +572,7 @@ optional_policy(`
 	kernel_read_xen_state(virtd_t)
 	kernel_write_xen_state(virtd_t)
 
+	xen_exec(virtd_t)
 	xen_stream_connect(virtd_t)
 	xen_stream_connect_xenstore(virtd_t)
 	xen_read_image_files(virtd_t)
@@ -872,8 +873,7 @@ fs_manage_cgroup_dirs(virtd_lxc_t)
 fs_mounton_tmpfs(virtd_lxc_t)
 fs_remount_all_fs(virtd_lxc_t)
 fs_rw_cgroup_files(virtd_lxc_t)
-fs_unmount_xattr_fs(virtd_lxc_t)
-fs_unmount_configfs(virtd_lxc_t)
+fs_unmount_all_fs(virtd_lxc_t)
 fs_relabelfrom_tmpfs(virtd_lxc_t)
 
 selinux_mount_fs(virtd_lxc_t)
