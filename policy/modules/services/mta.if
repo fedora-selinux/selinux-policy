@@ -40,6 +40,7 @@ interface(`mta_stub',`
 ## <rolecap/>
 #
 template(`mta_base_mail_template',`
+
 	gen_require(`
 		attribute user_mail_domain;
 		type sendmail_exec_t;
@@ -81,7 +82,6 @@ template(`mta_base_mail_template',`
 ##	User domain for the role
 ##	</summary>
 ## </param>
-## <rolecap/>
 #
 interface(`mta_role',`
 	gen_require(`
@@ -282,6 +282,12 @@ interface(`mta_mailserver_user_agent',`
 	')
 
 	typeattribute $1 mta_user_agent;
+
+	optional_policy(`
+		# apache should set close-on-exec
+		apache_dontaudit_rw_stream_sockets($1)
+		apache_dontaudit_rw_sys_script_stream_sockets($1)
+	')
 ')
 
 ########################################
@@ -296,8 +302,9 @@ interface(`mta_mailserver_user_agent',`
 #
 interface(`mta_send_mail',`
 	gen_require(`
-		attribute mta_user_agent, mta_exec_type;
+		attribute mta_user_agent;
 		type system_mail_t;
+		attribute mta_exec_type;
 	')
 
 	allow $1 mta_exec_type:lnk_file read_lnk_file_perms;
@@ -307,6 +314,8 @@ interface(`mta_send_mail',`
 	allow mta_user_agent $1:fd use;
 	allow mta_user_agent $1:process sigchld;
 	allow mta_user_agent $1:fifo_file rw_fifo_file_perms;
+
+	dontaudit mta_user_agent $1:unix_stream_socket rw_socket_perms;
 ')
 
 ########################################
@@ -499,8 +508,7 @@ interface(`mta_write_config',`
 		type etc_mail_t;
 	')
 
-	manage_files_pattern($1, etc_mail_t, etc_mail_t)
-	allow $1 etc_mail_t:file setattr_file_perms;
+	write_files_pattern($1, etc_mail_t, etc_mail_t)
 ')
 
 ########################################
@@ -722,7 +730,7 @@ interface(`mta_read_spool',`
         type mail_spool_t;
     ')
 
-    files_search_spool($1)
+	files_search_spool($1)
 	read_files_pattern($1, mail_spool_t, mail_spool_t)
 ')
 
@@ -1023,7 +1031,7 @@ interface(`mta_read_home',`
 	')
 ')
 
-###################################
+####################################
 ## <summary>
 ##      ALlow domain to read mail content in the homedir
 ## </summary>
@@ -1043,6 +1051,32 @@ interface(`mta_read_home_rw',`
 
         ifdef(`distro_redhat',`
                 userdom_search_admin_dir($1)
+        ')
+')
+
+####################################
+## <summary>
+##      Allow domain to manage mail content in the homedir
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`mta_manage_home_rw',`
+        gen_require(`
+                type mail_home_rw_t;
+        ')
+
+        userdom_search_user_home_dirs($1)
+	manage_files_pattern($1, mail_home_rw_t, mail_home_rw_t)
+	manage_dirs_pattern($1, mail_home_rw_t, mail_home_rw_t)
+	userdom_user_home_dir_filetrans($1, mail_home_rw_t, dir, "Maildir")
+
+        ifdef(`distro_redhat',`
+                userdom_search_admin_dir($1)
+		userdom_admin_home_dir_filetrans($1, mail_home_rw_t, dir, "Maildir")
         ')
 ')
 
@@ -1066,7 +1100,8 @@ interface(`mta_filetrans_admin_home_content',`
 	userdom_admin_home_dir_filetrans($1, mail_home_t, file, "dead.letter")
 	userdom_admin_home_dir_filetrans($1, mail_home_t, file, ".mailrc")
 	userdom_admin_home_dir_filetrans($1, mail_home_t, file, ".forward")
-	userdom_admin_home_dir_filetrans($1, mail_home_rw_t, file, "Maildir")
+	userdom_admin_home_dir_filetrans($1, mail_home_rw_t, dir, "Maildir")
+	userdom_admin_home_dir_filetrans($1, mail_home_rw_t, file, ".esmtp_queue")
 ')
 
 ########################################
@@ -1088,7 +1123,8 @@ interface(`mta_filetrans_home_content',`
 	userdom_user_home_dir_filetrans($1, mail_home_t, file, ".mailrc")
 	userdom_user_home_dir_filetrans($1, mail_home_t, file, "dead.letter")
 	userdom_user_home_dir_filetrans($1, mail_home_t, file, ".forward")
-	userdom_user_home_dir_filetrans($1, mail_home_rw_t, file, "Maildir")
+	userdom_user_home_dir_filetrans($1, mail_home_rw_t, dir, "Maildir")
+	userdom_user_home_dir_filetrans($1, mail_home_rw_t, file, ".esmtp_queue")
 ')
 
 ########################################
