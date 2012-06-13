@@ -1054,6 +1054,32 @@ interface(`mta_read_home_rw',`
         ')
 ')
 
+####################################
+## <summary>
+##      Allow domain to manage mail content in the homedir
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`mta_manage_home_rw',`
+        gen_require(`
+                type mail_home_rw_t;
+        ')
+
+        userdom_search_user_home_dirs($1)
+	manage_files_pattern($1, mail_home_rw_t, mail_home_rw_t)
+	manage_dirs_pattern($1, mail_home_rw_t, mail_home_rw_t)
+	userdom_user_home_dir_filetrans($1, mail_home_rw_t, dir, "Maildir")
+
+        ifdef(`distro_redhat',`
+                userdom_search_admin_dir($1)
+		userdom_admin_home_dir_filetrans($1, mail_home_rw_t, dir, "Maildir")
+        ')
+')
+
 ########################################
 ## <summary>
 ##	create mail content in the  in the /root directory
@@ -1074,7 +1100,7 @@ interface(`mta_filetrans_admin_home_content',`
 	userdom_admin_home_dir_filetrans($1, mail_home_t, file, "dead.letter")
 	userdom_admin_home_dir_filetrans($1, mail_home_t, file, ".mailrc")
 	userdom_admin_home_dir_filetrans($1, mail_home_t, file, ".forward")
-	userdom_admin_home_dir_filetrans($1, mail_home_rw_t, file, "Maildir")
+	userdom_admin_home_dir_filetrans($1, mail_home_rw_t, dir, "Maildir")
 	userdom_admin_home_dir_filetrans($1, mail_home_rw_t, file, ".esmtp_queue")
 ')
 
@@ -1097,7 +1123,7 @@ interface(`mta_filetrans_home_content',`
 	userdom_user_home_dir_filetrans($1, mail_home_t, file, ".mailrc")
 	userdom_user_home_dir_filetrans($1, mail_home_t, file, "dead.letter")
 	userdom_user_home_dir_filetrans($1, mail_home_t, file, ".forward")
-	userdom_user_home_dir_filetrans($1, mail_home_rw_t, file, "Maildir")
+	userdom_user_home_dir_filetrans($1, mail_home_rw_t, dir, "Maildir")
 	userdom_user_home_dir_filetrans($1, mail_home_rw_t, file, ".esmtp_queue")
 ')
 
