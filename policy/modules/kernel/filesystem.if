@@ -1973,6 +1973,188 @@ interface(`fs_read_eventpollfs',`
 	refpolicywarn(`$0($*) has been deprecated.')
 ')
 
+
+#######################################
+## <summary>
+##      Search directories
+##      on a ecrypt filesystem.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`fs_search_ecryptfs',`
+        gen_require(`
+                type fusefs_t;
+        ')
+
+        allow $1 ecryptfs_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete directories
+##	on a FUSEFS filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`fs_manage_ecryptfs_dirs',`
+	gen_require(`
+		type ecryptfs_t;
+	')
+
+	manage_dirs_pattern($1, ecryptfs_t, ecryptfs_t)
+	allow $1 ecryptfs_t:dir manage_dir_perms;
+')
+
+#######################################
+## <summary>
+##      Create, read, write, and delete files
+##      on a FUSEFS filesystem.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+## <rolecap/>
+#
+interface(`fs_read_ecryptfs_files',`
+        gen_require(`
+                type ecryptfs_t;
+        ')
+
+        read_files_pattern($1, ecryptfs_t, ecryptfs_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete files
+##	on a FUSEFS filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`fs_manage_ecryptfs_files',`
+	gen_require(`
+		type ecryptfs_t;
+	')
+
+	manage_files_pattern($1, ecryptfs_t, ecryptfs_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to create,
+##	read, write, and delete files
+##	on a FUSEFS filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`fs_dontaudit_manage_ecryptfs_files',`
+	gen_require(`
+		type ecryptfs_t;
+	')
+
+	dontaudit $1 ecryptfs_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Read symbolic links on a FUSEFS filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fs_read_ecryptfs_symlinks',`
+	gen_require(`
+		type ecryptfs_t;
+	')
+
+	allow $1 ecryptfs_t:dir list_dir_perms;
+	read_lnk_files_pattern($1, ecryptfs_t, ecryptfs_t)
+')
+
+########################################
+## <summary>
+##	Manage symbolic links on a FUSEFS filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fs_manage_fusefs_symlinks',`
+	gen_require(`
+		type fusefs_t;
+	')
+
+	manage_lnk_files_pattern($1, ecryptfs_t, ecryptfs_t)
+')
+
+########################################
+## <summary>
+##	Execute a file on a FUSE filesystem
+##	in the specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a file on a FUSE filesystem
+##	in the specified domain.  This allows
+##	the specified domain to execute any file
+##	on these filesystems in the specified
+##	domain.  This is not suggested.
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+##	<p>
+##	This interface was added to handle
+##	home directories on FUSE filesystems,
+##	in particular used by the ssh-agent policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`fs_ecryptfs_domtrans',`
+	gen_require(`
+		type ecryptfs_t;
+	')
+
+	allow $1 ecryptfs_t:dir search_dir_perms;
+	domain_auto_transition_pattern($1, ecryptfs_t, $2)
+')
+
 ########################################
 ## <summary>
 ##	Mount a FUSE filesystem.
