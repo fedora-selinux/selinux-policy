@@ -41,6 +41,14 @@ type showmount_exec_t;
 application_domain(showmount_t, showmount_exec_t)
 role system_r types showmount_t;
 
+type mount_ecryptfs_t;
+type mount_ecryptfs_exec_t;
+application_domain(mount_ecryptfs_t, mount_ecryptfs_exec_t)
+role system_r types mount_ecryptfs_t;
+
+type mount_ecryptfs_tmpfs_t;
+files_tmpfs_file(mount_ecryptfs_tmpfs_t)
+
 ########################################
 #
 # mount local policy
@@ -362,3 +370,31 @@ miscfiles_read_localization(showmount_t)
 sysnet_dns_name_resolve(showmount_t)
 
 userdom_use_inherited_user_terminals(showmount_t)
+
+#######################################
+#
+# mount_ecryptfs local policy
+#
+
+domtrans_pattern(mount_ecryptfs_t, mount_exec_t, mount_t)
+
+allow mount_ecryptfs_t self:capability setgid;
+allow mount_ecryptfs_t self:capability { setuid sys_admin };
+allow mount_ecryptfs_t self:fifo_file rw_fifo_file_perms;
+allow mount_ecryptfs_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(mount_ecryptfs_t, mount_ecryptfs_tmpfs_t, mount_ecryptfs_tmpfs_t)
+manage_files_pattern(mount_ecryptfs_t, mount_ecryptfs_tmpfs_t, mount_ecryptfs_tmpfs_t)
+fs_tmpfs_filetrans(mount_ecryptfs_t, mount_ecryptfs_tmpfs_t, { dir file })
+userdom_rw_user_tmpfs_files(mount_ecryptfs_t)
+
+domain_use_interactive_fds(mount_ecryptfs_t)
+
+files_read_etc_files(mount_ecryptfs_t)
+
+fs_read_ecryptfs_symlinks(mount_ecryptfs_t)
+fs_read_ecryptfs_files(mount_ecryptfs_t)
+
+auth_use_nsswitch(mount_ecryptfs_t)
+
+miscfiles_read_localization(mount_ecryptfs_t)
