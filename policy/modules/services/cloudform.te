@@ -11,6 +11,9 @@ cloudform_domain_template(iwhd)
 cloudform_domain_template(mongod)
 cloudform_domain_template(thin)
 
+type thin_log_t;
+logging_log_file(thin_log_t)
+
 type deltacloudd_log_t;
 logging_log_file(deltacloudd_log_t)
 
@@ -58,9 +61,14 @@ logging_log_file(iwhd_log_t)
 allow cloudform_domain self:fifo_file rw_fifo_file_perms;
 allow cloudform_domain self:tcp_socket create_stream_socket_perms;
 
+kernel_read_system_state(cloudform_domain)
+
+dev_read_rand(cloudform_domain)
 dev_read_urand(cloudform_domain)
 
 files_read_etc_files(cloudform_domain)
+
+auth_read_passwd(cloudform_domain)
 
 miscfiles_read_certs(cloudform_domain)
 miscfiles_read_localization(cloudform_domain)
@@ -203,6 +211,10 @@ allow thin_t self:capability { setuid kill setgid dac_override };
 allow thin_t self:netlink_route_socket r_netlink_socket_perms;
 allow thin_t self:udp_socket create_socket_perms;
 allow thin_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_files_pattern(thin_t, thin_log_t, thin_log_t)
+manage_dirs_pattern(thin_t, thin_log_t, thin_log_t)
+logging_log_filetrans(thin_t, thin_log_t, { file dir })
 
 manage_files_pattern(thin_t, thin_var_run_t, thin_var_run_t)
 files_pid_filetrans(thin_t, thin_var_run_t, { file })
