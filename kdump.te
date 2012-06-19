@@ -28,24 +28,67 @@ files_tmp_file(kdump_tmp_t)
 #
 
 allow kdump_t self:capability { sys_boot dac_override };
+# needed by dracut
+allow kdump_t self:process setfscreate;
 
 read_files_pattern(kdump_t, kdump_etc_t, kdump_etc_t)
 
+# /var/tmp/
 manage_dirs_pattern(kdump_t, kdump_tmp_t, kdump_tmp_t)
 manage_files_pattern(kdump_t, kdump_tmp_t, kdump_tmp_t)
 manage_lnk_files_pattern(kdump_t, kdump_tmp_t, kdump_tmp_t)
 files_tmp_filetrans(kdump_t, kdump_tmp_t, { file dir lnk_file })
-
-files_read_etc_files(kdump_t)
-files_read_etc_runtime_files(kdump_t)
-files_read_kernel_img(kdump_t)
 
 kernel_read_system_state(kdump_t)
 kernel_read_core_if(kdump_t)
 kernel_read_debugfs(kdump_t)
 kernel_request_load_module(kdump_t)
 
+files_create_kernel_img(kdump_t)
+files_read_etc_files(kdump_t)
+files_read_etc_runtime_files(kdump_t)
+files_read_usr_files(kdump_t)
+files_read_kernel_modules(kdump_t)
+
+corecmd_exec_bin(kdump_t)
+corecmd_exec_shell(kdump_t)
+
 dev_read_framebuffer(kdump_t)
 dev_read_sysfs(kdump_t)
 
 term_use_console(kdump_t)
+
+application_executable_ioctl(kdump_t)
+
+auth_read_passwd(kdump_t)
+
+init_exec(kdump_t)
+systemd_exec_systemctl(kdump_t)
+
+libs_exec_ld_so(kdump_t)
+
+logging_send_syslog_msg(kdump_t)
+
+miscfiles_read_localization(kdump_t)
+
+optional_policy(`
+        gpg_exec(kdump_t)
+')
+
+optional_policy(`
+        lvm_read_config(kdump_t)
+')
+
+optional_policy(`
+	modutils_domtrans_insmod(kdump_t)
+	modutils_list_module_config(kdump_t)
+	modutils_read_module_config(kdump_t)
+')
+
+optional_policy(`
+        plymouthd_domtrans_plymouth(kdump_t)
+')
+
+optional_policy(`
+        ssh_exec(kdump_t)
+')
