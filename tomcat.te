@@ -1,0 +1,105 @@
+policy_module(tomcat, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute tomcat_domain;
+
+tomcat_domain_template(tomcat)
+init_initrc_domain(tomcat_t)
+
+type tomcat_cache_t;
+files_type(tomcat_cache_t)
+
+type tomcat_log_t;
+logging_log_file(tomcat_log_t)
+
+type tomcat_var_lib_t;
+files_type(tomcat_var_lib_t)
+
+type tomcat_var_run_t;
+files_pid_file(tomcat_var_run_t)
+
+type tomcat_tmp_t;
+files_tmp_file(tomcat_tmp_t)
+
+type tomcat_unit_file_t;
+systemd_unit_file(tomcat_unit_file_t)
+
+#######################################
+#
+# tomcat local policy
+#
+
+optional_policy(`
+	unconfined_domain(tomcat_t)
+')
+
+########################################
+#
+# tomcat domain local policy
+#
+
+allow tomcat_t self:process execmem;
+allow tomcat_t self:process { signal signull };
+
+allow tomcat_t self:tcp_socket { accept listen };
+allow tomcat_domain self:fifo_file rw_fifo_file_perms;
+allow tomcat_domain self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(tomcat_domain, tomcat_cache_t, tomcat_cache_t)
+manage_files_pattern(tomcat_domain, tomcat_cache_t, tomcat_cache_t)
+manage_lnk_files_pattern(tomcat_domain, tomcat_cache_t, tomcat_cache_t)
+files_var_filetrans(tomcat_domain, tomcat_cache_t, { dir file })
+
+manage_dirs_pattern(tomcat_domain, tomcat_log_t, tomcat_log_t)
+manage_files_pattern(tomcat_domain, tomcat_log_t, tomcat_log_t)
+logging_log_filetrans(tomcat_domain, tomcat_log_t, { dir file })
+
+manage_dirs_pattern(tomcat_domain, tomcat_var_lib_t, tomcat_var_lib_t)
+manage_files_pattern(tomcat_domain, tomcat_var_lib_t, tomcat_var_lib_t)
+files_var_lib_filetrans(tomcat_domain, tomcat_var_lib_t, { dir file })
+
+manage_dirs_pattern(tomcat_domain, tomcat_var_run_t, tomcat_var_run_t)
+manage_files_pattern(tomcat_domain, tomcat_var_run_t, tomcat_var_run_t)
+files_pid_filetrans(tomcat_domain, tomcat_var_run_t, { dir file })
+
+manage_dirs_pattern(tomcat_t, tomcat_tmp_t, tomcat_tmp_t)
+manage_files_pattern(tomcat_t, tomcat_tmp_t, tomcat_tmp_t)
+manage_fifo_files_pattern(tomcat_t, tomcat_tmp_t, tomcat_tmp_t)
+files_tmp_filetrans(tomcat_t, tomcat_tmp_t, { file fifo_file dir })
+
+kernel_read_system_state(tomcat_domain)
+kernel_read_network_state(tomcat_domain)
+
+corecmd_exec_bin(tomcat_domain)
+corecmd_exec_shell(tomcat_domain)
+
+corenet_tcp_bind_generic_node(tomcat_domain)
+corenet_udp_bind_generic_node(tomcat_domain)
+corenet_tcp_bind_http_port(tomcat_domain)
+corenet_tcp_bind_http_cache_port(tomcat_domain)
+corenet_tcp_bind_mxi_port(tomcat_domain)
+corenet_tcp_connect_http_port(tomcat_domain)
+corenet_tcp_connect_mxi_port(tomcat_domain)
+
+dev_read_rand(tomcat_domain)
+dev_read_urand(tomcat_domain)
+dev_read_sysfs(tomcat_domain)
+
+domain_use_interactive_fds(tomcat_domain)
+
+fs_getattr_all_fs(tomcat_domain)
+fs_read_hugetlbfs_files(tomcat_domain)
+
+files_read_etc_files(tomcat_domain)
+files_read_usr_files(tomcat_domain)
+
+auth_read_passwd(tomcat_domain)
+
+miscfiles_read_localization(tomcat_domain)
+
+sysnet_dns_name_resolve(tomcat_domain)
+
