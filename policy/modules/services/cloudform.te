@@ -9,10 +9,6 @@ attribute cloudform_domain;
 cloudform_domain_template(deltacloudd)
 cloudform_domain_template(iwhd)
 cloudform_domain_template(mongod)
-cloudform_domain_template(thin)
-
-type thin_log_t;
-logging_log_file(thin_log_t)
 
 type deltacloudd_log_t;
 logging_log_file(deltacloudd_log_t)
@@ -46,9 +42,6 @@ files_tmp_file(mongod_tmp_t)
 
 type mongod_var_run_t;
 files_pid_file(mongod_var_run_t)
-
-type thin_var_run_t;
-files_pid_file(thin_var_run_t)
 
 type iwhd_log_t;
 logging_log_file(iwhd_log_t)
@@ -195,43 +188,5 @@ optional_policy(`
 
 optional_policy(`
 	sysnet_dns_name_resolve(mongod_t)
-')
-
-########################################
-#
-# thin local policy
-#
-
-allow thin_t self:capability { setuid kill setgid dac_override };
-
-allow thin_t self:netlink_route_socket r_netlink_socket_perms;
-allow thin_t self:udp_socket create_socket_perms;
-allow thin_t self:unix_stream_socket create_stream_socket_perms;
-
-manage_files_pattern(thin_t, thin_log_t, thin_log_t)
-manage_dirs_pattern(thin_t, thin_log_t, thin_log_t)
-logging_log_filetrans(thin_t, thin_log_t, { file dir })
-
-manage_files_pattern(thin_t, thin_var_run_t, thin_var_run_t)
-manage_dirs_pattern(thin_t, thin_var_run_t, thin_var_run_t)
-files_pid_filetrans(thin_t, thin_var_run_t, { file dir })
-
-corecmd_exec_bin(thin_t)
-
-corenet_tcp_bind_generic_node(thin_t)
-corenet_tcp_bind_ntop_port(thin_t)
-corenet_tcp_connect_postgresql_port(thin_t)
-corenet_tcp_connect_all_ports(iwhd_t)
-
-files_read_usr_files(thin_t)
-
-fs_search_auto_mountpoints(thin_t)
-
-init_read_utmp(thin_t)
-
-kernel_read_kernel_sysctls(thin_t)
-
-optional_policy(`
-	sysnet_read_config(thin_t)
 ')
 
