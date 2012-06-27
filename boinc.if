@@ -115,6 +115,30 @@ interface(`boinc_manage_var_lib',`
 	manage_lnk_files_pattern($1, boinc_var_lib_t, boinc_var_lib_t)
 ')
 
+#######################################
+## <summary>
+##  Execute boinc server in the boinc domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`boinc_systemctl',`
+    gen_require(`
+        type boinc_t;
+        type boinc_unit_file_t;
+    ')
+
+    systemd_exec_systemctl($1)
+    systemd_read_fifo_file_password_run($1)
+    allow $1 boinc_unit_file_t:file read_file_perms;
+    allow $1 boinc_unit_file_t:service manage_service_perms;
+
+    ps_process_pattern($1, boinc_t)
+')
+
 ########################################
 ## <summary>
 ##	All of the rules required to administrate
@@ -135,6 +159,7 @@ interface(`boinc_manage_var_lib',`
 interface(`boinc_admin',`
 	gen_require(`
 		type boinc_t, boinc_initrc_exec_t, boinc_var_lib_t;
+		type boinc_unit_file_t;
 	')
 
 	allow $1 boinc_t:process signal_perms;
@@ -151,4 +176,14 @@ interface(`boinc_admin',`
 
 	files_list_var_lib($1)
 	admin_pattern($1, boinc_var_lib_t)
+
+	boinc_systemctl($1)
+	admin_pattern($1, boinc_unit_file_t)
+
+	allow $1 boinc_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
 ')
