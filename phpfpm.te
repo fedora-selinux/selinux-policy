@@ -1,0 +1,54 @@
+policy_module(phpfpm, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type phpfpm_t;
+type phpfpm_exec_t;
+init_daemon_domain(phpfpm_t, phpfpm_exec_t)
+
+type phpfpm_log_t;
+logging_log_file(phpfpm_log_t)
+
+type phpfpm_var_run_t;
+files_pid_file(phpfpm_var_run_t)
+
+type phpfpm_unit_file_t;
+systemd_unit_file(phpfpm_unit_file_t)
+
+########################################
+#
+# phpfpm local policy
+#
+
+allow phpfpm_t self:capability { chown kill setgid setuid sys_chroot sys_nice };
+allow phpfpm_t self:process { setsched setrlimit signal sigkill  };
+
+allow phpfpm_t self:fifo_file rw_fifo_file_perms;
+allow phpfpm_t self:tcp_socket { accept listen };
+allow phpfpm_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(phpfpm_t, phpfpm_log_t, phpfpm_log_t)
+manage_files_pattern(phpfpm_t, phpfpm_log_t, phpfpm_log_t)
+
+manage_dirs_pattern(phpfpm_t, phpfpm_var_run_t, phpfpm_var_run_t)
+manage_files_pattern(phpfpm_t, phpfpm_var_run_t, phpfpm_var_run_t)
+files_pid_filetrans(phpfpm_t, phpfpm_var_run_t, dir )
+
+kernel_read_kernel_sysctls(phpfpm_t)
+
+corenet_tcp_bind_generic_port(phpfpm_t)
+
+domain_use_interactive_fds(phpfpm_t)
+
+files_read_etc_files(phpfpm_t)
+
+auth_use_nsswitch(phpfpm_t)
+
+logging_send_syslog_msg(phpfpm_t)
+
+miscfiles_read_localization(phpfpm_t)
+
+sysnet_dns_name_resolve(phpfpm_t)
