@@ -928,14 +928,12 @@ template(`userdom_login_user_template', `
 	# User domain Local policy
 	#
 
-	allow $1_t self:capability { setgid setuid chown fowner };
-	allow $1_t self:process setcurrent;
-	domain_dyntrans_type($1_t)
+	allow $1_t self:capability { setgid chown fowner };
 	dontaudit $1_t self:capability { sys_nice fsetid };
-
 	allow $1_t self:process ~{ ptrace setrlimit execmem execstack execheap };
 	dontaudit $1_t self:process setrlimit;
 	dontaudit $1_t self:netlink_route_socket { create ioctl read getattr write setattr append bind connect getopt setopt shutdown nlmsg_read nlmsg_write };
+	domain_dyntrans_type($1_t)
 
 	allow $1_t self:context contains;
 
@@ -1242,6 +1240,8 @@ template(`userdom_unpriv_user_template', `
 	# Inherit rules for ordinary users.
 	userdom_restricted_xwindows_user_template($1)
 	userdom_common_user_template($1)
+
+	corecmd_exec_chroot($1)
 
 	##############################
 	#
