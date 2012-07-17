@@ -13,6 +13,7 @@ attribute can_write_binary_policy;
 attribute can_relabelto_binary_policy;
 attribute setfiles_domain;
 attribute seutil_semanage_domain;
+attribute policy_manager_domain;
 
 #attribute_role newrole_roles;
 
@@ -512,23 +513,10 @@ optional_policy(`
 # semodule local policy
 #
 
-allow semanage_t self:capability { dac_override audit_write };
-allow semanage_t self:unix_stream_socket create_stream_socket_perms;
-allow semanage_t self:unix_dgram_socket create_socket_perms;
 allow semanage_t self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
-allow semanage_t self:fifo_file rw_fifo_file_perms;
-
-allow semanage_t policy_config_t:file rw_file_perms;
-
-allow semanage_t semanage_tmp_t:dir manage_dir_perms;
-allow semanage_t semanage_tmp_t:file manage_file_perms;
-files_tmp_filetrans(semanage_t, semanage_tmp_t, { file dir })
 
 manage_dirs_pattern(semanage_t, semanage_var_lib_t, semanage_var_lib_t)
 manage_files_pattern(semanage_t, semanage_var_lib_t, semanage_var_lib_t)
-
-kernel_read_system_state(semanage_t)
-kernel_read_kernel_sysctls(semanage_t)
 
 selinux_set_all_booleans(semanage_t)
 can_exec(semanage_t, semanage_exec_t)
@@ -536,6 +524,7 @@ can_exec(semanage_t, semanage_exec_t)
 # Admins are creating pp files in random locations
 files_read_non_security_files(semanage_t)
 
+seutil_semanage_policy(semanage_t)
 seutil_manage_file_contexts(semanage_t)
 seutil_manage_config(semanage_t)
 seutil_domtrans_setfiles(semanage_t)
@@ -568,7 +557,6 @@ optional_policy(`
 optional_policy(`
 	unconfined_domain(semanage_t)
 ')
-
 
 ####################################n####
 #
@@ -731,3 +719,62 @@ ifdef(`distro_redhat',`
 optional_policy(`
 	hotplug_use_fds(setfiles_domain)
 ')
+
+allow policy_manager_domain self:capability { dac_override sys_resource };
+dontaudit policy_manager_domain self:capability sys_tty_config;
+allow policy_manager_domain self:process signal;
+allow policy_manager_domain self:unix_stream_socket create_stream_socket_perms;
+allow policy_manager_domain self:unix_dgram_socket create_socket_perms;
+allow policy_manager_domain self:fifo_file rw_fifo_file_perms;
+
+dev_read_rand(policy_manager_domain)
+dev_read_urand(policy_manager_domain)
+
+logging_send_syslog_msg(policy_manager_domain)
+logging_send_audit_msgs(policy_manager_domain)
+
+# Domains that will manage policy 
+allow policy_manager_domain policy_config_t:file rw_file_perms;
+
+allow policy_manager_domain semanage_tmp_t:dir manage_dir_perms;
+allow policy_manager_domain semanage_tmp_t:file manage_file_perms;
+files_tmp_filetrans(policy_manager_domain, semanage_tmp_t, { file dir })
+
+kernel_read_system_state(policy_manager_domain)
+kernel_read_kernel_sysctls(policy_manager_domain)
+
+corecmd_exec_bin(policy_manager_domain)
+corecmd_exec_shell(policy_manager_domain)
+
+dev_read_urand(policy_manager_domain)
+
+domain_use_interactive_fds(policy_manager_domain)
+
+files_read_etc_files(policy_manager_domain)
+files_read_etc_runtime_files(policy_manager_domain)
+files_read_usr_files(policy_manager_domain)
+files_list_pids(policy_manager_domain)
+fs_list_inotifyfs(policy_manager_domain)
+fs_getattr_all_fs(policy_manager_domain)
+
+selinux_getattr_fs(policy_manager_domain)
+selinux_validate_context(policy_manager_domain)
+selinux_get_enforce_mode(policy_manager_domain)
+
+term_use_all_inherited_terms(policy_manager_domain)
+
+locallogin_use_fds(policy_manager_domain)
+
+logging_send_syslog_msg(policy_manager_domain)
+
+miscfiles_read_localization(policy_manager_domain)
+
+seutil_search_default_contexts(policy_manager_domain)
+seutil_domtrans_loadpolicy(policy_manager_domain)
+seutil_read_config(policy_manager_domain)
+seutil_use_newrole_fds(policy_manager_domain)
+seutil_manage_module_store(policy_manager_domain)
+seutil_get_semanage_trans_lock(policy_manager_domain)
+seutil_get_semanage_read_lock(policy_manager_domain)
+
+userdom_dontaudit_write_user_home_content_files(policy_manager_domain)
