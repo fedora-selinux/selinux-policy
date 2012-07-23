@@ -3,8 +3,8 @@
 dhcpc_selinux \- Security Enhanced Linux Policy for the dhcpc processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the dhcpc processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  dhcpc policy is extremely flexible and has several booleans that allow you to manipulate the policy and run dhcpc with the tightest access possible.
@@ -15,6 +15,22 @@ If you want to allow dhcpc client applications to execute iptables command, you 
 
 .EX
 .B setsebool -P dhcpc_exec_iptables 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the dhcpc_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the dhcpc_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -38,7 +54,7 @@ The following file types are defined for dhcpc:
 .br
 .TP 5
 Paths: 
-/sbin/dhcpcd, /usr/sbin/pump, /sbin/dhclient.*, /usr/sbin/dhcpcd, /sbin/pump, /usr/sbin/dhclient.*, /usr/sbin/dhcdbd, /sbin/dhcdbd
+/usr/sbin/dhcpcd, /sbin/dhcpcd, /usr/sbin/pump, /sbin/dhclient.*, /usr/sbin/dhclient.*, /sbin/pump, /usr/sbin/dhcdbd, /sbin/dhcdbd
 
 .EX
 .PP
@@ -75,9 +91,13 @@ Paths:
 
 - Set files with the dhcpc_var_run_t type, if you want to store the dhcpc files under the /run directory.
 
+.br
+.TP 5
+Paths: 
+/var/run/dhclient.*, /var/run/dhcpcd(/.*)?
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -104,7 +124,9 @@ The following port types are defined for dhcpc:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 68,546
+.EE
+udp 68,546
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

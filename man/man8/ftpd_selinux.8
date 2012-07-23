@@ -3,8 +3,8 @@
 ftpd_selinux \- Security Enhanced Linux Policy for the ftpd processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the ftpd processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  ftpd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run ftpd with the tightest access possible.
@@ -18,10 +18,17 @@ If you want to allow ftp to read and write files in the user home directorie, yo
 .EE
 
 .PP
-If you want to allow ftp servers to login to local users and read/write all files on the system, governed by DAC, you must turn on the allow_ftpd_full_access boolean.
+If you want to allow ftp servers to use cifs used for public file transfer services, you must turn on the ftpd_use_cifs boolean.
 
 .EX
-.B setsebool -P allow_ftpd_full_access 1
+.B setsebool -P ftpd_use_cifs 1
+.EE
+
+.PP
+If you want to allow internal-sftp to read and write files in the user ssh home directories, you must turn on the sftpd_write_ssh_home boolean.
+
+.EX
+.B setsebool -P sftpd_write_ssh_home 1
 .EE
 
 .PP
@@ -32,17 +39,10 @@ If you want to allow ftp servers to connect to mysql database port, you must tur
 .EE
 
 .PP
-If you want to allow ftp servers to use cifs used for public file transfer services, you must turn on the allow_ftpd_use_cifs boolean.
+If you want to allow ftp servers to login to local users and read/write all files on the system, governed by DAC, you must turn on the ftpd_full_access boolean.
 
 .EX
-.B setsebool -P allow_ftpd_use_cifs 1
-.EE
-
-.PP
-If you want to allow ftp servers to use nfs used for public file transfer services, you must turn on the allow_ftpd_use_nfs boolean.
-
-.EX
-.B setsebool -P allow_ftpd_use_nfs 1
+.B setsebool -P ftpd_full_access 1
 .EE
 
 .PP
@@ -57,6 +57,20 @@ If you want to allow httpd to act as a FTP client connecting to the ftp port and
 
 .EX
 .B setsebool -P httpd_can_connect_ftp 1
+.EE
+
+.PP
+If you want to allow ftp servers to use bind to all unreserved ports for passive mod, you must turn on the ftpd_use_passive_mode boolean.
+
+.EX
+.B setsebool -P ftpd_use_passive_mode 1
+.EE
+
+.PP
+If you want to allow ftp servers to use nfs used for public file transfer services, you must turn on the ftpd_use_nfs boolean.
+
+.EX
+.B setsebool -P ftpd_use_nfs 1
 .EE
 
 .PP
@@ -80,11 +94,20 @@ If you want to allow httpd to act as a FTP server by listening on the ftp port, 
 .B setsebool -P httpd_enable_ftp_server 1
 .EE
 
+.SH NSSWITCH DOMAIN
+
 .PP
-If you want to allow internal-sftp to read and write files in the user ssh home directories, you must turn on the sftpd_write_ssh_home boolean.
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the ftpd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
 
 .EX
-.B setsebool -P sftpd_write_ssh_home 1
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the ftpd_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
 .EE
 
 .SH SHARING FILES
@@ -98,7 +121,7 @@ semanage fcontext -a -t public_content_t "/var/ftpd(/.*)?"
 .B restorecon -F -R -v /var/ftpd
 .pp
 .TP
-Allow ftpd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_ftpd_anon_write boolean to be set.
+Allow ftpd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_ftpdd_anon_write boolean to be set.
 .PP
 .B
 semanage fcontext -a -t public_content_rw_t "/var/ftpd/incoming(/.*)?"
@@ -114,14 +137,14 @@ If you want to allow tftp to modify public files used for public file transfer s
 .EE
 
 .PP
-If you want to allow ftp servers to upload files,  used for public file transfer services. Directories must be labeled public_content_rw_t., you must turn on the allow_ftpd_anon_write boolean.
+If you want to allow ftp servers to upload files,  used for public file transfer services. Directories must be labeled public_content_rw_t., you must turn on the ftpd_anon_write boolean.
 
 .EX
-.B setsebool -P allow_ftpd_anon_write 1
+.B setsebool -P ftpd_anon_write 1
 .EE
 
 .PP
-If you want to allow anon internal-sftp to upload files, used for public file transfer services, directories must be labeled public_content_rw_t., you must turn on the sftpd_anon_write boolean.
+If you want to allow anon internal-sftp to upload files, used for public file transfer services. Directories must be labeled public_content_rw_t., you must turn on the sftpd_anon_write boolean.
 
 .EX
 .B setsebool -P sftpd_anon_write 1
@@ -235,7 +258,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -262,7 +285,7 @@ The following port types are defined for ftpd:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 20
 .EE
 
 .EX
@@ -273,7 +296,9 @@ tcp 8021
 
 
 Default Defined Ports:
-tcp 8021
+tcp 21,990
+.EE
+udp 990
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

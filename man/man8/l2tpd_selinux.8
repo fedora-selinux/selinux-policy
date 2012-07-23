@@ -3,14 +3,10 @@
 l2tpd_selinux \- Security Enhanced Linux Policy for the l2tpd processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B l2tpd
-(policy for l2tpd)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the l2tpd processes via flexible mandatory access
 control.  
 
-
+.SH NSSWITCH DOMAIN
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -33,7 +29,7 @@ The following file types are defined for l2tpd:
 .br
 .TP 5
 Paths: 
-/usr/sbin/xl2tpd, /usr/sbin/openl2tpd
+/usr/sbin/xl2tpd, /usr/sbin/prol2tpd, /usr/sbin/openl2tpd
 
 .EX
 .PP
@@ -45,7 +41,15 @@ Paths:
 .br
 .TP 5
 Paths: 
-/etc/rc\.d/init\.d/xl2tpd, /etc/rc\.d/init\.d/openl2tpd
+/etc/rc\.d/init\.d/xl2tpd, /etc/rc\.d/init\.d/prol2tpd, /etc/rc\.d/init\.d/openl2tpd
+
+.EX
+.PP
+.B l2tpd_tmp_t 
+.EE
+
+- Set files with the l2tpd_tmp_t type, if you want to store l2tpd temporary files in the /tmp directories.
+
 
 .EX
 .PP
@@ -57,15 +61,40 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/run/xl2tpd(/.*)?, /var/run/xl2tpd\.pid
+/var/run/prol2tpd(/.*)?, /var/run/prol2tpd\.pid, /var/run/prol2tpd\.ctl, /var/run/xl2tpd\.pid, /var/run/openl2tpd\.pid, /var/run/xl2tpd(/.*)?
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
+.SH PORT TYPES
+SELinux defines port types to represent TCP and UDP ports. 
+.PP
+You can see the types associated with a port by using the following command: 
+
+.B semanage port -l
+
+.PP
+Policy governs the access confined processes have to these ports. 
+SELinux l2tpd policy is very flexible allowing users to setup their l2tpd processes in as secure a method as possible.
+.PP 
+The following port types are defined for l2tpd:
+
+.EX
+.TP 5
+.B l2tp_port_t 
+.TP 10
+.EE
+
+
+Default Defined Ports:
+tcp 1701
+.EE
+udp 1701
+.EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
 .PP
@@ -93,6 +122,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage port
+can also be used to manipulate the port definitions
 
 .PP
 .B system-config-selinux 

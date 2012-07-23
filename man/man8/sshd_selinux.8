@@ -3,8 +3,8 @@
 sshd_selinux \- Security Enhanced Linux Policy for the sshd processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the sshd processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  sshd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run sshd with the tightest access possible.
@@ -18,6 +18,13 @@ If you want to allow ssh with chroot env to read and write files in the user hom
 .EE
 
 .PP
+If you want to allow internal-sftp to read and write files in the user ssh home directories, you must turn on the sftpd_write_ssh_home boolean.
+
+.EX
+.B setsebool -P sftpd_write_ssh_home 1
+.EE
+
+.PP
 If you want to allow ssh logins as sysadm_r:sysadm_, you must turn on the ssh_sysadm_login boolean.
 
 .EX
@@ -25,10 +32,10 @@ If you want to allow ssh logins as sysadm_r:sysadm_, you must turn on the ssh_sy
 .EE
 
 .PP
-If you want to allow host key based authenticatio, you must turn on the allow_ssh_keysign boolean.
+If you want to allow host key based authenticatio, you must turn on the ssh_keysign boolean.
 
 .EX
-.B setsebool -P allow_ssh_keysign 1
+.B setsebool -P ssh_keysign 1
 .EE
 
 .PP
@@ -38,11 +45,20 @@ If you want to allow fenced domain to execute ssh, you must turn on the fenced_c
 .B setsebool -P fenced_can_ssh 1
 .EE
 
+.SH NSSWITCH DOMAIN
+
 .PP
-If you want to allow internal-sftp to read and write files in the user ssh home directories, you must turn on the sftpd_write_ssh_home boolean.
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
 
 .EX
-.B setsebool -P sftpd_write_ssh_home 1
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -54,66 +70,6 @@ Policy governs the access confined processes have to these files.
 SELinux sshd policy is very flexible allowing users to setup their sshd processes in as secure a method as possible.
 .PP 
 The following file types are defined for sshd:
-
-
-.EX
-.PP
-.B ssh_agent_exec_t 
-.EE
-
-- Set files with the ssh_agent_exec_t type, if you want to transition an executable to the ssh_agent_t domain.
-
-
-.EX
-.PP
-.B ssh_agent_tmp_t 
-.EE
-
-- Set files with the ssh_agent_tmp_t type, if you want to store ssh agent temporary files in the /tmp directories.
-
-
-.EX
-.PP
-.B ssh_exec_t 
-.EE
-
-- Set files with the ssh_exec_t type, if you want to transition an executable to the ssh_t domain.
-
-
-.EX
-.PP
-.B ssh_home_t 
-.EE
-
-- Set files with the ssh_home_t type, if you want to store ssh files in the users home directory.
-
-.br
-.TP 5
-Paths: 
-/var/lib/nocpulse/\.ssh(/.*)?, /var/lib/gitolite/\.ssh(/.*)?, /root/\.shosts, /var/lib/amanda/\.ssh(/.*)?, /root/\.ssh(/.*)?, /var/lib/stickshift/.*/\.ssh(/.*)?
-
-.EX
-.PP
-.B ssh_keygen_exec_t 
-.EE
-
-- Set files with the ssh_keygen_exec_t type, if you want to transition an executable to the ssh_keygen_t domain.
-
-
-.EX
-.PP
-.B ssh_keysign_exec_t 
-.EE
-
-- Set files with the ssh_keysign_exec_t type, if you want to transition an executable to the ssh_keysign_t domain.
-
-
-.EX
-.PP
-.B ssh_tmpfs_t 
-.EE
-
-- Set files with the ssh_tmpfs_t type, if you want to store ssh files on a tmpfs file system.
 
 
 .EX
@@ -170,10 +126,10 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/run/sshd\.init\.pid, /var/run/sshd\.pid
+/var/run/sshd\.pid, /var/run/sshd\.init\.pid
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -200,7 +156,7 @@ The following port types are defined for sshd:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 22
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

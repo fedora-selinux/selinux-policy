@@ -3,8 +3,8 @@
 crond_selinux \- Security Enhanced Linux Policy for the crond processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the crond processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  crond policy is extremely flexible and has several booleans that allow you to manipulate the policy and run crond with the tightest access possible.
@@ -24,6 +24,22 @@ If you want to allow system cron jobs to relabel filesystem for restoring file c
 .B setsebool -P cron_can_relabel 1
 .EE
 
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the crontab_t, crond_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the crontab_t, crond_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
+.EE
+
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
 .PP
@@ -33,42 +49,6 @@ Policy governs the access confined processes have to these files.
 SELinux crond policy is very flexible allowing users to setup their crond processes in as secure a method as possible.
 .PP 
 The following file types are defined for crond:
-
-
-.EX
-.PP
-.B cron_log_t 
-.EE
-
-- Set files with the cron_log_t type, if you want to treat the data as cron log data, usually stored under the /var/log directory.
-
-
-.EX
-.PP
-.B cron_spool_t 
-.EE
-
-- Set files with the cron_spool_t type, if you want to store the cron files under the /var/spool directory.
-
-.br
-.TP 5
-Paths: 
-/var/spool/fcron, /var/spool/cron/crontabs
-
-.EX
-.PP
-.B cron_var_lib_t 
-.EE
-
-- Set files with the cron_var_lib_t type, if you want to store the cron files under the /var/lib directory.
-
-
-.EX
-.PP
-.B cron_var_run_t 
-.EE
-
-- Set files with the cron_var_run_t type, if you want to store the cron files under the /run directory.
 
 
 .EX
@@ -109,7 +89,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/lib/systemd/system/atd\.service, /usr/lib/systemd/system/crond\.service, /lib/systemd/system/crond\.service
+/usr/lib/systemd/system/crond.*, /usr/lib/systemd/system/atd.*
 
 .EX
 .PP
@@ -124,7 +104,7 @@ Paths:
 /var/run/crond?\.pid, /var/run/.*cron.*, /var/run/fcron\.pid, /var/run/crond?\.reboot, /var/run/fcron\.fifo, /var/run/atd\.pid, /var/run/anacron\.pid
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon

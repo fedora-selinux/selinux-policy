@@ -3,24 +3,18 @@
 mount_selinux \- Security Enhanced Linux Policy for the mount processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B mount
-(Policy for mount)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the mount processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  mount policy is extremely flexible and has several booleans that allow you to manipulate the policy and run mount with the tightest access possible.
 
 
 .PP
-If you want to allow the mount command to mount any directory or file, you must turn on the allow_mount_anyfile boolean.
+If you want to allow the mount command to mount any directory or file, you must turn on the mount_anyfile boolean.
 
 .EX
-.B setsebool -P allow_mount_anyfile 1
+.B setsebool -P mount_anyfile 1
 .EE
 
 .PP
@@ -28,6 +22,22 @@ If you want to allow xguest users to mount removable medi, you must turn on the 
 
 .EX
 .B setsebool -P xguest_mount_media 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the mount_t, mount_ecryptfs_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the mount_t, mount_ecryptfs_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -39,6 +49,26 @@ Policy governs the access confined processes have to these files.
 SELinux mount policy is very flexible allowing users to setup their mount processes in as secure a method as possible.
 .PP 
 The following file types are defined for mount:
+
+
+.EX
+.PP
+.B mount_ecryptfs_exec_t 
+.EE
+
+- Set files with the mount_ecryptfs_exec_t type, if you want to transition an executable to the mount_ecryptfs_t domain.
+
+.br
+.TP 5
+Paths: 
+/usr/sbin/mount\.ecryptfs_private, /usr/sbin/mount\.ecryptfs, /usr/sbin/umount\.ecryptfs, /usr/sbin/umount\.ecryptfs_private
+
+.EX
+.PP
+.B mount_ecryptfs_tmpfs_t 
+.EE
+
+- Set files with the mount_ecryptfs_tmpfs_t type, if you want to store mount ecryptfs files on a tmpfs file system.
 
 
 .EX
@@ -82,7 +112,7 @@ Paths:
 /run/mount(/.*)?, /dev/\.mount(/.*)?, /var/run/mount(/.*)?, /var/run/davfs2(/.*)?, /var/cache/davfs2(/.*)?
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -99,7 +129,7 @@ SELinux mount policy is very flexible allowing users to setup their mount proces
 The following process types are defined for mount:
 
 .EX
-.B mount_t 
+.B mount_t, mount_ecryptfs_t 
 .EE
 .PP
 Note: 

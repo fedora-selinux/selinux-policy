@@ -3,14 +3,8 @@
 squid_selinux \- Security Enhanced Linux Policy for the squid processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B squid
-(Squid caching http proxy server)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the squid processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  squid policy is extremely flexible and has several booleans that allow you to manipulate the policy and run squid with the tightest access possible.
@@ -28,6 +22,22 @@ If you want to allow squid to connect to all ports, not just HTTP, FTP, and Goph
 
 .EX
 .B setsebool -P squid_connect_any 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the squid_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the squid_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -95,6 +105,14 @@ Paths:
 
 .EX
 .PP
+.B squid_tmp_t 
+.EE
+
+- Set files with the squid_tmp_t type, if you want to store squid temporary files in the /tmp directories.
+
+
+.EX
+.PP
 .B squid_tmpfs_t 
 .EE
 
@@ -110,7 +128,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -137,7 +155,9 @@ The following port types are defined for squid:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 3128,3401,4827
+.EE
+udp 3401,4827
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

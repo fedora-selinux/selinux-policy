@@ -3,31 +3,25 @@
 mpd_selinux \- Security Enhanced Linux Policy for the mpd processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B mpd
-(Music Player Daemon)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the mpd processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  mpd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run mpd with the tightest access possible.
 
 
 .PP
-If you want to allow mplayer executable stac, you must turn on the allow_mplayer_execstack boolean.
+If you want to allow mplayer executable stac, you must turn on the mplayer_execstack boolean.
 
 .EX
-.B setsebool -P allow_mplayer_execstack 1
+.B setsebool -P mplayer_execstack 1
 .EE
 
 .PP
-If you want to allow all daemons to write corefiles to , you must turn on the allow_daemons_dump_core boolean.
+If you want to allow gssd to read temp directory.  For access to kerberos tgt, you must turn on the gssd_read_tmp boolean.
 
 .EX
-.B setsebool -P allow_daemons_dump_core 1
+.B setsebool -P gssd_read_tmp 1
 .EE
 
 .PP
@@ -45,10 +39,26 @@ If you want to allow video playing tools to run unconfine, you must turn on the 
 .EE
 
 .PP
-If you want to allow gssd to read temp directory.  For access to kerberos tgt, you must turn on the allow_gssd_read_tmp boolean.
+If you want to allow all daemons to write corefiles to , you must turn on the daemons_dump_core boolean.
 
 .EX
-.B setsebool -P allow_gssd_read_tmp 1
+.B setsebool -P daemons_dump_core 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the mpd_t, mplayer_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the mpd_t, mplayer_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -131,7 +141,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -158,7 +168,7 @@ The following port types are defined for mpd:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 6600
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

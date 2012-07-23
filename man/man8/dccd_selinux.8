@@ -3,8 +3,24 @@
 dccd_selinux \- Security Enhanced Linux Policy for the dccd processes
 .SH "DESCRIPTION"
 
+Security-Enhanced Linux secures the dccd processes via flexible mandatory access
+control.  
 
+.SH NSSWITCH DOMAIN
 
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the dccifd_t, dccm_t, dcc_client_t, dcc_dbclean_t, dccd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the dccifd_t, dccm_t, dcc_client_t, dcc_dbclean_t, dccd_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
+.EE
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -16,70 +32,6 @@ SELinux dccd policy is very flexible allowing users to setup their dccd processe
 .PP 
 The following file types are defined for dccd:
 
-
-.EX
-.PP
-.B dcc_client_exec_t 
-.EE
-
-- Set files with the dcc_client_exec_t type, if you want to transition an executable to the dcc_client_t domain.
-
-
-.EX
-.PP
-.B dcc_client_map_t 
-.EE
-
-- Set files with the dcc_client_map_t type, if you want to treat the files as dcc client map data.
-
-.br
-.TP 5
-Paths: 
-/var/lib/dcc/map, /etc/dcc/map, /var/run/dcc/map, /var/dcc/map
-
-.EX
-.PP
-.B dcc_client_tmp_t 
-.EE
-
-- Set files with the dcc_client_tmp_t type, if you want to store dcc client temporary files in the /tmp directories.
-
-
-.EX
-.PP
-.B dcc_dbclean_exec_t 
-.EE
-
-- Set files with the dcc_dbclean_exec_t type, if you want to transition an executable to the dcc_dbclean_t domain.
-
-
-.EX
-.PP
-.B dcc_dbclean_tmp_t 
-.EE
-
-- Set files with the dcc_dbclean_tmp_t type, if you want to store dcc dbclean temporary files in the /tmp directories.
-
-
-.EX
-.PP
-.B dcc_var_run_t 
-.EE
-
-- Set files with the dcc_var_run_t type, if you want to store the dcc files under the /run directory.
-
-
-.EX
-.PP
-.B dcc_var_t 
-.EE
-
-- Set files with the dcc_var_t type, if you want to store the  files under the /var directory.
-
-.br
-.TP 5
-Paths: 
-/etc/dcc(/.*)?, /var/dcc(/.*)?, /var/lib/dcc(/.*)?
 
 .EX
 .PP
@@ -106,7 +58,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -133,7 +85,7 @@ The following port types are defined for dccd:
 
 
 Default Defined Ports:
-tcp 8021
+udp 6276,6277
 .EE
 
 .EX
@@ -144,7 +96,9 @@ tcp 8021
 
 
 Default Defined Ports:
-tcp 8021
+tcp 5679
+.EE
+udp 5679
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

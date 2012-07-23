@@ -3,14 +3,24 @@
 amanda_selinux \- Security Enhanced Linux Policy for the amanda processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B amanda
-(Advanced Maryland Automatic Network Disk Archiver)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the amanda processes via flexible mandatory access
 control.  
 
+.SH NSSWITCH DOMAIN
 
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the amanda_recover_t, amanda_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the amanda_recover_t, amanda_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
+.EE
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -145,10 +155,10 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/lib/amanda, /var/lib/amanda/[^/]+/index(/.*)?
+/var/lib/amanda/[^/]+/index(/.*)?, /var/lib/amanda
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -175,7 +185,9 @@ The following port types are defined for amanda:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 10080-10083
+.EE
+udp 10080-10082
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

@@ -3,24 +3,34 @@
 postfix_selinux \- Security Enhanced Linux Policy for the postfix processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B postfix
-(Postfix email server)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the postfix processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  postfix policy is extremely flexible and has several booleans that allow you to manipulate the policy and run postfix with the tightest access possible.
 
 
 .PP
-If you want to allow postfix_local domain full write access to mail_spool directorie, you must turn on the allow_postfix_local_write_mail_spool boolean.
+If you want to allow postfix_local domain full write access to mail_spool directorie, you must turn on the postfix_local_write_mail_spool boolean.
 
 .EX
-.B setsebool -P allow_postfix_local_write_mail_spool 1
+.B setsebool -P postfix_local_write_mail_spool 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the postfix_smtp_t, postfix_map_t, postfix_showq_t, postfix_virtual_t, postfix_smtpd_t, postfix_local_t, postfix_cleanup_t, postfix_master_t, postfix_postdrop_t, postfix_pickup_t, postfix_bounce_t, postfix_qmgr_t, postfix_pipe_t, postfix_postqueue_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the postfix_smtp_t, postfix_map_t, postfix_showq_t, postfix_virtual_t, postfix_smtpd_t, postfix_local_t, postfix_cleanup_t, postfix_master_t, postfix_postdrop_t, postfix_pickup_t, postfix_bounce_t, postfix_qmgr_t, postfix_pipe_t, postfix_postqueue_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -260,7 +270,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/usr/libexec/postfix/smtp, /usr/libexec/postfix/scache, /usr/libexec/postfix/lmtp
+/usr/libexec/postfix/lmtp, /usr/libexec/postfix/smtp, /usr/libexec/postfix/scache
 
 .EX
 .PP
@@ -347,7 +357,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -374,7 +384,7 @@ The following port types are defined for postfix:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 10031
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
