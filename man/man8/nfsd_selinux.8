@@ -3,8 +3,8 @@
 nfsd_selinux \- Security Enhanced Linux Policy for the nfsd processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the nfsd processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  nfsd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run nfsd with the tightest access possible.
@@ -81,7 +81,7 @@ If you want to allow any files/directories to be exported read/write via NFS, yo
 .EE
 
 .PP
-If you want to allow confined virtual guests to manage nfs file, you must turn on the sanlock_use_nfs boolean.
+If you want to allow sanlock to manage nfs file, you must turn on the sanlock_use_nfs boolean.
 
 .EX
 .B setsebool -P sanlock_use_nfs 1
@@ -115,6 +115,29 @@ If you want to allow any files/directories to be exported read/only via NFS, you
 .B setsebool -P nfs_export_all_ro 1
 .EE
 
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the nfsd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the nfsd_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the nfsd_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
+
 .SH SHARING FILES
 If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
 .TP
@@ -126,7 +149,7 @@ semanage fcontext -a -t public_content_t "/var/nfsd(/.*)?"
 .B restorecon -F -R -v /var/nfsd
 .pp
 .TP
-Allow nfsd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_nfsd_anon_write boolean to be set.
+Allow nfsd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_nfsdd_anon_write boolean to be set.
 .PP
 .B
 semanage fcontext -a -t public_content_rw_t "/var/nfsd/incoming(/.*)?"
@@ -150,14 +173,6 @@ Policy governs the access confined processes have to these files.
 SELinux nfsd policy is very flexible allowing users to setup their nfsd processes in as secure a method as possible.
 .PP 
 The following file types are defined for nfsd:
-
-
-.EX
-.PP
-.B nfs_t 
-.EE
-
-- Set files with the nfs_t type, if you want to treat the files as nfs data.
 
 
 .EX
@@ -203,13 +218,9 @@ Paths:
 
 - Set files with the nfsd_unit_file_t type, if you want to treat the files as nfsd unit content.
 
-.br
-.TP 5
-Paths: 
-/lib/systemd/system/nfs.*, /usr/lib/systemd/system/nfs.*
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -236,7 +247,9 @@ The following port types are defined for nfsd:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 2049,20048-20049
+.EE
+udp 2049,20048-20049
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

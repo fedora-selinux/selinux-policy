@@ -3,8 +3,31 @@
 cupsd_selinux \- Security Enhanced Linux Policy for the cupsd processes
 .SH "DESCRIPTION"
 
+Security-Enhanced Linux secures the cupsd processes via flexible mandatory access
+control.  
 
+.SH NSSWITCH DOMAIN
 
+.PP
+If you want to allow users to login using a sssd serve for the cups_pdf_t, cupsd_config_t, cupsd_lpd_t, cupsd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the cups_pdf_t, cupsd_config_t, cupsd_lpd_t, cupsd_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the cups_pdf_t, cupsd_config_t, cupsd_lpd_t, cupsd_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -15,22 +38,6 @@ Policy governs the access confined processes have to these files.
 SELinux cupsd policy is very flexible allowing users to setup their cupsd processes in as secure a method as possible.
 .PP 
 The following file types are defined for cupsd:
-
-
-.EX
-.PP
-.B cups_pdf_exec_t 
-.EE
-
-- Set files with the cups_pdf_exec_t type, if you want to transition an executable to the cups_pdf_t domain.
-
-
-.EX
-.PP
-.B cups_pdf_tmp_t 
-.EE
-
-- Set files with the cups_pdf_tmp_t type, if you want to store cups pdf temporary files in the /tmp directories.
 
 
 .EX
@@ -107,7 +114,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/log/cups(/.*)?, /usr/local/Brother/fax/.*\.log, /var/log/turboprint.*
+/var/log/cups(/.*)?, /var/log/turboprint.*, /usr/local/Brother/fax/.*\.log
 
 .EX
 .PP
@@ -143,7 +150,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/etc/cups/lpoptions.*, /usr/local/linuxprinter/ppd(/.*)?, /etc/cups/subscriptions.*, /usr/local/Brother/(.*/)?inf(/.*)?, /etc/cups/classes\.conf.*, /usr/lib/bjlib(/.*)?, /etc/cups/ppd(/.*)?, /opt/gutenprint/ppds(/.*)?, /etc/printcap.*, /etc/alchemist/namespace/printconf(/.*)?, /usr/local/Printer/(.*/)?inf(/.*)?, /etc/cups/ppds\.dat, /etc/cups/certs, /etc/cups/certs/.*, /etc/cups/printers\.conf.*, /var/lib/cups/certs/.*, /var/lib/cups/certs, /var/cache/foomatic(/.*)?, /var/cache/alchemist/printconf.*, /etc/cups/cupsd\.conf.*, /var/cache/cups(/.*)?, /usr/share/foomatic/db/oldprinterids
+/etc/cups/lpoptions.*, /usr/local/linuxprinter/ppd(/.*)?, /etc/cups/subscriptions.*, /opt/brother/Printers(.*/)?inf(/.*)?, /usr/local/Brother/(.*/)?inf(/.*)?, /etc/cups/classes\.conf.*, /usr/lib/bjlib(/.*)?, /etc/cups/ppd(/.*)?, /opt/gutenprint/ppds(/.*)?, /etc/printcap.*, /etc/alchemist/namespace/printconf(/.*)?, /usr/local/Printer/(.*/)?inf(/.*)?, /var/lib/cups/certs, /etc/cups/ppds\.dat, /etc/cups/certs, /etc/cups/certs/.*, /etc/cups/printers\.conf.*, /var/lib/cups/certs/.*, /var/cache/foomatic(/.*)?, /var/cache/alchemist/printconf.*, /etc/cups/cupsd\.conf.*, /var/cache/cups(/.*)?, /usr/share/foomatic/db/oldprinterids
 
 .EX
 .PP
@@ -174,7 +181,7 @@ Paths:
 /var/ccpd(/.*)?, /var/ekpd(/.*)?, /var/turboprint(/.*)?, /var/run/cups(/.*)?
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon

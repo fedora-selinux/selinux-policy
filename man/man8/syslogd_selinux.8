@@ -3,8 +3,8 @@
 syslogd_selinux \- Security Enhanced Linux Policy for the syslogd processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the syslogd processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  syslogd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run syslogd with the tightest access possible.
@@ -31,6 +31,29 @@ If you want to allow syslogd the ability to read/write terminal, you must turn o
 .B setsebool -P logging_syslogd_use_tty 1
 .EE
 
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the syslogd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the syslogd_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the syslogd_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
+
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
 .PP
@@ -44,18 +67,6 @@ The following file types are defined for syslogd:
 
 .EX
 .PP
-.B syslog_conf_t 
-.EE
-
-- Set files with the syslog_conf_t type, if you want to treat the files as syslog configuration data, usually stored under the /etc directory.
-
-.br
-.TP 5
-Paths: 
-/etc/rsyslog.conf, /etc/syslog.conf
-
-.EX
-.PP
 .B syslogd_exec_t 
 .EE
 
@@ -64,7 +75,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/lib/systemd/systemd-kmsg-syslogd, /usr/sbin/rsyslogd, /usr/sbin/syslog-ng, /usr/lib/systemd/systemd-kmsg-syslogd, /usr/sbin/metalog, /usr/lib/systemd/systemd-journald, /usr/sbin/syslogd, /usr/sbin/minilogd, /sbin/rsyslogd, /sbin/syslogd, /sbin/syslog-ng, /sbin/minilogd, /lib/systemd/systemd-journald
+/usr/sbin/rsyslogd, /usr/sbin/syslog-ng, /usr/sbin/metalog, /usr/sbin/syslogd, /usr/sbin/minilogd, /sbin/rsyslogd, /usr/lib/systemd/systemd-kmsg-syslogd, /sbin/syslogd, /sbin/syslog-ng, /usr/lib/systemd/systemd-journald, /sbin/minilogd
 
 .EX
 .PP
@@ -104,10 +115,10 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/log/syslog-ng(/.*)?, /var/run/syslog-ng(/.*)?, /var/run/metalog\.pid, /var/run/syslogd\.pid, /var/run/log(/.*)?, /var/run/syslog-ng.ctl
+/var/log/syslog-ng(/.*)?, /var/run/syslogd\.pid, /var/run/syslog-ng(/.*)?, /var/run/metalog\.pid, /var/run/log(/.*)?, /var/run/syslog-ng.ctl
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -134,7 +145,9 @@ The following port types are defined for syslogd:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 6514
+.EE
+udp 514,6514
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

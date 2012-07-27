@@ -3,14 +3,8 @@
 bootloader_selinux \- Security Enhanced Linux Policy for the bootloader processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B bootloader
-(Policy for the kernel modules, kernel image, and bootloader)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the bootloader processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  bootloader policy is extremely flexible and has several booleans that allow you to manipulate the policy and run bootloader with the tightest access possible.
@@ -21,6 +15,29 @@ If you want to allow the graphical login program to execute bootloade, you must 
 
 .EX
 .B setsebool -P xdm_exec_bootloader 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the bootloader_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the bootloader_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the bootloader_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
 .EE
 
 .SH FILE CONTEXTS
@@ -44,7 +61,7 @@ The following file types are defined for bootloader:
 .br
 .TP 5
 Paths: 
-/etc/yaboot\.conf.*, /etc/default/grub, /etc/lilo\.conf.*
+/etc/zipl\.conf.*, /etc/yaboot\.conf.*, /etc/default/grub, /etc/lilo\.conf.*
 
 .EX
 .PP
@@ -56,7 +73,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/usr/sbin/ybin.*, /usr/sbin/grub.*, /sbin/lilo.*, /sbin/ybin.*, /usr/sbin/lilo.*, /sbin/grub.*
+/usr/sbin/ybin.*, /usr/sbin/grub.*, /usr/sbin/zipl, /sbin/lilo.*, /sbin/ybin.*, /usr/sbin/lilo.*, /sbin/grub.*, /sbin/zipl
 
 .EX
 .PP
@@ -66,8 +83,16 @@ Paths:
 - Set files with the bootloader_tmp_t type, if you want to store bootloader temporary files in the /tmp directories.
 
 
+.EX
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B bootloader_var_run_t 
+.EE
+
+- Set files with the bootloader_var_run_t type, if you want to store the bootloader files under the /run directory.
+
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon

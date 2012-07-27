@@ -3,14 +3,8 @@
 httpd_selinux \- Security Enhanced Linux Policy for the httpd processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B httpd
-(Apache web server)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the httpd processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  httpd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run httpd with the tightest access possible.
@@ -21,6 +15,13 @@ If you want to allow httpd to act as a rela, you must turn on the httpd_can_netw
 
 .EX
 .B setsebool -P httpd_can_network_relay 1
+.EE
+
+.PP
+If you want to allow httpd to communicate with oddjob to start up a servic, you must turn on the httpd_use_oddjob boolean.
+
+.EX
+.B setsebool -P httpd_use_oddjob 1
 .EE
 
 .PP
@@ -49,6 +50,13 @@ If you want to allow httpd to access cifs file system, you must turn on the http
 
 .EX
 .B setsebool -P httpd_use_cifs 1
+.EE
+
+.PP
+If you want to allow Apache to run in stickshift mode, not transition to passenge, you must turn on the httpd_run_stickshift boolean.
+
+.EX
+.B setsebool -P httpd_run_stickshift 1
 .EE
 
 .PP
@@ -94,6 +102,13 @@ If you want to allow httpd scripts and modules execmem/execstac, you must turn o
 .EE
 
 .PP
+If you want to allow httpd to access FUSE file system, you must turn on the httpd_use_fusefs boolean.
+
+.EX
+.B setsebool -P httpd_use_fusefs 1
+.EE
+
+.PP
 If you want to allow httpd to connect to the ldap por, you must turn on the httpd_can_connect_ldap boolean.
 
 .EX
@@ -112,6 +127,13 @@ If you want to unify HTTPD to communicate with the terminal. Needed for entering
 
 .EX
 .B setsebool -P httpd_tty_comm 1
+.EE
+
+.PP
+If you want to allow HTTPD to connect to port 80 for graceful shutdow, you must turn on the httpd_graceful_shutdown boolean.
+
+.EX
+.B setsebool -P httpd_graceful_shutdown 1
 .EE
 
 .PP
@@ -199,6 +221,13 @@ If you want to allow HTTPD to run SSI executables in the same domain as system C
 .EE
 
 .PP
+If you want to allow httpd to access openstack port, you must turn on the httpd_use_openstack boolean.
+
+.EX
+.B setsebool -P httpd_use_openstack 1
+.EE
+
+.PP
 If you want to allow httpd to act as a FTP server by listening on the ftp port, you must turn on the httpd_enable_ftp_server boolean.
 
 .EX
@@ -219,6 +248,29 @@ If you want to allow httpd daemon to change system limit, you must turn on the h
 .B setsebool -P httpd_setrlimit 1
 .EE
 
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the httpd_prewikka_script_t, httpd_passwd_t, httpd_t, httpd_php_t, httpd_git_script_t, httpd_suexec_t, httpd_sys_script_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the httpd_prewikka_script_t, httpd_passwd_t, httpd_t, httpd_php_t, httpd_git_script_t, httpd_suexec_t, httpd_sys_script_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the httpd_prewikka_script_t, httpd_passwd_t, httpd_t, httpd_php_t, httpd_git_script_t, httpd_suexec_t, httpd_sys_script_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
+
 .SH SHARING FILES
 If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
 .TP
@@ -230,7 +282,7 @@ semanage fcontext -a -t public_content_t "/var/httpd(/.*)?"
 .B restorecon -F -R -v /var/httpd
 .pp
 .TP
-Allow httpd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_httpd_anon_write boolean to be set.
+Allow httpd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_httpdd_anon_write boolean to be set.
 .PP
 .B
 semanage fcontext -a -t public_content_rw_t "/var/httpd/incoming(/.*)?"
@@ -284,7 +336,7 @@ The following file types are defined for httpd:
 .B httpd_apcupsd_cgi_ra_content_t 
 .EE
 
-- Set files with the httpd_apcupsd_cgi_ra_content_t type, if you want to treat the files as httpd apcupsd cgi read/append content.
+- Set files with the httpd_apcupsd_cgi_ra_content_t type, if you want to treat the files as httpd apcupsd cgi  read/append content.
 
 
 .EX
@@ -305,7 +357,7 @@ The following file types are defined for httpd:
 .br
 .TP 5
 Paths: 
-/var/www/apcupsd/upsfstats\.cgi, /var/www/apcupsd/upsstats\.cgi, /var/www/apcupsd/upsimage\.cgi, /var/www/apcupsd/multimon\.cgi, /var/www/cgi-bin/apcgui(/.*)?
+/var/www/apcupsd/upsfstats\.cgi, /var/www/apcupsd/multimon\.cgi, /var/www/apcupsd/upsstats\.cgi, /var/www/apcupsd/upsimage\.cgi, /var/www/cgi-bin/apcgui(/.*)?
 
 .EX
 .PP
@@ -328,7 +380,7 @@ Paths:
 .B httpd_awstats_ra_content_t 
 .EE
 
-- Set files with the httpd_awstats_ra_content_t type, if you want to treat the files as httpd awstats read/append content.
+- Set files with the httpd_awstats_ra_content_t type, if you want to treat the files as httpd awstats  read/append content.
 
 
 .EX
@@ -368,7 +420,7 @@ Paths:
 .B httpd_bugzilla_ra_content_t 
 .EE
 
-- Set files with the httpd_bugzilla_ra_content_t type, if you want to treat the files as httpd bugzilla read/append content.
+- Set files with the httpd_bugzilla_ra_content_t type, if you want to treat the files as httpd bugzilla  read/append content.
 
 
 .EX
@@ -405,7 +457,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/cache/php-.*, /var/cache/mediawiki(/.*)?, /var/cache/lighttpd(/.*)?, /var/cache/php-mmcache(/.*)?, /var/cache/mod_gnutls(/.*)?, /var/cache/mod_ssl(/.*)?, /var/cache/jetty(/.*)?, /var/cache/mod_.*, /var/cache/ssl.*\.sem, /var/cache/httpd(/.*)?, /var/cache/rt3(/.*)?, /var/cache/php-eaccelerator(/.*)?, /var/cache/mason(/.*)?, /var/cache/mod_proxy(/.*)?
+/var/cache/php-.*, /var/cache/mediawiki(/.*)?, /var/cache/lighttpd(/.*)?, /var/cache/php-mmcache(/.*)?, /var/cache/mod_gnutls(/.*)?, /var/cache/mod_ssl(/.*)?, /var/cache/mod_.*, /var/cache/ssl.*\.sem, /var/cache/httpd(/.*)?, /var/cache/rt3(/.*)?, /var/cache/php-eaccelerator(/.*)?, /var/cache/mason(/.*)?, /var/cache/mod_proxy(/.*)?
 
 .EX
 .PP
@@ -428,7 +480,7 @@ Paths:
 .B httpd_cobbler_ra_content_t 
 .EE
 
-- Set files with the httpd_cobbler_ra_content_t type, if you want to treat the files as httpd cobbler read/append content.
+- Set files with the httpd_cobbler_ra_content_t type, if you want to treat the files as httpd cobbler  read/append content.
 
 
 .EX
@@ -468,7 +520,7 @@ Paths:
 .B httpd_collectd_ra_content_t 
 .EE
 
-- Set files with the httpd_collectd_ra_content_t type, if you want to treat the files as httpd collectd read/append content.
+- Set files with the httpd_collectd_ra_content_t type, if you want to treat the files as httpd collectd  read/append content.
 
 
 .EX
@@ -497,7 +549,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/etc/vhosts, /etc/httpd(/.*)?, /etc/apache(2)?(/.*)?, /etc/apache-ssl(2)?(/.*)?, /etc/lighttpd(/.*)?, /var/lib/stickshift/.httpd.d(/.*)?, /etc/cherokee(/.*)?
+/etc/vhosts, /etc/httpd(/.*)?, /etc/apache(2)?(/.*)?, /etc/apache-ssl(2)?(/.*)?, /etc/lighttpd(/.*)?, /etc/cherokee(/.*)?
 
 .EX
 .PP
@@ -520,7 +572,7 @@ Paths:
 .B httpd_cvs_ra_content_t 
 .EE
 
-- Set files with the httpd_cvs_ra_content_t type, if you want to treat the files as httpd cvs read/append content.
+- Set files with the httpd_cvs_ra_content_t type, if you want to treat the files as httpd cvs  read/append content.
 
 
 .EX
@@ -564,7 +616,7 @@ Paths:
 .B httpd_dirsrvadmin_ra_content_t 
 .EE
 
-- Set files with the httpd_dirsrvadmin_ra_content_t type, if you want to treat the files as httpd dirsrvadmin read/append content.
+- Set files with the httpd_dirsrvadmin_ra_content_t type, if you want to treat the files as httpd dirsrvadmin  read/append content.
 
 
 .EX
@@ -608,7 +660,7 @@ Paths:
 .B httpd_dspam_ra_content_t 
 .EE
 
-- Set files with the httpd_dspam_ra_content_t type, if you want to treat the files as httpd dspam read/append content.
+- Set files with the httpd_dspam_ra_content_t type, if you want to treat the files as httpd dspam  read/append content.
 
 
 .EX
@@ -637,7 +689,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/usr/sbin/apache(2)?, /usr/bin/mongrel_rails, /usr/lib/apache-ssl/.+, /usr/sbin/httpd\.event, /usr/sbin/httpd(\.worker)?, /usr/sbin/cherokee, /usr/sbin/apache-ssl(2)?, /usr/sbin/lighttpd
+/usr/sbin/apache(2)?, /usr/share/jetty/bin/jetty.sh, /usr/bin/mongrel_rails, /usr/lib/apache-ssl/.+, /usr/sbin/httpd\.event, /usr/sbin/httpd(\.worker)?, /usr/sbin/cherokee, /usr/sbin/apache-ssl(2)?, /usr/sbin/lighttpd
 
 .EX
 .PP
@@ -660,7 +712,7 @@ Paths:
 .B httpd_git_ra_content_t 
 .EE
 
-- Set files with the httpd_git_ra_content_t type, if you want to treat the files as httpd git read/append content.
+- Set files with the httpd_git_ra_content_t type, if you want to treat the files as httpd git  read/append content.
 
 
 .EX
@@ -717,46 +769,6 @@ Paths:
 
 .EX
 .PP
-.B httpd_libra_content_t 
-.EE
-
-- Set files with the httpd_libra_content_t type, if you want to treat the files as httpd libra content.
-
-
-.EX
-.PP
-.B httpd_libra_htaccess_t 
-.EE
-
-- Set files with the httpd_libra_htaccess_t type, if you want to treat the file as a httpd libra access file.
-
-
-.EX
-.PP
-.B httpd_libra_ra_content_t 
-.EE
-
-- Set files with the httpd_libra_ra_content_t type, if you want to treat the files as httpd libra read/append content.
-
-
-.EX
-.PP
-.B httpd_libra_rw_content_t 
-.EE
-
-- Set files with the httpd_libra_rw_content_t type, if you want to treat the files as httpd libra read/write content.
-
-
-.EX
-.PP
-.B httpd_libra_script_exec_t 
-.EE
-
-- Set files with the httpd_libra_script_exec_t type, if you want to transition an executable to the httpd_libra_script_t domain.
-
-
-.EX
-.PP
 .B httpd_lock_t 
 .EE
 
@@ -773,7 +785,59 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/log/apache-ssl(2)?(/.*)?, /var/log/httpd(/.*)?, /var/log/apache(2)?(/.*)?, /var/log/cherokee(/.*)?, /var/log/roundcubemail(/.*)?, /var/log/cgiwrap\.log.*, /var/log/lighttpd(/.*)?, /var/log/suphp\.log, /var/log/cacti(/.*)?, /var/log/dirsrv/admin-serv(/.*)?, /etc/httpd/logs, /var/log/jetty(/.*)?
+/var/log/apache-ssl(2)?(/.*)?, /var/log/httpd(/.*)?, /var/log/apache(2)?(/.*)?, /var/log/cherokee(/.*)?, /var/log/roundcubemail(/.*)?, /var/log/cgiwrap\.log.*, /var/log/php-fpm(/.*)?, /var/log/lighttpd(/.*)?, /var/log/suphp\.log, /var/log/cacti(/.*)?, /var/log/dirsrv/admin-serv(/.*)?, /etc/httpd/logs
+
+.EX
+.PP
+.B httpd_man2html_content_t 
+.EE
+
+- Set files with the httpd_man2html_content_t type, if you want to treat the files as httpd man2html content.
+
+
+.EX
+.PP
+.B httpd_man2html_htaccess_t 
+.EE
+
+- Set files with the httpd_man2html_htaccess_t type, if you want to treat the file as a httpd man2html access file.
+
+
+.EX
+.PP
+.B httpd_man2html_ra_content_t 
+.EE
+
+- Set files with the httpd_man2html_ra_content_t type, if you want to treat the files as httpd man2html  read/append content.
+
+
+.EX
+.PP
+.B httpd_man2html_rw_content_t 
+.EE
+
+- Set files with the httpd_man2html_rw_content_t type, if you want to treat the files as httpd man2html read/write content.
+
+
+.EX
+.PP
+.B httpd_man2html_script_cache_t 
+.EE
+
+- Set files with the httpd_man2html_script_cache_t type, if you want to store the files under the /var/cache directory.
+
+
+.EX
+.PP
+.B httpd_man2html_script_exec_t 
+.EE
+
+- Set files with the httpd_man2html_script_exec_t type, if you want to transition an executable to the httpd_man2html_script_t domain.
+
+.br
+.TP 5
+Paths: 
+/usr/lib/man2html/cgi-bin/man/manwhatis, /usr/lib/man2html/cgi-bin/man/man2html, /usr/lib/man2html/cgi-bin/man/mansec
 
 .EX
 .PP
@@ -800,7 +864,7 @@ Paths:
 .B httpd_mediawiki_ra_content_t 
 .EE
 
-- Set files with the httpd_mediawiki_ra_content_t type, if you want to treat the files as httpd mediawiki read/append content.
+- Set files with the httpd_mediawiki_ra_content_t type, if you want to treat the files as httpd mediawiki  read/append content.
 
 
 .EX
@@ -856,7 +920,7 @@ Paths:
 .B httpd_mojomojo_ra_content_t 
 .EE
 
-- Set files with the httpd_mojomojo_ra_content_t type, if you want to treat the files as httpd mojomojo read/append content.
+- Set files with the httpd_mojomojo_ra_content_t type, if you want to treat the files as httpd mojomojo  read/append content.
 
 
 .EX
@@ -904,7 +968,7 @@ Paths:
 .B httpd_munin_ra_content_t 
 .EE
 
-- Set files with the httpd_munin_ra_content_t type, if you want to treat the files as httpd munin read/append content.
+- Set files with the httpd_munin_ra_content_t type, if you want to treat the files as httpd munin  read/append content.
 
 
 .EX
@@ -944,7 +1008,7 @@ Paths:
 .B httpd_nagios_ra_content_t 
 .EE
 
-- Set files with the httpd_nagios_ra_content_t type, if you want to treat the files as httpd nagios read/append content.
+- Set files with the httpd_nagios_ra_content_t type, if you want to treat the files as httpd nagios  read/append content.
 
 
 .EX
@@ -988,7 +1052,7 @@ Paths:
 .B httpd_nutups_cgi_ra_content_t 
 .EE
 
-- Set files with the httpd_nutups_cgi_ra_content_t type, if you want to treat the files as httpd nutups cgi read/append content.
+- Set files with the httpd_nutups_cgi_ra_content_t type, if you want to treat the files as httpd nutups cgi  read/append content.
 
 
 .EX
@@ -1056,7 +1120,7 @@ Paths:
 .B httpd_prewikka_ra_content_t 
 .EE
 
-- Set files with the httpd_prewikka_ra_content_t type, if you want to treat the files as httpd prewikka read/append content.
+- Set files with the httpd_prewikka_ra_content_t type, if you want to treat the files as httpd prewikka  read/append content.
 
 
 .EX
@@ -1104,7 +1168,7 @@ Paths:
 .B httpd_smokeping_cgi_ra_content_t 
 .EE
 
-- Set files with the httpd_smokeping_cgi_ra_content_t type, if you want to treat the files as httpd smokeping cgi read/append content.
+- Set files with the httpd_smokeping_cgi_ra_content_t type, if you want to treat the files as httpd smokeping cgi  read/append content.
 
 
 .EX
@@ -1144,7 +1208,7 @@ Paths:
 .B httpd_squid_ra_content_t 
 .EE
 
-- Set files with the httpd_squid_ra_content_t type, if you want to treat the files as httpd squid read/append content.
+- Set files with the httpd_squid_ra_content_t type, if you want to treat the files as httpd squid  read/append content.
 
 
 .EX
@@ -1201,7 +1265,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/usr/share/icecast(/.*)?, /usr/share/htdig(/.*)?, /etc/htdig(/.*)?, /var/www/svn/conf(/.*)?, /usr/share/doc/ghc/html(/.*)?, /usr/share/mythtv/data(/.*)?, /var/lib/htdig(/.*)?, /srv/gallery2(/.*)?, /srv/([^/]*/)?www(/.*)?, /usr/share/ntop/html(/.*)?, /usr/share/mythweb(/.*)?, /var/lib/cacti/rra(/.*)?, /usr/share/openca/htdocs(/.*)?, /usr/share/selinux-policy[^/]*/html(/.*)?, /usr/share/drupal.*, /var/lib/trac(/.*)?, /var/www(/.*)?, /var/www/icons(/.*)?
+/usr/share/icecast(/.*)?, /usr/share/htdig(/.*)?, /etc/htdig(/.*)?, /var/www/svn/conf(/.*)?, /usr/share/doc/ghc/html(/.*)?, /usr/share/mythtv/data(/.*)?, /var/lib/htdig(/.*)?, /srv/gallery2(/.*)?, /srv/([^/]*/)?www(/.*)?, /usr/share/ntop/html(/.*)?, /usr/share/mythweb(/.*)?, /usr/share/openca/htdocs(/.*)?, /usr/share/selinux-policy[^/]*/html(/.*)?, /usr/share/drupal.*, /var/lib/cacti/rra(/.*)?, /var/lib/trac(/.*)?, /var/www(/.*)?, /var/www/icons(/.*)?
 
 .EX
 .PP
@@ -1216,7 +1280,7 @@ Paths:
 .B httpd_sys_ra_content_t 
 .EE
 
-- Set files with the httpd_sys_ra_content_t type, if you want to treat the files as httpd sys read/append content.
+- Set files with the httpd_sys_ra_content_t type, if you want to treat the files as httpd sys  read/append content.
 
 
 .EX
@@ -1229,7 +1293,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/spool/viewvc(/.*)?, /etc/WebCalendar(/.*)?, /etc/mock/koji(/.*)?, /var/lib/svn(/.*)?, /var/spool/gosa(/.*)?, /etc/zabbix/web(/.*)?, /var/lib/pootle/po(/.*)?, /etc/drupal.*, /var/www/gallery/albums(/.*)?, /usr/share/wordpress/wp-content/uploads(/.*)?, /var/www/html/configuration\.php, /usr/share/wordpress/wp-content/upgrade(/.*)?, /var/lib/drupal.*, /usr/share/wordpress-mu/wp-content(/.*)?, /var/lib/dokuwiki(/.*)?, /var/www/moodledata(/.*)?, /var/www/svn(/.*)?, /var/www/html/wp-content(/.*)?
+/var/www/html/[^/]*/sites/default/settings\.php, /var/spool/viewvc(/.*)?, /etc/WebCalendar(/.*)?, /etc/mock/koji(/.*)?, /var/lib/svn(/.*)?, /var/spool/gosa(/.*)?, /etc/zabbix/web(/.*)?, /var/lib/pootle/po(/.*)?, /etc/drupal.*, /var/www/gallery/albums(/.*)?, /usr/share/wordpress/wp-content/uploads(/.*)?, /var/www/html/configuration\.php, /usr/share/wordpress/wp-content/upgrade(/.*)?, /var/lib/drupal.*, /usr/share/wordpress-mu/wp-content(/.*)?, /var/lib/dokuwiki(/.*)?, /var/www/moodledata(/.*)?, /var/www/html/[^/]*/sites/default/files(/.*)?, /var/www/svn(/.*)?, /var/www/html/wp-content(/.*)?
 
 .EX
 .PP
@@ -1241,7 +1305,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/www/svn/hooks(/.*)?, /usr/share/mythweb/mythweb\.pl, /usr/share/wordpress/.*\.php, /usr/lib/cgi-bin(/.*)?, /var/www/perl(/.*)?, /usr/share/mythtv/mythweather/scripts(/.*)?, /usr/share/wordpress-mu/wp-config\.php, /var/www/html/[^/]*/cgi-bin(/.*)?, /var/www/[^/]*/cgi-bin(/.*)?, /var/www/cgi-bin(/.*)?
+/var/www/svn/hooks(/.*)?, /usr/share/mythweb/mythweb\.pl, /usr/share/wordpress/.*\.php, /usr/lib/cgi-bin(/.*)?, /var/www/perl(/.*)?, /usr/share/mythtv/mythweather/scripts(/.*)?, /usr/share/wordpress-mu/wp-config\.php, /var/www/html/[^/]*/cgi-bin(/.*)?, /var/www/[^/]*/cgi-bin(/.*)?, /var/www/cgi-bin(/.*)?, /usr/share/wordpress/wp-includes/.*\.php
 
 .EX
 .PP
@@ -1269,7 +1333,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/usr/lib/systemd/system/httpd.?\.service, /lib/systemd/system/jetty.*\.service, /lib/systemd/system/httpd.*\.service
+/usr/lib/systemd/system/httpd.*, /usr/lib/systemd/system/jetty.*
 
 .EX
 .PP
@@ -1292,7 +1356,7 @@ Paths:
 .B httpd_user_ra_content_t 
 .EE
 
-- Set files with the httpd_user_ra_content_t type, if you want to treat the files as httpd user read/append content.
+- Set files with the httpd_user_ra_content_t type, if you want to treat the files as httpd user  read/append content.
 
 
 .EX
@@ -1321,7 +1385,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/lib/rt3/data/RT-Shredder(/.*)?, /var/lib/jetty(/.*)?, /var/lib/httpd(/.*)?, /var/lib/cherokee(/.*)?, /var/lib/dav(/.*)?
+/var/lib/rt3/data/RT-Shredder(/.*)?, /var/lib/lighttpd(/.*)?, /var/lib/httpd(/.*)?, /var/lib/cherokee(/.*)?, /var/lib/dav(/.*)?
 
 .EX
 .PP
@@ -1333,7 +1397,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/run/mod_.*, /var/run/wsgi.*, /var/run/apache.*, /var/run/jetty(/.*)?, /var/run/gcache_port, /opt/dirsrv/var/run/dirsrv/dsgw/cookies(/.*)?, /var/run/httpd.*, /var/run/dirsrv/admin-serv.*, /var/lib/php/session(/.*)?, /var/run/lighttpd(/.*)?
+/var/run/mod_.*, /var/run/wsgi.*, /var/run/apache.*, /var/run/cherokee\.pid, /var/run/gcache_port, /opt/dirsrv/var/run/dirsrv/dsgw/cookies(/.*)?, /var/run/httpd.*, /var/run/dirsrv/admin-serv.*, /var/lib/php/session(/.*)?, /var/run/lighttpd(/.*)?
 
 .EX
 .PP
@@ -1356,7 +1420,7 @@ Paths:
 .B httpd_w3c_validator_ra_content_t 
 .EE
 
-- Set files with the httpd_w3c_validator_ra_content_t type, if you want to treat the files as httpd w3c validator read/append content.
+- Set files with the httpd_w3c_validator_ra_content_t type, if you want to treat the files as httpd w3c validator  read/append content.
 
 
 .EX
@@ -1408,7 +1472,7 @@ Paths:
 .B httpd_zoneminder_ra_content_t 
 .EE
 
-- Set files with the httpd_zoneminder_ra_content_t type, if you want to treat the files as httpd zoneminder read/append content.
+- Set files with the httpd_zoneminder_ra_content_t type, if you want to treat the files as httpd zoneminder  read/append content.
 
 
 .EX
@@ -1428,7 +1492,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -1455,7 +1519,9 @@ The following port types are defined for httpd:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 8080,8118,8123,10001-10010
+.EE
+udp 3130
 .EE
 
 .EX
@@ -1466,7 +1532,7 @@ tcp 8021
 
 
 Default Defined Ports:
-tcp 8021
+tcp 80,443,488,8008,8009,8443
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
@@ -1479,7 +1545,7 @@ SELinux httpd policy is very flexible allowing users to setup their httpd proces
 The following process types are defined for httpd:
 
 .EX
-.B httpd_collectd_script_t, httpd_cvs_script_t, httpd_rotatelogs_t, httpd_bugzilla_script_t, httpd_smokeping_cgi_script_t, httpd_nagios_script_t, httpd_dirsrvadmin_script_t, httpd_suexec_t, httpd_mojomojo_script_t, httpd_php_t, httpd_w3c_validator_script_t, httpd_user_script_t, httpd_awstats_script_t, httpd_libra_script_t, httpd_apcupsd_cgi_script_t, httpd_nutups_cgi_script_t, httpd_munin_script_t, httpd_zoneminder_script_t, httpd_sys_script_t, httpd_dspam_script_t, httpd_prewikka_script_t, httpd_git_script_t, httpd_t, httpd_passwd_t, httpd_helper_t, httpd_squid_script_t, httpd_cobbler_script_t, httpd_mediawiki_script_t 
+.B httpd_collectd_script_t, httpd_cvs_script_t, httpd_rotatelogs_t, httpd_bugzilla_script_t, httpd_smokeping_cgi_script_t, httpd_nagios_script_t, httpd_dirsrvadmin_script_t, httpd_suexec_t, httpd_mojomojo_script_t, httpd_php_t, httpd_w3c_validator_script_t, httpd_user_script_t, httpd_awstats_script_t, httpd_apcupsd_cgi_script_t, httpd_nutups_cgi_script_t, httpd_munin_script_t, httpd_zoneminder_script_t, httpd_sys_script_t, httpd_dspam_script_t, httpd_prewikka_script_t, httpd_git_script_t, httpd_t, httpd_man2html_script_t, httpd_passwd_t, httpd_helper_t, httpd_squid_script_t, httpd_cobbler_script_t, httpd_mediawiki_script_t 
 .EE
 .PP
 Note: 

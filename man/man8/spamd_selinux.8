@@ -3,8 +3,8 @@
 spamd_selinux \- Security Enhanced Linux Policy for the spamd processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the spamd processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  spamd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run spamd with the tightest access possible.
@@ -29,6 +29,29 @@ If you want to allow http daemon to check spa, you must turn on the httpd_can_ch
 
 .EX
 .B setsebool -P httpd_can_check_spam 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the spamc_t, spamd_update_t, spamd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the spamc_t, spamd_update_t, spamd_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the spamc_t, spamd_update_t, spamd_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
 .EE
 
 .SH FILE CONTEXTS
@@ -57,6 +80,10 @@ The following file types are defined for spamd:
 
 - Set files with the spamd_etc_t type, if you want to store spamd files in the /etc directories.
 
+.br
+.TP 5
+Paths: 
+/etc/pyzor(/.*)?, /etc/razor(/.*)?
 
 .EX
 .PP
@@ -68,7 +95,7 @@ The following file types are defined for spamd:
 .br
 .TP 5
 Paths: 
-/usr/sbin/spamd, /usr/bin/mimedefang-multiplexor, /usr/bin/spamd, /usr/bin/mimedefang
+/usr/sbin/spamd, /usr/bin/mimedefang-multiplexor, /usr/bin/pyzord, /usr/bin/spamd, /usr/bin/mimedefang
 
 .EX
 .PP
@@ -80,7 +107,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/etc/rc\.d/init\.d/spamd, /etc/rc\.d/init\.d/mimedefang.*
+/etc/rc\.d/init\.d/spamd, /etc/rc\.d/init\.d/mimedefang.*, /etc/rc\.d/init\.d/pyzord
 
 .EX
 .PP
@@ -92,7 +119,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/log/razor-agent\.log, /var/log/spamd\.log, /var/log/mimedefang
+/var/log/razor-agent\.log, /var/log/spamd\.log, /var/log/mimedefang, /var/log/pyzord\.log
 
 .EX
 .PP
@@ -132,7 +159,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/var/lib/spamassassin(/.*)?, /var/lib/razor(/.*)?
+/var/lib/spamassassin(/.*)?, /var/lib/razor(/.*)?, /var/lib/pyzord(/.*)?
 
 .EX
 .PP
@@ -147,7 +174,7 @@ Paths:
 /var/run/spamassassin(/.*)?, /var/spool/MIMEDefang(/.*)?, /var/spool/MD-Quarantine(/.*)?
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -174,7 +201,7 @@ The following port types are defined for spamd:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 783
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

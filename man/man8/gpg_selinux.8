@@ -3,14 +3,8 @@
 gpg_selinux \- Security Enhanced Linux Policy for the gpg processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B gpg
-(Policy for GNU Privacy Guard and related programs)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the gpg processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  gpg policy is extremely flexible and has several booleans that allow you to manipulate the policy and run gpg with the tightest access possible.
@@ -30,6 +24,29 @@ If you want to allow httpd to run gpg in gpg-web domai, you must turn on the htt
 .B setsebool -P httpd_use_gpg 1
 .EE
 
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
+
 .SH SHARING FILES
 If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
 .TP
@@ -41,7 +58,7 @@ semanage fcontext -a -t public_content_t "/var/gpg(/.*)?"
 .B restorecon -F -R -v /var/gpg
 .pp
 .TP
-Allow gpg servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_gpg_anon_write boolean to be set.
+Allow gpg servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_gpgd_anon_write boolean to be set.
 .PP
 .B
 semanage fcontext -a -t public_content_rw_t "/var/gpg/incoming(/.*)?"
@@ -128,7 +145,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon

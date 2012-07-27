@@ -3,14 +3,31 @@
 keystone_selinux \- Security Enhanced Linux Policy for the keystone processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B keystone
-(policy for keystone)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the keystone processes via flexible mandatory access
 control.  
 
+.SH NSSWITCH DOMAIN
 
+.PP
+If you want to allow users to login using a sssd serve for the keystone_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the keystone_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the keystone_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -64,12 +81,37 @@ The following file types are defined for keystone:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
+.SH PORT TYPES
+SELinux defines port types to represent TCP and UDP ports. 
+.PP
+You can see the types associated with a port by using the following command: 
+
+.B semanage port -l
+
+.PP
+Policy governs the access confined processes have to these ports. 
+SELinux keystone policy is very flexible allowing users to setup their keystone processes in as secure a method as possible.
+.PP 
+The following port types are defined for keystone:
+
+.EX
+.TP 5
+.B keystone_port_t 
+.TP 10
+.EE
+
+
+Default Defined Ports:
+tcp 5000
+.EE
+udp 5000
+.EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
 .PP
@@ -97,6 +139,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage port
+can also be used to manipulate the port definitions
 
 .PP
 .B system-config-selinux 

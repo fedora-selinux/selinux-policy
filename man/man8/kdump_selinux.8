@@ -3,14 +3,31 @@
 kdump_selinux \- Security Enhanced Linux Policy for the kdump processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B kdump
-(Kernel crash dumping mechanism)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the kdump processes via flexible mandatory access
 control.  
 
+.SH NSSWITCH DOMAIN
 
+.PP
+If you want to allow users to login using a sssd serve for the kdumpgui_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the kdumpgui_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the kdumpgui_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -61,6 +78,30 @@ Paths:
 
 .EX
 .PP
+.B kdumpctl_exec_t 
+.EE
+
+- Set files with the kdumpctl_exec_t type, if you want to transition an executable to the kdumpctl_t domain.
+
+
+.EX
+.PP
+.B kdumpctl_tmp_t 
+.EE
+
+- Set files with the kdumpctl_tmp_t type, if you want to store kdumpctl temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B kdumpctl_unit_file_t 
+.EE
+
+- Set files with the kdumpctl_unit_file_t type, if you want to treat the files as kdumpctl unit content.
+
+
+.EX
+.PP
 .B kdumpgui_exec_t 
 .EE
 
@@ -76,7 +117,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -93,7 +134,7 @@ SELinux kdump policy is very flexible allowing users to setup their kdump proces
 The following process types are defined for kdump:
 
 .EX
-.B kdumpgui_t, kdump_t 
+.B kdumpgui_t, kdumpctl_t, kdump_t 
 .EE
 .PP
 Note: 

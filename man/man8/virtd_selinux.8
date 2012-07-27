@@ -3,19 +3,12 @@
 virtd_selinux \- Security Enhanced Linux Policy for the virtd processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the virtd processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  virtd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run virtd with the tightest access possible.
 
-
-.PP
-If you want to allow confined virtual guests to read fuse file, you must turn on the virt_use_fusefs boolean.
-
-.EX
-.B setsebool -P virt_use_fusefs 1
-.EE
 
 .PP
 If you want to allow confined virtual guests to manage nfs file, you must turn on the virt_use_nfs boolean.
@@ -67,10 +60,40 @@ If you want to allow confined virtual guests to use usb device, you must turn on
 .EE
 
 .PP
+If you want to allow confined virtual guests to read fuse file, you must turn on the virt_use_fusefs boolean.
+
+.EX
+.B setsebool -P virt_use_fusefs 1
+.EE
+
+.PP
 If you want to allow confined virtual guests to manage cifs file, you must turn on the virt_use_samba boolean.
 
 .EX
 .B setsebool -P virt_use_samba 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the virtd_t, virtd_lxc_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the virtd_t, virtd_lxc_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the virtd_t, virtd_lxc_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
 .EE
 
 .SH FILE CONTEXTS
@@ -86,134 +109,6 @@ The following file types are defined for virtd:
 
 .EX
 .PP
-.B virt_bridgehelper_exec_t 
-.EE
-
-- Set files with the virt_bridgehelper_exec_t type, if you want to transition an executable to the virt_bridgehelper_t domain.
-
-
-.EX
-.PP
-.B virt_cache_t 
-.EE
-
-- Set files with the virt_cache_t type, if you want to store the files under the /var/cache directory.
-
-.br
-.TP 5
-Paths: 
-/var/cache/oz(/.*)?, /var/cache/libvirt(/.*)?
-
-.EX
-.PP
-.B virt_content_t 
-.EE
-
-- Set files with the virt_content_t type, if you want to treat the files as virt content.
-
-.br
-.TP 5
-Paths: 
-/var/lib/vdsm(/.*)?, /var/lib/oz/isos(/.*)?, /var/lib/libvirt/boot(/.*)?, /var/lib/libvirt/isos(/.*)?
-
-.EX
-.PP
-.B virt_etc_rw_t 
-.EE
-
-- Set files with the virt_etc_rw_t type, if you want to treat the files as virt etc read/write content.
-
-.br
-.TP 5
-Paths: 
-/etc/libvirt/.*/.*, /etc/xen/.*/.*, /etc/xen/[^/]*, /etc/libvirt/[^/]*
-
-.EX
-.PP
-.B virt_etc_t 
-.EE
-
-- Set files with the virt_etc_t type, if you want to store virt files in the /etc directories.
-
-.br
-.TP 5
-Paths: 
-/etc/libvirt/[^/]*, /etc/libvirt, /etc/xen/[^/]*, /etc/xen
-
-.EX
-.PP
-.B virt_home_t 
-.EE
-
-- Set files with the virt_home_t type, if you want to store virt files in the users home directory.
-
-
-.EX
-.PP
-.B virt_image_t 
-.EE
-
-- Set files with the virt_image_t type, if you want to treat the files as virt image data.
-
-.br
-.TP 5
-Paths: 
-/var/lib/imagefactory/images(/.*)?, /var/lib/libvirt/images(/.*)?
-
-.EX
-.PP
-.B virt_log_t 
-.EE
-
-- Set files with the virt_log_t type, if you want to treat the data as virt log data, usually stored under the /var/log directory.
-
-.br
-.TP 5
-Paths: 
-/var/log/log(/.*)?, /var/log/vdsm(/.*)?, /var/log/libvirt(/.*)?
-
-.EX
-.PP
-.B virt_qmf_exec_t 
-.EE
-
-- Set files with the virt_qmf_exec_t type, if you want to transition an executable to the virt_qmf_t domain.
-
-
-.EX
-.PP
-.B virt_tmp_t 
-.EE
-
-- Set files with the virt_tmp_t type, if you want to store virt temporary files in the /tmp directories.
-
-
-.EX
-.PP
-.B virt_var_lib_t 
-.EE
-
-- Set files with the virt_var_lib_t type, if you want to store the virt files under the /var/lib directory.
-
-.br
-.TP 5
-Paths: 
-/var/lib/oz(/.*)?, /var/lib/libvirt(/.*)?
-
-.EX
-.PP
-.B virt_var_run_t 
-.EE
-
-- Set files with the virt_var_run_t type, if you want to store the virt files under the /run directory.
-
-.br
-.TP 5
-Paths: 
-/var/run/vdsm(/.*)?, /var/vdsm(/.*)?, /var/run/libvirt(/.*)?
-
-.EX
-.PP
 .B virtd_exec_t 
 .EE
 
@@ -222,7 +117,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/usr/sbin/condor_vm-gahp, /usr/bin/imagefactory, /usr/bin/imgfac\.py, /usr/bin/nova-compute, /usr/sbin/libvirtd
+/usr/sbin/condor_vm-gahp, /usr/bin/imagefactory, /usr/bin/vios-proxy-host, /usr/bin/imgfac\.py, /usr/bin/vios-proxy-guest, /usr/bin/nova-compute, /usr/sbin/libvirtd
 
 .EX
 .PP
@@ -248,16 +143,8 @@ Paths:
 - Set files with the virtd_lxc_exec_t type, if you want to transition an executable to the virtd_lxc_t domain.
 
 
-.EX
 .PP
-.B virtd_lxc_var_run_t 
-.EE
-
-- Set files with the virtd_lxc_var_run_t type, if you want to store the virtd lxc files under the /run directory.
-
-
-.PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -284,7 +171,7 @@ The following port types are defined for virtd:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 49152-49216
 .EE
 
 .EX
@@ -295,7 +182,9 @@ tcp 8021
 
 
 Default Defined Ports:
-tcp 8021
+tcp 16509,16514
+.EE
+udp 16509,16514
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

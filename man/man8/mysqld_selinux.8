@@ -3,8 +3,8 @@
 mysqld_selinux \- Security Enhanced Linux Policy for the mysqld processes
 .SH "DESCRIPTION"
 
-
-
+Security-Enhanced Linux secures the mysqld processes via flexible mandatory access
+control.  
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  mysqld policy is extremely flexible and has several booleans that allow you to manipulate the policy and run mysqld with the tightest access possible.
@@ -22,6 +22,29 @@ If you want to allow mysqld to connect to all port, you must turn on the mysql_c
 
 .EX
 .B setsebool -P mysql_connect_any 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the mysqld_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the mysqld_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the mysqld_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
 .EE
 
 .SH FILE CONTEXTS
@@ -128,7 +151,7 @@ Paths:
 /var/run/mysqld(/.*)?, /var/lib/mysql/mysql\.sock
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -155,7 +178,7 @@ The following port types are defined for mysqld:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 1186,3306,63132-63164
 .EE
 
 .EX
@@ -166,7 +189,7 @@ tcp 8021
 
 
 Default Defined Ports:
-tcp 8021
+tcp 2273
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

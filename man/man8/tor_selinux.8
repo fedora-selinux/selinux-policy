@@ -3,14 +3,8 @@
 tor_selinux \- Security Enhanced Linux Policy for the tor processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B tor
-(TOR, the onion router)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the tor processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  tor policy is extremely flexible and has several booleans that allow you to manipulate the policy and run tor with the tightest access possible.
@@ -21,6 +15,29 @@ If you want to allow tor daemon to bind tcp sockets to all unreserved ports, you
 
 .EX
 .B setsebool -P tor_bind_all_unreserved_ports 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the tor_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the tor_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the tor_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
 .EE
 
 .SH FILE CONTEXTS
@@ -64,6 +81,14 @@ Paths:
 
 .EX
 .PP
+.B tor_unit_file_t 
+.EE
+
+- Set files with the tor_unit_file_t type, if you want to treat the files as tor unit content.
+
+
+.EX
+.PP
 .B tor_var_lib_t 
 .EE
 
@@ -91,7 +116,7 @@ Paths:
 
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -118,7 +143,7 @@ The following port types are defined for tor:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 6969,9001,9030,9051
 .EE
 
 .EX
@@ -129,7 +154,7 @@ tcp 8021
 
 
 Default Defined Ports:
-tcp 8021
+tcp 9050
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system

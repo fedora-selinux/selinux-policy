@@ -3,14 +3,31 @@
 nova_selinux \- Security Enhanced Linux Policy for the nova processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B nova
-(openstack-nova)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the nova processes via flexible mandatory access
 control.  
 
+.SH NSSWITCH DOMAIN
 
+.PP
+If you want to allow users to login using a sssd serve for the nova_console_t, nova_cert_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the nova_console_t, nova_cert_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the nova_console_t, nova_cert_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -54,6 +71,10 @@ The following file types are defined for nova:
 
 - Set files with the nova_api_exec_t type, if you want to transition an executable to the nova_api_t domain.
 
+.br
+.TP 5
+Paths: 
+/usr/bin/nova-api, /usr//bin/nova-api-metadata
 
 .EX
 .PP
@@ -73,7 +94,7 @@ The following file types are defined for nova:
 .br
 .TP 5
 Paths: 
-/usr/lib/systemd/system/openstack-nova-api\.service, /lib/systemd/system/openstack-nova-api\.service
+/usr/lib/systemd/system/openstack-nova-metadata-api.service.*, /usr/lib/systemd/system/openstack-nova-api.*
 
 .EX
 .PP
@@ -98,10 +119,6 @@ Paths:
 
 - Set files with the nova_cert_unit_file_t type, if you want to treat the files as nova cert unit content.
 
-.br
-.TP 5
-Paths: 
-/usr/lib/systemd/system/openstack-nova-cert\.service, /lib/systemd/system/openstack-nova-cert\.service
 
 .EX
 .PP
@@ -129,6 +146,30 @@ Paths:
 
 .EX
 .PP
+.B nova_console_exec_t 
+.EE
+
+- Set files with the nova_console_exec_t type, if you want to transition an executable to the nova_console_t domain.
+
+
+.EX
+.PP
+.B nova_console_tmp_t 
+.EE
+
+- Set files with the nova_console_tmp_t type, if you want to store nova console temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B nova_console_unit_file_t 
+.EE
+
+- Set files with the nova_console_unit_file_t type, if you want to treat the files as nova console unit content.
+
+
+.EX
+.PP
 .B nova_direct_exec_t 
 .EE
 
@@ -150,10 +191,6 @@ Paths:
 
 - Set files with the nova_direct_unit_file_t type, if you want to treat the files as nova direct unit content.
 
-.br
-.TP 5
-Paths: 
-/usr/lib/systemd/system/openstack-nova-ajax-console-proxy\.service, /lib/systemd/system/openstack-nova-direct-api\.service, /lib/systemd/system/openstack-nova-ajax-console-proxy\.service, /usr/lib/systemd/system/openstack-nova-direct-api\.service
 
 .EX
 .PP
@@ -186,10 +223,6 @@ Paths:
 
 - Set files with the nova_network_unit_file_t type, if you want to treat the files as nova network unit content.
 
-.br
-.TP 5
-Paths: 
-/lib/systemd/system/openstack-nova-network\.service, /usr/lib/systemd/system/openstack-nova-network\.service
 
 .EX
 .PP
@@ -214,10 +247,6 @@ Paths:
 
 - Set files with the nova_objectstore_unit_file_t type, if you want to treat the files as nova objectstore unit content.
 
-.br
-.TP 5
-Paths: 
-/usr/lib/systemd/system/openstack-nova-objectstore\.service, /lib/systemd/system/openstack-nova-objectstore\.service
 
 .EX
 .PP
@@ -242,10 +271,6 @@ Paths:
 
 - Set files with the nova_scheduler_unit_file_t type, if you want to treat the files as nova scheduler unit content.
 
-.br
-.TP 5
-Paths: 
-/usr/lib/systemd/system/openstack-nova-scheduler\.service, /lib/systemd/system/openstack-nova-scheduler\.service
 
 .EX
 .PP
@@ -270,6 +295,10 @@ Paths:
 
 - Set files with the nova_vncproxy_exec_t type, if you want to transition an executable to the nova_vncproxy_t domain.
 
+.br
+.TP 5
+Paths: 
+/usr/bin/nova-vncproxy, /usr/bin/nova-xvpvncproxy
 
 .EX
 .PP
@@ -289,7 +318,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/lib/systemd/system/openstack-nova-vncproxy\.service, /usr/lib/systemd/system/openstack-nova-vncproxy\.service
+/usr/lib/systemd/system/openstack-nova-xvpvncproxy.*, /usr/lib/systemd/system/openstack-nova-vncproxy.*
 
 .EX
 .PP
@@ -314,13 +343,9 @@ Paths:
 
 - Set files with the nova_volume_unit_file_t type, if you want to treat the files as nova volume unit content.
 
-.br
-.TP 5
-Paths: 
-/lib/systemd/system/openstack-nova-volume\.service, /usr/lib/systemd/system/openstack-nova-volume\.service
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -337,7 +362,7 @@ SELinux nova policy is very flexible allowing users to setup their nova processe
 The following process types are defined for nova:
 
 .EX
-.B nova_api_t, nova_compute_t, nova_network_t, nova_objectstore_t, nova_vncproxy_t, nova_volume_t, nova_scheduler_t, nova_ajax_t, nova_cert_t, nova_direct_t 
+.B nova_api_t, nova_compute_t, nova_console_t, nova_network_t, nova_objectstore_t, nova_vncproxy_t, nova_volume_t, nova_scheduler_t, nova_ajax_t, nova_cert_t, nova_direct_t 
 .EE
 .PP
 Note: 

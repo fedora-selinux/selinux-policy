@@ -3,14 +3,8 @@
 ssh_selinux \- Security Enhanced Linux Policy for the ssh processes
 .SH "DESCRIPTION"
 
-
-SELinux Linux secures
-.B ssh
-(Secure shell client and server policy)
-processes via flexible mandatory access
+Security-Enhanced Linux secures the ssh processes via flexible mandatory access
 control.  
-
-
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  ssh policy is extremely flexible and has several booleans that allow you to manipulate the policy and run ssh with the tightest access possible.
@@ -49,6 +43,29 @@ If you want to allow internal-sftp to read and write files in the user ssh home 
 
 .EX
 .B setsebool -P sftpd_write_ssh_home 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
 .EE
 
 .SH FILE CONTEXTS
@@ -96,7 +113,7 @@ The following file types are defined for ssh:
 .br
 .TP 5
 Paths: 
-/var/lib/nocpulse/\.ssh(/.*)?, /var/lib/gitolite/\.ssh(/.*)?, /root/\.shosts, /var/lib/amanda/\.ssh(/.*)?, /root/\.ssh(/.*)?, /var/lib/stickshift/.*/\.ssh(/.*)?
+/var/lib/nocpulse/\.ssh(/.*)?, /var/lib/gitolite/\.ssh(/.*)?, /root/\.shosts, /var/lib/amanda/\.ssh(/.*)?, /root/\.ssh(/.*)?
 
 .EX
 .PP
@@ -179,7 +196,7 @@ Paths:
 /var/run/sshd\.init\.pid, /var/run/sshd\.pid
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
 .B semanage fcontext 
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
@@ -206,7 +223,7 @@ The following port types are defined for ssh:
 
 
 Default Defined Ports:
-tcp 8021
+tcp 22
 .EE
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
