@@ -1,0 +1,249 @@
+.TH  "condor_selinux"  "8"  "condor" "dwalsh@redhat.com" "condor SELinux Policy documentation"
+.SH "NAME"
+condor_selinux \- Security Enhanced Linux Policy for the condor processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the condor processes via flexible mandatory access
+control.  
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  condor policy is extremely flexible and has several booleans that allow you to manipulate the policy and run condor with the tightest access possible.
+
+
+.PP
+If you want to allow codnor domain to connect to the network using TCP, you must turn on the condor_domain_can_network_connect boolean.
+
+.EX
+.B setsebool -P condor_domain_can_network_connect 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to login using a sssd serve for the condor_startd_t, condor_master_t, condor_startd_ssh_t, condor_negotiator_t, condor_collector_t, condor_schedd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the condor_startd_t, condor_master_t, condor_startd_ssh_t, condor_negotiator_t, condor_collector_t, condor_schedd_t, you must turn on the allow_kerberos boolean.
+
+.EX
+setsebool -P allow_kerberos 1
+.EE
+
+.PP
+If you want to allow system to run with NI for the condor_startd_t, condor_master_t, condor_startd_ssh_t, condor_negotiator_t, condor_collector_t, condor_schedd_t, you must turn on the allow_ypbind boolean.
+
+.EX
+setsebool -P allow_ypbind 1
+.EE
+
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type. 
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files. 
+SELinux condor policy is very flexible allowing users to setup their condor processes in as secure a method as possible.
+.PP 
+The following file types are defined for condor:
+
+
+.EX
+.PP
+.B condor_collector_exec_t 
+.EE
+
+- Set files with the condor_collector_exec_t type, if you want to transition an executable to the condor_collector_t domain.
+
+
+.EX
+.PP
+.B condor_log_t 
+.EE
+
+- Set files with the condor_log_t type, if you want to treat the data as condor log data, usually stored under the /var/log directory.
+
+
+.EX
+.PP
+.B condor_master_exec_t 
+.EE
+
+- Set files with the condor_master_exec_t type, if you want to transition an executable to the condor_master_t domain.
+
+
+.EX
+.PP
+.B condor_negotiator_exec_t 
+.EE
+
+- Set files with the condor_negotiator_exec_t type, if you want to transition an executable to the condor_negotiator_t domain.
+
+
+.EX
+.PP
+.B condor_procd_exec_t 
+.EE
+
+- Set files with the condor_procd_exec_t type, if you want to transition an executable to the condor_procd_t domain.
+
+
+.EX
+.PP
+.B condor_schedd_exec_t 
+.EE
+
+- Set files with the condor_schedd_exec_t type, if you want to transition an executable to the condor_schedd_t domain.
+
+
+.EX
+.PP
+.B condor_schedd_tmp_t 
+.EE
+
+- Set files with the condor_schedd_tmp_t type, if you want to store condor schedd temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B condor_startd_exec_t 
+.EE
+
+- Set files with the condor_startd_exec_t type, if you want to transition an executable to the condor_startd_t domain.
+
+.br
+.TP 5
+Paths: 
+/usr/sbin/condor_starter, /usr/sbin/condor_startd
+
+.EX
+.PP
+.B condor_startd_tmp_t 
+.EE
+
+- Set files with the condor_startd_tmp_t type, if you want to store condor startd temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B condor_startd_tmpfs_t 
+.EE
+
+- Set files with the condor_startd_tmpfs_t type, if you want to store condor startd files on a tmpfs file system.
+
+
+.EX
+.PP
+.B condor_unit_file_t 
+.EE
+
+- Set files with the condor_unit_file_t type, if you want to treat the files as condor unit content.
+
+
+.EX
+.PP
+.B condor_var_lib_t 
+.EE
+
+- Set files with the condor_var_lib_t type, if you want to store the condor files under the /var/lib directory.
+
+.br
+.TP 5
+Paths: 
+/var/lib/condor(/.*)?, /var/lib/condor/execute(/.*)?, /var/lib/condor/spool(/.*)?
+
+.EX
+.PP
+.B condor_var_lock_t 
+.EE
+
+- Set files with the condor_var_lock_t type, if you want to treat the files as condor var lock data, stored under the /var/lock directory
+
+
+.EX
+.PP
+.B condor_var_run_t 
+.EE
+
+- Set files with the condor_var_run_t type, if you want to store the condor files under the /run directory.
+
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanantly change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH PORT TYPES
+SELinux defines port types to represent TCP and UDP ports. 
+.PP
+You can see the types associated with a port by using the following command: 
+
+.B semanage port -l
+
+.PP
+Policy governs the access confined processes have to these ports. 
+SELinux condor policy is very flexible allowing users to setup their condor processes in as secure a method as possible.
+.PP 
+The following port types are defined for condor:
+
+.EX
+.TP 5
+.B condor_port_t 
+.TP 10
+.EE
+
+
+Default Defined Ports:
+tcp 9618
+.EE
+udp 9618
+.EE
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux condor policy is very flexible allowing users to setup their condor processes in as secure a method as possible.
+.PP 
+The following process types are defined for condor:
+
+.EX
+.B condor_collector_t, condor_startd_ssh_t, condor_procd_t, condor_negotiator_t, condor_schedd_t, condor_startd_t, condor_master_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+
+.SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
+
+.B semanage port
+can also be used to manipulate the port definitions
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR	
+This manual page was autogenerated by genman.py.
+
+.SH "SEE ALSO"
+selinux(8), condor(8), semanage(8), restorecon(8), chcon(1)
+, setsebool(8)
