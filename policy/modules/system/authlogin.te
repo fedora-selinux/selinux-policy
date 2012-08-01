@@ -1,4 +1,4 @@
-policy_module(authlogin, 2.3.1)
+policy_module(authlogin, 2.4.0)
 
 ########################################
 #
@@ -476,6 +476,72 @@ optional_policy(`
 
 optional_policy(`
 	nscd_use(nsswitch_domain)
+')
+
+optional_policy(`
+	nslcd_stream_connect(nsswitch_domain)
+')
+
+optional_policy(`
+	sssd_stream_connect(nsswitch_domain)
+	sssd_read_public_files(nsswitch_domain)
+')
+
+optional_policy(`
+	samba_stream_connect_winbind(nsswitch_domain)
+	samba_read_var_files(nsswitch_domain)
+	samba_dontaudit_write_var_files(nsswitch_domain)
+')
+
+#######################################
+#
+# nsswitch_domain local policy
+#
+
+files_list_var_lib(nsswitch_domain)
+
+# read /etc/nsswitch.conf
+files_read_etc_files(nsswitch_domain)
+
+sysnet_dns_name_resolve(nsswitch_domain)
+
+tunable_policy(`authlogin_nsswitch_use_ldap',`
+	files_list_var_lib(nsswitch_domain)
+
+	miscfiles_read_generic_certs(nsswitch_domain)
+	sysnet_use_ldap(nsswitch_domain)
+')
+
+optional_policy(`
+	tunable_policy(`authlogin_nsswitch_use_ldap',`
+		dirsrv_stream_connect(nsswitch_domain)
+	')
+')
+
+optional_policy(`
+	tunable_policy(`authlogin_nsswitch_use_ldap',`
+		ldap_stream_connect(nsswitch_domain)
+	')
+')
+
+optional_policy(`
+	avahi_stream_connect(nsswitch_domain)
+')
+
+optional_policy(`
+	likewise_stream_connect_lsassd(nsswitch_domain)
+')
+
+optional_policy(`
+	kerberos_use(nsswitch_domain)
+')
+
+optional_policy(`
+	nis_use_ypbind(nsswitch_domain)
+')
+
+optional_policy(`
+	nscd_socket_use(nsswitch_domain)
 ')
 
 optional_policy(`
