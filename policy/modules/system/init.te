@@ -1,4 +1,4 @@
-policy_module(init, 1.18.4)
+policy_module(init, 1.19.0)
 
 gen_require(`
 	class passwd rootok;
@@ -113,6 +113,9 @@ files_type(initrc_state_t)
 
 type initrc_tmp_t;
 files_tmp_file(initrc_tmp_t)
+
+type initrc_var_log_t;
+logging_log_file(initrc_var_log_t)
 
 type initrc_var_run_t;
 files_pid_file(initrc_var_run_t)
@@ -494,6 +497,10 @@ manage_lnk_files_pattern(initrc_t, initrc_tmp_t, initrc_tmp_t)
 files_tmp_filetrans(initrc_t, initrc_tmp_t, { file dir })
 allow initrc_t initrc_tmp_t:dir relabelfrom;
 
+manage_dirs_pattern(initrc_t, initrc_var_log_t, initrc_var_log_t)
+manage_files_pattern(initrc_t, initrc_var_log_t, initrc_var_log_t)
+logging_log_filetrans(initrc_t, initrc_var_log_t, dir)
+
 init_write_initctl(initrc_t)
 
 kernel_read_system_state(initrc_t)
@@ -514,6 +521,8 @@ files_read_config_files(initrc_t)
 files_read_var_lib_symlinks(initrc_t)
 files_setattr_pid_dirs(initrc_t)
 
+files_create_lock_dirs(initrc_t)
+files_pid_filetrans_lock_dir(initrc_t, "lock")
 files_read_kernel_symbol_table(initrc_t)
 files_exec_etc_files(initrc_t)
 files_manage_etc_symlinks(initrc_t)
@@ -711,6 +720,7 @@ ifdef(`distro_gentoo',`
 
 	# allow bootmisc to create /var/lock/.keep.
 	files_manage_generic_locks(initrc_t)
+	files_pid_filetrans(initrc_t, initrc_state_t, dir, "openrc")
 
 	# openrc uses tmpfs for its state data
 	fs_tmpfs_filetrans(initrc_t, initrc_state_t, { dir file fifo_file lnk_file })
@@ -1223,6 +1233,7 @@ optional_policy(`
 
 optional_policy(`
 	udev_manage_pid_files(initrc_t)
+	udev_manage_pid_dirs(initrc_t)
 	udev_manage_rules_files(initrc_t)
 ')
 
