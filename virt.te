@@ -709,7 +709,7 @@ init_system_domain(virsh_t, virsh_exec_t)
 typealias virsh_t alias xm_t;
 typealias virsh_exec_t alias xm_exec_t;
 
-allow virsh_t self:capability { setpcap dac_override ipc_lock sys_tty_config };
+allow virsh_t self:capability { setpcap dac_override ipc_lock sys_nice sys_tty_config };
 allow virsh_t self:process { getcap getsched setsched setcap signal };
 allow virsh_t self:fifo_file rw_fifo_file_perms;
 allow virsh_t self:unix_stream_socket { create_stream_socket_perms connectto };
@@ -720,6 +720,14 @@ can_exec(virsh_t, virsh_exec_t)
 manage_files_pattern(virsh_t, virt_image_type, virt_image_type)
 manage_blk_files_pattern(virsh_t, virt_image_type, virt_image_type)
 manage_lnk_files_pattern(virsh_t, virt_image_type, virt_image_type)
+
+manage_dirs_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_chr_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_lnk_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_sock_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_fifo_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
+virt_transition_svirt_lxc(virsh_t)
 
 dontaudit virsh_t virt_var_lib_t:file read_inherited_file_perms;
 
@@ -742,8 +750,10 @@ dev_read_urand(virsh_t)
 dev_read_sysfs(virsh_t)
 
 files_read_etc_runtime_files(virsh_t)
+files_read_etc_files(virsh_t)
 files_read_usr_files(virsh_t)
 files_list_mnt(virsh_t)
+files_list_tmp(virsh_t)
 # Some common macros (you might be able to remove some)
 
 fs_getattr_all_fs(virsh_t)
@@ -764,6 +774,14 @@ auth_read_passwd(virsh_t)
 miscfiles_read_localization(virsh_t)
 
 sysnet_dns_name_resolve(virsh_t)
+
+optional_policy(`
+	cron_system_entry(virsh_t, virsh_exec_t)
+')
+
+optional_policy(`
+	rpm_exec(virsh_t)
+')
 
 optional_policy(`
 	xen_manage_image_dirs(virsh_t)
