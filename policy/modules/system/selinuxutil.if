@@ -781,15 +781,15 @@ interface(`seutil_manage_config',`
 	read_lnk_files_pattern($1, selinux_config_t, selinux_config_t)
 ')
 
-#######################################
+######################################
 ## <summary>
-##	Create, read, write, and delete
-##	the general selinux configuration files.
+##      Create, read, write, and delete
+##      the general selinux configuration files.
 ## </summary>
 ## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
+##      <summary>
+##      Domain allowed access.
+##      </summary>
 ## </param>
 ## <rolecap/>
 #
@@ -800,6 +800,157 @@ interface(`seutil_manage_config_dirs',`
 
 	files_search_etc($1)
 	allow $1 selinux_config_t:dir manage_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search the SELinux
+##	login configuration directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`seutil_dontaudit_search_login_config',`
+	gen_require(`
+		type selinux_login_config_t;
+	')
+
+	dontaudit $1 selinux_login_config_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read the SELinux
+##	login configuration.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`seutil_dontaudit_read_login_config',`
+	gen_require(`
+		type selinux_login_config_t;
+	')
+	dontaudit $1 selinux_login_config_t:dir search_dir_perms;
+    dontaudit $1 selinux_login_config_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read the  SELinux login configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_read_login_config',`
+	gen_require(`
+		type selinux_config_t;
+		type selinux_login_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	allow $1 selinux_login_config_t:dir list_dir_perms;
+    read_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+    read_lnk_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+')
+
+########################################
+## <summary>
+##	Read and write the SELinux login configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_rw_login_config',`
+	gen_require(`
+		type selinux_config_t;
+		type selinux_login_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+    allow $1 selinux_login_config_t:dir list_dir_perms;
+    rw_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	the general selinux configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_rw_login_config_dirs',`
+	gen_require(`
+		type selinux_config_t;
+		type selinux_login_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	allow $1 selinux_login_config_t:dir rw_dir_perms;
+')
+
+######################################
+## <summary>
+##  Create, read, write, and delete
+##  the general selinux configuration files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`seutil_manage_login_config',`
+    gen_require(`
+		type selinux_config_t;
+        type selinux_login_config_t;
+    ')
+
+    files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+    manage_dirs_pattern($1, selinux_login_config_t, selinux_login_config_t)
+    manage_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+    read_lnk_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+')
+
+######################################
+## <summary>
+## 	manage the login selinux configuration files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`seutil_manage_login_config_files',`
+    gen_require(`
+		type selinux_config_t;
+        type selinux_login_config_t;
+    ')
+
+    files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	manage_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+	read_lnk_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
 ')
 
 ########################################
@@ -1239,6 +1390,9 @@ interface(`seutil_manage_module_store',`
 	manage_dirs_pattern($1, selinux_config_t, semanage_store_t)
 	manage_files_pattern($1, semanage_store_t, semanage_store_t)
 	filetrans_pattern($1, selinux_config_t, semanage_store_t, dir, "modules")
+	filetrans_pattern($1, selinux_config_t, semanage_store_t, dir, "active")
+	filetrans_pattern($1, selinux_config_t, semanage_store_t, dir, "previous")
+	filetrans_pattern($1, selinux_config_t, semanage_store_t, dir, "tmp")
 ')
 
 #######################################
