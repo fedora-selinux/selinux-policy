@@ -93,7 +93,7 @@ mta_mailserver_delivery(postfix_virtual_t)
 #
 
 # chown is to set the correct ownership of queue dirs
-allow postfix_master_t self:capability { chown dac_override kill setgid setuid net_bind_service sys_tty_config };
+allow postfix_master_t self:capability { chown dac_override kill setgid setuid net_bind_service sys_tty_config fowner };
 allow postfix_master_t self:fifo_file rw_fifo_file_perms;
 allow postfix_master_t self:tcp_socket create_stream_socket_perms;
 allow postfix_master_t self:udp_socket create_socket_perms;
@@ -112,15 +112,21 @@ allow postfix_master_t postfix_postdrop_exec_t:file getattr;
 
 allow postfix_master_t postfix_postqueue_exec_t:file getattr;
 
+create_dirs_pattern(postfix_master_t, postfix_spool_t, postfix_private_t)
 manage_fifo_files_pattern(postfix_master_t, postfix_private_t, postfix_private_t)
 manage_sock_files_pattern(postfix_master_t, postfix_private_t, postfix_private_t)
+setattr_dirs_pattern(postfix_master_t, postfix_private_t, postfix_private_t)
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_private_t, dir, "private")
 
 domtrans_pattern(postfix_master_t, postfix_postqueue_exec_t, postfix_postqueue_t)
 
 allow postfix_master_t postfix_prng_t:file rw_file_perms;
 
+create_dirs_pattern(postfix_master_t, postfix_spool_t, postfix_public_t)
 manage_fifo_files_pattern(postfix_master_t, postfix_public_t, postfix_public_t)
 manage_sock_files_pattern(postfix_master_t, postfix_public_t, postfix_public_t)
+setattr_dirs_pattern(postfix_master_t, postfix_public_t, postfix_public_t)
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_public_t, dir, "public")
 
 domtrans_pattern(postfix_master_t, postfix_showq_exec_t, postfix_showq_t)
 
@@ -131,14 +137,22 @@ files_spool_filetrans(postfix_master_t, postfix_spool_t, dir)
 
 allow postfix_master_t postfix_spool_bounce_t:dir manage_dir_perms;
 allow postfix_master_t postfix_spool_bounce_t:file getattr;
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_spool_bounce_t, dir, "bounce")
 
 manage_dirs_pattern(postfix_master_t, postfix_spool_flush_t, postfix_spool_flush_t)
 manage_files_pattern(postfix_master_t, postfix_spool_flush_t, postfix_spool_flush_t)
 manage_lnk_files_pattern(postfix_master_t, postfix_spool_flush_t, postfix_spool_flush_t)
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_spool_flush_t, dir, "flush")
 
+create_dirs_pattern(postfix_master_t, postfix_spool_t, postfix_spool_maildrop_t)
 delete_files_pattern(postfix_master_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
 rename_files_pattern(postfix_master_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
 setattr_dirs_pattern(postfix_master_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_spool_maildrop_t, dir, "maildrop")
+
+create_dirs_pattern(postfix_master_t, postfix_spool_t, postfix_var_run_t)
+setattr_dirs_pattern(postfix_master_t, postfix_var_run_t, postfix_var_run_t)
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_var_run_t, dir, "pid")
 
 kernel_read_all_sysctls(postfix_master_t)
 
