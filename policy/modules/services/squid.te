@@ -1,4 +1,4 @@
-policy_module(squid, 1.10.0)
+policy_module(squid, 1.11.0)
 
 ########################################
 #
@@ -6,17 +6,17 @@ policy_module(squid, 1.10.0)
 #
 
 ## <desc>
-##	<p>
-##	Allow squid to connect to all ports, not just
-##	HTTP, FTP, and Gopher ports.
-##	</p>
+## <p>
+## Allow squid to connect to all ports, not just
+## HTTP, FTP, and Gopher ports.
+## </p>
 ## </desc>
 gen_tunable(squid_connect_any, false)
 
 ## <desc>
-##	<p>
-##	Allow squid to run as a transparent proxy (TPROXY)
-##	</p>
+## <p>
+## Allow squid to run as a transparent proxy (TPROXY)
+## </p>
 ## </desc>
 gen_tunable(squid_use_tproxy, false)
 
@@ -45,6 +45,12 @@ files_tmp_file(squid_tmp_t)
 
 type squid_var_run_t;
 files_pid_file(squid_var_run_t)
+
+type squid_cron_t;
+type squid_cron_exec_t;
+init_daemon_domain(squid_cron_t, squid_cron_exec_t)
+application_domain(squid_cron_t, squid_cron_exec_t)
+role system_r types squid_cron_t;
 
 ########################################
 #
@@ -102,7 +108,6 @@ kernel_read_network_state(squid_t)
 
 files_dontaudit_getattr_boot_dirs(squid_t)
 
-corenet_all_recvfrom_unlabeled(squid_t)
 corenet_all_recvfrom_netlabel(squid_t)
 corenet_tcp_sendrecv_generic_if(squid_t)
 corenet_udp_sendrecv_generic_if(squid_t)
@@ -154,7 +159,6 @@ corecmd_exec_shell(squid_t)
 
 domain_use_interactive_fds(squid_t)
 
-files_read_etc_files(squid_t)
 files_read_etc_runtime_files(squid_t)
 files_read_usr_files(squid_t)
 files_search_spool(squid_t)
@@ -192,7 +196,6 @@ optional_policy(`
 
 	allow httpd_squid_script_t self:tcp_socket create_socket_perms;
 
-	corenet_all_recvfrom_unlabeled(httpd_squid_script_t)
 	corenet_all_recvfrom_netlabel(httpd_squid_script_t)
 	corenet_tcp_connect_http_cache_port(httpd_squid_script_t)
 	corenet_tcp_connect_squid_port(httpd_squid_script_t)
@@ -221,3 +224,25 @@ optional_policy(`
 optional_policy(`
 	kerberos_tmp_filetrans_host_rcache(squid_t, "host_0")
 ')
+
+########################################
+#
+# squid cron Local policy
+#
+manage_dirs_pattern(squid_cron_t, squid_cache_t, squid_cache_t)
+manage_files_pattern(squid_cron_t, squid_cache_t, squid_cache_t)
+manage_lnk_files_pattern(squid_cron_t, squid_cache_t, squid_cache_t)
+files_var_filetrans(squid_cron_t, squid_cache_t, dir, "squid")
+
+read_files_pattern(squid_cron_t, squid_conf_t, squid_conf_t)
+
+read_files_pattern(squid_cron_t, squid_log_t, squid_log_t)
+
+corecmd_exec_bin(squid_cron_t)
+
+dev_read_urand(squid_cron_t)
+
+files_read_etc_files(squid_cron_t)
+files_read_usr_files(squid_cron_t)
+
+miscfiles_read_localization(squid_cron_t)
