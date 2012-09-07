@@ -25,6 +25,7 @@ gen_tunable(cron_can_relabel, false)
 ## </desc>
 gen_tunable(fcron_crond, false)
 
+attribute crontab_domain;
 attribute cron_spool_type;
 
 type anacron_exec_t;
@@ -744,4 +745,72 @@ optional_policy(`
 	allow crond_t unconfined_cronjob_t:fd use;
 
 	unconfined_domain(unconfined_cronjob_t)
+')
+
+##############################
+#
+# crontab common policy
+#
+
+# dac_override is to create the file in the directory under /tmp
+allow crontab_domain self:capability { fowner setuid setgid chown dac_override };
+allow crontab_domain self:process { getcap setsched signal_perms };
+allow crontab_domain self:fifo_file rw_fifo_file_perms;
+
+allow crontab_domain crond_t:process signal;
+allow crontab_domain crond_var_run_t:file read_file_perms;
+
+# create files in /var/spool/cron
+manage_files_pattern(crontab_domain, { cron_spool_t user_cron_spool_t }, user_cron_spool_t)
+filetrans_pattern(crontab_domain, cron_spool_t, user_cron_spool_t, file)
+files_list_spool(crontab_domain)
+
+# crontab signals crond by updating the mtime on the spooldir
+allow crontab_domain cron_spool_t:dir setattr_dir_perms;
+
+kernel_read_system_state(crontab_domain)
+
+# for the checks used by crontab -u
+selinux_dontaudit_search_fs(crontab_domain)
+
+fs_getattr_xattr_fs(crontab_domain)
+fs_manage_cgroup_dirs(crontab_domain)
+fs_manage_cgroup_files(crontab_domain)
+
+domain_use_interactive_fds(crontab_domain)
+
+files_read_etc_files(crontab_domain)
+files_read_usr_files(crontab_domain)
+files_dontaudit_search_pids(crontab_domain)
+
+auth_domtrans_chk_passwd(crontab_domain)
+auth_rw_var_auth(crontab_domain)
+auth_use_nsswitch(crontab_domain)
+
+logging_send_syslog_msg(crontab_domain)
+logging_send_audit_msgs(crontab_domain)
+logging_set_loginuid(crontab_domain)
+
+init_dontaudit_write_utmp(crontab_domain)
+init_read_utmp(crontab_domain)
+init_read_state(crontab_domain)
+
+miscfiles_read_localization(crontab_domain)
+
+seutil_read_config(crontab_domain)
+
+userdom_manage_user_tmp_dirs(crontab_domain)
+userdom_manage_user_tmp_files(crontab_domain)
+# Access terminals.
+userdom_use_inherited_user_terminals(crontab_domain)
+# Read user crontabs
+userdom_read_user_home_content_files(crontab_domain)
+userdom_read_user_home_content_symlinks(crontab_domain)
+
+userdom_home_reader(crontab_domain)
+
+tunable_policy(`fcron_crond',`
+	# fcron wants an instant update of a crontab change for the administrator
+	# also crontab does a security check for crontab -u
+	dontaudit crontab_domain crond_t:process signal;
 ')
