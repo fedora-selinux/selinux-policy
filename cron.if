@@ -13,8 +13,8 @@
 #
 template(`cron_common_crontab_template',`
 	gen_require(`
-		type crond_t, crond_var_run_t, crontab_exec_t;
-		type cron_spool_t, user_cron_spool_t;
+		attribute crontab_domain;
+		type crontab_exec_t;
 	')
 
 	##############################
@@ -22,7 +22,7 @@ template(`cron_common_crontab_template',`
 	# Declarations
 	#
 
-	type $1_t;
+	type $1_t, crontab_domain;
 	userdom_user_application_domain($1_t, crontab_exec_t)
 
 	type $1_tmp_t;
@@ -33,76 +33,9 @@ template(`cron_common_crontab_template',`
 	# Local policy
 	#
 
-	# dac_override is to create the file in the directory under /tmp
-	allow $1_t self:capability { fowner setuid setgid chown dac_override };
-	allow $1_t self:process { getcap setsched signal_perms };
-	allow $1_t self:fifo_file rw_fifo_file_perms;
-
-	allow $1_t crond_t:process signal;
-	allow $1_t crond_var_run_t:file read_file_perms;
-
 	manage_dirs_pattern($1_t, $1_tmp_t, $1_tmp_t)
 	manage_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
 	files_tmp_filetrans($1_t, $1_tmp_t, { dir file })
-
-	# create files in /var/spool/cron
-	manage_files_pattern($1_t, { cron_spool_t user_cron_spool_t }, user_cron_spool_t)
-	filetrans_pattern($1_t, cron_spool_t, user_cron_spool_t, file)
-	files_list_spool($1_t)
-
-	# crontab signals crond by updating the mtime on the spooldir
-	allow $1_t cron_spool_t:dir setattr_dir_perms;
-
-	kernel_read_system_state($1_t)
-
-	# for the checks used by crontab -u
-	selinux_dontaudit_search_fs($1_t)
-
-	fs_getattr_xattr_fs($1_t)
-	fs_manage_cgroup_dirs($1_t)
-	fs_manage_cgroup_files($1_t)
-
-	domain_use_interactive_fds($1_t)
-
-	files_read_etc_files($1_t)
-	files_read_usr_files($1_t)
-	files_dontaudit_search_pids($1_t)
-
-	auth_domtrans_chk_passwd($1_t)
-	auth_rw_var_auth($1_t)
-	auth_use_nsswitch($1_t)
-
-	logging_send_syslog_msg($1_t)
-	logging_send_audit_msgs($1_t)
-	logging_set_loginuid($1_t)
-
-	init_dontaudit_write_utmp($1_t)
-	init_read_utmp($1_t)
-	init_read_state($1_t)
-
-	miscfiles_read_localization($1_t)
-
-	seutil_read_config($1_t)
-
-	userdom_manage_user_tmp_dirs($1_t)
-	userdom_manage_user_tmp_files($1_t)
-	# Access terminals.
-	userdom_use_inherited_user_terminals($1_t)
-	# Read user crontabs
-	userdom_read_user_home_content_files($1_t)
-	userdom_read_user_home_content_symlinks($1_t)
-
-	userdom_home_reader($1_t)
-
-	tunable_policy(`fcron_crond',`
-		# fcron wants an instant update of a crontab change for the administrator
-		# also crontab does a security check for crontab -u
-		dontaudit $1_t crond_t:process signal;
-	')
-
-	optional_policy(`
-		nscd_socket_use($1_t)
-	')
 ')
 
 ########################################
