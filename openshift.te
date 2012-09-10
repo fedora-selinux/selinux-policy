@@ -64,6 +64,7 @@ openshift_service_domain_template(openshift)
 #
 # openshift general local policy
 #
+
 allow openshift_domain self:process { setcurrent getcap getattr fork getpgid setpgid setrlimit setfscreate setsched signal_perms getsched execmem execstack };
 
 allow openshift_domain self:msg all_msg_perms;
@@ -195,19 +196,21 @@ userdom_dontaudit_search_admin_dir(openshift_user_domain)
 
 application_exec(openshift_user_domain)
 
-apache_exec(openshift_user_domain)
-apache_exec_modules(openshift_user_domain)
-apache_list_modules(openshift_user_domain)
-apache_read_config(openshift_user_domain)
-apache_search_config(openshift_user_domain)
-apache_read_sys_content(openshift_user_domain)
-apache_exec_sys_script(openshift_user_domain)
+optional_policy(`
+	apache_exec(openshift_user_domain)
+	apache_exec_modules(openshift_user_domain)
+	apache_list_modules(openshift_user_domain)
+	apache_read_config(openshift_user_domain)
+	apache_search_config(openshift_user_domain)
+	apache_read_sys_content(openshift_user_domain)
+	apache_exec_sys_script(openshift_user_domain)
+')
 
 ########################################
 #
 # openshift initrc local policy
 #
-unconfined_domain_noaudit(openshift_initrc_t)
+
 mcs_process_set_categories(openshift_initrc_t)
 
 manage_dirs_pattern(openshift_initrc_t, openshift_initrc_tmp_t, openshift_initrc_tmp_t)
@@ -232,44 +235,65 @@ dontaudit openshift_user_domain openshift_initrc_t:key view;
 dontaudit openshift_user_domain openshift_initrc_t:process signull;
 dontaudit openshift_user_domain openshift_initrc_t:socket_class_set { read write };
 
+optional_policy(`
+	unconfined_domain_noaudit(openshift_initrc_t)
+')
+
 ########################################
 #
 # generic policy 
 #
 
-apache_entrypoint(openshift_user_domain)
 corecmd_exec_all_executables(openshift_user_domain)
-ssh_getattr_user_home_dir(openshift_user_domain)
-ssh_dontaudit_search_user_home_dir(openshift_user_domain)
+
+optional_policy(`
+	apache_entrypoint(openshift_user_domain)
+')
+
+optional_policy(`
+	ssh_getattr_user_home_dir(openshift_user_domain)
+	ssh_dontaudit_search_user_home_dir(openshift_user_domain)
+')
 
 ########################################
 #
 # Cron support
 #
-cron_role(system_r, openshift_user_domain)
+
+optional_policy(`
+	cron_role(system_r, openshift_user_domain)
+')
 
 ########################################
 #
 # Mysql support
 #
-mysql_search_db(openshift_user_domain)
+
 allow openshift_user_domain self:process setexec;
+
+optional_policy(`
+	mysql_search_db(openshift_user_domain)
+')
 
 ########################################
 #
 # Node.js support
 #
+
 allow openshift_user_domain anon_inodefs_t:file write;
 
 #############################################
 # 
 # openshift cgi script policy
 #
-apache_content_template(openshift)
-domtrans_pattern(httpd_openshift_script_t, openshift_initrc_exec_t, openshift_initrc_t)
-oddjob_dbus_chat(httpd_openshift_script_t)
-dbus_system_bus_client(httpd_openshift_script_t)
-oddjob_dontaudit_rw_fifo_file(openshift_user_domain)
+
+optional_policy(`
+	apache_content_template(openshift)
+	domtrans_pattern(httpd_openshift_script_t, openshift_initrc_exec_t, openshift_initrc_t)
+	oddjob_dbus_chat(httpd_openshift_script_t)
+	dbus_system_bus_client(httpd_openshift_script_t)
+	')
+
 
 #################################
 # Potentially dangerous configs #
@@ -281,16 +305,25 @@ allow openshift_user_domain openshift_var_lib_t:file { execute execute_no_trans 
 #################################
 # Allow Log Rotation            #
 #################################
-apache_exec_rotatelogs(openshift_user_domain)
+
 corecmd_shell_entry_type(openshift_user_domain)
 corecmd_bin_entry_type(openshift_user_domain)
 userdom_use_inherited_user_ptys(openshift_user_domain)
 
-gpg_entry_type(openshift_user_domain)
-
+optional_policy(`
+	oddjob_dontaudit_rw_fifo_file(openshift_user_domain)
+')
 type openshift_cgroup_read_t;
 type openshift_cgroup_read_exec_t;
 application_domain(openshift_cgroup_read_t, openshift_cgroup_read_exec_t)
+
+optional_policy(`
+	gpg_entry_type(openshift_user_domain)
+')
+
+optional_policy(`
+	apache_exec_rotatelogs(openshift_user_domain)
+')
 
 ########################################
 #
@@ -301,8 +334,6 @@ allow openshift_cgroup_read_t self:process { getattr signal_perms };
 allow openshift_cgroup_read_t self:fifo_file rw_fifo_file_perms;
 allow openshift_cgroup_read_t self:unix_stream_socket create_stream_socket_perms;
 allow openshift_cgroup_read_t openshift_initrc_t:fifo_file rw_inherited_fifo_file_perms;
-
-#ssh_dontaudit_use_ptys(openshift_cgroup_read_t)
 
 corecmd_exec_bin(openshift_cgroup_read_t)
 
@@ -329,6 +360,10 @@ fs_read_cgroup_files(openshift_cgroup_read_t)
 allow openshift_cgroup_read_t openshift_var_lib_t:dir list_dir_perms;
 read_files_pattern(openshift_cgroup_read_t, openshift_var_lib_t, openshift_var_lib_t)
 
+#optional_policy(`
+#	ssh_dontaudit_use_ptys(openshift_cgroup_read_t)
+#')
+
 #######################################################
 #
 # Policy for all openshift user domain process
@@ -349,12 +384,15 @@ read_lnk_files_pattern(openshift_user_domain, openshift_file_type, openshift_fil
 
 term_use_ptmx(openshift_domain)
 
-#ssh_use_ptys(openshift_domain)
+#optional_policy(`
+#	ssh_use_ptys(openshift_domain)
+#')
 
 #######################################################
 #
 # Policy for openshift user domain process
 #
+
 manage_dirs_pattern(openshift_user_domain, openshift_file_type, openshift_file_type)
 manage_files_pattern(openshift_user_domain, openshift_file_type, openshift_file_type)
 manage_fifo_files_pattern(openshift_user_domain, openshift_file_type, openshift_file_type)
@@ -368,6 +406,7 @@ allow openshift_user_domain openshift_domain:process ptrace;
 #
 # Rules specific to openshift and openshift_app_t
 #
+
 kernel_read_vm_sysctls(openshift_t)
 kernel_read_vm_sysctls(openshift_app_t)
 kernel_search_vm_sysctl(openshift_t)
