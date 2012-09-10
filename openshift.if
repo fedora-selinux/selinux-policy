@@ -1,3 +1,4 @@
+
 ## <summary> policy for openshift </summary>
 
 ########################################
@@ -12,7 +13,6 @@
 #
 interface(`openshift_initrc_domtrans',`
 	gen_require(`
-		type openshift_initrc_t;
 		type openshift_initrc_exec_t;
 	')
 
@@ -54,7 +54,7 @@ interface(`openshift_read_cache_files',`
 	')
 
 	files_search_var($1)
-        read_files_pattern($1, openshift_cache_t, openshift_cache_t)
+	read_files_pattern($1, openshift_cache_t openshift_cache_t)
 ')
 
 ########################################
@@ -74,7 +74,7 @@ interface(`openshift_manage_cache_files',`
 	')
 
 	files_search_var($1)
-        manage_files_pattern($1, openshift_cache_t, openshift_cache_t)
+	manage_files_pattern($1, openshift_cache_t, openshift_cache_t)
 ')
 
 ########################################
@@ -94,7 +94,7 @@ interface(`openshift_manage_cache_dirs',`
 	')
 
 	files_search_var($1)
-        manage_dirs_pattern($1, openshift_cache_t, openshift_cache_t)
+	manage_dirs_pattern($1, openshift_cache_t, openshift_cache_t)
 ')
 
 
@@ -115,7 +115,7 @@ interface(`openshift_read_log',`
 	')
 
 	logging_search_logs($1)
-        read_files_pattern($1, openshift_log_t, openshift_log_t)
+	read_files_pattern($1, openshift_log_t, openshift_log_t)
 ')
 
 ########################################
@@ -124,9 +124,9 @@ interface(`openshift_read_log',`
 ##	openshift log files.
 ## </summary>
 ## <param name="domain">
-## 	<summary>
+##	<summary>
 ##	Domain allowed to transition.
-## 	</summary>
+##	</summary>
 ## </param>
 #
 interface(`openshift_append_log',`
@@ -135,7 +135,7 @@ interface(`openshift_append_log',`
 	')
 
 	logging_search_logs($1)
-        append_files_pattern($1, openshift_log_t, openshift_log_t)
+	append_files_pattern($1, openshift_log_t, openshift_log_t)
 ')
 
 ########################################
@@ -154,9 +154,9 @@ interface(`openshift_manage_log',`
 	')
 
 	logging_search_logs($1)
-        manage_dirs_pattern($1, openshift_log_t, openshift_log_t)
-        manage_files_pattern($1, openshift_log_t, openshift_log_t)
-        manage_lnk_files_pattern($1, openshift_log_t, openshift_log_t)
+	manage_dirs_pattern($1, openshift_log_t, openshift_log_t)
+	manage_files_pattern($1, openshift_log_t, openshift_log_t)
+	manage_lnk_files_pattern($1, openshift_log_t, openshift_log_t)
 ')
 
 ########################################
@@ -194,7 +194,7 @@ interface(`openshift_read_lib_files',`
 	')
 
 	files_search_var_lib($1)
-        read_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+	read_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
 ')
 
 ########################################
@@ -213,7 +213,7 @@ interface(`openshift_append_lib_files',`
 	')
 
 	files_search_var_lib($1)
- 	append_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+	append_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
 ')
 
 ########################################
@@ -233,7 +233,7 @@ interface(`openshift_manage_lib_files',`
 	')
 
 	files_search_var_lib($1)
-        manage_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+	manage_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
 ')
 
 ########################################
@@ -252,7 +252,7 @@ interface(`openshift_manage_lib_dirs',`
 	')
 
 	files_search_var_lib($1)
-        manage_dirs_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+	manage_dirs_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
 ')
 
 
@@ -297,10 +297,10 @@ interface(`openshift_admin',`
 	gen_require(`
 		type openshift_t;
 		type openshift_initrc_exec_t;
-                type openshift_cache_t;
-                type openshift_log_t;
-                type openshift_var_lib_t;
-                type openshift_var_run_t;
+		type openshift_cache_t;
+		type openshift_log_t;
+		type openshift_var_lib_t;
+		type openshift_var_run_t;
 	')
 
 	allow $1 openshift_t:process { ptrace signal_perms };
@@ -329,6 +329,7 @@ interface(`openshift_admin',`
 ## <summary>
 ##	Make the specified type usable as a openshift domain.
 ## </summary>
+## </summary>
 ## <param name="openshiftdomain_prefix">
 ##  <summary>
 ##  The prefix of the domain (e.g., openshift
@@ -342,24 +343,22 @@ template(`openshift_service_domain_template',`
 		attribute openshift_user_domain;
 	')
 
-	type $1_t, openshift_domain, openshift_user_domain;
-	#typeattribute $1_t openshift_domain, openshift_user_domain;
+	type $1_t;
+	typeattribute $1_t openshift_domain, openshift_user_domain;
 	domain_type($1_t)
 	role system_r types $1_t;
 	mcs_untrusted_proc($1_t)
 	domain_user_exemption_target($1_t)
 	auth_use_nsswitch($1_t)
 	domain_obj_id_change_exemption($1_t)
-	domain_dyntrans_type($1_t)
 
-	type $1_app_t, openshift_domain;
-	#typeattribute $1_app_t, openshift_domain;
+	type $1_app_t;
+	typeattribute $1_app_t openshift_domain;
 	domain_type($1_app_t)
 	role system_r types $1_app_t;
 	mcs_untrusted_proc($1_app_t)
 	domain_user_exemption_target($1_app_t)
 	domain_obj_id_change_exemption($1_app_t)
-	domain_dyntrans_type($1_app_t)
 ')
 
 ########################################
