@@ -666,6 +666,23 @@ interface(`corenet_tcp_connect_$1_port',`
 
 	allow dollarsone $1_$2:tcp_socket name_connect;
 ')
+########################################
+## <summary>
+##	Do not audit attempts to make a TCP connection to $1 port.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_connect_$1_port',`
+	gen_require(`
+		$3 $1_$2;
+	')
+
+	dontaudit dollarsone $1_$2:tcp_socket name_connect;
+')
 '') dnl end create_port_interfaces
 
 define(`create_packet_interfaces',``
