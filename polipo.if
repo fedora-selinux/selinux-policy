@@ -1,0 +1,117 @@
+## <summary>Lightweight forwarding and caching proxy server.</summary>
+
+########################################
+## <summary>
+##	Role access for Polipo session.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+template(`polipo_role',`
+	gen_require(`
+		type polipo_session_t, polipo_exec_t, polipo_config_home_t;
+		type polipo_cache_home_t;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	role $1 types polipo_session_t;
+
+	########################################
+	#
+	# Policy
+	#
+
+	manage_dirs_pattern($2, polipo_cache_home_t, polipo_cache_home_t)
+	relabel_dirs_pattern($2, polipo_cache_home_t, polipo_cache_home_t)
+
+	userdom_user_home_dir_filetrans($2, polipo_cache_home_t, dir, ".polipo-cache")
+
+	manage_files_pattern($2, { polipo_cache_home_t polipo_config_home_t }, { polipo_cache_home_t polipo_config_home_t })
+	relabel_files_pattern($2, { polipo_cache_home_t polipo_config_home_t }, { polipo_cache_home_t polipo_config_home_t })
+
+	userdom_user_home_dir_filetrans($2, polipo_config_home_t, file, ".polipo")
+
+	allow $2 polipo_session_t:process { ptrace signal_perms };
+	ps_process_pattern($2, polipo_session_t)
+
+	tunable_policy(`polipo_session_users',`
+		domtrans_pattern($2, polipo_exec_t, polipo_session_t)
+	',`
+		can_exec($2, polipo_exec_t)
+	')
+')
+
+########################################
+## <summary>
+##	Execute Polipo in the Polipo
+##	system domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`polipo_initrc_domtrans',`
+	gen_require(`
+		type polipo_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, polipo_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an polipo environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`polipo_admin',`
+	gen_require(`
+		type polipo_system_t, polipo_initrc_exec_t, polipo_cache_t;
+		type polipo_conf_t, polipo_log_t, polipo_var_run_t;
+	')
+
+	allow $1 polipo_system_t:process { ptrace signal_perms };
+	ps_process_pattern($1, polipo_system_t)
+
+	polipo_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 polipo_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var($1)
+	admin_pattern($1, polipo_cache_t)
+
+	files_search_etc($1)
+	admin_pattern($1, polipo_conf_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, polipo_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, polipo_var_run_t)
+')
