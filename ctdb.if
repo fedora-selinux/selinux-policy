@@ -1,0 +1,45 @@
+## <summary>Clustered Database based on Samba Trivial Database.</summary>
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an ctdb environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ctdb_admin',`
+	gen_require(`
+		type ctdbd_t, ctdbd_initrc_exec_t, ctdbd_tmp_t;
+		type ctdbd_log_t, ctdbd_var_lib_t, ctdbd_var_run_t;
+	')
+
+	allow $1 ctdbd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ctdbd_t)
+
+	init_labeled_script_domtrans($1, ctdbd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 ctdbd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, ctdbd_log_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, ctdbd_tmp_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, ctdbd_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, ctdbd_var_run_t)
+')
