@@ -1,8 +1,8 @@
-## <summary> policy for SBLIM Gatherer </summary>
+## <summary>Standards Based Linux Instrumentation for Manageability.</summary>
 
 ########################################
 ## <summary>
-##	Transition to gatherd.
+##	Execute gatherd in the gatherd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -40,8 +40,8 @@ interface(`sblim_read_pid_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an gatherd environment
+##	All of the rules required to
+##	administrate an sblim environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -57,16 +57,17 @@ interface(`sblim_read_pid_files',`
 #
 interface(`sblim_admin',`
 	gen_require(`
-		type sblim_gatherd_t;
-		type sblim_reposd_t;
+		type sblim_gatherd_t, sblim_initrc_exec_t, sblim_reposd_t;
 		type sblim_var_run_t;
 	')
 
-	allow $1 sblim_gatherd_t:process signal_perms;
-	ps_process_pattern($1, sblim_gatherd_t)
+	allow $1 { sblim_gatherd_t sblim_reposd_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { sblim_gatherd_t sblim_reposd_t })
 
-	allow $1 sblim_reposd_t:process signal_perms;
-	ps_process_pattern($1, sblim_reposd_t)
+	init_labeled_script_domtrans($1, sblim_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 sblim_initrc_exec_t system_r;
+	allow $2 system_r;
 
 	files_search_pids($1)
 	admin_pattern($1, sblim_var_run_t)
