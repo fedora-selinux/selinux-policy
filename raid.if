@@ -1,8 +1,9 @@
-## <summary>RAID array management tools</summary>
+## <summary>RAID array management tools.</summary>
 
 ########################################
 ## <summary>
-##	Execute software raid tools in the mdadm domain.
+##	Execute software raid tools in
+##	the mdadm domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -21,18 +22,18 @@ interface(`raid_domtrans_mdadm',`
 
 ######################################
 ## <summary>
-##	Execute a domain transition to mdadm_t for the
-##	specified role, allowing it to use the mdadm_t
-##	domain
+##	Execute mdadm in the mdadm
+##	domain, and allow the specified
+##	role the mdadm domain.
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed to access mdadm_t domain
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed to transition to mdadm_t
+##	Domain allowed to transition.
 ##	</summary>
 ## </param>
 #
@@ -41,22 +42,15 @@ interface(`raid_run_mdadm',`
 		type mdadm_t;
 	')
 
-	role $1 types mdadm_t;
 	raid_domtrans_mdadm($2)
+	role $1 types mdadm_t;
 ')
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete the mdadm pid files.
+##	Create, read, write, and delete
+##	mdadm pid files.
 ## </summary>
-## <desc>
-##	<p>
-##	Create, read, write, and delete the mdadm pid files.
-##	</p>
-##	<p>
-##	Added for use in the init module.
-##	</p>
-## </desc>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
@@ -68,8 +62,39 @@ interface(`raid_manage_mdadm_pid',`
 		type mdadm_var_run_t;
 	')
 
-	# FIXME: maybe should have a type_transition.  not
-	# clear what this is doing, from the original
-	# mdadm policy
 	allow $1 mdadm_var_run_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an mdadm environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`raid_admin_mdadm',`
+	gen_require(`
+		type mdadm_t, mdadm_initrc_exec_t, mdadm_var_run_t;
+	')
+
+	allow $1 mdadm_t:process { ptrace signal_perms };
+	ps_process_pattern($1, mdadm_t)
+
+	init_labeled_script_domtrans($1, mdadm_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 mdadm_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, mdadm_var_run_t)
 ')
