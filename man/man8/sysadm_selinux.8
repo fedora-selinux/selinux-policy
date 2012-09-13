@@ -10,7 +10,7 @@ default role has a default type, \fBsysadm_t\fP, associated with it.
 
 The SELinux user will usually login to a system with a context that looks like:
 
-.B sysadm_u:sysadm_r:sysadm_u:s0-s0:c0.c1023
+.B sysadm_u:sysadm_r:sysadm_t:s0-s0:c0.c1023
 
 Linux users are automatically assigned an SELinux users at login.  
 Login programs use the SELinux User to assign initial context to the user's shell.
@@ -52,13 +52,52 @@ USERNAME ALL=(ALL) ROLE=auditadm_r TYPE=auditadm_t COMMAND
 .br
 sudo will run COMMAND as sysadm_u:auditadm_r:auditadm_t:LEVEL
 
+You might also need to add one or more of these new roles to your SELinux user record.
+
+List the SELinux roles your SELinux user can reach by executing:
+
+.B $ semanage user -l |grep selinux_name
+
+Modify the roles list and add sysadm_r to this list.
+
+.B $ semanage user -m -R 'sysadm_r auditadm_r secadm_r staff_r user_r' sysadm_u 
+
+For more details you can see semanage man page.
+
+
 USERNAME ALL=(ALL) ROLE=secadm_r TYPE=secadm_t COMMAND
 .br
 sudo will run COMMAND as sysadm_u:secadm_r:secadm_t:LEVEL
 
+You might also need to add one or more of these new roles to your SELinux user record.
+
+List the SELinux roles your SELinux user can reach by executing:
+
+.B $ semanage user -l |grep selinux_name
+
+Modify the roles list and add sysadm_r to this list.
+
+.B $ semanage user -m -R 'sysadm_r auditadm_r secadm_r staff_r user_r' sysadm_u 
+
+For more details you can see semanage man page.
+
+
 USERNAME ALL=(ALL) ROLE=staff_r TYPE=staff_t COMMAND
 .br
 sudo will run COMMAND as sysadm_u:staff_r:staff_t:LEVEL
+
+You might also need to add one or more of these new roles to your SELinux user record.
+
+List the SELinux roles your SELinux user can reach by executing:
+
+.B $ semanage user -l |grep selinux_name
+
+Modify the roles list and add sysadm_r to this list.
+
+.B $ semanage user -m -R 'sysadm_r auditadm_r secadm_r staff_r user_r' sysadm_u 
+
+For more details you can see semanage man page.
+
 
 USERNAME ALL=(ALL) ROLE=user_r TYPE=user_t COMMAND
 .br
@@ -77,13 +116,11 @@ Modify the roles list and add sysadm_r to this list.
 For more details you can see semanage man page.
 
 
+The SELinux type sysadm_t is not allowed to execute sudo. 
+
 .SH X WINDOWS LOGIN
 
 The SELinux user sysadm_u is able to X Windows login.
-
-.SH TERMINAL LOGIN
-
-The SELinux user sysadm_u is able to terminal login.
 
 .SH NETWORK
 
@@ -93,11 +130,16 @@ The SELinux user sysadm_u is able to listen on the following tcp ports.
 .B all ports with out defined types
 
 .TP
+The SELinux user sysadm_u is able to connect to the following tcp ports.
+
+.B all ports
+
+.TP
 The SELinux user sysadm_u is able to listen on the following udp ports.
 
-.B ntp_port_t: 123
-
 .B all ports with out defined types
+
+.B ntp_port_t: 123
 
 .TP
 The SELinux user sysadm_u is able to connect to the following tcp ports.
@@ -105,84 +147,21 @@ The SELinux user sysadm_u is able to connect to the following tcp ports.
 .B all ports
 
 .SH BOOLEANS
-SELinux policy is customizable based on least access required.  sysadm_t policy is extremely flexible and has several booleans that allow you to manipulate the policy and run sysadm_t with the tightest access possible.
+SELinux policy is customizable based on least access required.  sysadm policy is extremely flexible and has several booleans that allow you to manipulate the policy and run sysadm with the tightest access possible.
 
 
 .PP
-If you want to allow users to connect to the local mysql server, you must turn on the allow_user_mysql_connect boolean.
+If you want to allow the graphical login program to login directly as sysadm_r:sysadm_t, you must turn on the xdm_sysadm_login boolean.
 
 .EX
-.B setsebool -P allow_user_mysql_connect 1
+.B setsebool -P xdm_sysadm_login 1
 .EE
 
 .PP
-If you want to control users use of ping and traceroute, you must turn on the user_ping boolean.
+If you want to allow ssh logins as sysadm_r:sysadm_t, you must turn on the ssh_sysadm_login boolean.
 
 .EX
-.B setsebool -P user_ping 1
-.EE
-
-.PP
-If you want to allow w to display everyone, you must turn on the user_ttyfile_stat boolean.
-
-.EX
-.B setsebool -P user_ttyfile_stat 1
-.EE
-
-.PP
-If you want to allow user music sharing, you must turn on the user_share_music boolean.
-
-.EX
-.B setsebool -P user_share_music 1
-.EE
-
-.PP
-If you want to allow regular users direct dri device access, you must turn on the user_direct_dri boolean.
-
-.EX
-.B setsebool -P user_direct_dri 1
-.EE
-
-.PP
-If you want to allow user to r/w files on filesystems that do not have extended attributes (FAT, CDROM, FLOPPY), you must turn on the user_rw_noexattrfile boolean.
-
-.EX
-.B setsebool -P user_rw_noexattrfile 1
-.EE
-
-.PP
-If you want to allow users to run TCP servers (bind to ports and accept connection from the same domain and outside users)  disabling this forces FTP passive mode and may change other protocols, you must turn on the user_tcp_server boolean.
-
-.EX
-.B setsebool -P user_tcp_server 1
-.EE
-
-.PP
-If you want to allow regular users direct mouse access, you must turn on the user_direct_mouse boolean.
-
-.EX
-.B setsebool -P user_direct_mouse 1
-.EE
-
-.PP
-If you want to allow user processes to change their priority, you must turn on the user_setrlimit boolean.
-
-.EX
-.B setsebool -P user_setrlimit 1
-.EE
-
-.PP
-If you want to allow users to connect to PostgreSQL, you must turn on the allow_user_postgresql_connect boolean.
-
-.EX
-.B setsebool -P allow_user_postgresql_connect 1
-.EE
-
-.PP
-If you want to allow users to read system messages, you must turn on the user_dmesg boolean.
-
-.EX
-.B setsebool -P user_dmesg 1
+.B setsebool -P ssh_sysadm_login 1
 .EE
 
 .SH HOME_EXEC
@@ -212,19 +191,268 @@ Execute the following to see the types that the SELinux user sysadm_t can execut
 .B $ sesearch -A -s sysadm_t -c process -p transition
 
 
+.SH "MANAGED FILES"
+
+The SELinux user type sysadm_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B auditd_etc_t
+
+	/etc/audit(/.*)?
+.br
+
+.br
+.B auditd_log_t
+
+	/var/log/audit(/.*)?
+.br
+	/var/log/audit\.log
+.br
+
+.br
+.B boolean_type
+
+
+.br
+.B etc_runtime_t
+
+	/[^/]+
+.br
+	/etc/mtab.*
+.br
+	/etc/blkid(/.*)?
+.br
+	/etc/nologin.*
+.br
+	/etc/\.fstab\.hal\..+
+.br
+	/halt
+.br
+	/fastboot
+.br
+	/poweroff
+.br
+	/etc/cmtab
+.br
+	/forcefsck
+.br
+	/\.autofsck
+.br
+	/\.suspended
+.br
+	/fsckoptions
+.br
+	/\.autorelabel
+.br
+	/etc/securetty
+.br
+	/etc/nohotplug
+.br
+	/etc/killpower
+.br
+	/etc/ioctl\.save
+.br
+	/etc/fstab\.REVOKE
+.br
+	/etc/network/ifstate
+.br
+	/etc/sysconfig/hwconf
+.br
+	/etc/ptal/ptal-printd-like
+.br
+	/etc/sysconfig/iptables\.save
+.br
+	/etc/xorg\.conf\.d/00-system-setup-keyboard\.conf
+.br
+	/etc/X11/xorg\.conf\.d/00-system-setup-keyboard\.conf
+.br
+
+.br
+.B iceauth_home_t
+
+	/root/\.DCOP.*
+.br
+	/root/\.ICEauthority.*
+.br
+	/home/[^/]*/\.DCOP.*
+.br
+	/home/[^/]*/\.ICEauthority.*
+.br
+
+.br
+.B krb5_host_rcache_t
+
+	/var/cache/krb5rcache(/.*)?
+.br
+	/var/tmp/nfs_0
+.br
+	/var/tmp/host_0
+.br
+	/var/tmp/imap_0
+.br
+	/var/tmp/HTTP_23
+.br
+	/var/tmp/HTTP_48
+.br
+	/var/tmp/ldap_55
+.br
+	/var/tmp/ldap_487
+.br
+	/var/tmp/ldapmap1_0
+.br
+
+.br
+.B krb5_keytab_t
+
+	/etc/krb5\.keytab
+.br
+	/etc/krb5kdc/kadm5\.keytab
+.br
+	/var/kerberos/krb5kdc/kadm5\.keytab
+.br
+
+.br
+.B non_security_file_type
+
+
+.br
+.B noxattrfs
+
+	all files on file systems which do not support extended attributes
+.br
+
+.br
+.B screen_home_t
+
+	/root/\.screen(/.*)?
+.br
+	/home/[^/]*/\.screen(/.*)?
+.br
+	/home/[^/]*/\.screenrc
+.br
+
+.br
+.B sysctl_type
+
+
+.br
+.B systemd_passwd_var_run_t
+
+	/var/run/systemd/ask-password(/.*)?
+.br
+	/var/run/systemd/ask-password-block(/.*)?
+.br
+
+.br
+.B systemd_unit_file_type
+
+
+.br
+.B usbfs_t
+
+
+.br
+.B user_fonts_cache_t
+
+	/root/\.fontconfig(/.*)?
+.br
+	/root/\.fonts/auto(/.*)?
+.br
+	/root/\.fonts\.cache-.*
+.br
+	/home/[^/]*/\.fontconfig(/.*)?
+.br
+	/home/[^/]*/\.fonts/auto(/.*)?
+.br
+	/home/[^/]*/\.fonts\.cache-.*
+.br
+
+.br
+.B user_fonts_t
+
+	/root/\.fonts(/.*)?
+.br
+	/tmp/\.font-unix(/.*)?
+.br
+	/home/[^/]*/\.fonts(/.*)?
+.br
+
+.br
+.B user_home_t
+
+	/home/[^/]*/.+
+.br
+
+.br
+.B user_home_type
+
+	all user home files
+.br
+
+.br
+.B user_tmp_type
+
+	all user tmp files
+.br
+
+.br
+.B user_tmpfs_type
+
+	all user content in tmpfs file systems
+.br
+
+.br
+.B xauth_home_t
+
+	/root/\.xauth.*
+.br
+	/root/\.Xauth.*
+.br
+	/root/\.serverauth.*
+.br
+	/root/\.Xauthority.*
+.br
+	/var/lib/pqsql/\.xauth.*
+.br
+	/var/lib/pqsql/\.Xauthority.*
+.br
+	/var/lib/nxserver/home/\.xauth.*
+.br
+	/var/lib/nxserver/home/\.Xauthority.*
+.br
+	/home/[^/]*/\.xauth.*
+.br
+	/home/[^/]*/\.Xauth.*
+.br
+	/home/[^/]*/\.serverauth.*
+.br
+	/home/[^/]*/\.Xauthority.*
+.br
+
+.br
+.B xserver_tmpfs_t
+
+
 .SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
 
-.B semanage login
-can also be used to manipulate the Linux User to SELinux User mappings
+.B semanage boolean
+can also be used to manipulate the booleans
 
-.B semanage user
-can also be used to manipulate SELinux user definitions.
-
+.PP
 .B system-config-selinux 
 is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
-This manual page was autogenerated by genuserman.py.
+This manual page was auto-generated by genman.py.
 
 .SH "SEE ALSO"
-selinux(8), semanage(8).
+selinux(8), sysadm(8), semanage(8), restorecon(8), chcon(1)
+, setsebool(8)

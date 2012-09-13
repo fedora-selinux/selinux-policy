@@ -1,0 +1,172 @@
+.TH  "httpd_sys_script_selinux"  "8"  "httpd_sys_script" "dwalsh@redhat.com" "httpd_sys_script SELinux Policy documentation"
+.SH "NAME"
+httpd_sys_script_selinux \- Security Enhanced Linux Policy for the httpd_sys_script processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the httpd_sys_script processes via flexible mandatory access
+control.  
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the httpd_sys_script_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the httpd_sys_script_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH SHARING FILES
+If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
+.TP
+Allow httpd_sys_script servers to read the /var/httpd_sys_script directory by adding the public_content_t file type to the directory and by restoring the file type.
+.PP
+.B
+semanage fcontext -a -t public_content_t "/var/httpd_sys_script(/.*)?"
+.br
+.B restorecon -F -R -v /var/httpd_sys_script
+.pp
+.TP
+Allow httpd_sys_script servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_httpd_sys_scriptd_anon_write boolean to be set.
+.PP
+.B
+semanage fcontext -a -t public_content_rw_t "/var/httpd_sys_script/incoming(/.*)?"
+.br
+.B restorecon -F -R -v /var/httpd_sys_script/incoming
+
+
+.PP
+If you want to allow apache scripts to write to public content, directories/files must be labeled public_rw_content_t., you must turn on the httpd_sys_script_anon_write boolean.
+
+.EX
+.B setsebool -P httpd_sys_script_anon_write 1
+.EE
+
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type. 
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files. 
+SELinux httpd_sys_script policy is very flexible allowing users to setup their httpd_sys_script processes in as secure a method as possible.
+.PP 
+The following file types are defined for httpd_sys_script:
+
+
+.EX
+.PP
+.B httpd_sys_script_exec_t 
+.EE
+
+- Set files with the httpd_sys_script_exec_t type, if you want to transition an executable to the httpd_sys_script_t domain.
+
+.br
+.TP 5
+Paths: 
+/var/www/svn/hooks(/.*)?, /usr/share/mythweb/mythweb\.pl, /usr/share/wordpress/.*\.php, /usr/lib/cgi-bin(/.*)?, /var/www/perl(/.*)?, /usr/share/mythtv/mythweather/scripts(/.*)?, /usr/share/wordpress-mu/wp-config\.php, /usr/.*\.cgi, /var/www/html/[^/]*/cgi-bin(/.*)?, /var/www/[^/]*/cgi-bin(/.*)?, /var/www/cgi-bin(/.*)?, /usr/share/wordpress/wp-includes/.*\.php, /opt/.*\.cgi
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux httpd_sys_script policy is very flexible allowing users to setup their httpd_sys_script processes in as secure a method as possible.
+.PP 
+The following process types are defined for httpd_sys_script:
+
+.EX
+.B httpd_sys_script_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+
+.SH "MANAGED FILES"
+
+The SELinux user type httpd_sys_script_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B httpd_sys_rw_content_t
+
+	/etc/drupal.*
+.br
+	/var/lib/svn(/.*)?
+.br
+	/var/www/svn(/.*)?
+.br
+	/etc/mock/koji(/.*)?
+.br
+	/var/www/html/[^/]*/sites/default/files(/.*)?
+.br
+	/var/www/html/[^/]*/sites/default/settings\.php
+.br
+	/var/lib/drupal.*
+.br
+	/etc/zabbix/web(/.*)?
+.br
+	/var/spool/gosa(/.*)?
+.br
+	/etc/WebCalendar(/.*)?
+.br
+	/var/lib/dokuwiki(/.*)?
+.br
+	/var/spool/viewvc(/.*)?
+.br
+	/var/lib/pootle/po(/.*)?
+.br
+	/var/www/moodledata(/.*)?
+.br
+	/var/www/gallery/albums(/.*)?
+.br
+	/var/www/html/wp-content(/.*)?
+.br
+	/usr/share/wordpress-mu/wp-content(/.*)?
+.br
+	/usr/share/wordpress/wp-content/uploads(/.*)?
+.br
+	/usr/share/wordpress/wp-content/upgrade(/.*)?
+.br
+	/var/www/html/configuration\.php
+.br
+
+.br
+.B httpd_tmp_t
+
+	/var/run/user/apache(/.*)?
+.br
+
+.SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR	
+This manual page was auto-generated by genman.py.
+
+.SH "SEE ALSO"
+selinux(8), httpd_sys_script(8), semanage(8), restorecon(8), chcon(1)
+, httpd_selinux(8)
