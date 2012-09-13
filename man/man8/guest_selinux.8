@@ -10,7 +10,7 @@ default role has a default type, \fBguest_t\fP, associated with it.
 
 The SELinux user will usually login to a system with a context that looks like:
 
-.B guest_u:guest_r:guest_u:s0-s0:c0.c1023
+.B guest_u:guest_r:guest_t:s0-s0:c0.c1023
 
 Linux users are automatically assigned an SELinux users at login.  
 Login programs use the SELinux User to assign initial context to the user's shell.
@@ -41,15 +41,9 @@ The SELinux user guest_u is defined in policy as a unprivileged user. SELinux pr
 
 .SH SUDO
 
-The SELinux type guest_t is not allowed to execute sudo. 
-
 .SH X WINDOWS LOGIN
 
 The SELinux user guest_u is not able to X Windows login.
-
-.SH TERMINAL LOGIN
-
-The SELinux user guest_u is able to terminal login.
 
 .SH NETWORK
 
@@ -62,85 +56,38 @@ The SELinux user guest_u is able to connect to the following tcp ports.
 
 .B kerberos_port_t: 88,750,4444
 
+.TP
+The SELinux user guest_u is able to connect to the following tcp ports.
+
+.B dns_port_t: 53
+
+.B ocsp_port_t: 9080
+
+.B kerberos_port_t: 88,750,4444
+
 .SH BOOLEANS
-SELinux policy is customizable based on least access required.  guest_t policy is extremely flexible and has several booleans that allow you to manipulate the policy and run guest_t with the tightest access possible.
+SELinux policy is customizable based on least access required.  guest policy is extremely flexible and has several booleans that allow you to manipulate the policy and run guest with the tightest access possible.
 
 
 .PP
-If you want to allow users to connect to the local mysql server, you must turn on the allow_user_mysql_connect boolean.
+If you want to allow xguest users to configure Network Manager and connect to apache ports, you must turn on the xguest_connect_network boolean.
 
 .EX
-.B setsebool -P allow_user_mysql_connect 1
+.B setsebool -P xguest_connect_network 1
 .EE
 
 .PP
-If you want to control users use of ping and traceroute, you must turn on the user_ping boolean.
+If you want to allow xguest users to mount removable media, you must turn on the xguest_mount_media boolean.
 
 .EX
-.B setsebool -P user_ping 1
+.B setsebool -P xguest_mount_media 1
 .EE
 
 .PP
-If you want to allow w to display everyone, you must turn on the user_ttyfile_stat boolean.
+If you want to allow xguest to use blue tooth devices, you must turn on the xguest_use_bluetooth boolean.
 
 .EX
-.B setsebool -P user_ttyfile_stat 1
-.EE
-
-.PP
-If you want to allow user music sharing, you must turn on the user_share_music boolean.
-
-.EX
-.B setsebool -P user_share_music 1
-.EE
-
-.PP
-If you want to allow regular users direct dri device access, you must turn on the user_direct_dri boolean.
-
-.EX
-.B setsebool -P user_direct_dri 1
-.EE
-
-.PP
-If you want to allow user to r/w files on filesystems that do not have extended attributes (FAT, CDROM, FLOPPY), you must turn on the user_rw_noexattrfile boolean.
-
-.EX
-.B setsebool -P user_rw_noexattrfile 1
-.EE
-
-.PP
-If you want to allow users to run TCP servers (bind to ports and accept connection from the same domain and outside users)  disabling this forces FTP passive mode and may change other protocols, you must turn on the user_tcp_server boolean.
-
-.EX
-.B setsebool -P user_tcp_server 1
-.EE
-
-.PP
-If you want to allow regular users direct mouse access, you must turn on the user_direct_mouse boolean.
-
-.EX
-.B setsebool -P user_direct_mouse 1
-.EE
-
-.PP
-If you want to allow user processes to change their priority, you must turn on the user_setrlimit boolean.
-
-.EX
-.B setsebool -P user_setrlimit 1
-.EE
-
-.PP
-If you want to allow users to connect to PostgreSQL, you must turn on the allow_user_postgresql_connect boolean.
-
-.EX
-.B setsebool -P allow_user_postgresql_connect 1
-.EE
-
-.PP
-If you want to allow users to read system messages, you must turn on the user_dmesg boolean.
-
-.EX
-.B setsebool -P user_dmesg 1
+.B setsebool -P xguest_use_bluetooth 1
 .EE
 
 .SH HOME_EXEC
@@ -170,19 +117,86 @@ Execute the following to see the types that the SELinux user guest_t can execute
 .B $ sesearch -A -s guest_t -c process -p transition
 
 
+.SH "MANAGED FILES"
+
+The SELinux user type guest_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B anon_inodefs_t
+
+
+.br
+.B auth_cache_t
+
+	/var/cache/coolkey(/.*)?
+.br
+
+.br
+.B httpd_user_content_t
+
+	/home/[^/]*/((www)|(web)|(public_html))(/.+)?
+.br
+
+.br
+.B httpd_user_htaccess_t
+
+	/home/[^/]*/((www)|(web)|(public_html))(/.*)?/\.htaccess
+.br
+
+.br
+.B httpd_user_ra_content_t
+
+	/home/[^/]*/((www)|(web)|(public_html))(/.*)?/logs(/.*)?
+.br
+
+.br
+.B httpd_user_rw_content_t
+
+
+.br
+.B httpd_user_script_exec_t
+
+	/home/[^/]*/((www)|(web)|(public_html))/cgi-bin(/.+)?
+.br
+
+.br
+.B user_home_type
+
+	all user home files
+.br
+
+.br
+.B user_tmp_type
+
+	all user tmp files
+.br
+
+.br
+.B user_tmpfs_type
+
+	all user content in tmpfs file systems
+.br
+
 .SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
 
-.B semanage login
-can also be used to manipulate the Linux User to SELinux User mappings
+.B semanage boolean
+can also be used to manipulate the booleans
 
-.B semanage user
-can also be used to manipulate SELinux user definitions.
-
+.PP
 .B system-config-selinux 
 is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
-This manual page was autogenerated by genuserman.py.
+This manual page was auto-generated by genman.py.
 
 .SH "SEE ALSO"
-selinux(8), semanage(8).
+selinux(8), guest(8), semanage(8), restorecon(8), chcon(1)
+, setsebool(8)

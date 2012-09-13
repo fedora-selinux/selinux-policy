@@ -1,6 +1,6 @@
 .TH  "user_selinux"  "8"  "user" "mgrepl@redhat.com" "user SELinux Policy documentation"
 .SH "NAME"
-user_u \- \fBGeneric unprivileged user role\fP - Security Enhanced Linux Policy 
+user_u \- \fBGeneric unprivileged user\fP - Security Enhanced Linux Policy 
 
 .SH DESCRIPTION
 
@@ -10,7 +10,7 @@ default role has a default type, \fBuser_t\fP, associated with it.
 
 The SELinux user will usually login to a system with a context that looks like:
 
-.B user_u:user_r:user_u:s0-s0:c0.c1023
+.B user_u:user_r:user_t:s0-s0:c0.c1023
 
 Linux users are automatically assigned an SELinux users at login.  
 Login programs use the SELinux User to assign initial context to the user's shell.
@@ -41,15 +41,9 @@ The SELinux user user_u is defined in policy as a unprivileged user. SELinux pre
 
 .SH SUDO
 
-The SELinux type user_t is not allowed to execute sudo. 
-
 .SH X WINDOWS LOGIN
 
 The SELinux user user_u is able to X Windows login.
-
-.SH TERMINAL LOGIN
-
-The SELinux user user_u is able to terminal login.
 
 .SH NETWORK
 
@@ -57,6 +51,11 @@ The SELinux user user_u is able to terminal login.
 The SELinux user user_u is able to listen on the following tcp ports.
 
 .B xserver_port_t: 6000-6020
+
+.TP
+The SELinux user user_u is able to connect to the following tcp ports.
+
+.B all ports
 
 .TP
 The SELinux user user_u is able to listen on the following udp ports.
@@ -69,14 +68,42 @@ The SELinux user user_u is able to connect to the following tcp ports.
 .B all ports
 
 .SH BOOLEANS
-SELinux policy is customizable based on least access required.  user_t policy is extremely flexible and has several booleans that allow you to manipulate the policy and run user_t with the tightest access possible.
+SELinux policy is customizable based on least access required.  user policy is extremely flexible and has several booleans that allow you to manipulate the policy and run user with the tightest access possible.
 
 
 .PP
-If you want to allow users to connect to the local mysql server, you must turn on the allow_user_mysql_connect boolean.
+If you want to allow clamscan to read user content, you must turn on the clamscan_read_user_content boolean.
 
 .EX
-.B setsebool -P allow_user_mysql_connect 1
+.B setsebool -P clamscan_read_user_content 1
+.EE
+
+.PP
+If you want to allow unconfined executables to make their heap memory executable.  Doing this is a really bad idea. Probably indicates a badly coded executable, but could indicate an attack. This executable should be reported in bugzilla, you must turn on the selinuxuser_execheap boolean.
+
+.EX
+.B setsebool -P selinuxuser_execheap 1
+.EE
+
+.PP
+If you want to allow all unconfined executables to use libraries requiring text relocation that are not labeled textrel_shlib_t, you must turn on the selinuxuser_execmod boolean.
+
+.EX
+.B setsebool -P selinuxuser_execmod 1
+.EE
+
+.PP
+If you want to allow exim to read unprivileged user files, you must turn on the exim_read_user_files boolean.
+
+.EX
+.B setsebool -P exim_read_user_files 1
+.EE
+
+.PP
+If you want to allow pppd to be run for a regular user, you must turn on the pppd_for_user boolean.
+
+.EX
+.B setsebool -P pppd_for_user 1
 .EE
 
 .PP
@@ -84,6 +111,20 @@ If you want to control users use of ping and traceroute, you must turn on the us
 
 .EX
 .B setsebool -P user_ping 1
+.EE
+
+.PP
+If you want to determine whether calling user domains can execute Git daemon in the git_session_t domain, you must turn on the git_session_users boolean.
+
+.EX
+.B setsebool -P git_session_users 1
+.EE
+
+.PP
+If you want to allow dbadm to manage files in users home directories, you must turn on the dbadm_manage_user_files boolean.
+
+.EX
+.B setsebool -P dbadm_manage_user_files 1
 .EE
 
 .PP
@@ -108,10 +149,24 @@ If you want to allow regular users direct dri device access, you must turn on th
 .EE
 
 .PP
-If you want to allow user to r/w files on filesystems that do not have extended attributes (FAT, CDROM, FLOPPY), you must turn on the user_rw_noexattrfile boolean.
+If you want to allow unprivledged user to create and transition to svirt domains, you must turn on the unprivuser_use_svirt boolean.
 
 .EX
-.B setsebool -P user_rw_noexattrfile 1
+.B setsebool -P unprivuser_use_svirt 1
+.EE
+
+.PP
+If you want to allow unconfined executables to make their stack executable.  This should never, ever be necessary. Probably indicates a badly coded executable, but could indicate an attack. This executable should be reported in bugzilla, you must turn on the selinuxuser_execstack boolean.
+
+.EX
+.B setsebool -P selinuxuser_execstack 1
+.EE
+
+.PP
+If you want to allow webadm to read files in users home directories, you must turn on the webadm_read_user_files boolean.
+
+.EX
+.B setsebool -P webadm_read_user_files 1
 .EE
 
 .PP
@@ -122,10 +177,45 @@ If you want to allow users to run TCP servers (bind to ports and accept connecti
 .EE
 
 .PP
+If you want to allow httpd to read user content, you must turn on the httpd_read_user_content boolean.
+
+.EX
+.B setsebool -P httpd_read_user_content 1
+.EE
+
+.PP
+If you want to allow user to r/w files on filesystems that do not have extended attributes (FAT, CDROM, FLOPPY), you must turn on the user_rw_noexattrfile boolean.
+
+.EX
+.B setsebool -P user_rw_noexattrfile 1
+.EE
+
+.PP
 If you want to allow regular users direct mouse access, you must turn on the user_direct_mouse boolean.
 
 .EX
 .B setsebool -P user_direct_mouse 1
+.EE
+
+.PP
+If you want to allow users to connect to PostgreSQL, you must turn on the user_postgresql_connect boolean.
+
+.EX
+.B setsebool -P user_postgresql_connect 1
+.EE
+
+.PP
+If you want to allow exim to create, read, write, and delete unprivileged user files, you must turn on the exim_manage_user_files boolean.
+
+.EX
+.B setsebool -P exim_manage_user_files 1
+.EE
+
+.PP
+If you want to allow dbadm to read files in users home directories, you must turn on the dbadm_read_user_files boolean.
+
+.EX
+.B setsebool -P dbadm_read_user_files 1
 .EE
 
 .PP
@@ -136,10 +226,24 @@ If you want to allow user processes to change their priority, you must turn on t
 .EE
 
 .PP
-If you want to allow users to connect to PostgreSQL, you must turn on the allow_user_postgresql_connect boolean.
+If you want to determine whether calling user domains can execute Polipo daemon in the polipo_session_t domain, you must turn on the polipo_session_users boolean.
 
 .EX
-.B setsebool -P allow_user_postgresql_connect 1
+.B setsebool -P polipo_session_users 1
+.EE
+
+.PP
+If you want to allow users to connect to the local mysql server, you must turn on the user_mysql_connect boolean.
+
+.EX
+.B setsebool -P user_mysql_connect 1
+.EE
+
+.PP
+If you want to allow webadm to manage files in users home directories, you must turn on the webadm_manage_user_files boolean.
+
+.EX
+.B setsebool -P webadm_manage_user_files 1
 .EE
 
 .PP
@@ -147,6 +251,13 @@ If you want to allow users to read system messages, you must turn on the user_dm
 
 .EX
 .B setsebool -P user_dmesg 1
+.EE
+
+.PP
+If you want to allow unprivileged users to execute DDL statement, you must turn on the sepgsql_enable_users_ddl boolean.
+
+.EX
+.B setsebool -P sepgsql_enable_users_ddl 1
 .EE
 
 .SH HOME_EXEC
@@ -176,19 +287,258 @@ Execute the following to see the types that the SELinux user user_t can execute 
 .B $ sesearch -A -s user_t -c process -p transition
 
 
+.SH "MANAGED FILES"
+
+The SELinux user type user_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B anon_inodefs_t
+
+
+.br
+.B auth_cache_t
+
+	/var/cache/coolkey(/.*)?
+.br
+
+.br
+.B bluetooth_helper_tmp_t
+
+
+.br
+.B bluetooth_helper_tmpfs_t
+
+
+.br
+.B cgroup_t
+
+	/cgroup
+.br
+	/sys/fs/cgroup
+.br
+
+.br
+.B chrome_sandbox_tmpfs_t
+
+
+.br
+.B games_data_t
+
+	/var/games(/.*)?
+.br
+	/var/lib/games(/.*)?
+.br
+
+.br
+.B gpg_agent_tmp_t
+
+	/home/[^/]*/\.gnupg/log-socket
+.br
+
+.br
+.B httpd_user_content_t
+
+	/home/[^/]*/((www)|(web)|(public_html))(/.+)?
+.br
+
+.br
+.B httpd_user_htaccess_t
+
+	/home/[^/]*/((www)|(web)|(public_html))(/.*)?/\.htaccess
+.br
+
+.br
+.B httpd_user_ra_content_t
+
+	/home/[^/]*/((www)|(web)|(public_html))(/.*)?/logs(/.*)?
+.br
+
+.br
+.B httpd_user_rw_content_t
+
+
+.br
+.B httpd_user_script_exec_t
+
+	/home/[^/]*/((www)|(web)|(public_html))/cgi-bin(/.+)?
+.br
+
+.br
+.B iceauth_home_t
+
+	/root/\.DCOP.*
+.br
+	/root/\.ICEauthority.*
+.br
+	/home/[^/]*/\.DCOP.*
+.br
+	/home/[^/]*/\.ICEauthority.*
+.br
+
+.br
+.B mail_spool_t
+
+	/var/mail(/.*)?
+.br
+	/var/spool/imap(/.*)?
+.br
+	/var/spool/mail(/.*)?
+.br
+
+.br
+.B mqueue_spool_t
+
+	/var/spool/(client)?mqueue(/.*)?
+.br
+	/var/spool/mqueue\.in(/.*)?
+.br
+
+.br
+.B nfsd_rw_t
+
+
+.br
+.B noxattrfs
+
+	all files on file systems which do not support extended attributes
+.br
+
+.br
+.B sandbox_file_t
+
+
+.br
+.B sandbox_tmpfs_type
+
+	all sandbox content in tmpfs file systems
+.br
+
+.br
+.B screen_home_t
+
+	/root/\.screen(/.*)?
+.br
+	/home/[^/]*/\.screen(/.*)?
+.br
+	/home/[^/]*/\.screenrc
+.br
+
+.br
+.B security_t
+
+	/selinux
+.br
+
+.br
+.B usbfs_t
+
+
+.br
+.B user_fonts_cache_t
+
+	/root/\.fontconfig(/.*)?
+.br
+	/root/\.fonts/auto(/.*)?
+.br
+	/root/\.fonts\.cache-.*
+.br
+	/home/[^/]*/\.fontconfig(/.*)?
+.br
+	/home/[^/]*/\.fonts/auto(/.*)?
+.br
+	/home/[^/]*/\.fonts\.cache-.*
+.br
+
+.br
+.B user_fonts_t
+
+	/root/\.fonts(/.*)?
+.br
+	/tmp/\.font-unix(/.*)?
+.br
+	/home/[^/]*/\.fonts(/.*)?
+.br
+
+.br
+.B user_home_type
+
+	all user home files
+.br
+
+.br
+.B user_tmp_type
+
+	all user tmp files
+.br
+
+.br
+.B user_tmpfs_type
+
+	all user content in tmpfs file systems
+.br
+
+.br
+.B xauth_home_t
+
+	/root/\.xauth.*
+.br
+	/root/\.Xauth.*
+.br
+	/root/\.serverauth.*
+.br
+	/root/\.Xauthority.*
+.br
+	/var/lib/pqsql/\.xauth.*
+.br
+	/var/lib/pqsql/\.Xauthority.*
+.br
+	/var/lib/nxserver/home/\.xauth.*
+.br
+	/var/lib/nxserver/home/\.Xauthority.*
+.br
+	/home/[^/]*/\.xauth.*
+.br
+	/home/[^/]*/\.Xauth.*
+.br
+	/home/[^/]*/\.serverauth.*
+.br
+	/home/[^/]*/\.Xauthority.*
+.br
+
+.br
+.B xdm_tmp_t
+
+	/tmp/\.X11-unix(/.*)?
+.br
+	/tmp/\.ICE-unix(/.*)?
+.br
+	/tmp/\.X0-lock
+.br
+
+.br
+.B xserver_tmpfs_t
+
+
 .SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
 
-.B semanage login
-can also be used to manipulate the Linux User to SELinux User mappings
+.B semanage boolean
+can also be used to manipulate the booleans
 
-.B semanage user
-can also be used to manipulate SELinux user definitions.
-
+.PP
 .B system-config-selinux 
 is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
-This manual page was autogenerated by genuserman.py.
+This manual page was auto-generated by genman.py.
 
 .SH "SEE ALSO"
-selinux(8), semanage(8).
+selinux(8), user(8), semanage(8), restorecon(8), chcon(1)
+, setsebool(8), useradd_selinux(8), usernetctl_selinux(8)

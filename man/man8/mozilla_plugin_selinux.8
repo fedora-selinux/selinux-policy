@@ -1,0 +1,254 @@
+.TH  "mozilla_plugin_selinux"  "8"  "mozilla_plugin" "dwalsh@redhat.com" "mozilla_plugin SELinux Policy documentation"
+.SH "NAME"
+mozilla_plugin_selinux \- Security Enhanced Linux Policy for the mozilla_plugin processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the mozilla_plugin processes via flexible mandatory access
+control.  
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  mozilla_plugin policy is extremely flexible and has several booleans that allow you to manipulate the policy and run mozilla_plugin with the tightest access possible.
+
+
+.PP
+If you want to allow unconfined users to transition to the Mozilla plugin domain when running xulrunner plugin-container, you must turn on the unconfined_mozilla_plugin_transition boolean.
+
+.EX
+.B setsebool -P unconfined_mozilla_plugin_transition 1
+.EE
+
+.PP
+If you want to allow mozilla_plugins to create random content in the users home directory, you must turn on the mozilla_plugin_enable_homedirs boolean.
+
+.EX
+.B setsebool -P mozilla_plugin_enable_homedirs 1
+.EE
+
+.PP
+If you want to allow mozilla plugin domain to connect to the network using TCP, you must turn on the mozilla_plugin_can_network_connect boolean.
+
+.EX
+.B setsebool -P mozilla_plugin_can_network_connect 1
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the mozilla_plugin_config_t, mozilla_plugin_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the mozilla_plugin_config_t, mozilla_plugin_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type. 
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files. 
+SELinux mozilla_plugin policy is very flexible allowing users to setup their mozilla_plugin processes in as secure a method as possible.
+.PP 
+The following file types are defined for mozilla_plugin:
+
+
+.EX
+.PP
+.B mozilla_plugin_config_exec_t 
+.EE
+
+- Set files with the mozilla_plugin_config_exec_t type, if you want to transition an executable to the mozilla_plugin_config_t domain.
+
+
+.EX
+.PP
+.B mozilla_plugin_exec_t 
+.EE
+
+- Set files with the mozilla_plugin_exec_t type, if you want to transition an executable to the mozilla_plugin_t domain.
+
+.br
+.TP 5
+Paths: 
+/usr/bin/nspluginscan, /usr/lib/nspluginwrapper/npviewer.bin, /usr/lib/xulrunner[^/]*/plugin-container, /usr/bin/nspluginviewer
+
+.EX
+.PP
+.B mozilla_plugin_rw_t 
+.EE
+
+- Set files with the mozilla_plugin_rw_t type, if you want to treat the files as mozilla plugin read/write content.
+
+
+.EX
+.PP
+.B mozilla_plugin_tmp_t 
+.EE
+
+- Set files with the mozilla_plugin_tmp_t type, if you want to store mozilla plugin temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B mozilla_plugin_tmpfs_t 
+.EE
+
+- Set files with the mozilla_plugin_tmpfs_t type, if you want to store mozilla plugin files on a tmpfs file system.
+
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the 
+.B semanage fcontext 
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux mozilla_plugin policy is very flexible allowing users to setup their mozilla_plugin processes in as secure a method as possible.
+.PP 
+The following process types are defined for mozilla_plugin:
+
+.EX
+.B mozilla_plugin_config_t, mozilla_plugin_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+
+.SH "MANAGED FILES"
+
+The SELinux user type mozilla_plugin_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B gnome_home_type
+
+
+.br
+.B home_cert_t
+
+	/root/\.cert(/.*)?
+.br
+	/home/[^/]*/.kde/share/apps/networkmanagement/certificates(/.*)?
+.br
+	/home/[^/]*/\.pki(/.*)?
+.br
+	/home/[^/]*/\.cert(/.*)?
+.br
+
+.br
+.B mozilla_home_t
+
+	/home/[^/]*/\.java(/.*)?
+.br
+	/home/[^/]*/\.adobe(/.*)?
+.br
+	/home/[^/]*/\.gnash(/.*)?
+.br
+	/home/[^/]*/\.galeon(/.*)?
+.br
+	/home/[^/]*/\.spicec(/.*)?
+.br
+	/home/[^/]*/\.mozilla(/.*)?
+.br
+	/home/[^/]*/\.phoenix(/.*)?
+.br
+	/home/[^/]*/\.netscape(/.*)?
+.br
+	/home/[^/]*/\.ICAClient(/.*)?
+.br
+	/home/[^/]*/\.macromedia(/.*)?
+.br
+	/home/[^/]*/\.thunderbird(/.*)?
+.br
+	/home/[^/]*/\.gcjwebplugin(/.*)?
+.br
+	/home/[^/]*/\.icedteaplugin(/.*)?
+.br
+	/home/[^/]*/zimbrauserdata(/.*)?
+.br
+	/home/[^/]*/\.config/chromium(/.*)?
+.br
+
+.br
+.B mozilla_plugin_tmp_t
+
+
+.br
+.B mozilla_plugin_tmpfs_t
+
+
+.br
+.B pulseaudio_home_t
+
+	/root/\.pulse(/.*)?
+.br
+	/root/\.esd_auth
+.br
+	/root/\.pulse-cookie
+.br
+	/home/[^/]*/\.pulse(/.*)?
+.br
+	/home/[^/]*/\.esd_auth
+.br
+	/home/[^/]*/\.pulse-cookie
+.br
+
+.br
+.B user_fonts_cache_t
+
+	/root/\.fontconfig(/.*)?
+.br
+	/root/\.fonts/auto(/.*)?
+.br
+	/root/\.fonts\.cache-.*
+.br
+	/home/[^/]*/\.fontconfig(/.*)?
+.br
+	/home/[^/]*/\.fonts/auto(/.*)?
+.br
+	/home/[^/]*/\.fonts\.cache-.*
+.br
+
+.br
+.B user_tmpfs_t
+
+	/dev/shm/mono.*
+.br
+	/dev/shm/pulse-shm.*
+.br
+
+.SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux 
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR	
+This manual page was auto-generated by genman.py.
+
+.SH "SEE ALSO"
+selinux(8), mozilla_plugin(8), semanage(8), restorecon(8), chcon(1)
+, setsebool(8), mozilla_selinux(8), mozilla_plugin_config_selinux(8)

@@ -4,62 +4,195 @@ dbadm_r \- \fBDatabase administrator role\fP - Security Enhanced Linux Policy
 
 .SH DESCRIPTION
 
-SELinux supports Roles Based Access Control, some Linux roles are login roles, while other roles need to be transition to. 
+SELinux supports Roles Based Access Control (RBAC), some Linux roles are login roles, while other roles need to be transition into. 
 
-Note: The examples in the man page will user the staff_u user.
+.I Note: 
+Examples in this man page will use the 
+.B staff_u 
+SELinux user.
 
-Non login roles are usually used for administrative tasks.
-
-Roles usually have default types assigned to them. 
+Non login roles are usually used for administrative tasks. For example, tasks that require root privileges.  Roles control which types a user can run processes with. Roles often have default types assigned to them. 
 
 The default type for the dbadm_r role is dbadm_t.
 
-You can use the 
+The 
 .B newrole 
 program to transition directly to this role.
 
 .B newrole -r dbadm_r -t dbadm_t
 
 .B sudo 
-can also be setup to transition to this role using the visudo command.
+is the preferred method to do transition from one role to another.  You setup sudo to transition to dbadm_r by adding a similar line to the /etc/sudoers file.
 
 USERNAME ALL=(ALL) ROLE=dbadm_r TYPE=dbadm_t COMMAND
+
 .br
 sudo will run COMMAND as staff_u:dbadm_r:dbadm_t:LEVEL
 
-If you want to use a non login role, you need to make sure the SELinux user you are using can reach this role.
+When using a a non login role, you need to setup SELinux so that your SELinux user can reach dbadm_r role.
 
-You can see all of the assigned SELinux roles using the following
+Execute the following to see all of the assigned SELinux roles:
 
 .B semanage user -l
 
-If you wanted to add dbadm_r to the staff_u user, you would execute:
+You need to add dbadm_r to the staff_u user.  You could setup the staff_u user to be able to use the dbadm_r role with a command like:
 
-.B $ semanage user -m -R 'staff_r dbadm_r' staff_u 
+.B $ semanage user -m -R 'staff_r system_r dbadm_r' staff_u 
 
 
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  dbadm policy is extremely flexible and has several booleans that allow you to manipulate the policy and run dbadm with the tightest access possible.
 
-SELinux policy also controls which roles can transition to a different role.  
-You can list these rules using the following command.
 
-.B sesearch --role_allow
+.PP
+If you want to allow database admins to execute DML statement, you must turn on the sepgsql_unconfined_dbadm boolean.
 
-SELinux policy allows the staff_r role can transition to the dbadm_r role.
+.EX
+.B setsebool -P sepgsql_unconfined_dbadm 1
+.EE
 
+.PP
+If you want to allow dbadm to manage files in users home directories, you must turn on the dbadm_manage_user_files boolean.
+
+.EX
+.B setsebool -P dbadm_manage_user_files 1
+.EE
+
+.PP
+If you want to allow dbadm to read files in users home directories, you must turn on the dbadm_read_user_files boolean.
+
+.EX
+.B setsebool -P dbadm_read_user_files 1
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux user type dbadm_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B mysqld_db_t
+
+	/var/lib/mysql(/.*)?
+.br
+
+.br
+.B mysqld_etc_t
+
+	/etc/mysql(/.*)?
+.br
+	/etc/my\.cnf
+.br
+
+.br
+.B mysqld_home_t
+
+	/root/\.my\.cnf
+.br
+	/home/[^/]*/\.my\.cnf
+.br
+
+.br
+.B mysqld_log_t
+
+	/var/log/mysql.*
+.br
+
+.br
+.B mysqld_tmp_t
+
+
+.br
+.B mysqld_unit_file_t
+
+	/usr/lib/systemd/system/mysqld.*
+.br
+
+.br
+.B mysqld_var_run_t
+
+	/var/run/mysqld(/.*)?
+.br
+	/var/lib/mysql/mysql\.sock
+.br
+
+.br
+.B postgresql_db_t
+
+	/var/lib/pgsql(/.*)?
+.br
+	/var/lib/sepgsql(/.*)?
+.br
+	/var/lib/postgres(ql)?(/.*)?
+.br
+	/usr/share/jonas/pgsql(/.*)?
+.br
+	/usr/lib/pgsql/test/regress(/.*)?
+.br
+
+.br
+.B postgresql_etc_t
+
+	/etc/postgresql(/.*)?
+.br
+	/etc/sysconfig/pgsql(/.*)?
+.br
+
+.br
+.B postgresql_log_t
+
+	/var/lib/pgsql/.*\.log
+.br
+	/var/log/rhdb/rhdb(/.*)?
+.br
+	/var/log/postgresql(/.*)?
+.br
+	/var/log/postgres\.log.*
+.br
+	/var/lib/pgsql/logfile(/.*)?
+.br
+	/var/log/sepostgresql\.log.*
+.br
+	/var/lib/sepgsql/pgstartup\.log
+.br
+
+.br
+.B postgresql_tmp_t
+
+
+.br
+.B postgresql_var_run_t
+
+	/var/run/postgresql(/.*)?
+.br
+
+.br
+.B systemd_passwd_var_run_t
+
+	/var/run/systemd/ask-password(/.*)?
+.br
+	/var/run/systemd/ask-password-block(/.*)?
+.br
 
 .SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
 
-.B semanage login
-can also be used to manipulate the Linux User to SELinux User mappings
+.B semanage boolean
+can also be used to manipulate the booleans
 
-.B semanage user
-can also be used to manipulate SELinux user definitions.
-
+.PP
 .B system-config-selinux 
 is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
-This manual page was autogenerated by genuserman.py.
+This manual page was auto-generated by genman.py.
 
 .SH "SEE ALSO"
-selinux(8), semanage(8).
+selinux(8), dbadm(8), semanage(8), restorecon(8), chcon(1)
+, setsebool(8)

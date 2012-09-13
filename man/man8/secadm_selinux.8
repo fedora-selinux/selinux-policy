@@ -4,38 +4,40 @@ secadm_r \- \fBSecurity administrator role\fP - Security Enhanced Linux Policy
 
 .SH DESCRIPTION
 
-SELinux supports Roles Based Access Control, some Linux roles are login roles, while other roles need to be transition to. 
+SELinux supports Roles Based Access Control (RBAC), some Linux roles are login roles, while other roles need to be transition into. 
 
-Note: The examples in the man page will user the staff_u user.
+.I Note: 
+Examples in this man page will use the 
+.B staff_u 
+SELinux user.
 
-Non login roles are usually used for administrative tasks.
-
-Roles usually have default types assigned to them. 
+Non login roles are usually used for administrative tasks. For example, tasks that require root privileges.  Roles control which types a user can run processes with. Roles often have default types assigned to them. 
 
 The default type for the secadm_r role is secadm_t.
 
-You can use the 
+The 
 .B newrole 
 program to transition directly to this role.
 
 .B newrole -r secadm_r -t secadm_t
 
 .B sudo 
-can also be setup to transition to this role using the visudo command.
+is the preferred method to do transition from one role to another.  You setup sudo to transition to secadm_r by adding a similar line to the /etc/sudoers file.
 
 USERNAME ALL=(ALL) ROLE=secadm_r TYPE=secadm_t COMMAND
+
 .br
 sudo will run COMMAND as staff_u:secadm_r:secadm_t:LEVEL
 
-If you want to use a non login role, you need to make sure the SELinux user you are using can reach this role.
+When using a a non login role, you need to setup SELinux so that your SELinux user can reach secadm_r role.
 
-You can see all of the assigned SELinux roles using the following
+Execute the following to see all of the assigned SELinux roles:
 
 .B semanage user -l
 
-If you wanted to add secadm_r to the staff_u user, you would execute:
+You need to add secadm_r to the staff_u user.  You could setup the staff_u user to be able to use the secadm_r role with a command like:
 
-.B $ semanage user -m -R 'staff_r secadm_r' staff_u 
+.B $ semanage user -m -R 'staff_r system_r secadm_r' staff_u 
 
 
 
@@ -47,19 +49,258 @@ You can list these rules using the following command.
 SELinux policy allows the sysadm_r, staff_r, auditadm_r roles can transition to the secadm_r role.
 
 
+.SH "MANAGED FILES"
+
+The SELinux user type secadm_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B anon_inodefs_t
+
+
+.br
+.B auth_cache_t
+
+	/var/cache/coolkey(/.*)?
+.br
+
+.br
+.B boolean_type
+
+
+.br
+.B cgroup_t
+
+	/cgroup
+.br
+	/sys/fs/cgroup
+.br
+
+.br
+.B chrome_sandbox_tmpfs_t
+
+
+.br
+.B default_context_t
+
+	/etc/selinux/([^/]*/)?contexts(/.*)?
+.br
+	/root/\.default_contexts
+.br
+
+.br
+.B etc_runtime_t
+
+	/[^/]+
+.br
+	/etc/mtab.*
+.br
+	/etc/blkid(/.*)?
+.br
+	/etc/nologin.*
+.br
+	/etc/\.fstab\.hal\..+
+.br
+	/halt
+.br
+	/fastboot
+.br
+	/poweroff
+.br
+	/etc/cmtab
+.br
+	/forcefsck
+.br
+	/\.autofsck
+.br
+	/\.suspended
+.br
+	/fsckoptions
+.br
+	/\.autorelabel
+.br
+	/etc/securetty
+.br
+	/etc/nohotplug
+.br
+	/etc/killpower
+.br
+	/etc/ioctl\.save
+.br
+	/etc/fstab\.REVOKE
+.br
+	/etc/network/ifstate
+.br
+	/etc/sysconfig/hwconf
+.br
+	/etc/ptal/ptal-printd-like
+.br
+	/etc/sysconfig/iptables\.save
+.br
+	/etc/xorg\.conf\.d/00-system-setup-keyboard\.conf
+.br
+	/etc/X11/xorg\.conf\.d/00-system-setup-keyboard\.conf
+.br
+
+.br
+.B file_context_t
+
+	/etc/selinux/([^/]*/)?contexts/files(/.*)?
+.br
+
+.br
+.B games_data_t
+
+	/var/games(/.*)?
+.br
+	/var/lib/games(/.*)?
+.br
+
+.br
+.B gpg_agent_tmp_t
+
+	/home/[^/]*/\.gnupg/log-socket
+.br
+
+.br
+.B mail_spool_t
+
+	/var/mail(/.*)?
+.br
+	/var/spool/imap(/.*)?
+.br
+	/var/spool/mail(/.*)?
+.br
+
+.br
+.B mqueue_spool_t
+
+	/var/spool/(client)?mqueue(/.*)?
+.br
+	/var/spool/mqueue\.in(/.*)?
+.br
+
+.br
+.B nfsd_rw_t
+
+
+.br
+.B noxattrfs
+
+	all files on file systems which do not support extended attributes
+.br
+
+.br
+.B screen_home_t
+
+	/root/\.screen(/.*)?
+.br
+	/home/[^/]*/\.screen(/.*)?
+.br
+	/home/[^/]*/\.screenrc
+.br
+
+.br
+.B selinux_config_t
+
+	/etc/selinux(/.*)?
+.br
+	/etc/selinux/([^/]*/)?seusers
+.br
+	/etc/selinux/([^/]*/)?users(/.*)?
+.br
+	/etc/selinux/([^/]*/)?setrans\.conf
+.br
+
+.br
+.B selinux_login_config_t
+
+	/etc/selinux/([^/]*/)?logins(/.*)?
+.br
+
+.br
+.B semanage_store_t
+
+	/etc/selinux/([^/]*/)?policy(/.*)?
+.br
+	/etc/selinux/([^/]*/)?modules/(active|tmp|previous)(/.*)?
+.br
+	/etc/share/selinux/mls(/.*)?
+.br
+	/etc/share/selinux/targeted(/.*)?
+.br
+
+.br
+.B systemd_passwd_var_run_t
+
+	/var/run/systemd/ask-password(/.*)?
+.br
+	/var/run/systemd/ask-password-block(/.*)?
+.br
+
+.br
+.B usbfs_t
+
+
+.br
+.B user_fonts_cache_t
+
+	/root/\.fontconfig(/.*)?
+.br
+	/root/\.fonts/auto(/.*)?
+.br
+	/root/\.fonts\.cache-.*
+.br
+	/home/[^/]*/\.fontconfig(/.*)?
+.br
+	/home/[^/]*/\.fonts/auto(/.*)?
+.br
+	/home/[^/]*/\.fonts\.cache-.*
+.br
+
+.br
+.B user_home_type
+
+	all user home files
+.br
+
+.br
+.B user_tmp_type
+
+	all user tmp files
+.br
+
+.br
+.B user_tmpfs_type
+
+	all user content in tmpfs file systems
+.br
+
+.br
+.B xdm_tmp_t
+
+	/tmp/\.X11-unix(/.*)?
+.br
+	/tmp/\.ICE-unix(/.*)?
+.br
+	/tmp/\.X0-lock
+.br
+
 .SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
 
-.B semanage login
-can also be used to manipulate the Linux User to SELinux User mappings
-
-.B semanage user
-can also be used to manipulate SELinux user definitions.
-
+.PP
 .B system-config-selinux 
 is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
-This manual page was autogenerated by genuserman.py.
+This manual page was auto-generated by genman.py.
 
 .SH "SEE ALSO"
-selinux(8), semanage(8).
+selinux(8), secadm(8), semanage(8), restorecon(8), chcon(1)
