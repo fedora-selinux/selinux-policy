@@ -1,0 +1,99 @@
+## <summary>System administration tool for networks.</summary>
+
+#######################################
+## <summary>
+##	The template to define a cfengine domain.
+## </summary>
+## <param name="domain_prefix">
+##	<summary>
+##	Domain prefix to be used.
+##	</summary>
+## </param>
+#
+template(`cfengine_domain_template',`
+	gen_require(`
+		attribute cfengine_domain;
+		type cfengine_log_t, cfengine_var_lib_t;
+	')
+
+	########################################
+	#
+	# Shared declarations
+	#
+
+	type cfengine_$1_t, cfengine_domain;
+	type cfengine_$1_exec_t;
+	init_daemon_domain(cfengine_$1_t, cfengine_$1_exec_t)
+
+	########################################
+	#
+	# Shared policy
+	#
+
+	allow cfengine_$1_t self:capability { chown kill setgid setuid sys_chroot };
+	allow cfengine_$1_t self:process { setfscreate signal };
+	allow cfengine_$1_t self:fifo_file rw_fifo_file_perms;
+	allow cfengine_$1_t self:unix_stream_socket { accept listen };
+
+	manage_dirs_pattern(cfengine_$1_t, cfengine_var_lib_t, cfengine_var_lib_t)
+	manage_files_pattern(cfengine_$1_t, cfengine_var_lib_t, cfengine_var_lib_t)
+	manage_lnk_files_pattern(cfengine_$1_t, cfengine_var_lib_t, cfengine_var_lib_t)
+	files_var_lib_filetrans(cfengine_$1_t, cfengine_var_lib_t, dir)
+
+	manage_dirs_pattern(cfengine_$1_t, cfengine_log_t,cfengine_log_t)
+	append_files_pattern(cfengine_$1_t, cfengine_log_t,cfengine_log_t)
+	create_files_pattern(cfengine_$1_t, cfengine_log_t,cfengine_log_t)
+	setattr_files_pattern(cfengine_$1_t, cfengine_log_t,cfengine_log_t)
+	logging_log_filetrans(cfengine_$1_t, cfengine_log_t, dir)
+
+	kernel_read_system_state(cfengine_$1_t)
+
+	corecmd_exec_bin(cfengine_$1_t)
+	corecmd_exec_shell(cfengine_$1_t)
+
+	dev_read_urand(cfengine_$1_t)
+	dev_read_sysfs(cfengine_$1_t)
+
+	auth_use_nsswitch(cfengine_$1_t)
+
+	logging_send_syslog_msg(cfengine_$1_t)
+
+	miscfiles_read_localization(cfengine_$1_t)
+
+	sysnet_domtrans_ifconfig(cfengine_$1_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an cfengine environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`cfengine_admin',`
+	gen_require(`
+		attribute cfengine_domain;
+		type cfengine_initrc_exec_t, cfengine_log_t, cfengine_var_lib_t;
+	')
+
+	allow $1 cfengine_domain:process { ptrace signal_perms };
+	ps_process_pattern($1, cfengine_domain)
+
+	init_labeled_script_domtrans($1, cfengine_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 cfengine_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, { cfengine_log_t cfengine_var_lib_t })
+')
