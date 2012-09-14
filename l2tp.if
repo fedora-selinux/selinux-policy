@@ -1,0 +1,42 @@
+## <summary>Layer 2 Tunneling Protocol.</summary>
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an l2tp environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`l2tp_admin',`
+	gen_require(`
+		type l2tpd_t, l2tpd_initrc_exec_t, l2tpd_var_run_t;
+		type l2tp_conf_t, l2tpd_tmp_t;
+	')
+
+	allow $1 l2tpd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, l2tpd_t)
+
+	init_labeled_script_domtrans($1, l2tpd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 l2tpd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, l2tp_conf_t)
+
+	files_search_pids($1)
+	admin_pattern($1, l2tpd_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, l2tpd_tmp_t)
+')
