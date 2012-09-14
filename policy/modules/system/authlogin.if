@@ -1038,7 +1038,25 @@ interface(`auth_rw_lastlog',`
 
 ########################################
 ## <summary>
-##	Execute pam programs in the pam domain.
+##	Execute pam timestamp programs in the pam timestamp domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`auth_domtrans_pam_timestamp',`
+	gen_require(`
+		type pam_timestamp_t, pam_timestamp_exec_t;
+	')
+
+	domtrans_pattern($1, pam_timestamp_exec_t, pam_timestamp_t)
+')
+
+########################################
+## <summary>
+##	Execute pam timestamp programs in the pam timestamp domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1047,11 +1065,7 @@ interface(`auth_rw_lastlog',`
 ## </param>
 #
 interface(`auth_domtrans_pam',`
-	gen_require(`
-		type pam_t, pam_exec_t;
-	')
-
-	domtrans_pattern($1, pam_exec_t, pam_t)
+	auth_domtrans_pam_timestamp($1)
 ')
 
 ########################################
@@ -1066,15 +1080,39 @@ interface(`auth_domtrans_pam',`
 #
 interface(`auth_signal_pam',`
 	gen_require(`
-		type pam_t;
+		type pam_timestamp_t;
 	')
 
-	allow $1 pam_t:process signal;
+	allow $1 pam_timestamp_t:process signal;
 ')
 
 ########################################
 ## <summary>
-##	Execute pam programs in the PAM domain.
+##	Execute pam_timestamp programs in the PAM timestamp domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the PAM domain.
+##	</summary>
+## </param>
+#
+interface(`auth_run_pam_timestamp',`
+	gen_require(`
+		type pam_timestamp_t;
+	')
+
+	auth_domtrans_pam_timestamp($1)
+	role $2 types pam_timestamp_t;
+')
+
+########################################
+## <summary>
+##	Execute pam_timestamp programs in the PAM timestamp domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1088,12 +1126,7 @@ interface(`auth_signal_pam',`
 ## </param>
 #
 interface(`auth_run_pam',`
-	gen_require(`
-		type pam_t;
-	')
-
-	auth_domtrans_pam($1)
-	role $2 types pam_t;
+	auth_run_pam_timestamp($1, #2)
 ')
 
 ########################################
