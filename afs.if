@@ -1,4 +1,4 @@
-## <summary>Andrew Filesystem server</summary>
+## <summary>Andrew Filesystem server.</summary>
 
 ########################################
 ## <summary>
@@ -40,7 +40,7 @@ interface(`afs_rw_udp_sockets',`
 
 ########################################
 ## <summary>
-##	read/write afs cache files
+##	Read and write afs cache files.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -77,8 +77,8 @@ interface(`afs_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an afs environment
+##	All of the rules required to
+##	administrate an afs environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -87,23 +87,39 @@ interface(`afs_initrc_domtrans',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the afs domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`afs_admin',`
 	gen_require(`
-		type afs_t, afs_initrc_exec_t;
+		attribute afs_domain;
+		type afs_initrc_exec_t, afs_dbdir_t, afs_pt_db_t;
+		type afs_ka_db_t, afs_vl_db_t, afs_config_t;
+		type afs_logfile_t, afs_cache_t, afs_files_t;
 	')
 
-	allow $1 afs_t:process { ptrace signal_perms getattr };
-	read_files_pattern($1, afs_t, afs_t)
+	allow $1 afs_domain:process { ptrace signal_perms };
+	ps_process_pattern($1, afs_domain)
 
-	# Allow afs_admin to restart the afs service
 	afs_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 afs_initrc_exec_t system_r;
 	allow $2 system_r;
 
+	files_search_etc($1)
+	admin_pattern($1, afs_config_t)
+
+	files_search_var($1)
+	admin_pattern($1, afs_cache_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, { afs_dbdir_t afs_pt_db_t afs_ka_db_t })
+	admin_pattern($1, afs_vl_db_t);
+
+	logging_search_logs($1)
+	admin_pattern($1, afs_logfile_t)
+
+	admin_pattern($1, afs_files_t)
 ')
