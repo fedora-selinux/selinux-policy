@@ -1,8 +1,9 @@
-## <summary>Berkeley process accounting</summary>
+## <summary>Berkeley process accounting.</summary>
 
 ########################################
 ## <summary>
-##	Transition to the accounting management domain.
+##	Transition to the accounting
+##	management domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -21,7 +22,8 @@ interface(`acct_domtrans',`
 
 ########################################
 ## <summary>
-##	Execute accounting management tools in the caller domain.
+##	Execute accounting management tools
+##	in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -40,7 +42,8 @@ interface(`acct_exec',`
 
 ########################################
 ## <summary>
-##	Execute accounting management data in the caller domain.
+##	Execute accounting management data
+##	in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -48,8 +51,6 @@ interface(`acct_exec',`
 ##	</summary>
 ## </param>
 #
-# cjp: this is added for logrotate, and does
-# not make sense to me.
 interface(`acct_exec_data',`
 	gen_require(`
 		type acct_data_t;
@@ -61,7 +62,8 @@ interface(`acct_exec_data',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete process accounting data.
+##	Create, read, write, and delete
+##	process accounting data.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -77,4 +79,38 @@ interface(`acct_manage_data',`
 	files_search_var($1)
 	manage_files_pattern($1, acct_data_t, acct_data_t)
 	manage_lnk_files_pattern($1, acct_data_t, acct_data_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an acct environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`acct_admin',`
+	gen_require(`
+		type acct_t, acct_initrc_exec_t, acct_data_t;
+	')
+
+	allow $1 acct_t:process { ptrace signal_perms };
+	ps_process_pattern($1, acct_t)
+
+	init_labeled_script_domtrans($1, acct_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 acct_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, acct_data_t)
 ')

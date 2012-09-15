@@ -1,4 +1,4 @@
-policy_module(acct, 1.5.0)
+policy_module(acct, 1.5.1)
 
 ########################################
 #
@@ -9,6 +9,9 @@ type acct_t;
 type acct_exec_t;
 init_system_domain(acct_t, acct_exec_t)
 
+type acct_initrc_exec_t;
+init_script_file(acct_initrc_exec_t)
+
 type acct_data_t;
 logging_log_file(acct_data_t)
 
@@ -17,13 +20,10 @@ logging_log_file(acct_data_t)
 # Local Policy
 #
 
-# gzip needs chown capability for some reason
-allow acct_t self:capability { sys_pacct chown fsetid };
-# not sure why we need kill, the command "last" is reported as using it
-dontaudit acct_t self:capability { kill sys_tty_config };
-
-allow acct_t self:fifo_file rw_fifo_file_perms;
+allow acct_t self:capability { chown fsetid kill sys_pacct };
+dontaudit acct_t self:capability sys_tty_config;
 allow acct_t self:process signal_perms;
+allow acct_t self:fifo_file rw_fifo_file_perms;
 
 manage_files_pattern(acct_t, acct_data_t, acct_data_t)
 manage_lnk_files_pattern(acct_t, acct_data_t, acct_data_t)
@@ -34,9 +34,13 @@ kernel_list_proc(acct_t)
 kernel_read_system_state(acct_t)
 kernel_read_kernel_sysctls(acct_t)
 
+corecmd_exec_bin(acct_t)
+corecmd_exec_shell(acct_t)
+
 dev_read_sysfs(acct_t)
-# for SSP
 dev_read_urand(acct_t)
+
+domain_use_interactive_fds(acct_t)
 
 fs_search_auto_mountpoints(acct_t)
 fs_getattr_xattr_fs(acct_t)
@@ -44,16 +48,10 @@ fs_getattr_xattr_fs(acct_t)
 term_dontaudit_use_console(acct_t)
 term_dontaudit_use_generic_ptys(acct_t)
 
-corecmd_exec_bin(acct_t)
-corecmd_exec_shell(acct_t)
-
-domain_use_interactive_fds(acct_t)
-
-files_read_etc_files(acct_t)
 files_read_etc_runtime_files(acct_t)
 files_list_usr(acct_t)
-# for nscd
-files_dontaudit_search_pids(acct_t)
+
+auth_use_nsswitch(acct_t)
 
 init_use_fds(acct_t)
 init_use_script_ptys(acct_t)
@@ -63,8 +61,8 @@ logging_send_syslog_msg(acct_t)
 
 miscfiles_read_localization(acct_t)
 
-userdom_dontaudit_use_unpriv_user_fds(acct_t)
 userdom_dontaudit_search_user_home_dirs(acct_t)
+userdom_dontaudit_use_unpriv_user_fds(acct_t)
 
 optional_policy(`
 	optional_policy(`
@@ -74,10 +72,6 @@ optional_policy(`
 	')
 
 	cron_system_entry(acct_t, acct_exec_t)
-')
-
-optional_policy(`
-	nscd_socket_use(acct_t)
 ')
 
 optional_policy(`
