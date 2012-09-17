@@ -1,4 +1,4 @@
-## <summary>ABRT - automated bug-reporting tool</summary>
+## <summary>Automated bug-reporting tool.</summary>
 
 ######################################
 ## <summary>
@@ -40,7 +40,7 @@ interface(`abrt_exec',`
 
 ########################################
 ## <summary>
-##	Send a null signal to abrt.
+##	Send null signals to abrt.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -58,7 +58,7 @@ interface(`abrt_signull',`
 
 ########################################
 ## <summary>
-##	Allow the domain to read abrt state files in /proc.
+##	Read process state of abrt.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -116,7 +116,8 @@ interface(`abrt_dbus_chat',`
 
 #####################################
 ## <summary>
-##	Execute abrt-helper in the abrt-helper domain.
+##	Execute abrt-helper in the abrt
+##	helper domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -129,13 +130,15 @@ interface(`abrt_domtrans_helper',`
 		type abrt_helper_t, abrt_helper_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, abrt_helper_exec_t, abrt_helper_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute abrt helper in the abrt_helper domain, and
-##	allow the specified role the abrt_helper domain.
+##	Execute abrt helper in the abrt
+##	helper domain, and allow the
+##	specified role the abrt helper domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -151,17 +154,17 @@ interface(`abrt_domtrans_helper',`
 #
 interface(`abrt_run_helper',`
 	gen_require(`
-		type abrt_helper_t;
+		attribute_role abrt_helper_roles;
 	')
 
 	abrt_domtrans_helper($1)
-	role $2 types abrt_helper_t;
+	roleattribute $2 abrt_helper_roles;
 ')
 
 ########################################
 ## <summary>
-##	Send and receive messages from
-##	abrt over dbus.
+##	Create, read, write, and delete
+##	abrt cache files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -174,12 +177,13 @@ interface(`abrt_cache_manage',`
 		type abrt_var_cache_t;
 	')
 
+	files_search_var($1)
 	manage_files_pattern($1, abrt_var_cache_t, abrt_var_cache_t)
 ')
 
 ####################################
 ## <summary>
-##	Read abrt configuration file.
+##	Read abrt configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -198,7 +202,7 @@ interface(`abrt_read_config',`
 
 ######################################
 ## <summary>
-##	Read abrt logs.
+##	Read abrt log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -236,7 +240,8 @@ interface(`abrt_read_pid_files',`
 
 ######################################
 ## <summary>
-##	Create, read, write, and delete abrt PID files.
+##	Create, read, write, and delete
+##	abrt PID files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -255,8 +260,8 @@ interface(`abrt_manage_pid_files',`
 
 #####################################
 ## <summary>
-##	All of the rules required to administrate
-##	an abrt environment
+##	All of the rules required to
+##	administrate an abrt environment,
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -265,21 +270,21 @@ interface(`abrt_manage_pid_files',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the abrt domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`abrt_admin',`
 	gen_require(`
-		type abrt_t, abrt_etc_t;
-		type abrt_var_cache_t, abrt_var_log_t;
-		type abrt_var_run_t, abrt_tmp_t;
-		type abrt_initrc_exec_t;
+		attribute abrt_domain;
+		type abrt_t, abrt_etc_t, abrt_initrc_exec_t;
+		type abrt_var_cache_t, abrt_var_log_t, abrt_retrace_cache_t;
+		type abrt_var_run_t, abrt_tmp_t, abrt_retrace_spool_t;
 	')
 
-	allow $1 abrt_t:process { ptrace signal_perms };
-	ps_process_pattern($1, abrt_t)
+	allow $1 abrt_domain:process { ptrace signal_perms };
+	ps_process_pattern($1, abrt_domain)
 
 	init_labeled_script_domtrans($1, abrt_initrc_exec_t)
 	domain_system_change_exemption($1)
@@ -293,7 +298,7 @@ interface(`abrt_admin',`
 	admin_pattern($1, abrt_var_log_t)
 
 	files_search_var($1)
-	admin_pattern($1, abrt_var_cache_t)
+	admin_pattern($1, { abrt_retrace_cache_t abrt_var_cache_t abrt_retrace_spool_t })
 
 	files_search_pids($1)
 	admin_pattern($1, abrt_var_run_t)
