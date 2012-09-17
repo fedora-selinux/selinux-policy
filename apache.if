@@ -19,6 +19,11 @@ template(`apache_content_template',`
 		type httpd_t, httpd_suexec_t, httpd_log_t;
 	')
 
+	########################################
+	#
+	# Declarations
+	#
+
 	# Determine whether the script domain type can
 	# manage public file transfer services files.
 	gen_tunable(allow_httpd_$1_script_anon_write, false)
@@ -46,6 +51,14 @@ template(`apache_content_template',`
 	typealias httpd_$1_ra_content_t alias { httpd_$1_script_ra_t httpd_$1_content_ra_t };
 	files_type(httpd_$1_ra_content_t)
 
+	########################################
+	#
+	# Policy
+	#
+
+	allow httpd_$1_script_t self:fifo_file rw_file_perms;
+	allow httpd_$1_script_t self:unix_stream_socket connectto;
+
 	read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_htaccess_t)
 
 	domtrans_pattern(httpd_suexec_t, httpd_$1_script_exec_t, httpd_$1_script_t)
@@ -53,15 +66,12 @@ template(`apache_content_template',`
 	allow httpd_t { httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
 	allow httpd_suexec_t { httpd_$1_content_t httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
 
-	allow httpd_$1_script_t self:fifo_file rw_file_perms;
-	allow httpd_$1_script_t self:unix_stream_socket connectto;
-
 	allow httpd_$1_script_t httpd_t:fifo_file write;
 
 	allow httpd_$1_script_t httpd_$1_content_t:dir search_dir_perms;
 
 	append_files_pattern(httpd_$1_script_t, httpd_log_t, httpd_log_t)
-	logging_search_logs(httpd_$1_script_t)
+	read_lnk_files_pattern(httpd_$1_script_t, httpd_log_t, httpd_log_t)
 
 	can_exec(httpd_$1_script_t, httpd_$1_script_exec_t)
 	allow httpd_$1_script_t httpd_$1_script_exec_t:dir list_dir_perms;
@@ -96,6 +106,8 @@ template(`apache_content_template',`
 
 	libs_exec_ld_so(httpd_$1_script_t)
 	libs_exec_lib_files(httpd_$1_script_t)
+
+	logging_search_logs(httpd_$1_script_t)
 
 	miscfiles_read_fonts(httpd_$1_script_t)
 	miscfiles_read_public_files(httpd_$1_script_t)
@@ -153,8 +165,6 @@ template(`apache_content_template',`
 
 		kernel_read_system_state(httpd_$1_script_t)
 
-		dev_read_urand(httpd_$1_script_t)
-
 		fs_getattr_xattr_fs(httpd_$1_script_t)
 
 		files_read_etc_runtime_files(httpd_$1_script_t)
@@ -176,7 +186,7 @@ template(`apache_content_template',`
 		mysql_stream_connect(httpd_$1_script_t)
 		mysql_rw_db_sockets(httpd_$1_script_t)
 
-		tunable_policy(`httpd_can_network_connect_db',`
+		tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
 			mysql_tcp_connect(httpd_$1_script_t)
 		')
 	')
@@ -185,7 +195,7 @@ template(`apache_content_template',`
 		postgresql_stream_connect(httpd_$1_script_t)
 		postgresql_unpriv_client(httpd_$1_script_t)
 
-		tunable_policy(`httpd_can_network_connect_db',`
+		tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
 			postgresql_tcp_connect(httpd_$1_script_t)
 		')
 	')
@@ -220,7 +230,7 @@ interface(`apache_role',`
 
 	role $1 types httpd_user_script_t;
 
-	allow $2 httpd_user_htaccess_t:file { manage_file_perms relabelto relabelfrom };
+	allow $2 httpd_user_htaccess_t:file { manage_file_perms relabel_file_perms };
 
 	manage_dirs_pattern($2, httpd_user_content_t, httpd_user_content_t)
 	manage_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
