@@ -1,4 +1,4 @@
-policy_module(apcupsd, 1.8.0)
+policy_module(apcupsd, 1.8.1)
 
 ########################################
 #
@@ -26,7 +26,7 @@ files_pid_file(apcupsd_var_run_t)
 
 ########################################
 #
-# apcupsd local policy
+# Local policy
 #
 
 allow apcupsd_t self:capability { dac_override setgid sys_tty_config };
@@ -38,9 +38,10 @@ allow apcupsd_t self:tcp_socket create_stream_socket_perms;
 allow apcupsd_t apcupsd_lock_t:file manage_file_perms;
 files_lock_filetrans(apcupsd_t, apcupsd_lock_t, file)
 
-allow apcupsd_t apcupsd_log_t:dir setattr;
-manage_files_pattern(apcupsd_t, apcupsd_log_t, apcupsd_log_t)
-logging_log_filetrans(apcupsd_t, apcupsd_log_t, { file dir })
+append_files_pattern(apcupsd_t, apcupsd_log_t, apcupsd_log_t)
+create_files_pattern(apcupsd_t, apcupsd_log_t, apcupsd_log_t)
+setattr_files_pattern(apcupsd_t, apcupsd_log_t, apcupsd_log_t)
+logging_log_filetrans(apcupsd_t, apcupsd_log_t, file)
 
 manage_files_pattern(apcupsd_t, apcupsd_tmp_t, apcupsd_tmp_t)
 files_tmp_filetrans(apcupsd_t, apcupsd_tmp_t, file)
@@ -65,21 +66,11 @@ corenet_tcp_connect_apcupsd_port(apcupsd_t)
 
 dev_rw_generic_usb_dev(apcupsd_t)
 
-# Init script handling
-domain_use_interactive_fds(apcupsd_t)
-
 files_read_etc_files(apcupsd_t)
-files_search_locks(apcupsd_t)
-# Creates /etc/nologin
 files_manage_etc_runtime_files(apcupsd_t)
-files_etc_filetrans_etc_runtime(apcupsd_t, file)
+files_etc_filetrans_etc_runtime(apcupsd_t, file, "nologin")
 
-# https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=240805
 term_use_unallocated_ttys(apcupsd_t)
-
-#apcupsd runs shutdown, probably need a shutdown domain
-init_rw_utmp(apcupsd_t)
-init_telinit(apcupsd_t)
 
 logging_send_syslog_msg(apcupsd_t)
 
@@ -104,7 +95,7 @@ optional_policy(`
 
 ########################################
 #
-# apcupsd_cgi Declarations
+# CGI local policy
 #
 
 optional_policy(`
@@ -118,6 +109,7 @@ optional_policy(`
 	corenet_tcp_sendrecv_generic_if(httpd_apcupsd_cgi_script_t)
 	corenet_tcp_sendrecv_generic_node(httpd_apcupsd_cgi_script_t)
 	corenet_tcp_sendrecv_all_ports(httpd_apcupsd_cgi_script_t)
+	corenet_sendrecv_apcupsd_client_packets(httpd_apcupsd_cgi_script_t)
 	corenet_tcp_connect_apcupsd_port(httpd_apcupsd_cgi_script_t)
 	corenet_udp_sendrecv_generic_if(httpd_apcupsd_cgi_script_t)
 	corenet_udp_sendrecv_generic_node(httpd_apcupsd_cgi_script_t)
