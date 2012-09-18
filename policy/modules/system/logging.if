@@ -587,25 +587,10 @@ interface(`logging_log_named_filetrans',`
 #
 interface(`logging_send_syslog_msg',`
 	gen_require(`
-		type syslogd_t, devlog_t;
+		attribute syslog_client_type;
 	')
 
-	allow $1 devlog_t:lnk_file read_lnk_file_perms;
-	allow $1 devlog_t:sock_file write_sock_file_perms;
-
-	# the type of socket depends on the syslog daemon
-	allow $1 syslogd_t:unix_dgram_socket sendto;
-	allow $1 syslogd_t:unix_stream_socket connectto;
-	allow $1 self:unix_dgram_socket create_socket_perms;
-	allow $1 self:unix_stream_socket create_socket_perms;
-
-	# If syslog is down, the glibc syslog() function
-	# will write to the console.
-	term_write_console($1)
-	term_dontaudit_read_console($1)
-	ifdef(`hide_broken_symptoms',`
-		kernel_dgram_send($1)
-	')
+	typeattribute $1 syslog_client_type;
 ')
 
 ########################################
