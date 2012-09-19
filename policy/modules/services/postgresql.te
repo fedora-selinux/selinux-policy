@@ -20,6 +20,13 @@ gen_require(`
 
 ## <desc>
 ##	<p>
+##	Allow postgresql to use ssh and rsync for point-in-time recovery
+##	</p>
+## </desc>
+gen_tunable(postgresql_pitr, false)
+
+## <desc>
+##	<p>
 ##	Allow unprivileged users to execute DDL statement
 ##	</p>
 ## </desc>
@@ -585,3 +592,17 @@ allow sepgsql_unconfined_type sepgsql_blob_type:db_blob *;
 allow sepgsql_unconfined_type sepgsql_module_type:db_database install_module;
 
 kernel_relabelfrom_unlabeled_database(sepgsql_unconfined_type)
+
+optional_policy(`
+	tunable_policy(`postgresql_pitr',`
+		rsync_exec(postgresql_t)
+	')
+')
+
+optional_policy(`
+	tunable_policy(`postgresql_pitr',`
+		ssh_exec(postgresql_t)
+		ssh_read_user_home_files(postgresql_t)
+		ssh_tcp_connect(postgresql_t)
+	')
+')
