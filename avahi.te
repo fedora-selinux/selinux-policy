@@ -1,4 +1,4 @@
-policy_module(avahi, 1.13.0)
+policy_module(avahi, 1.13.1)
 
 ########################################
 #
@@ -27,10 +27,8 @@ allow avahi_t self:capability { dac_override setgid chown fowner kill net_admin 
 dontaudit avahi_t self:capability sys_tty_config;
 allow avahi_t self:process { setrlimit signal_perms getcap setcap };
 allow avahi_t self:fifo_file rw_fifo_file_perms;
-allow avahi_t self:unix_stream_socket { connectto create_stream_socket_perms };
-allow avahi_t self:unix_dgram_socket create_socket_perms;
-allow avahi_t self:tcp_socket create_stream_socket_perms;
-allow avahi_t self:udp_socket create_socket_perms;
+allow avahi_t self:unix_stream_socket { accept connectto listen };
+allow avahi_t self:tcp_socket { accept listen };
 allow avahi_t self:packet_socket create_socket_perms;
 
 manage_dirs_pattern(avahi_t, avahi_var_lib_t, avahi_var_lib_t)
@@ -43,9 +41,10 @@ manage_sock_files_pattern(avahi_t, avahi_var_run_t, avahi_var_run_t)
 allow avahi_t avahi_var_run_t:dir setattr_dir_perms;
 files_pid_filetrans(avahi_t, avahi_var_run_t, { dir file })
 
-kernel_read_system_state(avahi_t)
 kernel_read_kernel_sysctls(avahi_t)
 kernel_read_network_state(avahi_t)
+kernel_read_system_state(avahi_t)
+kernel_request_load_module(avahi_t)
 
 corecmd_exec_bin(avahi_t)
 corecmd_exec_shell(avahi_t)
@@ -60,10 +59,10 @@ corenet_tcp_sendrecv_all_ports(avahi_t)
 corenet_udp_sendrecv_all_ports(avahi_t)
 corenet_tcp_bind_generic_node(avahi_t)
 corenet_udp_bind_generic_node(avahi_t)
+
+corenet_sendrecv_howl_server_packets(avahi_t)
 corenet_tcp_bind_howl_port(avahi_t)
 corenet_udp_bind_howl_port(avahi_t)
-corenet_send_howl_client_packets(avahi_t)
-corenet_receive_howl_server_packets(avahi_t)
 
 dev_read_sysfs(avahi_t)
 dev_read_urand(avahi_t)
@@ -74,7 +73,6 @@ fs_list_inotifyfs(avahi_t)
 
 domain_use_interactive_fds(avahi_t)
 
-files_read_etc_files(avahi_t)
 files_read_etc_runtime_files(avahi_t)
 files_read_usr_files(avahi_t)
 
@@ -100,7 +98,13 @@ optional_policy(`
 	dbus_system_bus_client(avahi_t)
 	dbus_connect_system_bus(avahi_t)
 
-	init_dbus_chat_script(avahi_t)
+	optional_policy(`
+		init_dbus_chat_script(avahi_t)
+	')
+')
+
+optional_policy(`
+	rpcbind_signull(avahi_t)
 ')
 
 optional_policy(`
