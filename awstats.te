@@ -1,4 +1,4 @@
-policy_module(awstats, 1.4.0)
+policy_module(awstats, 1.4.1)
 
 ########################################
 #
@@ -21,22 +21,21 @@ apache_content_template(awstats)
 
 ########################################
 #
-# awstats policy
+# Local policy
 #
 
-awstats_rw_pipes(awstats_t)
-awstats_cgi_exec(awstats_t)
-
-can_exec(awstats_t, awstats_exec_t)
+allow awstats_t self:fifo_file rw_fifo_file_perms;
 
 manage_dirs_pattern(awstats_t, awstats_tmp_t, awstats_tmp_t)
 manage_files_pattern(awstats_t, awstats_tmp_t, awstats_tmp_t)
 files_tmp_filetrans(awstats_t, awstats_tmp_t, { dir file })
 
 manage_files_pattern(awstats_t, awstats_var_lib_t, awstats_var_lib_t)
-files_var_lib_filetrans(awstats_t, awstats_var_lib_t, file)
 
-# dontaudit access to /proc/meminfo
+allow awstats_t { httpd_awstats_content_t  httpd_awstats_script_exec_t }:dir search_dir_perms;
+
+can_exec(awstats_t, { awstats_exec_t httpd_awstats_script_exec_t })
+
 kernel_dontaudit_read_system_state(awstats_t)
 
 corecmd_exec_bin(awstats_t)
@@ -44,10 +43,9 @@ corecmd_exec_shell(awstats_t)
 
 dev_read_urand(awstats_t)
 
-files_read_etc_files(awstats_t)
-# e.g. /usr/share/awstats/lang/awstats-en.txt
-files_read_usr_files(awstats_t)
 files_dontaudit_search_all_mountpoints(awstats_t)
+files_read_etc_files(awstats_t)
+files_read_usr_files(awstats_t)
 
 fs_list_inotifyfs(awstats_t)
 
@@ -66,7 +64,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# dontaudit searching nscd pid directory
 	nscd_dontaudit_search_pid(awstats_t)
 ')
 
@@ -76,7 +73,7 @@ optional_policy(`
 
 ########################################
 #
-# awstats cgi script policy
+# CGI local policy
 #
 
 allow httpd_awstats_script_t awstats_var_lib_t:dir list_dir_perms;
