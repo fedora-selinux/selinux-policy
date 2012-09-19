@@ -21,7 +21,7 @@ interface(`automount_domtrans',`
 
 ########################################
 ## <summary>
-##	Send automount a signal
+##	Send generic signals to automount.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -55,7 +55,7 @@ interface(`automount_exec_config',`
 
 ########################################
 ## <summary>
-##	Allow the domain to read state files in /proc.
+##	Read automount process state.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -68,12 +68,16 @@ interface(`automount_read_state',`
 		type automount_t;
 	')
 
+	kernel_search_proc($1)
+	allow $1 automount_t:dir list_dir_perms;
 	read_files_pattern($1, automount_t, automount_t)
+	read_lnk_files_pattern($1, automount_t, automount_t)
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to file descriptors for automount.
+##	Do not audit attempts to use
+##	automount file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -91,7 +95,8 @@ interface(`automount_dontaudit_use_fds',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to write automount daemon unnamed pipes.
+##	Do not audit attempts to write
+##	automount unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -109,8 +114,9 @@ interface(`automount_dontaudit_write_pipes',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to get the attributes
-##	of automount temporary directories.
+##	Do not audit attempts to get
+##	attributes of automount temporary
+##	directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -123,13 +129,13 @@ interface(`automount_dontaudit_getattr_tmp_dirs',`
 		type automount_tmp_t;
 	')
 
-	dontaudit $1 automount_tmp_t:dir getattr;
+	dontaudit $1 automount_tmp_t:dir getattr_dir_perms;
 ')
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an automount environment
+##	All of the rules required to
+##	administrate an automount environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -138,7 +144,7 @@ interface(`automount_dontaudit_getattr_tmp_dirs',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the automount domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -149,7 +155,7 @@ interface(`automount_admin',`
 		type automount_var_run_t, automount_initrc_exec_t;
 	')
 
-	allow $1 automount_t:process { ptrace signal_perms getattr };
+	allow $1 automount_t:process { ptrace signal_perms };
 	ps_process_pattern($1, automount_t)
 
 	init_labeled_script_domtrans($1, automount_initrc_exec_t)
