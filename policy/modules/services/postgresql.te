@@ -23,35 +23,28 @@ gen_require(`
 ##	Allow postgresql to use ssh and rsync for point-in-time recovery
 ##	</p>
 ## </desc>
-gen_tunable(postgresql_pitr, false)
+gen_tunable(postgresql_can_rsync, false)
 
 ## <desc>
 ##	<p>
 ##	Allow unprivileged users to execute DDL statement
 ##	</p>
 ## </desc>
-gen_tunable(sepgsql_enable_users_ddl, true)
+gen_tunable(postgresql_selinux_users_ddl, true)
 
 ## <desc>
 ## <p>
 ## Allow transmit client label to foreign database
 ## </p>
 ## </desc>
-gen_tunable(sepgsql_transmit_client_label, false)
+gen_tunable(postgresql_selinux_transmit_client_label, false)
 
 ## <desc>
 ## <p>
 ## Allow database admins to execute DML statement
 ## </p>
 ## </desc>
-gen_tunable(sepgsql_unconfined_dbadm, true)
-
-## <desc>
-## <p>
-## Allow database admins to enable PITR implementation
-## </p>
-## </desc>
-gen_tunable(sepgsql_enable_pitr_implementation, false)
+gen_tunable(postgresql_selinux_unconfined_dbadm, true)
 
 type postgresql_t;
 type postgresql_exec_t;
@@ -250,16 +243,7 @@ allow postgresql_t self:unix_dgram_socket create_socket_perms;
 allow postgresql_t self:unix_stream_socket { connectto create_stream_socket_perms };
 allow postgresql_t self:netlink_selinux_socket create_socket_perms;
 
-optional_policy(`
-	tunable_policy(`sepgsql_enable_pitr_implementation',`
-		corenet_tcp_connect_ssh_port(postgresql_t)
-		rsync_exec(postgresql_t)
-		ssh_read_user_home_files(postgresql_t)
-		ssh_exec(postgresql_t)
-	')
-')
-
-tunable_policy(`sepgsql_transmit_client_label',`
+tunable_policy(`postgresql_selinux_transmit_client_label',`
 	allow postgresql_t self:process { setsockcreate };
 ')
 
@@ -508,7 +492,7 @@ allow sepgsql_client_type sepgsql_temp_object_t:{db_schema db_table db_column db
 # Note that permission of creation/deletion are eventually controlled by
 # create or drop permission of individual objects within shared schemas.
 # So, it just allows to create/drop user specific types.
-tunable_policy(`sepgsql_enable_users_ddl',`
+tunable_policy(`postgresql_selinux_users_ddl',`
 	allow sepgsql_client_type sepgsql_schema_t:db_schema { add_name remove_name };
 ')
 
@@ -556,7 +540,7 @@ allow sepgsql_admin_type sepgsql_module_type:db_database install_module;
 
 kernel_relabelfrom_unlabeled_database(sepgsql_admin_type)
 
-tunable_policy(`sepgsql_unconfined_dbadm',`
+tunable_policy(`postgresql_selinux_unconfined_dbadm',`
 	allow sepgsql_admin_type sepgsql_database_type:db_database *;
 
 	allow sepgsql_admin_type sepgsql_schema_type:db_schema *;
@@ -611,13 +595,13 @@ allow sepgsql_unconfined_type sepgsql_module_type:db_database install_module;
 kernel_relabelfrom_unlabeled_database(sepgsql_unconfined_type)
 
 optional_policy(`
-	tunable_policy(`postgresql_pitr',`
+	tunable_policy(`postgresql_can_rsync',`
 		rsync_exec(postgresql_t)
 	')
 ')
 
 optional_policy(`
-	tunable_policy(`postgresql_pitr',`
+	tunable_policy(`postgresql_can_rsync',`
 		ssh_exec(postgresql_t)
 		ssh_read_user_home_files(postgresql_t)
 		corenet_tcp_connect_ssh_port(postgresql_t)
