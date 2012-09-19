@@ -1,4 +1,4 @@
-policy_module(apache, 2.5.2)
+policy_module(apache, 2.5.3)
 
 #
 # NOTES:
@@ -927,11 +927,15 @@ fs_search_auto_mountpoints(httpd_php_t)
 
 auth_use_nsswitch(httpd_php_t)
 
-libs_exec_lib_files(httpd_php_t)
+libs_read_lib_files(httpd_php_t)
 
 logging_search_logs(httpd_php_t)
 
 userdom_use_unpriv_users_fds(httpd_php_t)
+
+ifdef(`hide_broken_symptoms',`
+	libs_exec_lib_files(httpd_php_t)
+')
 
 tunable_policy(`httpd_can_network_connect',`
 	corenet_tcp_connect_all_ports(httpd_php_t)
@@ -960,6 +964,7 @@ tunable_policy(`httpd_can_sendmail',`
 	corenet_tcp_connect_pop_port(httpd_php_t)
 	corenet_tcp_sendrecv_pop_port(httpd_php_t)
 	mta_send_mail(httpd_php_t)
+	mta_signal_system_mail(httpd_php_t)
 ')
 
 tunable_policy(`httpd_tmp_exec',`
@@ -1091,6 +1096,7 @@ tunable_policy(`httpd_can_sendmail',`
 	corenet_tcp_connect_pop_port(httpd_suexec_t)
 	corenet_tcp_sendrecv_pop_port(httpd_suexec_t)
 	mta_send_mail(httpd_suexec_t)
+	mta_signal_system_mail(httpd_suexec_t)
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_unified',`
@@ -1235,6 +1241,7 @@ tunable_policy(`httpd_can_sendmail',`
 	corenet_tcp_connect_pop_port(httpd_sys_script_t)
 	corenet_tcp_sendrecv_pop_port(httpd_sys_script_t)
 	mta_send_mail(httpd_sys_script_t)
+	mta_signal_system_mail(httpd_sys_script_t)
 ')
 
 tunable_policy(`httpd_enable_homedirs',`
@@ -1386,7 +1393,7 @@ allow httpd_passwd_t self:fifo_file manage_fifo_file_perms;
 allow httpd_passwd_t self:unix_stream_socket create_stream_socket_perms;
 allow httpd_passwd_t self:unix_dgram_socket create_socket_perms;
 
-dontaudit httpd_passwd_t httpd_config_t:file read;
+dontaudit httpd_passwd_t httpd_config_t:file read_file_perms;
 
 kernel_read_system_state(httpd_passwd_t)
 
