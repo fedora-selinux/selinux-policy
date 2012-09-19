@@ -1,4 +1,4 @@
-policy_module(apache, 2.5.1)
+policy_module(apache, 2.5.2)
 
 #
 # NOTES:
@@ -277,7 +277,7 @@ type httpd_cache_t;
 files_type(httpd_cache_t)
 
 type httpd_config_t;
-files_type(httpd_config_t)
+files_config_file(httpd_config_t)
 
 type httpd_helper_t;
 type httpd_helper_exec_t;
@@ -468,12 +468,11 @@ can_exec(httpd_t, httpd_exec_t)
 domtrans_pattern(httpd_t, httpd_helper_exec_t, httpd_helper_t)
 domtrans_pattern(httpd_t, httpd_passwd_exec_t, httpd_passwd_t)
 domtrans_pattern(httpd_t, httpd_php_exec_t, httpd_php_t)
+domtrans_pattern(httpd_t, httpd_rotatelogs_exec_t, httpd_rotatelogs_t)
 domtrans_pattern(httpd_t, httpd_suexec_exec_t, httpd_suexec_t)
 
 domtrans_pattern(httpd_t, httpd_unconfined_script_exec_t, httpd_unconfined_script_t)
 allow httpd_t httpd_unconfined_script_t:process signal_perms;
-
-apache_domtrans_rotatelogs(httpd_t)
 
 kernel_read_kernel_sysctls(httpd_t)
 kernel_read_network_state(httpd_t)
@@ -486,13 +485,14 @@ corenet_tcp_sendrecv_generic_if(httpd_t)
 corenet_udp_sendrecv_generic_if(httpd_t)
 corenet_tcp_sendrecv_generic_node(httpd_t)
 corenet_udp_sendrecv_generic_node(httpd_t)
-corenet_tcp_sendrecv_all_ports(httpd_t)
-corenet_udp_sendrecv_all_ports(httpd_t)
 corenet_tcp_bind_generic_node(httpd_t)
+corenet_udp_bind_generic_node(httpd_t)
 corenet_sendrecv_http_server_packets(httpd_t)
 corenet_tcp_bind_http_port(httpd_t)
+corenet_tcp_sendrecv_http_port(httpd_t)
 corenet_sendrecv_http_cache_server_packets(httpd_t)
 corenet_tcp_bind_http_cache_port(httpd_t)
+corenet_tcp_sendrecv_http_cache_port(httpd_t)
 
 corecmd_exec_bin(httpd_t)
 corecmd_exec_shell(httpd_t)
@@ -560,29 +560,38 @@ tunable_policy(`allow_httpd_anon_write',`
 tunable_policy(`httpd_can_network_connect',`
 	corenet_sendrecv_all_client_packets(httpd_t)
 	corenet_tcp_connect_all_ports(httpd_t)
+	corenet_tcp_sendrecv_all_ports(httpd_t)
+	corenet_udp_sendrecv_all_ports(httpd_t)
 ')
 
 tunable_policy(`httpd_can_network_connect_db',`
-	corenet_tcp_connect_gds_db_port(httpd_t)
 	corenet_sendrecv_gds_db_client_packets(httpd_t)
-	corenet_tcp_connect_mssql_port(httpd_t)
+	corenet_tcp_connect_gds_db_port(httpd_t)
+	corenet_tcp_sendrecv_gds_db_port(httpd_t)
 	corenet_sendrecv_mssql_client_packets(httpd_t)
-	corenet_tcp_connect_oracledb_port(httpd_t)
+	corenet_tcp_connect_mssql_port(httpd_t)
+	corenet_tcp_sendrecv_mssql_port(httpd_t)
 	corenet_sendrecv_oracledb_client_packets(httpd_t)
+	corenet_tcp_connect_oracledb_port(httpd_t)
+	corenet_tcp_sendrecv_oracledb_port(httpd_t)
 ')
 
 tunable_policy(`httpd_can_network_relay',`
-	corenet_tcp_connect_gopher_port(httpd_t)
-	corenet_tcp_connect_ftp_port(httpd_t)
-	corenet_tcp_connect_http_port(httpd_t)
-	corenet_tcp_connect_http_cache_port(httpd_t)
-	corenet_tcp_connect_memcache_port(httpd_t)
-	corenet_tcp_connect_squid_port(httpd_t)
 	corenet_sendrecv_gopher_client_packets(httpd_t)
+	corenet_tcp_connect_gopher_port(httpd_t)
+	corenet_tcp_sendrecv_gopher_port(httpd_t)
 	corenet_sendrecv_ftp_client_packets(httpd_t)
+	corenet_tcp_connect_ftp_port(httpd_t)
+	corenet_tcp_sendrecv_ftp_port(httpd_t)
 	corenet_sendrecv_http_client_packets(httpd_t)
+	corenet_tcp_connect_http_port(httpd_t)
+	corenet_tcp_sendrecv_http_port(httpd_t)
 	corenet_sendrecv_http_cache_client_packets(httpd_t)
+	corenet_tcp_connect_http_cache_port(httpd_t)
+	corenet_tcp_sendrecv_http_cache_port(httpd_t)
 	corenet_sendrecv_squid_client_packets(httpd_t)
+	corenet_tcp_connect_squid_port(httpd_t)
+	corenet_tcp_sendrecv_squid_port(httpd_t)
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_use_nfs',`
@@ -610,8 +619,9 @@ tunable_policy(`httpd_enable_cgi && httpd_unified && httpd_builtin_scripting',`
 ')
 
 tunable_policy(`httpd_enable_ftp_server',`
-	corenet_tcp_bind_ftp_port(httpd_t)
 	corenet_sendrecv_ftp_server_packets(httpd_t)
+	corenet_tcp_bind_ftp_port(httpd_t)
+	corenet_tcp_sendrecv_ftp_port(httpd_t)
 ')
 
 tunable_policy(`httpd_enable_homedirs',`
@@ -637,10 +647,12 @@ tunable_policy(`httpd_execmem',`
 ')
 
 tunable_policy(`httpd_can_sendmail',`
-	corenet_tcp_connect_smtp_port(httpd_t)
 	corenet_sendrecv_smtp_client_packets(httpd_t)
-	corenet_tcp_connect_pop_port(httpd_t)
+	corenet_tcp_connect_smtp_port(httpd_t)
+	corenet_tcp_sendrecv_smtp_port(httpd_t)
 	corenet_sendrecv_pop_client_packets(httpd_t)
+	corenet_tcp_connect_pop_port(httpd_t)
+	corenet_tcp_sendrecv_pop_port(httpd_t)
 	mta_send_mail(httpd_t)
 	mta_signal_system_mail(httpd_t)
 ')
@@ -658,8 +670,9 @@ optional_policy(`
 ')
 
 tunable_policy(`httpd_graceful_shutdown',`
-	corenet_tcp_connect_http_port(httpd_t)
 	corenet_sendrecv_http_client_packets(httpd_t)
+	corenet_tcp_connect_http_port(httpd_t)
+	corenet_tcp_sendrecv_http_port(httpd_t)
 ')
 
 optional_policy(`
@@ -870,6 +883,8 @@ logging_send_syslog_msg(httpd_helper_t)
 
 tunable_policy(`httpd_tty_comm',`
 	userdom_use_user_terminals(httpd_helper_t)
+',`
+	userdom_dontaudit_use_user_terminals(httpd_helper_t)
 ')
 
 ########################################
@@ -889,6 +904,7 @@ allow httpd_php_t self:shm create_shm_perms;
 allow httpd_php_t self:sem create_sem_perms;
 allow httpd_php_t self:msgq create_msgq_perms;
 allow httpd_php_t self:msg { send receive };
+allow httpd_php_t self:tcp_socket { accept listen };
 
 append_files_pattern(httpd_php_t, httpd_log_t, httpd_log_t)
 read_files_pattern(httpd_php_t, httpd_log_t, httpd_log_t)
@@ -897,6 +913,15 @@ read_lnk_files_pattern(httpd_php_t, httpd_log_t, httpd_log_t)
 manage_dirs_pattern(httpd_php_t, httpd_php_tmp_t, httpd_php_tmp_t)
 manage_files_pattern(httpd_php_t, httpd_php_tmp_t, httpd_php_tmp_t)
 files_tmp_filetrans(httpd_php_t, httpd_php_tmp_t, { file dir })
+
+corenet_all_recvfrom_unlabeled(httpd_php_t)
+corenet_all_recvfrom_netlabel(httpd_php_t)
+corenet_tcp_sendrecv_generic_if(httpd_php_t)
+corenet_udp_sendrecv_generic_if(httpd_php_t)
+corenet_tcp_sendrecv_generic_node(httpd_php_t)
+corenet_udp_sendrecv_generic_node(httpd_php_t)
+corenet_tcp_bind_generic_node(httpd_php_t)
+corenet_udp_bind_generic_node(httpd_php_t)
 
 fs_search_auto_mountpoints(httpd_php_t)
 
@@ -908,13 +933,61 @@ logging_search_logs(httpd_php_t)
 
 userdom_use_unpriv_users_fds(httpd_php_t)
 
+tunable_policy(`httpd_can_network_connect',`
+	corenet_tcp_connect_all_ports(httpd_php_t)
+	corenet_sendrecv_all_client_packets(httpd_php_t)
+	corenet_tcp_sendrecv_all_ports(httpd_php_t)
+	corenet_udp_sendrecv_all_ports(httpd_php_t)
+')
+
 tunable_policy(`httpd_can_network_connect_db',`
-	corenet_tcp_connect_gds_db_port(httpd_php_t)
 	corenet_sendrecv_gds_db_client_packets(httpd_php_t)
-	corenet_tcp_connect_mssql_port(httpd_php_t)
+	corenet_tcp_connect_gds_db_port(httpd_php_t)
+	corenet_tcp_sendrecv_gds_db_port(httpd_php_t)
 	corenet_sendrecv_mssql_client_packets(httpd_php_t)
-	corenet_tcp_connect_oracledb_port(httpd_php_t)
+	corenet_tcp_connect_mssql_port(httpd_php_t)
+	corenet_tcp_sendrecv_mssql_port(httpd_php_t)
 	corenet_sendrecv_oracledb_client_packets(httpd_php_t)
+	corenet_tcp_connect_oracledb_port(httpd_php_t)
+	corenet_tcp_sendrecv_oracledb_port(httpd_php_t)
+')
+
+tunable_policy(`httpd_can_sendmail',`
+	corenet_sendrecv_smtp_client_packets(httpd_php_t)
+	corenet_tcp_connect_smtp_port(httpd_php_t)
+	corenet_tcp_sendrecv_smtp_port(httpd_php_t)
+	corenet_sendrecv_pop_client_packets(httpd_php_t)
+	corenet_tcp_connect_pop_port(httpd_php_t)
+	corenet_tcp_sendrecv_pop_port(httpd_php_t)
+	mta_send_mail(httpd_php_t)
+')
+
+tunable_policy(`httpd_tmp_exec',`
+	can_exec(httpd_php_t, httpd_php_tmp_t)
+')
+
+tunable_policy(`httpd_use_cifs',`
+	fs_list_auto_mountpoints(httpd_php_t)
+	fs_manage_cifs_dirs(httpd_php_t)
+	fs_manage_cifs_files(httpd_php_t)
+	fs_manage_cifs_symlinks(httpd_php_t)
+	fs_exec_cifs_files(httpd_php_t)
+')
+
+tunable_policy(`httpd_use_nfs',`
+	fs_list_auto_mountpoints(httpd_php_t)
+	fs_manage_nfs_dirs(httpd_php_t)
+	fs_manage_nfs_files(httpd_php_t)
+	fs_manage_nfs_symlinks(httpd_php_t)
+	fs_exec_nfs_files(httpd_php_t)
+')
+
+tunable_policy(`httpd_use_fusefs',`
+	fs_list_auto_mountpoints(httpd_php_t)
+	fs_manage_fusefs_dirs(httpd_php_t)
+	fs_manage_fusefs_files(httpd_php_t)
+	# fs_manage_fusefs_symlinks(httpd_php_t)
+	fs_exec_fusefs_files(httpd_php_t)
 ')
 
 optional_policy(`
@@ -944,6 +1017,7 @@ optional_policy(`
 allow httpd_suexec_t self:capability { setuid setgid };
 allow httpd_suexec_t self:process signal_perms;
 allow httpd_suexec_t self:fifo_file rw_fifo_file_perms;
+allow httpd_suexec_t self:tcp_socket { accept listen };
 allow httpd_suexec_t self:unix_stream_socket { accept listen };
 
 create_files_pattern(httpd_suexec_t, httpd_log_t, httpd_log_t)
@@ -960,6 +1034,15 @@ files_tmp_filetrans(httpd_suexec_t, httpd_suexec_tmp_t, { file dir })
 kernel_read_kernel_sysctls(httpd_suexec_t)
 kernel_list_proc(httpd_suexec_t)
 kernel_read_proc_symlinks(httpd_suexec_t)
+
+corenet_all_recvfrom_unlabeled(httpd_suexec_t)
+corenet_all_recvfrom_netlabel(httpd_suexec_t)
+corenet_tcp_sendrecv_generic_if(httpd_suexec_t)
+corenet_udp_sendrecv_generic_if(httpd_suexec_t)
+corenet_tcp_sendrecv_generic_node(httpd_suexec_t)
+corenet_udp_sendrecv_generic_node(httpd_suexec_t)
+corenet_tcp_bind_generic_node(httpd_suexec_t)
+corenet_udp_bind_generic_node(httpd_suexec_t)
 
 corecmd_exec_bin(httpd_suexec_t)
 corecmd_exec_shell(httpd_suexec_t)
@@ -982,30 +1065,31 @@ miscfiles_read_localization(httpd_suexec_t)
 miscfiles_read_public_files(httpd_suexec_t)
 
 tunable_policy(`httpd_can_network_connect',`
-	allow httpd_suexec_t self:tcp_socket { accept listen };
-
-	corenet_all_recvfrom_unlabeled(httpd_suexec_t)
-	corenet_all_recvfrom_netlabel(httpd_suexec_t)
-	corenet_tcp_sendrecv_generic_if(httpd_suexec_t)
-	corenet_udp_sendrecv_generic_if(httpd_suexec_t)
-	corenet_tcp_sendrecv_generic_node(httpd_suexec_t)
-	corenet_udp_sendrecv_generic_node(httpd_suexec_t)
-	corenet_tcp_sendrecv_all_ports(httpd_suexec_t)
-	corenet_udp_sendrecv_all_ports(httpd_suexec_t)
 	corenet_tcp_connect_all_ports(httpd_suexec_t)
 	corenet_sendrecv_all_client_packets(httpd_suexec_t)
+	corenet_tcp_sendrecv_all_ports(httpd_suexec_t)
+	corenet_udp_sendrecv_all_ports(httpd_suexec_t)
 ')
 
 tunable_policy(`httpd_can_network_connect_db',`
-	corenet_tcp_connect_gds_db_port(httpd_suexec_t)
 	corenet_sendrecv_gds_db_client_packets(httpd_suexec_t)
-	corenet_tcp_connect_mssql_port(httpd_suexec_t)
+	corenet_tcp_connect_gds_db_port(httpd_suexec_t)
+	corenet_tcp_sendrecv_gds_db_port(httpd_suexec_t)
 	corenet_sendrecv_mssql_client_packets(httpd_suexec_t)
-	corenet_tcp_connect_oracledb_port(httpd_suexec_t)
+	corenet_tcp_connect_mssql_port(httpd_suexec_t)
+	corenet_tcp_sendrecv_mssql_port(httpd_suexec_t)
 	corenet_sendrecv_oracledb_client_packets(httpd_suexec_t)
+	corenet_tcp_connect_oracledb_port(httpd_suexec_t)
+	corenet_tcp_sendrecv_oracledb_port(httpd_suexec_t)
 ')
 
 tunable_policy(`httpd_can_sendmail',`
+	corenet_sendrecv_smtp_client_packets(httpd_suexec_t)
+	corenet_tcp_connect_smtp_port(httpd_suexec_t)
+	corenet_tcp_sendrecv_smtp_port(httpd_suexec_t)
+	corenet_sendrecv_pop_client_packets(httpd_suexec_t)
+	corenet_tcp_connect_pop_port(httpd_suexec_t)
+	corenet_tcp_sendrecv_pop_port(httpd_suexec_t)
 	mta_send_mail(httpd_suexec_t)
 ')
 
@@ -1029,6 +1113,10 @@ tunable_policy(`httpd_enable_homedirs && use_samba_home_dirs',`
 
 tunable_policy(`httpd_execmem',`
 	allow httpd_suexec_t self:process { execmem execstack };
+')
+
+tunable_policy(`httpd_tmp_exec',`
+	can_exec(httpd_suexec_t, httpd_suexec_tmp_t)
 ')
 
 tunable_policy(`httpd_tty_comm',`
@@ -1098,6 +1186,7 @@ tunable_policy(`httpd_enable_homedirs',`
 #
 
 allow httpd_sys_script_t self:process getsched;
+allow httpd_sys_script_t self:tcp_socket { accept listen };
 
 allow httpd_sys_script_t httpd_t:unix_stream_socket rw_stream_socket_perms;
 allow httpd_sys_script_t httpd_t:tcp_socket { read write };
@@ -1119,6 +1208,15 @@ read_lnk_files_pattern(httpd_sys_script_t, squirrelmail_spool_t, squirrelmail_sp
 
 kernel_read_kernel_sysctls(httpd_sys_script_t)
 
+corenet_all_recvfrom_unlabeled(httpd_sys_script_t)
+corenet_all_recvfrom_netlabel(httpd_sys_script_t)
+corenet_tcp_sendrecv_generic_if(httpd_sys_script_t)
+corenet_udp_sendrecv_generic_if(httpd_sys_script_t)
+corenet_tcp_sendrecv_generic_node(httpd_sys_script_t)
+corenet_udp_sendrecv_generic_node(httpd_sys_script_t)
+corenet_tcp_bind_generic_node(httpd_sys_script_t)
+corenet_udp_bind_generic_node(httpd_sys_script_t)
+
 fs_search_auto_mountpoints(httpd_sys_script_t)
 
 files_read_var_symlinks(httpd_sys_script_t)
@@ -1130,6 +1228,12 @@ apache_domtrans_rotatelogs(httpd_sys_script_t)
 auth_use_nsswitch(httpd_sys_script_t)
 
 tunable_policy(`httpd_can_sendmail',`
+	corenet_sendrecv_smtp_client_packets(httpd_sys_script_t)
+	corenet_tcp_connect_smtp_port(httpd_sys_script_t)
+	corenet_tcp_sendrecv_smtp_port(httpd_sys_script_t)
+	corenet_sendrecv_pop_client_packets(httpd_sys_script_t)
+	corenet_tcp_connect_pop_port(httpd_sys_script_t)
+	corenet_tcp_sendrecv_pop_port(httpd_sys_script_t)
 	mta_send_mail(httpd_sys_script_t)
 ')
 
@@ -1138,29 +1242,22 @@ tunable_policy(`httpd_enable_homedirs',`
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_can_network_connect',`
-	allow httpd_sys_script_t self:tcp_socket { accept listen };
-
-	corenet_tcp_bind_all_nodes(httpd_sys_script_t)
-	corenet_udp_bind_all_nodes(httpd_sys_script_t)
-	corenet_all_recvfrom_unlabeled(httpd_sys_script_t)
-	corenet_all_recvfrom_netlabel(httpd_sys_script_t)
-	corenet_tcp_sendrecv_all_if(httpd_sys_script_t)
-	corenet_udp_sendrecv_all_if(httpd_sys_script_t)
-	corenet_tcp_sendrecv_all_nodes(httpd_sys_script_t)
-	corenet_udp_sendrecv_all_nodes(httpd_sys_script_t)
-	corenet_tcp_sendrecv_all_ports(httpd_sys_script_t)
-	corenet_udp_sendrecv_all_ports(httpd_sys_script_t)
 	corenet_tcp_connect_all_ports(httpd_sys_script_t)
 	corenet_sendrecv_all_client_packets(httpd_sys_script_t)
+	corenet_tcp_sendrecv_all_ports(httpd_sys_script_t)
+	corenet_udp_sendrecv_all_ports(httpd_sys_script_t)
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
-	corenet_tcp_connect_gds_db_port(httpd_sys_script_t)
 	corenet_sendrecv_gds_db_client_packets(httpd_sys_script_t)
-	corenet_tcp_connect_mssql_port(httpd_sys_script_t)
+	corenet_tcp_connect_gds_db_port(httpd_sys_script_t)
+	corenet_tcp_sendrecv_gds_db_port(httpd_sys_script_t)
 	corenet_sendrecv_mssql_client_packets(httpd_sys_script_t)
-	corenet_tcp_connect_oracledb_port(httpd_sys_script_t)
+	corenet_tcp_connect_mssql_port(httpd_sys_script_t)
+	corenet_tcp_sendrecv_mssql_port(httpd_sys_script_t)
 	corenet_sendrecv_oracledb_client_packets(httpd_sys_script_t)
+	corenet_tcp_connect_oracledb_port(httpd_sys_script_t)
+	corenet_tcp_sendrecv_oracledb_port(httpd_sys_script_t)
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_unified',`
