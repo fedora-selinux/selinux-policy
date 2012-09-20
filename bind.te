@@ -1,4 +1,4 @@
-policy_module(bind, 1.12.1)
+policy_module(bind, 1.12.2)
 
 ########################################
 #
@@ -20,7 +20,9 @@ gen_tunable(named_tcp_bind_http_port, false)
 ## </desc>
 gen_tunable(named_write_master_zones, false)
 
-# for DNSSEC key files
+attribute_role ndc_roles;
+roleattribute system_r ndc_roles;
+
 type dnssec_t;
 files_security_file(dnssec_t)
 files_mountpoint(dnssec_t)
@@ -32,7 +34,6 @@ init_daemon_domain(named_t, named_exec_t)
 type named_checkconf_exec_t;
 init_system_domain(named_t, named_checkconf_exec_t)
 
-# A type for configuration files of named.
 type named_conf_t;
 files_type(named_conf_t)
 files_mountpoint(named_conf_t)
@@ -60,10 +61,11 @@ files_type(named_zone_t)
 type ndc_t;
 type ndc_exec_t;
 init_system_domain(ndc_t, ndc_exec_t)
+role ndc_roles types ndc_t;
 
 ########################################
 #
-# Named local policy
+# Local policy
 #
 
 allow named_t self:capability { chown dac_override fowner setgid setuid sys_chroot sys_nice sys_resource };
@@ -71,7 +73,6 @@ dontaudit named_t self:capability sys_tty_config;
 allow named_t self:process { setsched getcap setcap setrlimit signal_perms };
 allow named_t self:fifo_file rw_fifo_file_perms;
 allow named_t self:unix_stream_socket { accept listen };
-allow named_t self:unix_dgram_socket create_socket_perms;
 allow named_t self:tcp_socket { accept listen };
 
 allow named_t dnssec_t:file read_file_perms;
@@ -119,16 +120,18 @@ corenet_tcp_sendrecv_all_ports(named_t)
 corenet_udp_sendrecv_all_ports(named_t)
 corenet_tcp_bind_generic_node(named_t)
 corenet_udp_bind_generic_node(named_t)
+
+corenet_sendrecv_all_server_packets(named_t)
 corenet_tcp_bind_dns_port(named_t)
 corenet_udp_bind_dns_port(named_t)
+
 corenet_tcp_bind_rndc_port(named_t)
-corenet_tcp_connect_all_ports(named_t)
-corenet_sendrecv_dns_server_packets(named_t)
-corenet_sendrecv_dns_client_packets(named_t)
-corenet_sendrecv_rndc_server_packets(named_t)
-corenet_sendrecv_rndc_client_packets(named_t)
+
 corenet_dontaudit_udp_bind_all_reserved_ports(named_t)
 corenet_udp_bind_all_unreserved_ports(named_t)
+
+corenet_sendrecv_all_client_packets(named_t)
+corenet_tcp_connect_all_ports(named_t)
 
 dev_read_sysfs(named_t)
 dev_read_rand(named_t)
@@ -181,14 +184,10 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# needed by FreeIPA with DNS support
 	ldap_stream_connect(named_t)
 ')
 
 optional_policy(`
-	# this seems like fds that arent being
-	# closed. these should probably be
-	# dontaudits instead.
 	networkmanager_rw_udp_sockets(named_t)
 	networkmanager_rw_packet_sockets(named_t)
 	networkmanager_rw_routing_sockets(named_t)
@@ -231,6 +230,7 @@ corenet_tcp_sendrecv_generic_if(ndc_t)
 corenet_tcp_sendrecv_generic_node(ndc_t)
 corenet_tcp_sendrecv_all_ports(ndc_t)
 corenet_tcp_bind_generic_node(ndc_t)
+
 corenet_tcp_connect_rndc_port(ndc_t)
 corenet_sendrecv_rndc_client_packets(ndc_t)
 
@@ -253,7 +253,6 @@ miscfiles_read_localization(ndc_t)
 
 userdom_use_user_terminals(ndc_t)
 
-# for /etc/rndc.key
 ifdef(`distro_redhat',`
 	allow ndc_t named_conf_t:dir search_dir_perms;
 ')

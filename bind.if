@@ -1,4 +1,4 @@
-## <summary>Berkeley internet name domain DNS server.</summary>
+## <summary>Berkeley Internet name domain DNS server.</summary>
 
 ########################################
 ## <summary>
@@ -33,12 +33,13 @@ interface(`bind_domtrans_ndc',`
 		type ndc_t, ndc_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, ndc_exec_t, ndc_t)
 ')
 
 ########################################
 ## <summary>
-##	Send generic signals to BIND.
+##	Send generic signals to bind.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -56,7 +57,7 @@ interface(`bind_signal',`
 
 ########################################
 ## <summary>
-##	Send null sigals to BIND.
+##	Send null signals to bind.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -74,7 +75,7 @@ interface(`bind_signull',`
 
 ########################################
 ## <summary>
-##	Send BIND the kill signal
+##	Send kill signals to bind.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -109,11 +110,11 @@ interface(`bind_kill',`
 #
 interface(`bind_run_ndc',`
 	gen_require(`
-		type ndc_t;
+		attribute_role ndc_roles;
 	')
 
 	bind_domtrans_ndc($1)
-	role $2 types ndc_t;
+	roleattribute $2 ndc_roles;
 ')
 
 ########################################
@@ -131,12 +132,13 @@ interface(`bind_domtrans',`
 		type named_t, named_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, named_exec_t, named_t)
 ')
 
 ########################################
 ## <summary>
-##	Read DNSSEC key files.
+##	Read dnssec key files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -154,7 +156,7 @@ interface(`bind_read_dnssec_keys',`
 
 ########################################
 ## <summary>
-##	Read BIND named configuration files.
+##	Read bind named configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -172,7 +174,7 @@ interface(`bind_read_config',`
 
 ########################################
 ## <summary>
-##	Write BIND named configuration files.
+##	Write bind named configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -192,7 +194,7 @@ interface(`bind_write_config',`
 ########################################
 ## <summary>
 ##	Create, read, write, and delete
-##	BIND configuration directories.
+##	bind configuration directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -210,7 +212,7 @@ interface(`bind_manage_config_dirs',`
 
 ########################################
 ## <summary>
-##	Search the BIND cache directory.
+##	Search bind cache directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -232,7 +234,7 @@ interface(`bind_search_cache',`
 ########################################
 ## <summary>
 ##	Create, read, write, and delete
-##	BIND cache files.
+##	bind cache files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -253,7 +255,7 @@ interface(`bind_manage_cache',`
 
 ########################################
 ## <summary>
-##	Set the attributes of the BIND pid directory.
+##	Set attributes of bind pid directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -271,7 +273,7 @@ interface(`bind_setattr_pid_dirs',`
 
 ########################################
 ## <summary>
-##	Set the attributes of the BIND zone directory.
+##	Set attributes of bind zone directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -289,7 +291,7 @@ interface(`bind_setattr_zone_dirs',`
 
 ########################################
 ## <summary>
-##	Read BIND zone files.
+##	Read bind zone files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -308,7 +310,8 @@ interface(`bind_read_zone',`
 
 ########################################
 ## <summary>
-##	Manage BIND zone files.
+##	Create, read, write, and delete
+##	bind zone files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -367,8 +370,6 @@ interface(`bind_admin',`
 	allow $1 { named_t ndc_t }:process { ptrace signal_perms };
 	ps_process_pattern($1, { named_t ndc_t })
 
-	bind_run_ndc($1, $2)
-
 	init_labeled_script_domtrans($1, named_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 named_initrc_exec_t system_r;
@@ -383,13 +384,13 @@ interface(`bind_admin',`
 	files_list_etc($1)
 	admin_pattern($1, named_conf_t)
 
-	admin_pattern($1, named_cache_t)
-	admin_pattern($1, named_zone_t)
-	admin_pattern($1, dnssec_t)
+	admin_pattern($1, { dnssec_t named_cache_t named_zone_t })
 
 	files_list_var_lib($1)
 	admin_pattern($1, named_var_lib_t)
 
 	files_list_pids($1)
 	admin_pattern($1, named_var_run_t)
+
+	bind_run_ndc($1, $2)
 ')
