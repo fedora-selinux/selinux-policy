@@ -1,12 +1,12 @@
-## <summary>Bitlbee service</summary>
+## <summary>Tunnels instant messaging traffic to a virtual IRC channel.</summary>
 
 ########################################
 ## <summary>
-##	Read bitlbee configuration files
+##	Read bitlbee configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed accesss.
+##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
@@ -22,8 +22,8 @@ interface(`bitlbee_read_config',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an bitlbee environment
+##	All of the rules required to
+##	administrate an bitlbee environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -32,7 +32,7 @@ interface(`bitlbee_read_config',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the bitlbee domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -40,7 +40,8 @@ interface(`bitlbee_read_config',`
 interface(`bitlbee_admin',`
 	gen_require(`
 		type bitlbee_t, bitlbee_conf_t, bitlbee_var_t;
-		type bitlbee_initrc_exec_t;
+		type bitlbee_initrc_exec_t, bitlbee_var_run_t;
+		type bitlbee_log_t, bitlbee_tmp_t;
 	')
 
 	allow $1 bitlbee_t:process { ptrace signal_perms };
@@ -51,9 +52,18 @@ interface(`bitlbee_admin',`
 	role_transition $2 bitlbee_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	files_list_etc($1)
+	files_search_etc($1)
 	admin_pattern($1, bitlbee_conf_t)
 
-	files_list_var($1)
+	logging_search_logs($1)
+	admin_pattern($1, bitlbee_log_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, bitlbee_tmp_t)
+
+	files_search_pids($1)
+	admin_pattern($1, bitlbee_var_run_t)
+
+	files_search_var_lib($1)
 	admin_pattern($1, bitlbee_var_t)
 ')
