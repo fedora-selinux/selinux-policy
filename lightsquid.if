@@ -45,3 +45,36 @@ interface(`lightsquid_run',`
 	lightsquid_domtrans($1)
 	roleattribute $2 lightsquid_roles;
 ')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an lightsquid environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lightsquid_admin',`
+	gen_require(`
+		type lightsquid_t, lightsquid_rw_content_t;
+	')
+
+	allow $1 lightsquid_t:process { ptrace signal_perms };
+	ps_process_pattern($1, lightsquid_t)
+
+	lightsquid_run($1, $2)
+
+	files_search_var_lib($1)
+	admin_pattern($1, lightsquid_rw_content_t)
+
+	apache_list_sys_content($1)
+')
