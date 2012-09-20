@@ -1,15 +1,19 @@
-policy_module(bluetooth, 3.4.0)
+policy_module(bluetooth, 3.4.1)
 
 ########################################
 #
 # Declarations
 #
+
+attribute_role bluetooth_helper_roles;
+roleattribute system_r bluetooth_helper_roles;
+
 type bluetooth_t;
 type bluetooth_exec_t;
 init_daemon_domain(bluetooth_t, bluetooth_exec_t)
 
 type bluetooth_conf_t;
-files_type(bluetooth_conf_t)
+files_config_file(bluetooth_conf_t)
 
 type bluetooth_conf_rw_t;
 files_type(bluetooth_conf_rw_t)
@@ -19,6 +23,7 @@ type bluetooth_helper_exec_t;
 typealias bluetooth_helper_t alias { user_bluetooth_helper_t staff_bluetooth_helper_t sysadm_bluetooth_helper_t };
 typealias bluetooth_helper_t alias { auditadm_bluetooth_helper_t secadm_bluetooth_helper_t };
 userdom_user_application_domain(bluetooth_helper_t, bluetooth_helper_exec_t)
+role bluetooth_helper_roles types bluetooth_helper_t;
 
 type bluetooth_helper_tmp_t;
 typealias bluetooth_helper_tmp_t alias { user_bluetooth_helper_tmp_t staff_bluetooth_helper_tmp_t sysadm_bluetooth_helper_tmp_t };
@@ -47,20 +52,17 @@ files_pid_file(bluetooth_var_run_t)
 
 ########################################
 #
-# Bluetooth services local policy
+# Local policy
 #
 
-#sys_admin capability - redhat bug 573015
 allow bluetooth_t self:capability { dac_override net_bind_service net_admin net_raw setpcap sys_admin sys_tty_config ipc_lock };
 dontaudit bluetooth_t self:capability sys_tty_config;
 allow bluetooth_t self:process { getcap setcap getsched signal_perms };
 allow bluetooth_t self:fifo_file rw_fifo_file_perms;
 allow bluetooth_t self:shm create_shm_perms;
 allow bluetooth_t self:socket create_stream_socket_perms;
-allow bluetooth_t self:unix_dgram_socket create_socket_perms;
-allow bluetooth_t self:unix_stream_socket { connectto create_stream_socket_perms };
-allow bluetooth_t self:tcp_socket create_stream_socket_perms;
-allow bluetooth_t self:udp_socket create_socket_perms;
+allow bluetooth_t self:unix_stream_socket { accept connectto listen };
+allow bluetooth_t self:tcp_socket { accept listen };
 allow bluetooth_t self:netlink_kobject_uevent_socket create_socket_perms;
 
 read_files_pattern(bluetooth_t, bluetooth_conf_t, bluetooth_conf_t)
@@ -72,14 +74,12 @@ manage_fifo_files_pattern(bluetooth_t, bluetooth_conf_t, bluetooth_conf_rw_t)
 manage_sock_files_pattern(bluetooth_t, bluetooth_conf_t, bluetooth_conf_rw_t)
 filetrans_pattern(bluetooth_t, bluetooth_conf_t, bluetooth_conf_rw_t, { dir file lnk_file sock_file fifo_file })
 
-can_exec(bluetooth_t, bluetooth_helper_exec_t)
-
 allow bluetooth_t bluetooth_lock_t:file manage_file_perms;
 files_lock_filetrans(bluetooth_t, bluetooth_lock_t, file)
 
 manage_dirs_pattern(bluetooth_t, bluetooth_tmp_t, bluetooth_tmp_t)
 manage_files_pattern(bluetooth_t, bluetooth_tmp_t, bluetooth_tmp_t)
-files_tmp_filetrans(bluetooth_t, bluetooth_tmp_t, { file dir })
+files_tmp_filetrans(bluetooth_t, bluetooth_tmp_t, { dir file })
 
 manage_dirs_pattern(bluetooth_t, bluetooth_var_lib_t, bluetooth_var_lib_t)
 manage_files_pattern(bluetooth_t, bluetooth_var_lib_t, bluetooth_var_lib_t)
@@ -89,11 +89,12 @@ manage_files_pattern(bluetooth_t, bluetooth_var_run_t, bluetooth_var_run_t)
 manage_sock_files_pattern(bluetooth_t, bluetooth_var_run_t, bluetooth_var_run_t)
 files_pid_filetrans(bluetooth_t, bluetooth_var_run_t, { file sock_file })
 
+can_exec(bluetooth_t, bluetooth_helper_exec_t)
+
 kernel_read_kernel_sysctls(bluetooth_t)
 kernel_read_system_state(bluetooth_t)
 kernel_read_network_state(bluetooth_t)
 kernel_request_load_module(bluetooth_t)
-#search debugfs - redhat bug 548206
 kernel_search_debugfs(bluetooth_t)
 
 corenet_all_recvfrom_unlabeled(bluetooth_t)
@@ -107,6 +108,9 @@ corenet_raw_sendrecv_generic_node(bluetooth_t)
 corenet_tcp_sendrecv_all_ports(bluetooth_t)
 corenet_udp_sendrecv_all_ports(bluetooth_t)
 
+corecmd_exec_bin(bluetooth_t)
+corecmd_exec_shell(bluetooth_t)
+
 dev_read_sysfs(bluetooth_t)
 dev_rw_usbfs(bluetooth_t)
 dev_rw_generic_usb_dev(bluetooth_t)
@@ -114,22 +118,17 @@ dev_read_urand(bluetooth_t)
 dev_rw_input_dev(bluetooth_t)
 dev_rw_wireless(bluetooth_t)
 
+domain_use_interactive_fds(bluetooth_t)
+domain_dontaudit_search_all_domains_state(bluetooth_t)
+
+files_read_etc_runtime_files(bluetooth_t)
+files_read_usr_files(bluetooth_t)
+
 fs_getattr_all_fs(bluetooth_t)
 fs_search_auto_mountpoints(bluetooth_t)
 fs_list_inotifyfs(bluetooth_t)
 
-#Handle bluetooth serial devices
 term_use_unallocated_ttys(bluetooth_t)
-
-corecmd_exec_bin(bluetooth_t)
-corecmd_exec_shell(bluetooth_t)
-
-domain_use_interactive_fds(bluetooth_t)
-domain_dontaudit_search_all_domains_state(bluetooth_t)
-
-files_read_etc_files(bluetooth_t)
-files_read_etc_runtime_files(bluetooth_t)
-files_read_usr_files(bluetooth_t)
 
 auth_use_nsswitch(bluetooth_t)
 
@@ -149,6 +148,10 @@ optional_policy(`
 
 	optional_policy(`
 		cups_dbus_chat(bluetooth_t)
+	')
+
+	optional_policy(`
+		devicekit_dbus_chat_power(bluetooth_t)
 	')
 
 	optional_policy(`
@@ -178,23 +181,21 @@ optional_policy(`
 
 ########################################
 #
-# Bluetooth helper programs local policy
+# Helper local policy
 #
 
 allow bluetooth_helper_t self:capability sys_nice;
 allow bluetooth_helper_t self:process getsched;
 allow bluetooth_helper_t self:fifo_file rw_fifo_file_perms;
 allow bluetooth_helper_t self:shm create_shm_perms;
-allow bluetooth_helper_t self:unix_stream_socket { create_stream_socket_perms connectto };
-allow bluetooth_helper_t self:tcp_socket create_socket_perms;
-allow bluetooth_helper_t self:netlink_route_socket r_netlink_socket_perms;
+allow bluetooth_helper_t self:unix_stream_socket { accept connectto listen };
 
 allow bluetooth_helper_t bluetooth_t:socket { read write };
 
 manage_dirs_pattern(bluetooth_helper_t, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
 manage_files_pattern(bluetooth_helper_t, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
 manage_sock_files_pattern(bluetooth_helper_t, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
-files_tmp_filetrans(bluetooth_helper_t, bluetooth_helper_tmp_t, { file dir sock_file })
+files_tmp_filetrans(bluetooth_helper_t, bluetooth_helper_tmp_t, { dir file sock_file })
 
 manage_dirs_pattern(bluetooth_helper_t, bluetooth_helper_tmpfs_t, bluetooth_helper_tmpfs_t)
 manage_files_pattern(bluetooth_helper_t, bluetooth_helper_tmpfs_t, bluetooth_helper_tmpfs_t)
@@ -203,19 +204,20 @@ fs_tmpfs_filetrans(bluetooth_helper_t, bluetooth_helper_tmpfs_t, { dir file })
 kernel_read_system_state(bluetooth_helper_t)
 kernel_read_kernel_sysctls(bluetooth_helper_t)
 
-dev_read_urand(bluetooth_helper_t)
-
-term_dontaudit_use_all_ttys(bluetooth_helper_t)
-
 corecmd_exec_bin(bluetooth_helper_t)
 corecmd_exec_shell(bluetooth_helper_t)
 
+dev_read_urand(bluetooth_helper_t)
+
 domain_read_all_domains_state(bluetooth_helper_t)
 
-files_read_etc_files(bluetooth_helper_t)
 files_read_etc_runtime_files(bluetooth_helper_t)
 files_read_usr_files(bluetooth_helper_t)
 files_dontaudit_list_default(bluetooth_helper_t)
+
+term_dontaudit_use_all_ttys(bluetooth_helper_t)
+
+auth_use_nsswitch(bluetooth_helper_t)
 
 locallogin_dontaudit_use_fds(bluetooth_helper_t)
 
@@ -223,17 +225,11 @@ logging_send_syslog_msg(bluetooth_helper_t)
 
 miscfiles_read_localization(bluetooth_helper_t)
 
-sysnet_read_config(bluetooth_helper_t)
-
 optional_policy(`
 	bluetooth_dbus_chat(bluetooth_helper_t)
 
 	dbus_system_bus_client(bluetooth_helper_t)
 	dbus_connect_system_bus(bluetooth_helper_t)
-')
-
-optional_policy(`
-	nscd_socket_use(bluetooth_helper_t)
 ')
 
 optional_policy(`
