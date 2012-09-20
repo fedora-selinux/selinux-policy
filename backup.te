@@ -1,15 +1,17 @@
-policy_module(backup, 1.5.0)
+policy_module(backup, 1.5.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role backup_roles;
+roleattribute system_r backup_roles;
+
 type backup_t;
 type backup_exec_t;
-domain_type(backup_t)
-domain_entry_file(backup_t, backup_exec_t)
-role system_r types backup_t;
+application_domain(backup_t, backup_exec_t)
+role backup_roles types backup_t;
 
 type backup_store_t;
 files_type(backup_store_t)
@@ -25,7 +27,7 @@ allow backup_t self:fifo_file rw_fifo_file_perms;
 allow backup_t self:tcp_socket create_socket_perms;
 allow backup_t self:udp_socket create_socket_perms;
 
-allow backup_t backup_store_t:file setattr;
+allow backup_t backup_store_t:file setattr_file_perms;
 manage_files_pattern(backup_t, backup_store_t, backup_store_t)
 rw_files_pattern(backup_t, backup_store_t, backup_store_t)
 read_lnk_files_pattern(backup_t, backup_store_t, backup_store_t)
@@ -51,7 +53,6 @@ corenet_sendrecv_all_client_packets(backup_t)
 
 dev_getattr_all_blk_files(backup_t)
 dev_getattr_all_chr_files(backup_t)
-# for SSP
 dev_read_urand(backup_t)
 
 domain_use_interactive_fds(backup_t)
