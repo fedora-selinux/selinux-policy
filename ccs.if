@@ -1,4 +1,4 @@
-## <summary>Cluster Configuration System</summary>
+## <summary>Cluster Configuration System.</summary>
 
 ########################################
 ## <summary>
@@ -15,6 +15,7 @@ interface(`ccs_domtrans',`
 		type ccs_t, ccs_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, ccs_exec_t, ccs_t)
 ')
 
@@ -52,12 +53,14 @@ interface(`ccs_read_config',`
 		type cluster_conf_t;
 	')
 
+	files_search_etc($1)
 	read_files_pattern($1, cluster_conf_t, cluster_conf_t)
 ')
 
 ########################################
 ## <summary>
-##	Manage cluster configuration files.
+##	Create, read, write, and delete
+##	cluster configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -70,6 +73,55 @@ interface(`ccs_manage_config',`
 		type cluster_conf_t;
 	')
 
+	files_search_etc($1)
 	manage_dirs_pattern($1, cluster_conf_t, cluster_conf_t)
 	manage_files_pattern($1, cluster_conf_t, cluster_conf_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an ccs environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ccs_admin',`
+	gen_require(`
+		type ccs_t, ccs_initrc_exec_t, cluster_conf_t;
+		type ccs_var_lib_t_t, ccs_var_log_t;
+		type ccs_var_run_t, ccs_tmp_t;
+	')
+
+	allow $1 ccs_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ccs_t)
+
+	init_labeled_script_domtrans($1, ccs_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 ccs_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, ccs_conf_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, ccs_var_lib_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, ccs_var_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, ccs_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, ccs_tmp_t)
 ')

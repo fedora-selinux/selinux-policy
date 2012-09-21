@@ -1,4 +1,4 @@
-policy_module(ccs, 1.5.0)
+policy_module(ccs, 1.5.1)
 
 ########################################
 #
@@ -9,8 +9,11 @@ type ccs_t;
 type ccs_exec_t;
 init_daemon_domain(ccs_t, ccs_exec_t)
 
+type ccs_initrc_exec_t;
+init_script_file(ccs_initrc_exec_t)
+
 type cluster_conf_t;
-files_type(cluster_conf_t)
+files_config_file(cluster_conf_t)
 
 type ccs_tmp_t;
 files_tmp_file(ccs_tmp_t)
@@ -29,48 +32,44 @@ files_pid_file(ccs_var_run_t)
 
 ########################################
 #
-# ccs local policy
+# Local policy
 #
 
 allow ccs_t self:capability { ipc_owner ipc_lock sys_nice sys_resource sys_admin };
 allow ccs_t self:process { signal setrlimit setsched };
 dontaudit ccs_t self:process ptrace;
 allow ccs_t self:fifo_file rw_fifo_file_perms;
-allow ccs_t self:unix_stream_socket { connectto create_stream_socket_perms };
-allow ccs_t self:unix_dgram_socket create_socket_perms;
+allow ccs_t self:unix_stream_socket { accept connectto listen };
 allow ccs_t self:netlink_route_socket r_netlink_socket_perms;
 allow ccs_t self:tcp_socket create_stream_socket_perms;
 allow ccs_t self:udp_socket { create_socket_perms listen recv_msg send_msg };
-# cjp: this needs to be fixed to be specific
 allow ccs_t self:socket create_socket_perms;
 
 manage_files_pattern(ccs_t, cluster_conf_t, cluster_conf_t)
 
-# tmp file
 allow ccs_t ccs_tmp_t:dir manage_dir_perms;
 manage_dirs_pattern(ccs_t, ccs_tmp_t, ccs_tmp_t)
 manage_files_pattern(ccs_t, ccs_tmp_t, ccs_tmp_t)
-files_tmp_filetrans(ccs_t, ccs_tmp_t, { file dir })
+files_tmp_filetrans(ccs_t, ccs_tmp_t, { dir file })
 
 manage_dirs_pattern(ccs_t, ccs_tmpfs_t, ccs_tmpfs_t)
 manage_files_pattern(ccs_t, ccs_tmpfs_t, ccs_tmpfs_t)
 fs_tmpfs_filetrans(ccs_t, ccs_tmpfs_t, { dir file })
 
-# var lib files
 manage_dirs_pattern(ccs_t, ccs_var_lib_t, ccs_var_lib_t)
 manage_files_pattern(ccs_t, ccs_var_lib_t, ccs_var_lib_t)
-files_var_lib_filetrans(ccs_t, ccs_var_lib_t, { file dir })
+files_var_lib_filetrans(ccs_t, ccs_var_lib_t, { dir file })
 
-allow ccs_t ccs_var_log_t:dir setattr;
-manage_files_pattern(ccs_t, ccs_var_log_t, ccs_var_log_t)
+allow ccs_t ccs_var_log_t:dir setattr_dir_perms;
+append_files_pattern(ccs_t, ccs_var_log_t, ccs_var_log_t)
+create_files_pattern(ccs_t, ccs_var_log_t, ccs_var_log_t)
+setattr_files_pattern(ccs_t, ccs_var_log_t, ccs_var_log_t)
 manage_sock_files_pattern(ccs_t, ccs_var_log_t, ccs_var_log_t)
-logging_log_filetrans(ccs_t, ccs_var_log_t, { sock_file file dir })
+logging_log_filetrans(ccs_t, ccs_var_log_t, { file sock_file })
 
-# pid file
-manage_dirs_pattern(ccs_t, ccs_var_run_t, ccs_var_run_t)
 manage_files_pattern(ccs_t, ccs_var_run_t, ccs_var_run_t)
 manage_sock_files_pattern(ccs_t, ccs_var_run_t, ccs_var_run_t)
-files_pid_filetrans(ccs_t, ccs_var_run_t, { dir file sock_file })
+files_pid_filetrans(ccs_t, ccs_var_run_t, { file sock_file })
 
 kernel_read_kernel_sysctls(ccs_t)
 
@@ -87,8 +86,12 @@ corenet_tcp_sendrecv_all_ports(ccs_t)
 corenet_udp_sendrecv_all_ports(ccs_t)
 corenet_tcp_bind_generic_node(ccs_t)
 corenet_udp_bind_generic_node(ccs_t)
+
+corenet_sendrecv_cluster_server_packets(ccs_t)
 corenet_tcp_bind_cluster_port(ccs_t)
 corenet_udp_bind_cluster_port(ccs_t)
+
+corenet_sendrecv_netsupport_server_packets(ccs_t)
 corenet_udp_bind_netsupport_port(ccs_t)
 
 dev_read_urand(ccs_t)
@@ -107,7 +110,7 @@ sysnet_dns_name_resolve(ccs_t)
 userdom_manage_unpriv_user_shared_mem(ccs_t)
 userdom_manage_unpriv_user_semaphores(ccs_t)
 
-ifdef(`hide_broken_symptoms', `
+ifdef(`hide_broken_symptoms',`
 	corecmd_dontaudit_write_bin_dirs(ccs_t)
 	files_manage_isid_type_files(ccs_t)
 ')
@@ -115,6 +118,11 @@ ifdef(`hide_broken_symptoms', `
 optional_policy(`
 	aisexec_stream_connect(ccs_t)
 	corosync_stream_connect(ccs_t)
+')
+
+optional_policy(`
+	qpidd_rw_semaphores(ccs_t)
+	qpidd_rw_shm(ccs_t)
 ')
 
 optional_policy(`
