@@ -1,4 +1,4 @@
-policy_module(gpg, 2.6.1)
+policy_module(gpg, 2.6.2)
 
 ########################################
 #
@@ -54,6 +54,11 @@ userdom_user_tmp_file(gpg_pinentry_tmp_t)
 
 type gpg_pinentry_tmpfs_t;
 userdom_user_tmpfs_file(gpg_pinentry_tmpfs_t)
+
+type gpg_web_t;
+domain_type(gpg_web_t)
+domain_entry_file(gpg_web_t, gpg_exec_t)
+role system_r types gpg_web_t;
 
 ########################################
 #
@@ -350,4 +355,24 @@ optional_policy(`
 
 optional_policy(`
 	xserver_user_x_domain_template(gpg_pinentry, gpg_pinentry_t, gpg_pinentry_tmpfs_t)
+')
+
+#############################
+#
+# Web local policy
+#
+
+allow gpg_web_t self:process setrlimit;
+
+dev_read_rand(gpg_web_t)
+dev_read_urand(gpg_web_t)
+
+can_exec(gpg_web_t, gpg_exec_t)
+
+files_read_usr_files(gpg_web_t)
+
+miscfiles_read_localization(gpg_web_t)
+
+optional_policy(`
+	apache_manage_sys_rw_content(gpg_web_t)
 ')
