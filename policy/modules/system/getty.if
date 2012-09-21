@@ -96,3 +96,27 @@ interface(`getty_rw_config',`
 	files_search_etc($1)
 	allow $1 getty_etc_t:file rw_file_perms;
 ')
+
+########################################
+## <summary>
+##	Execute getty server in the getty domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`getty_systemctl',`
+	gen_require(`
+		type getty_unit_file_t;
+		type getty_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 getty_unit_file_t:file read_file_perms;
+	allow $1 getty_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, getty_t)
+')
+
