@@ -1,4 +1,4 @@
-policy_module(canna, 1.11.0)
+policy_module(canna, 1.11.1)
 
 ########################################
 #
@@ -29,13 +29,15 @@ files_pid_file(canna_var_run_t)
 allow canna_t self:capability { setgid setuid net_bind_service };
 dontaudit canna_t self:capability sys_tty_config;
 allow canna_t self:process signal_perms;
-allow canna_t self:unix_stream_socket { connectto create_stream_socket_perms};
-allow canna_t self:unix_dgram_socket create_stream_socket_perms;
+allow canna_t self:unix_stream_socket { accept connectto listen };
+allow canna_t self:unix_dgram_socket { accept listen };
 allow canna_t self:tcp_socket create_stream_socket_perms;
 
-manage_files_pattern(canna_t, canna_log_t, canna_log_t)
-allow canna_t canna_log_t:dir setattr;
-logging_log_filetrans(canna_t, canna_log_t, { file dir })
+allow canna_t canna_log_t:dir setattr_dir_perms;
+append_files_pattern(canna_t, canna_log_t, canna_log_t)
+create_files_pattern(canna_t, canna_log_t, canna_log_t)
+setattr_files_pattern(canna_t, canna_log_t, canna_log_t)
+logging_log_filetrans(canna_t, canna_log_t, file)
 
 manage_dirs_pattern(canna_t, canna_var_lib_t, canna_var_lib_t)
 manage_files_pattern(canna_t, canna_var_lib_t, canna_var_lib_t)
@@ -45,7 +47,7 @@ files_var_lib_filetrans(canna_t, canna_var_lib_t, file)
 manage_dirs_pattern(canna_t, canna_var_run_t, canna_var_run_t)
 manage_files_pattern(canna_t, canna_var_run_t, canna_var_run_t)
 manage_sock_files_pattern(canna_t, canna_var_run_t, canna_var_run_t)
-files_pid_filetrans(canna_t, canna_var_run_t, { dir file sock_file })
+files_pid_filetrans(canna_t, canna_var_run_t, { dir sock_file })
 
 kernel_read_kernel_sysctls(canna_t)
 kernel_read_system_state(canna_t)
@@ -54,9 +56,10 @@ corenet_all_recvfrom_unlabeled(canna_t)
 corenet_all_recvfrom_netlabel(canna_t)
 corenet_tcp_sendrecv_generic_if(canna_t)
 corenet_tcp_sendrecv_generic_node(canna_t)
-corenet_tcp_sendrecv_all_ports(canna_t)
-corenet_tcp_connect_all_ports(canna_t)
+
 corenet_sendrecv_all_client_packets(canna_t)
+corenet_tcp_connect_all_ports(canna_t)
+corenet_tcp_sendrecv_all_ports(canna_t)
 
 dev_read_sysfs(canna_t)
 
