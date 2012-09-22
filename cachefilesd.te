@@ -1,0 +1,50 @@
+policy_module(cachefilesd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type cachefilesd_t;
+type cachefilesd_exec_t;
+init_daemon_domain(cachefilesd_t, cachefilesd_exec_t)
+
+type cachefilesd_initrc_exec_t;
+init_script_file(cachefilesd_initrc_exec_t)
+
+type cachefilesd_cache_t;
+files_type(cachefilesd_cache_t)
+
+type cachefilesd_var_run_t;
+files_pid_file(cachefilesd_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow cachefilesd_t self:capability { setuid setgid sys_admin dac_override };
+
+manage_files_pattern(cachefilesd_t, cachefilesd_var_run_t, cachefilesd_var_run_t)
+files_pid_filetrans(cachefilesd_t, cachefilesd_var_run_t, file)
+
+manage_dirs_pattern(cachefilesd_t, cachefilesd_cache_t, cachefilesd_cache_t)
+manage_files_pattern(cachefilesd_t, cachefilesd_cache_t, cachefilesd_cache_t)
+
+# files_create_all_files_as(cachefilesd_t)
+files_read_etc_files(cachefilesd_t)
+
+fs_getattr_xattr_fs(cachefilesd_t)
+
+term_dontaudit_use_generic_ptys(cachefilesd_t)
+term_dontaudit_getattr_unallocated_ttys(cachefilesd_t)
+
+logging_send_syslog_msg(cachefilesd_t)
+
+miscfiles_read_localization(cachefilesd_t)
+
+init_dontaudit_use_script_ptys(cachefilesd_t)
+
+optional_policy(`
+	rpm_use_script_fds(cachefilesd_t)
+')
