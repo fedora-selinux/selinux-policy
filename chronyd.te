@@ -1,4 +1,4 @@
-policy_module(chronyd, 1.1.0)
+policy_module(chronyd, 1.1.1)
 
 ########################################
 #
@@ -15,6 +15,9 @@ init_script_file(chronyd_initrc_exec_t)
 type chronyd_keys_t;
 files_type(chronyd_keys_t)
 
+type chronyd_tmpfs_t;
+files_tmpfs_file(chronyd_tmpfs_t)
+
 type chronyd_var_lib_t;
 files_type(chronyd_var_lib_t)
 
@@ -30,31 +33,49 @@ files_pid_file(chronyd_var_run_t)
 #
 
 allow chronyd_t self:capability { dac_override ipc_lock setuid setgid sys_resource sys_time };
-allow chronyd_t self:process { getcap setcap setrlimit };
+allow chronyd_t self:process { getcap setcap setrlimit signal };
 allow chronyd_t self:shm create_shm_perms;
-allow chronyd_t self:udp_socket create_socket_perms;
-allow chronyd_t self:unix_dgram_socket create_socket_perms;
+allow chronyd_t self:fifo_file rw_fifo_file_perms;
 
 allow chronyd_t chronyd_keys_t:file read_file_perms;
+
+manage_dirs_pattern(chronyd_t, chronyd_tmpfs_t, chronyd_tmpfs_t)
+manage_files_pattern(chronyd_t, chronyd_tmpfs_t, chronyd_tmpfs_t)
+fs_tmpfs_filetrans(chronyd_t, chronyd_tmpfs_t, { dir file })
 
 manage_files_pattern(chronyd_t, chronyd_var_lib_t, chronyd_var_lib_t)
 manage_dirs_pattern(chronyd_t, chronyd_var_lib_t, chronyd_var_lib_t)
 manage_sock_files_pattern(chronyd_t, chronyd_var_lib_t, chronyd_var_lib_t)
-files_var_lib_filetrans(chronyd_t, chronyd_var_lib_t, { file dir })
+files_var_lib_filetrans(chronyd_t, chronyd_var_lib_t, dir)
 
-manage_files_pattern(chronyd_t, chronyd_var_log_t, chronyd_var_log_t)
 manage_dirs_pattern(chronyd_t, chronyd_var_log_t, chronyd_var_log_t)
-logging_log_filetrans(chronyd_t, chronyd_var_log_t, { file dir })
+append_files_pattern(chronyd_t, chronyd_var_log_t, chronyd_var_log_t)
+create_files_pattern(chronyd_t, chronyd_var_log_t, chronyd_var_log_t)
+setattr_files_pattern(chronyd_t, chronyd_var_log_t, chronyd_var_log_t)
+logging_log_filetrans(chronyd_t, chronyd_var_log_t, dir)
 
-manage_files_pattern(chronyd_t, chronyd_var_run_t, chronyd_var_run_t)
 manage_dirs_pattern(chronyd_t, chronyd_var_run_t, chronyd_var_run_t)
-files_pid_filetrans(chronyd_t, chronyd_var_run_t, file)
+manage_files_pattern(chronyd_t, chronyd_var_run_t, chronyd_var_run_t)
+manage_sock_files_pattern(chronyd_t, chronyd_var_run_t, chronyd_var_run_t)
+files_pid_filetrans(chronyd_t, chronyd_var_run_t, { dir file sock_file })
 
+kernel_read_system_state(chronyd_t)
+kernel_read_network_state(chronyd_t)
+
+corenet_all_recvfrom_unlabeled(chronyd_t)
+corenet_all_recvfrom_netlabel(chronyd_t)
+corenet_udp_sendrecv_generic_if(chronyd_t)
+corenet_udp_sendrecv_generic_node(chronyd_t)
+corenet_udp_bind_generic_node(chronyd_t)
+
+corenet_sendrecv_ntp_server_packets(chronyd_t)
 corenet_udp_bind_ntp_port(chronyd_t)
-# bind to udp/323
-corenet_udp_bind_chronyd_port(chronyd_t)
+corenet_udp_sendrecv_ntp_port(chronyd_t)
 
-# real time clock option
+corenet_sendrecv_chronyd_server_packets(chronyd_t)
+corenet_udp_bind_chronyd_port(chronyd_t)
+corenet_udp_sendrecv_chronyd_port(chronyd_t)
+
 dev_rw_realtime_clock(chronyd_t)
 
 auth_use_nsswitch(chronyd_t)
@@ -65,4 +86,8 @@ miscfiles_read_localization(chronyd_t)
 
 optional_policy(`
 	gpsd_rw_shm(chronyd_t)
+')
+
+optional_policy(`
+	mta_send_mail(chronyd_t)
 ')
