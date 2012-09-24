@@ -18,11 +18,54 @@ template(`tomcat_domain_template',`
         ')
 
 	type $1_t, tomcat_domain;
-        type $1_exec_t;
-        init_daemon_domain($1_t, $1_exec_t)
+	type $1_exec_t;
+	init_daemon_domain($1_t, $1_exec_t)
+
+	type $1_cache_t;
+	files_type($1_cache_t)
+
+	type $1_log_t;
+	logging_log_file($1_log_t)
+
+	type $1_var_lib_t;
+	files_type($1_var_lib_t)
+
+	type $1_var_run_t;
+	files_pid_file($1_var_run_t)
+
+	type $1_tmp_t;
+	files_tmp_file($1_tmp_t)
+
+	##################################
+	#
+	# Local policy
+	#
+
+	manage_dirs_pattern($1_t, $1_cache_t, $1_cache_t)
+	manage_files_pattern($1_t, $1_cache_t, $1_cache_t)
+	manage_lnk_files_pattern($1_t, $1_cache_t, $1_cache_t)
+	files_var_filetrans($1_t, $1_cache_t, { dir file })
+
+	manage_dirs_pattern($1_t, $1_log_t, $1_log_t)
+	manage_files_pattern($1_t, $1_log_t, $1_log_t)
+	logging_log_filetrans($1_t, $1_log_t, { dir file })
+
+	manage_dirs_pattern($1_t, $1_var_lib_t, $1_var_lib_t)
+	manage_files_pattern($1_t, $1_var_lib_t, $1_var_lib_t)
+	files_var_lib_filetrans($1_t, $1_var_lib_t, { dir file })
+
+	manage_dirs_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	manage_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	files_pid_filetrans($1_t, $1_var_run_t, { dir file })
+
+	manage_dirs_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	manage_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	manage_fifo_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	files_tmp_filetrans($1_t, $1_tmp_t, { file fifo_file dir })
 
 	can_exec($1_t, $1_exec_t)
 
+	kernel_read_system_state($1_t)
 ')
 
 ########################################
@@ -293,7 +336,6 @@ interface(`tomcat_systemctl',`
 	')
 
 	systemd_exec_systemctl($1)
-        systemd_read_fifo_file_password_run($1)
 	allow $1 tomcat_unit_file_t:file read_file_perms;
 	allow $1 tomcat_unit_file_t:service manage_service_perms;
 
