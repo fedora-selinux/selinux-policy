@@ -13,7 +13,7 @@
 #
 template(`rhcs_domain_template',`
 	gen_require(`
-		attribute cluster_domain;
+		attribute cluster_domain, cluster_pid;
 	')
 
 	##############################
@@ -31,7 +31,7 @@ template(`rhcs_domain_template',`
 	type $1_var_log_t;
 	logging_log_file($1_var_log_t)
 
-	type $1_var_run_t;
+	type $1_var_run_t, cluster_pid;
 	files_pid_file($1_var_run_t)
 
 	##############################
@@ -152,6 +152,26 @@ interface(`rhcs_rw_fenced_semaphores',`
 
 	fs_search_tmpfs($1)
 	manage_files_pattern($1, fenced_tmpfs_t, fenced_tmpfs_t)
+')
+
+####################################
+## <summary>
+##	Connect to all cluster domains
+##	over a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_stream_connect_cluster',`
+	gen_require(`
+		attribute cluster_domain, cluster_pid;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, cluster_pid, cluster_pid, cluster_domain)
 ')
 
 ######################################
