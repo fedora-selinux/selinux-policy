@@ -2,22 +2,26 @@
 
 #######################################
 ## <summary>
-##	The common rules for a crontab domain.
+##	The template to define a crontab domain.
 ## </summary>
-## <param name="userdomain_prefix">
+## <param name="domain_prefix">
 ##	<summary>
-##	The prefix of the user domain (e.g., user
-##	is the prefix for user_t).
+##	Domain prefix to be used.
 ##	</summary>
 ## </param>
 #
 template(`cron_common_crontab_template',`
+	gen_require(`
+		attribute crontab_domain;
+		type crontab_exec_t;
+	')
+
 	##############################
 	#
 	# Declarations
 	#
 
-	type $1_t;
+	type $1_t, crontab_domain;
 	userdom_user_application_domain($1_t, crontab_exec_t)
 
 	type $1_tmp_t;
@@ -28,63 +32,12 @@ template(`cron_common_crontab_template',`
 	# Local policy
 	#
 
-	# dac_override is to create the file in the directory under /tmp
-	allow $1_t self:capability { fowner setuid setgid chown dac_override };
-	allow $1_t self:process { setsched signal_perms };
-	allow $1_t self:fifo_file rw_fifo_file_perms;
-
-	allow $1_t $1_tmp_t:file manage_file_perms;
-	files_tmp_filetrans($1_t, $1_tmp_t, file)
-
-	# create files in /var/spool/cron
-	manage_files_pattern($1_t, { cron_spool_t user_cron_spool_t }, user_cron_spool_t)
-	filetrans_pattern($1_t, cron_spool_t, user_cron_spool_t, file)
-	files_list_spool($1_t)
-
-	# crontab signals crond by updating the mtime on the spooldir
-	allow $1_t cron_spool_t:dir setattr;
-
-	kernel_read_system_state($1_t)
-
-	# for the checks used by crontab -u
-	selinux_dontaudit_search_fs($1_t)
-
-	fs_getattr_xattr_fs($1_t)
-
-	domain_use_interactive_fds($1_t)
-
-	files_read_etc_files($1_t)
-	files_read_usr_files($1_t)
-	files_dontaudit_search_pids($1_t)
+	manage_dirs_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	manage_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	files_tmp_filetrans($1_t, $1_tmp_t, { dir file })
 
 	auth_domtrans_chk_passwd($1_t)
-
-	logging_send_syslog_msg($1_t)
-	logging_send_audit_msgs($1_t)
-
-	init_dontaudit_write_utmp($1_t)
-	init_read_utmp($1_t)
-
-	miscfiles_read_localization($1_t)
-
-	seutil_read_config($1_t)
-
-	userdom_manage_user_tmp_dirs($1_t)
-	userdom_manage_user_tmp_files($1_t)
-	# Access terminals.
-	userdom_use_user_terminals($1_t)
-	# Read user crontabs
-	userdom_read_user_home_content_files($1_t)
-
-	tunable_policy(`fcron_crond',`
-		# fcron wants an instant update of a crontab change for the administrator
-		# also crontab does a security check for crontab -u
-		dontaudit $1_t crond_t:process signal;
-	')
-
-	optional_policy(`
-		nscd_socket_use($1_t)
-	')
+	auth_use_nsswitch($1_t)
 ')
 
 ########################################
@@ -93,37 +46,51 @@ template(`cron_common_crontab_template',`
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role
+##	User domain for the role.
 ##	</summary>
 ## </param>
+## <rolecap/>
 #
 interface(`cron_role',`
 	gen_require(`
 		type cronjob_t, crontab_t, crontab_exec_t;
+		type user_cron_spool_t, crond_t;
 	')
+
+	##############################
+	#
+	# Declarations
+	#
 
 	role $1 types { cronjob_t crontab_t };
 
-	# cronjob shows up in user ps
-	ps_process_pattern($2, cronjob_t)
+	##############################
+	#
+	# Local policy
+	#
 
-	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2, crontab_exec_t, crontab_t)
 
-	# crontab shows up in user ps
-	ps_process_pattern($2, crontab_t)
-	allow $2 crontab_t:process signal;
+	dontaudit crond_t $2:process { noatsecure siginh rlimitinh };
+	allow $2 crond_t:process sigchld;
 
-	# Run helper programs as the user domain
-	#corecmd_bin_domtrans(crontab_t, $2)
-	#corecmd_shell_domtrans(crontab_t, $2)
+	allow $2 user_cron_spool_t:file { getattr read write ioctl };
+	
+	allow $2 crontab_t:process { ptrace signal_perms };
+	ps_process_pattern($2, { cronjob_t crontab_t })
+
 	corecmd_exec_bin(crontab_t)
 	corecmd_exec_shell(crontab_t)
+
+	tunable_policy(`cron_userdomain_transition',`
+		allow crond_t $2:process transition;
+		allow $2 user_cron_spool_t:file entrypoint;
+	')
 
 	optional_policy(`
 		gen_require(`
@@ -133,7 +100,7 @@ interface(`cron_role',`
 		dbus_stub(cronjob_t)
 
 		allow cronjob_t $2:dbus send_msg;
-	')		
+	')
 ')
 
 ########################################
@@ -153,24 +120,28 @@ interface(`cron_role',`
 #
 interface(`cron_unconfined_role',`
 	gen_require(`
-		type unconfined_cronjob_t, crontab_t, crontab_tmp_t, crontab_exec_t;
+		type unconfined_cronjob_t, crontab_t, crontab_exec_t;
 	')
+
+	##############################
+	#
+	# Declarations
+	#
 
 	role $1 types { unconfined_cronjob_t crontab_t };
 
-	# cronjob shows up in user ps
+	##############################
+	#
+	# Local policy
+	#
+
 	ps_process_pattern($2, unconfined_cronjob_t)
 
-	# Transition from the user domain to the derived domain.
-	domtrans_pattern($2, crontab_exec_t, crontab_t)
+	# domtrans_pattern($2, crontab_exec_t, crontab_t)
 
-	# crontab shows up in user ps
+	allow $2 crontab_t:process { ptrace signal_perms };
 	ps_process_pattern($2, crontab_t)
-	allow $2 crontab_t:process signal;
 
-	# Run helper programs as the user domain
-	#corecmd_bin_domtrans(crontab_t, $2)
-	#corecmd_shell_domtrans(crontab_t, $2)
 	corecmd_exec_bin(crontab_t)
 	corecmd_exec_shell(crontab_t)
 
@@ -182,7 +153,7 @@ interface(`cron_unconfined_role',`
 		dbus_stub(unconfined_cronjob_t)
 
 		allow unconfined_cronjob_t $2:dbus send_msg;
-	')		
+	')
 ')
 
 ########################################
@@ -202,28 +173,22 @@ interface(`cron_unconfined_role',`
 #
 interface(`cron_admin_role',`
 	gen_require(`
-		type cronjob_t, crontab_exec_t, admin_crontab_t, admin_crontab_tmp_t;
+		type cronjob_t, crontab_exec_t, admin_crontab_t;
 		class passwd crontab;
 	')
 
-	role $1 types { cronjob_t admin_crontab_t admin_crontab_tmp_t };
+	role $1 types { cronjob_t admin_crontab_t };
 
-	# cronjob shows up in user ps
 	ps_process_pattern($2, cronjob_t)
 
 	# Manipulate other users crontab.
 	allow $2 self:passwd crontab;
 
-	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2, crontab_exec_t, admin_crontab_t)
 
-	# crontab shows up in user ps
+	allow $2 admin_crontab_t:process { ptrace signal_perms };
 	ps_process_pattern($2, admin_crontab_t)
-	allow $2 admin_crontab_t:process signal;
 
-	# Run helper programs as the user domain
-	#corecmd_bin_domtrans(admin_crontab_t, $2)
-	#corecmd_shell_domtrans(admin_crontab_t, $2)
 	corecmd_exec_bin(admin_crontab_t)
 	corecmd_exec_shell(admin_crontab_t)
 
@@ -235,13 +200,13 @@ interface(`cron_admin_role',`
 		dbus_stub(admin_cronjob_t)
 
 		allow cronjob_t $2:dbus send_msg;
-	')		
+	')
 ')
 
 ########################################
 ## <summary>
-##	Make the specified program domain accessable
-##	from the system cron jobs.
+##	Make the specified program domain
+##	accessable from the system cron jobs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -280,12 +245,13 @@ interface(`cron_domtrans',`
 		type system_cronjob_t, crond_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, crond_exec_t, system_cronjob_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute crond_exec_t 
+##	Execute crond in the caller domain. 
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -298,12 +264,13 @@ interface(`cron_exec',`
 		type crond_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	can_exec($1, crond_exec_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute crond server in the nscd domain.
+##	Execute crond server in the crond domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -321,8 +288,7 @@ interface(`cron_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	Inherit and use a file descriptor
-##	from the cron daemon.
+##	Use crond file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -340,7 +306,7 @@ interface(`cron_use_fds',`
 
 ########################################
 ## <summary>
-##	Send a SIGCHLD signal to the cron daemon.
+##	Send child terminated signals to crond.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -358,7 +324,7 @@ interface(`cron_sigchld',`
 
 ########################################
 ## <summary>
-##	Read a cron daemon unnamed pipe.
+##	Read cron daemon unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -376,7 +342,8 @@ interface(`cron_read_pipes',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to write cron daemon unnamed pipes.
+##	Do not audit attempts to write
+##	cron daemon unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -394,7 +361,7 @@ interface(`cron_dontaudit_write_pipes',`
 
 ########################################
 ## <summary>
-##	Read and write a cron daemon unnamed pipe.
+##	Read and write crond unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -412,7 +379,7 @@ interface(`cron_rw_pipes',`
 
 ########################################
 ## <summary>
-##	Read, and write cron daemon TCP sockets.
+##	Read and write crond TCP sockets.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -430,7 +397,8 @@ interface(`cron_rw_tcp_sockets',`
 
 ########################################
 ## <summary>
-##	Dontaudit Read, and write cron daemon TCP sockets.
+##	Do not audit attempts to read and
+##	write cron daemon TCP sockets.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -448,7 +416,7 @@ interface(`cron_dontaudit_rw_tcp_sockets',`
 
 ########################################
 ## <summary>
-##	Search the directory containing user cron tables.
+##	Search cron spool directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -467,7 +435,8 @@ interface(`cron_search_spool',`
 
 ########################################
 ## <summary>
-##	Manage pid files used by cron
+##	Create, read, write, and delete
+##	crond pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -485,7 +454,8 @@ interface(`cron_manage_pid_files',`
 
 ########################################
 ## <summary>
-##	Execute anacron in the cron system domain.
+##	Execute anacron in the cron
+##	system domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -498,13 +468,13 @@ interface(`cron_anacron_domtrans_system_job',`
 		type system_cronjob_t, anacron_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, anacron_exec_t, system_cronjob_t)
 ')
 
 ########################################
 ## <summary>
-##	Inherit and use a file descriptor
-##	from system cron jobs.
+##	Use system cron job file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -522,7 +492,7 @@ interface(`cron_use_system_job_fds',`
 
 ########################################
 ## <summary>
-##	Write a system cron job unnamed pipe.
+##	Write system cron job unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -540,7 +510,8 @@ interface(`cron_write_system_job_pipes',`
 
 ########################################
 ## <summary>
-##	Read and write a system cron job unnamed pipe.
+##	Read and write system cron job
+##	unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -558,7 +529,8 @@ interface(`cron_rw_system_job_pipes',`
 
 ########################################
 ## <summary>
-##	Allow read/write unix stream sockets from the system cron jobs.
+##	Read and write inherited system cron
+##	job unix domain stream sockets.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -576,7 +548,7 @@ interface(`cron_rw_system_job_stream_sockets',`
 
 ########################################
 ## <summary>
-##	Read temporary files from the system cron jobs.
+##	Read system cron job temporary files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -596,7 +568,7 @@ interface(`cron_read_system_job_tmp_files',`
 ########################################
 ## <summary>
 ##	Do not audit attempts to append temporary
-##	files from the system cron jobs.
+##	system cron job files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -615,7 +587,7 @@ interface(`cron_dontaudit_append_system_job_tmp_files',`
 ########################################
 ## <summary>
 ##	Do not audit attempts to write temporary
-##	files from the system cron jobs.
+##	system cron job files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
