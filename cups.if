@@ -1,12 +1,18 @@
-## <summary>Common UNIX printing system</summary>
+## <summary>Common UNIX printing system.</summary>
 
 ########################################
 ## <summary>
-##	Setup cups to transtion to the cups backend domain
+##	Create a domain which can be
+##	started by cupsd.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="entry_point">
+##	<summary>
+##	Type of the program to be used as an entry point to this domain.
 ##	</summary>
 ## </param>
 #
@@ -42,12 +48,14 @@ interface(`cups_domtrans',`
 		type cupsd_t, cupsd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, cupsd_exec_t, cupsd_t)
 ')
 
 ########################################
 ## <summary>
-##	Connect to cupsd over an unix domain stream socket.
+##	Connect to cupsd over an unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -120,7 +128,8 @@ interface(`cups_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Execute cups_config in the cups_config domain.
+##	Execute cups_config in the
+##	cups config domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -133,6 +142,7 @@ interface(`cups_domtrans_config',`
 		type cupsd_config_t, cupsd_config_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, cupsd_config_exec_t, cupsd_config_t)
 ')
 
@@ -193,8 +203,7 @@ interface(`cups_read_config',`
 	')
 
 	files_search_etc($1)
-	read_files_pattern($1, cupsd_etc_t, cupsd_etc_t)
-	read_files_pattern($1, cupsd_etc_t, cupsd_rw_etc_t)
+	read_files_pattern($1, cupsd_etc_t, { cupsd_etc_t cupsd_rw_etc_t })
 ')
 
 ########################################
@@ -277,7 +286,8 @@ interface(`cups_write_log',`
 
 ########################################
 ## <summary>
-##	Connect to ptal over an unix domain stream socket.
+##	Connect to ptal over an unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -296,8 +306,8 @@ interface(`cups_stream_connect_ptal',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an cups environment
+##	All of the rules required to
+##	administrate an cups environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -306,7 +316,7 @@ interface(`cups_stream_connect_ptal',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the cups domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -316,43 +326,35 @@ interface(`cups_admin',`
 		type cupsd_t, cupsd_tmp_t, cupsd_lpd_tmp_t;
 		type cupsd_etc_t, cupsd_log_t, cupsd_spool_t;
 		type cupsd_config_var_run_t, cupsd_lpd_var_run_t;
-		type cupsd_var_run_t, ptal_etc_t;
-		type ptal_var_run_t, hplip_var_run_t;
-		type cupsd_initrc_exec_t;
+		type cupsd_var_run_t, ptal_etc_t, cupsd_rw_etc_t;
+		type ptal_var_run_t, hplip_var_run_t, cupsd_initrc_exec_t;
+		type cupsd_config_t, cupsd_lpd_t, cups_pdf_t;
+		type hplip_t, ptal_t;
 	')
 
-	allow $1 cupsd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, cupsd_t)
+	allow $1 { cupsd_t cupsd_config_t cupsd_lpd_t }:process { ptrace signal_perms };
+	allow $1 { cups_pdf_t hplip_t ptal_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { cupsd_t cupsd_config_t cupsd_lpd_t })
+	ps_process_pattern($1, { cups_pdf_t hplip_t ptal_t })
 
 	init_labeled_script_domtrans($1, cupsd_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 cupsd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	admin_pattern($1, cupsd_etc_t)
 	files_list_etc($1)
+	admin_pattern($1, { cupsd_etc_t cupsd_rw_etc_t ptal_etc_t })
 
-	admin_pattern($1, cupsd_config_var_run_t)
-
-	admin_pattern($1, cupsd_log_t)
 	logging_list_logs($1)
+	admin_pattern($1, cupsd_log_t)
 
-	admin_pattern($1, cupsd_lpd_tmp_t)
-
-	admin_pattern($1, cupsd_lpd_var_run_t)
-
-	admin_pattern($1, cupsd_spool_t)
 	files_list_spool($1)
+	admin_pattern($1, cupsd_spool_t)
 
-	admin_pattern($1, cupsd_tmp_t)
 	files_list_tmp($1)
+	admin_pattern($1, { cupsd_tmp_t  cupsd_lpd_tmp_t })
 
-	admin_pattern($1, cupsd_var_run_t)
 	files_list_pids($1)
-
-	admin_pattern($1, hplip_var_run_t)
-
-	admin_pattern($1, ptal_etc_t)
-
-	admin_pattern($1, ptal_var_run_t)
+	admin_pattern($1, { cupsd_config_var_run_t cupsd_var_run_t hplip_var_run_t })
+	admin_pattern($1, { ptal_var_run_t cupsd_lpd_var_run_t })
 ')
