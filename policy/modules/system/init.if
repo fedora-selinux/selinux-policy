@@ -79,38 +79,6 @@ interface(`init_script_domain',`
 	domtrans_pattern(init_run_all_scripts_domain, $2, $1)
 ')
 
-
-#######################################
-## <summary>
-##  Create a domain which can be started by init.
-## </summary>
-## <param name="domain">
-##  <summary>
-##  Type to be used as a domain.
-##  </summary>
-## </param>
-## <param name="entry_point">
-##  <summary>
-##  Type of the program to be used as an entry point to this domain.
-##  </summary>
-## </param>
-#
-interface(`init_systemd_domain',`
-    gen_require(`
-        type init_t;
-        role system_r;
-    ')
-
-    domain_type($1)
-    domain_entry_file($1,$2)
-
-    role system_r types $1;
-
-    tunable_policy(`init_systemd',`
-        domtrans_pattern(init_t,$2,$1)
-    ')
-')
-
 ########################################
 ## <summary>
 ##	Create a domain which can be started by init.
@@ -137,11 +105,9 @@ interface(`init_domain',`
 
 	role system_r types $1;
 
-	tunable_policy(`init_systemd',`', `
-		domtrans_pattern(init_t, $2, $1)
-		allow init_t $1:unix_stream_socket create_stream_socket_perms;
-		allow $1 init_t:unix_dgram_socket sendto;
-	')
+	domtrans_pattern(init_t, $2, $1)
+	allow init_t $1:unix_stream_socket create_stream_socket_perms;
+	allow $1 init_t:unix_dgram_socket sendto;
 
 	ifdef(`hide_broken_symptoms',`
 		# RHEL4 systems seem to have a stray
@@ -228,7 +194,6 @@ interface(`init_ranged_domain',`
 interface(`init_daemon_domain',`
 	gen_require(`
 		attribute direct_run_init, direct_init, direct_init_entry;
-		type initrc_t;
 		type init_t;
 		role system_r;
 		attribute daemon;
@@ -237,23 +202,16 @@ interface(`init_daemon_domain',`
 	')
 
 	typeattribute $1 daemon;
+	typeattribute $2 direct_init_entry;
 
 	domain_type($1)
 	domain_entry_file($1, $2)
 
-	domtrans_pattern(initrc_t,$2,$1)
-	domtrans_pattern(initrc_domain, $2,$1) 
+	type_transition initrc_domain $2:process $1;
 
 	ifdef(`direct_sysadm_daemon',`
-		domtrans_pattern(direct_run_init, $2, $1)
-
+		type_transition direct_run_init $2:process $1;
 		typeattribute $1 direct_init;
-		typeattribute $2 direct_init_entry;
-	')
-
-	tunable_policy(`init_upstart || init_systemd',`
-	     # Handle upstart direct transition to a executable
-	     domtrans_pattern(init_t,$2,$1)
 	')
 ')
 
@@ -377,25 +335,18 @@ interface(`init_ranged_daemon_domain',`
 interface(`init_system_domain',`
 	gen_require(`
 		type init_t;
-		type initrc_t;
 		role system_r;
 		attribute initrc_transition_domain;
-		attribute systemprocess;
+		attribute systemprocess, systemprocess_entry;
 		attribute initrc_domain;
 	')
 
 	typeattribute $1 systemprocess;
 	application_domain($1, $2)
-
 	role system_r types $1;
+	typeattribute $2 systemprocess_entry;
 
-	domtrans_pattern(initrc_t,$2,$1)
-	domtrans_pattern(initrc_domain, $2,$1)
-
-	tunable_policy(`init_systemd',`
-		# Handle upstart/systemd direct transition to a executable
-		domtrans_pattern(init_t,$2,$1)
-	')
+	type_transition initrc_domain $2:process $1;
 ')
 
 ########################################
@@ -515,7 +466,7 @@ interface(`init_exec',`
 	corecmd_search_bin($1)
 	can_exec($1, init_exec_t)
 
-	tunable_policy(`init_systemd',`
+	optional_policy(`
 		systemd_exec_systemctl($1)
 	')
 ')
@@ -895,6 +846,7 @@ interface(`init_write_initctl',`
 interface(`init_telinit',`
 	gen_require(`
 		type initctl_t;
+		type init_t;
 	')
 
 	corecmd_exec_bin($1)
@@ -904,19 +856,13 @@ interface(`init_telinit',`
 
 	init_exec($1)
 
-	tunable_policy(`init_upstart || init_systemd',`
-		gen_require(`
-			type init_t;
-		')
-
-		ps_process_pattern($1, init_t)
-		allow $1 init_t:process signal;
-		# upstart uses a datagram socket instead of initctl pipe
-		allow $1 self:unix_dgram_socket create_socket_perms;
-		allow $1 init_t:unix_dgram_socket sendto;
-		#576913
-		allow $1 init_t:unix_stream_socket connectto;
-	')
+	ps_process_pattern($1, init_t)
+	allow $1 init_t:process signal;
+	# upstart uses a datagram socket instead of initctl pipe
+	allow $1 self:unix_dgram_socket create_socket_perms;
+	allow $1 init_t:unix_dgram_socket sendto;
+	#576913
+	allow $1 init_t:unix_stream_socket connectto;
 ')
 
 ########################################

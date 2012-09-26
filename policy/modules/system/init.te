@@ -11,20 +11,6 @@ gen_require(`
 
 ## <desc>
 ## <p>
-## Enable support for upstart as the init program.
-## </p>
-## </desc>
-gen_tunable(init_upstart, false)
-
-## <desc>
-## <p>
-## Enable support for systemd as the init program.
-## </p>
-## </desc>
-gen_tunable(init_systemd, false)
-
-## <desc>
-## <p>
 ## Allow all daemons to use tcp wrappers.
 ## </p>
 ## </desc>
@@ -60,6 +46,7 @@ attribute init_sock_file_type;
 # Mark process types as daemons
 attribute daemon;
 attribute systemprocess;
+attribute systemprocess_entry;
 
 # Mark process types as initrc domain
 attribute initrc_domain;
@@ -73,6 +60,7 @@ domain_type(init_t)
 domain_entry_file(init_t, init_exec_t)
 kernel_domtrans_to(init_t, init_exec_t)
 role system_r types init_t;
+init_initrc_domain(init_t)
 
 #
 # init_var_run_t is the type for /var/run/shutdown.pid.
@@ -98,7 +86,7 @@ type initctl_t;
 files_type(initctl_t)
 mls_trusted_object(initctl_t)
 
-type initrc_t, init_script_domain_type, init_run_all_scripts_domain;
+type initrc_t, initrc_domain, init_script_domain_type, init_run_all_scripts_domain;
 type initrc_exec_t, init_script_file_type;
 domain_type(initrc_t)
 domain_entry_file(initrc_t, initrc_exec_t)
@@ -292,13 +280,7 @@ ifdef(`distro_redhat',`
 	logging_relabel_syslog_pid_socket(init_t)
 ')
 
-tunable_policy(`init_upstart || init_systemd',`
-	corecmd_shell_domtrans(init_t, initrc_t)
-',`
-	# Run the shell in the sysadm role for single-user mode.
-	# causes problems with upstart
-	sysadm_shell_domtrans(init_t)
-')
+corecmd_shell_domtrans(init_t, initrc_t)
 
 storage_raw_rw_fixed_disk(init_t)
 
@@ -317,120 +299,114 @@ optional_policy(`
 	mta_read_aliases(init_t)
 ')
 
-tunable_policy(`init_systemd',`
-	allow init_t self:system all_system_perms;
-	allow init_t self:unix_dgram_socket { create_socket_perms sendto };
-	allow init_t self:process { setsockcreate setfscreate setrlimit };
-	allow init_t self:process { getcap setcap };
-	allow init_t self:unix_stream_socket { create_stream_socket_perms connectto };
-	allow init_t self:netlink_kobject_uevent_socket create_socket_perms; 
-	allow init_t self:netlink_selinux_socket create_socket_perms;
-	# Until systemd is fixed
-	allow daemon init_t:socket_class_set { getopt read getattr ioctl setopt write };
-	allow init_t self:udp_socket create_socket_perms;
-	allow init_t self:netlink_route_socket create_netlink_socket_perms;
+allow init_t self:system all_system_perms;
+allow init_t self:unix_dgram_socket { create_socket_perms sendto };
+allow init_t self:process { setsockcreate setfscreate setrlimit };
+allow init_t self:process { getcap setcap };
+allow init_t self:unix_stream_socket { create_stream_socket_perms connectto };
+allow init_t self:netlink_kobject_uevent_socket create_socket_perms; 
+allow init_t self:netlink_selinux_socket create_socket_perms;
+# Until systemd is fixed
+allow daemon init_t:socket_class_set { getopt read getattr ioctl setopt write };
+allow init_t self:udp_socket create_socket_perms;
+allow init_t self:netlink_route_socket create_netlink_socket_perms;
 
-	allow init_t initrc_t:unix_dgram_socket create_socket_perms;
+allow init_t initrc_t:unix_dgram_socket create_socket_perms;
 
-	kernel_list_unlabeled(init_t)
-	kernel_read_network_state(init_t)
-	kernel_rw_kernel_sysctl(init_t)
-	kernel_rw_net_sysctls(init_t)
-	kernel_read_all_sysctls(init_t)
-	kernel_read_software_raid_state(init_t)
-	kernel_unmount_debugfs(init_t)
-	kernel_setsched(init_t)
+kernel_list_unlabeled(init_t)
+kernel_read_network_state(init_t)
+kernel_rw_kernel_sysctl(init_t)
+kernel_rw_net_sysctls(init_t)
+kernel_read_all_sysctls(init_t)
+kernel_read_software_raid_state(init_t)
+kernel_unmount_debugfs(init_t)
+kernel_setsched(init_t)
 
-	dev_write_kmsg(init_t)
-	dev_write_urand(init_t)
-	dev_rw_lvm_control(init_t)
-	dev_rw_autofs(init_t)
-	dev_manage_generic_symlinks(init_t)
-	dev_manage_generic_dirs(init_t)
-	dev_manage_generic_files(init_t)
-	dev_read_generic_chr_files(init_t)
-	dev_relabel_generic_dev_dirs(init_t)
-	dev_relabel_all_dev_nodes(init_t)
-	dev_relabel_all_dev_files(init_t)
-	dev_manage_sysfs_dirs(init_t)
-	dev_relabel_sysfs_dirs(init_t)
+dev_write_kmsg(init_t)
+dev_write_urand(init_t)
+dev_rw_lvm_control(init_t)
+dev_rw_autofs(init_t)
+dev_manage_generic_symlinks(init_t)
+dev_manage_generic_dirs(init_t)
+dev_manage_generic_files(init_t)
+dev_read_generic_chr_files(init_t)
+dev_relabel_generic_dev_dirs(init_t)
+dev_relabel_all_dev_nodes(init_t)
+dev_relabel_all_dev_files(init_t)
+dev_manage_sysfs_dirs(init_t)
+dev_relabel_sysfs_dirs(init_t)
 
-	files_search_all(init_t)
-	files_mounton_all_mountpoints(init_t)
-	files_unmount_all_file_type_fs(init_t)
-	files_manage_all_pid_dirs(init_t)
-	files_manage_etc_dirs(init_t)
-	files_manage_generic_tmp_dirs(init_t)
-	files_relabel_all_pid_dirs(init_t)
-	files_relabel_all_pid_files(init_t)
-	files_create_all_pid_sockets(init_t)
-	files_delete_all_pids(init_t)
-	files_exec_generic_pid_files(init_t)
-	files_create_all_pid_pipes(init_t)
-	files_create_all_spool_sockets(init_t)
-	files_delete_all_spool_sockets(init_t)
-	files_manage_urandom_seed(init_t)
-	files_list_locks(init_t)
-	files_list_spool(init_t)
-	files_list_var(init_t)
-	files_list_boot(init_t)
-	files_list_home(init_t)
-	files_create_lock_dirs(init_t)
-	files_relabel_all_lock_dirs(init_t)
-	files_read_kernel_modules(init_t)
+files_search_all(init_t)
+files_mounton_all_mountpoints(init_t)
+files_unmount_all_file_type_fs(init_t)
+files_manage_all_pid_dirs(init_t)
+files_manage_etc_dirs(init_t)
+files_manage_generic_tmp_dirs(init_t)
+files_relabel_all_pid_dirs(init_t)
+files_relabel_all_pid_files(init_t)
+files_create_all_pid_sockets(init_t)
+files_delete_all_pids(init_t)
+files_exec_generic_pid_files(init_t)
+files_create_all_pid_pipes(init_t)
+files_create_all_spool_sockets(init_t)
+files_delete_all_spool_sockets(init_t)
+files_manage_urandom_seed(init_t)
+files_list_locks(init_t)
+files_list_spool(init_t)
+files_list_var(init_t)
+files_list_boot(init_t)
+files_list_home(init_t)
+files_create_lock_dirs(init_t)
+files_relabel_all_lock_dirs(init_t)
+files_read_kernel_modules(init_t)
+fs_getattr_all_fs(init_t)
+fs_manage_cgroup_dirs(init_t)
+fs_manage_cgroup_files(init_t)
+fs_manage_hugetlbfs_dirs(init_t)
+fs_manage_tmpfs_dirs(init_t)
+fs_relabel_tmpfs_dirs(init_t)
+fs_relabel_tmpfs_files(init_t)
+fs_relabel_tmpfs_fifo_files(init_t)
+fs_mount_all_fs(init_t)
+fs_unmount_all_fs(init_t)
+fs_remount_all_fs(init_t)
+fs_list_auto_mountpoints(init_t)
+fs_register_binary_executable_type(init_t)
+fs_relabel_tmpfs_sock_file(init_t)
+fs_rw_tmpfs_files(init_t)	
+fs_relabel_cgroup_dirs(init_t)
+fs_search_cgroup_dirs(init_t)
+selinux_compute_access_vector(init_t)
+selinux_compute_create_context(init_t)
+selinux_validate_context(init_t)
+selinux_unmount_fs(init_t)
 
-	fs_getattr_all_fs(init_t)
-	fs_manage_cgroup_dirs(init_t)
-	fs_manage_cgroup_files(init_t)
-	fs_manage_hugetlbfs_dirs(init_t)
-	fs_manage_tmpfs_dirs(init_t)
-	fs_relabel_tmpfs_dirs(init_t)
-	fs_relabel_tmpfs_files(init_t)
-	fs_relabel_tmpfs_fifo_files(init_t)
-	fs_mount_all_fs(init_t)
-	fs_unmount_all_fs(init_t)
-	fs_remount_all_fs(init_t)
-	fs_list_auto_mountpoints(init_t)
-	fs_register_binary_executable_type(init_t)
-	fs_relabel_tmpfs_sock_file(init_t)
-	fs_rw_tmpfs_files(init_t)	
-	fs_relabel_cgroup_dirs(init_t)
-	fs_search_cgroup_dirs(init_t)
+storage_getattr_removable_dev(init_t)
 
+term_relabel_ptys_dirs(init_t)
 
-	selinux_compute_access_vector(init_t)
-	selinux_compute_create_context(init_t)
-	selinux_validate_context(init_t)
-	selinux_unmount_fs(init_t)
+auth_relabel_login_records(init_t)
+auth_relabel_pam_console_data_dirs(init_t)
 
-	storage_getattr_removable_dev(init_t)
+clock_read_adjtime(init_t)
 
-	term_relabel_ptys_dirs(init_t)
+init_read_script_state(init_t)
 
-	auth_relabel_login_records(init_t)
-	auth_relabel_pam_console_data_dirs(init_t)
+modutils_read_module_config(init_t)
 
-	clock_read_adjtime(init_t)
+seutil_read_file_contexts(init_t)
 
-	init_read_script_state(init_t)
+systemd_exec_systemctl(init_t)
+systemd_manage_unit_dirs(init_t)
+systemd_manage_all_unit_files(init_t)
+systemd_logger_stream_connect(init_t)
+systemd_config_all_services(init_t)
+systemd_relabelto_fifo_file_passwd_run(init_t)
+systemd_relabel_unit_dirs(init_t)
+systemd_relabel_unit_files(init_t)
+systemd_config_all_services(initrc_t)
 
-	modutils_read_module_config(init_t)
-
-	seutil_read_file_contexts(init_t)
-
-	systemd_exec_systemctl(init_t)
-	systemd_manage_unit_dirs(init_t)
-	systemd_manage_all_unit_files(init_t)
-	systemd_logger_stream_connect(init_t)
-	systemd_config_all_services(init_t)
-	systemd_relabelto_fifo_file_passwd_run(init_t)
-	systemd_relabel_unit_dirs(init_t)
-	systemd_relabel_unit_files(init_t)
-	systemd_config_all_services(initrc_t)
-
-	create_sock_files_pattern(init_t, init_sock_file_type, init_sock_file_type)
-
-')
+create_sock_files_pattern(init_t, init_sock_file_type, init_sock_file_type)
 
 auth_use_nsswitch(init_t)
 auth_rw_login_records(init_t)
@@ -1406,16 +1382,14 @@ allow initrc_t daemon:process siginh;
 allow daemon initrc_transition_domain:fifo_file rw_inherited_fifo_file_perms;
 allow daemon initrc_transition_domain:fd use;
 
-tunable_policy(`init_systemd',`
-	allow init_t daemon:unix_stream_socket create_stream_socket_perms;
-	allow init_t daemon:unix_dgram_socket create_socket_perms;
-	allow init_t daemon:tcp_socket create_stream_socket_perms;
-	allow init_t daemon:udp_socket create_socket_perms;
-	allow daemon init_t:unix_dgram_socket sendto;
-	# need write to /var/run/systemd/notify
-	init_write_pid_socket(daemon)
-	allow daemon init_t:unix_stream_socket { append write read getattr ioctl };
-')
+allow init_t daemon:unix_stream_socket create_stream_socket_perms;
+allow init_t daemon:unix_dgram_socket create_socket_perms;
+allow init_t daemon:tcp_socket create_stream_socket_perms;
+allow init_t daemon:udp_socket create_socket_perms;
+allow daemon init_t:unix_dgram_socket sendto;
+# need write to /var/run/systemd/notify
+init_write_pid_socket(daemon)
+allow daemon init_t:unix_stream_socket { append write read getattr ioctl };
 
 # daemons started from init will
 # inherit fds from init for the console
@@ -1453,32 +1427,19 @@ allow systemprocess initrc_transition_domain:fd use;
 
 dontaudit systemprocess init_t:unix_stream_socket getattr;
 
+allow init_t daemon:unix_stream_socket create_stream_socket_perms;
+allow init_t daemon:unix_dgram_socket create_socket_perms;
+allow daemon init_t:unix_stream_socket ioctl;
+allow daemon init_t:unix_dgram_socket sendto;
+# need write to /var/run/systemd/notify
+init_write_pid_socket(daemon)
 
-tunable_policy(`init_systemd',`
-        allow init_t daemon:unix_stream_socket create_stream_socket_perms;
-        allow init_t daemon:unix_dgram_socket create_socket_perms;
-	allow daemon init_t:unix_stream_socket ioctl;
-        allow daemon init_t:unix_dgram_socket sendto;
-	# need write to /var/run/systemd/notify
-	init_write_pid_socket(daemon)
-')
-
-tunable_policy(`init_systemd',`
-	# Handle upstart/systemd direct transition to a executable
-	allow init_t systemprocess:process { dyntransition siginh };
-	allow init_t systemprocess:unix_stream_socket create_stream_socket_perms;
-	allow init_t systemprocess:unix_dgram_socket create_socket_perms;
-	allow systemprocess init_t:unix_dgram_socket sendto;
-	allow systemprocess init_t:unix_stream_socket { append write read getattr ioctl };
-')
-
-ifdef(`hide_broken_symptoms',`
-	# RHEL4 systems seem to have a stray
-	# fds open from the initrd
-	ifdef(`distro_rhel4',`
-		kernel_dontaudit_use_fds(systemprocess)
-	')
-')
+# Handle upstart/systemd direct transition to a executable
+allow init_t systemprocess:process { dyntransition siginh };
+allow init_t systemprocess:unix_stream_socket create_stream_socket_perms;
+allow init_t systemprocess:unix_dgram_socket create_socket_perms;
+allow systemprocess init_t:unix_dgram_socket sendto;
+allow systemprocess init_t:unix_stream_socket { append write read getattr ioctl };
 
 userdom_dontaudit_search_user_home_dirs(systemprocess)
 userdom_dontaudit_rw_stream(systemprocess)
@@ -1529,3 +1490,22 @@ role system_r types daemon;
 #ifdef(`enable_mls',`
 #	mls_rangetrans_target(systemprocess)
 #')
+
+allow initrc_domain daemon:process transition;
+allow daemon initrc_domain:fd use;
+allow daemon initrc_domain:fifo_file rw_inherited_fifo_file_perms;
+allow daemon initrc_domain:process sigchld;
+allow initrc_domain direct_init_entry:file { getattr open read execute };
+
+allow systemprocess initrc_domain:fd use;
+allow systemprocess initrc_domain:fifo_file rw_inherited_fifo_file_perms;
+allow systemprocess initrc_domain:process sigchld;
+allow initrc_domain systemprocess_entry:file { getattr open read execute };
+allow initrc_domain systemprocess:process transition;
+
+ifdef(`direct_sysadm_daemon',`
+     allow daemon direct_run_init:fd use;
+     allow daemon direct_run_init:fifo_file rw_inherited_fifo_file_perms;
+     allow daemon direct_run_init:process sigchld;
+     allow direct_run_init direct_init_entry:file { getattr open read execute };
+')
