@@ -1,9 +1,12 @@
-policy_module(daemontools, 1.2.0)
+policy_module(daemontools, 1.2.1)
 
 ########################################
 #
 # Declarations
 #
+
+attribute_role svc_start_roles;
+roleattribute system_r svc_start_roles;
 
 type svc_conf_t;
 files_config_file(svc_conf_t)
@@ -25,25 +28,25 @@ type svc_start_t;
 type svc_start_exec_t;
 init_domain(svc_start_t, svc_start_exec_t)
 init_system_domain(svc_start_t, svc_start_exec_t)
-role system_r types svc_start_t;
+role svc_start_roles types svc_start_t;
 
 type svc_svc_t;
 files_type(svc_svc_t)
 
 ########################################
 #
-# multilog local policy
+# Multilog local policy
 #
 
-# multilog creates /service/*/log/status
 manage_files_pattern(svc_multilog_t, svc_svc_t, svc_svc_t)
+
+allow svc_multilog_t svc_start_t:process sigchld;
+allow svc_multilog_t svc_start_t:fd use;
+allow svc_multilog_t svc_start_t:fifo_file rw_fifo_file_perms;
 
 init_use_fds(svc_multilog_t)
 
-# writes to /var/log/*/*
 logging_manage_generic_logs(svc_multilog_t)
-
-daemontools_ipc_domain(svc_multilog_t)
 
 ########################################
 #
@@ -60,7 +63,12 @@ allow svc_run_t self:unix_stream_socket create_stream_socket_perms;
 allow svc_run_t svc_conf_t:dir list_dir_perms;
 allow svc_run_t svc_conf_t:file read_file_perms;
 
+allow svc_run_t svc_svc_t:dir list_dir_perms;
+allow svc_run_t svc_svc_t:file read_file_perms;
+
 can_exec(svc_run_t, svc_run_exec_t)
+
+domtrans_pattern(svc_run_t, svc_multilog_exec_t, svc_multilog_t)
 
 kernel_read_system_state(svc_run_t)
 
@@ -77,9 +85,6 @@ files_search_var_lib(svc_run_t)
 init_use_script_fds(svc_run_t)
 init_use_fds(svc_run_t)
 
-daemontools_domtrans_multilog(svc_run_t)
-daemontools_read_svc(svc_run_t)
-
 optional_policy(`
 	qmail_read_config(svc_run_t)
 ')
@@ -90,14 +95,21 @@ optional_policy(`
 # ie svc, svscan, supervise ...
 #
 
+allow svc_start_t self:capability kill;
+allow svc_start_t self:fifo_file rw_fifo_file_perms;
+allow svc_start_t self:tcp_socket create_stream_socket_perms;
+
+allow svc_start_t svc_svc_t:dir manage_dir_perms;
+allow svc_start_t svc_svc_t:fifo_file manage_fifo_file_perms;
+allow svc_start_t svc_svc_t:file manage_file_perms;
+allow svc_start_t svc_svc_t:lnk_file manage_lnk_file_perms;
+
+allow svc_start_t svc_multilog_t:process signal;
 allow svc_start_t svc_run_t:process { signal setrlimit };
 
-allow svc_start_t self:fifo_file rw_fifo_file_perms;
-allow svc_start_t self:capability kill;
-allow svc_start_t self:tcp_socket create_stream_socket_perms;
-allow svc_start_t self:unix_stream_socket create_socket_perms;
-
 can_exec(svc_start_t, svc_start_exec_t)
+
+domtrans_pattern(svc_start_t, svc_run_exec_t, svc_run_t)
 
 kernel_read_kernel_sysctls(svc_start_t)
 kernel_read_system_state(svc_start_t)
@@ -109,9 +121,6 @@ files_read_etc_files(svc_start_t)
 files_read_etc_runtime_files(svc_start_t)
 files_search_var(svc_start_t)
 files_search_pids(svc_start_t)
-
-daemontools_domtrans_run(svc_start_t)
-daemontools_manage_svc(svc_start_t)
 
 logging_send_syslog_msg(svc_start_t)
 
