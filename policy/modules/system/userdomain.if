@@ -688,13 +688,7 @@ template(`userdom_common_user_template',`
 	# to this one.
 	seutil_dontaudit_signal_newrole($1_t)
 
-	tunable_policy(`user_direct_mouse',`
-		dev_read_mouse($1_usertype)
-	')
-
-	tunable_policy(`user_ttyfile_stat',`
-		term_getattr_all_ttys($1_t)
-	')
+	term_getattr_all_ttys($1_t)
 
 	optional_policy(`
 		# Allow graphical boot to check battery lifespan
@@ -807,7 +801,7 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		tunable_policy(`user_mysql_connect',`
+		tunable_policy(`selinuxuser_mysql_connect_enabled',`
 			mysql_stream_connect($1_t)
 		')
 	')
@@ -828,7 +822,7 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		tunable_policy(`user_postgresql_connect',`
+		tunable_policy(`selinuxuser_postgresql_connect_enabled',`
 			postgresql_stream_connect($1_usertype)
 			postgresql_tcp_connect($1_usertype)
 		')
@@ -924,7 +918,8 @@ template(`userdom_login_user_template', `
 	# User domain Local policy
 	#
 	dontaudit $1_t self:capability { sys_nice fsetid };
-	allow $1_t self:process ~{ ptrace setrlimit execmem execstack execheap };
+	allow $1_t self:process ~{ ptrace execmem execstack execheap };
+
 	dontaudit $1_t self:process setrlimit;
 	dontaudit $1_t self:netlink_route_socket { create ioctl read getattr write setattr append bind connect getopt setopt shutdown nlmsg_read nlmsg_write };
 	domain_dyntrans_type($1_t)
@@ -1102,7 +1097,7 @@ template(`userdom_restricted_xwindows_user_template',`
 
 	libs_dontaudit_setattr_lib_files($1_usertype)
 
-	tunable_policy(`user_rw_noexattrfile',`
+	tunable_policy(`selinuxuser_rw_noexattrfile',`
 		dev_rw_usbfs($1_t)
 		dev_rw_generic_usb_dev($1_usertype)
 
@@ -1257,7 +1252,7 @@ template(`userdom_unpriv_user_template', `
 	ifndef(`enable_mls',`
 		fs_exec_noxattr($1_t)
 
-		tunable_policy(`user_rw_noexattrfile',`
+		tunable_policy(`selinuxuser_rw_noexattrfile',`
 			fs_manage_noxattr_fs_files($1_t)
 			fs_manage_noxattr_fs_dirs($1_t)
 			# Write floppies
@@ -1274,16 +1269,12 @@ template(`userdom_unpriv_user_template', `
 	# the same domain and outside users) disabling this forces FTP passive mode
 	# and may change other protocols
 
-	tunable_policy(`user_share_music',`
+	tunable_policy(`selinuxuser_user_share_music',`
 		corenet_tcp_bind_daap_port($1_usertype)
 	')
 
-	tunable_policy(`user_tcp_server',`
+	tunable_policy(`selinuxuser_tcp_server',`
 		corenet_tcp_bind_all_unreserved_ports($1_usertype)
-	')
-
-	tunable_policy(`user_setrlimit',`
-		allow $1_usertype self:process setrlimit;
 	')
 
 	optional_policy(`
@@ -1507,14 +1498,14 @@ template(`userdom_admin_user_template',`
 	userdom_manage_user_home_content_sockets($1_t)
 	userdom_user_home_dir_filetrans_user_home_content($1_t, { dir file lnk_file fifo_file sock_file })
 
-	tunable_policy(`user_rw_noexattrfile',`
+	tunable_policy(`selinuxuser_rw_noexattrfile',`
 		fs_manage_noxattr_fs_files($1_t)
 		fs_manage_noxattr_fs_dirs($1_t)
 	',`
 		fs_read_noxattr_fs_files($1_t)
 	')
 
-	tunable_policy(`user_tcp_server',`
+	tunable_policy(`selinuxuser_tcp_server',`
         corenet_tcp_bind_all_unreserved_ports($1_t)
     ')
 
@@ -1608,10 +1599,6 @@ template(`userdom_security_admin_template',`
 
 	optional_policy(`
 		consoletype_exec($1)
-	')
-
-	optional_policy(`
-		dmesg_exec($1)
 	')
 
 	optional_policy(`	
