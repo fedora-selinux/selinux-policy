@@ -1,4 +1,4 @@
-policy_module(cvs, 1.9.0)
+policy_module(cvs, 1.9.1)
 
 ########################################
 #
@@ -6,9 +6,10 @@ policy_module(cvs, 1.9.0)
 #
 
 ## <desc>
-## <p>
-## Allow cvs daemon to read shadow
-## </p>
+##	<p>
+##	Determine whether cvs can read shadow
+##	password files.
+##	</p>
 ## </desc>
 gen_tunable(allow_cvs_read_shadow, false)
 
@@ -16,7 +17,6 @@ type cvs_t;
 type cvs_exec_t;
 inetd_tcp_service_domain(cvs_t, cvs_exec_t)
 application_executable_file(cvs_exec_t)
-role system_r types cvs_t;
 
 type cvs_data_t; # customizable
 files_type(cvs_data_t)
@@ -35,12 +35,10 @@ files_pid_file(cvs_var_run_t)
 # Local policy
 #
 
+allow cvs_t self:capability { setuid setgid };
 allow cvs_t self:process signal_perms;
 allow cvs_t self:fifo_file rw_fifo_file_perms;
-allow cvs_t self:tcp_socket connected_stream_socket_perms;
-# for identd; cjp: this should probably only be inetd_child rules?
 allow cvs_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
-allow cvs_t self:capability { setuid setgid };
 
 manage_dirs_pattern(cvs_t, cvs_data_t, cvs_data_t)
 manage_files_pattern(cvs_t, cvs_data_t, cvs_data_t)
@@ -48,7 +46,7 @@ manage_lnk_files_pattern(cvs_t, cvs_data_t, cvs_data_t)
 
 manage_dirs_pattern(cvs_t, cvs_tmp_t, cvs_tmp_t)
 manage_files_pattern(cvs_t, cvs_tmp_t, cvs_tmp_t)
-files_tmp_filetrans(cvs_t, cvs_tmp_t, { file dir })
+files_tmp_filetrans(cvs_t, cvs_tmp_t, { dir file })
 
 manage_files_pattern(cvs_t, cvs_var_run_t, cvs_var_run_t)
 files_pid_filetrans(cvs_t, cvs_var_run_t, file)
@@ -57,29 +55,20 @@ kernel_read_kernel_sysctls(cvs_t)
 kernel_read_system_state(cvs_t)
 kernel_read_network_state(cvs_t)
 
-corenet_all_recvfrom_unlabeled(cvs_t)
-corenet_all_recvfrom_netlabel(cvs_t)
-corenet_tcp_sendrecv_generic_if(cvs_t)
-corenet_udp_sendrecv_generic_if(cvs_t)
-corenet_tcp_sendrecv_generic_node(cvs_t)
-corenet_udp_sendrecv_generic_node(cvs_t)
-corenet_tcp_sendrecv_all_ports(cvs_t)
-corenet_udp_sendrecv_all_ports(cvs_t)
+corecmd_exec_bin(cvs_t)
+corecmd_exec_shell(cvs_t)
 
 dev_read_urand(cvs_t)
+
+files_read_etc_runtime_files(cvs_t)
+files_search_home(cvs_t)
 
 fs_getattr_xattr_fs(cvs_t)
 
 auth_domtrans_chk_passwd(cvs_t)
 auth_use_nsswitch(cvs_t)
 
-corecmd_exec_bin(cvs_t)
-corecmd_exec_shell(cvs_t)
-
-files_read_etc_files(cvs_t)
-files_read_etc_runtime_files(cvs_t)
-# for identd; cjp: this should probably only be inetd_child rules?
-files_search_home(cvs_t)
+init_read_utmp(cvs_t)
 
 logging_send_syslog_msg(cvs_t)
 logging_send_audit_msgs(cvs_t)
@@ -87,6 +76,8 @@ logging_send_audit_msgs(cvs_t)
 miscfiles_read_localization(cvs_t)
 
 mta_send_mail(cvs_t)
+
+userdom_dontaudit_search_user_home_dirs(cvs_t)
 
 # cjp: typeattribute doesnt work in conditionals yet
 auth_can_read_shadow_passwords(cvs_t)
@@ -103,7 +94,7 @@ optional_policy(`
 
 ########################################
 #
-# CVSWeb policy
+# CVSWeb local policy
 #
 
 optional_policy(`
