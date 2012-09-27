@@ -1,12 +1,12 @@
-policy_module(dbus, 1.17.1)
+policy_module(dbus, 1.18.0)
 
 gen_require(`
 	class dbus all_dbus_perms;
 ')
 
-##############################
+########################################
 #
-# Delcarations
+# Declarations
 #
 
 attribute dbusd_unconfined;
@@ -45,24 +45,18 @@ ifdef(`enable_mls',`
 	init_ranged_system_domain(system_dbusd_t, dbusd_exec_t, s0 - mls_systemhigh)
 ')
 
-##############################
+########################################
 #
-# System bus local policy
+# Local policy
 #
 
-# dac_override: /var/run/dbus is owned by messagebus on Debian
-# cjp: dac_override should probably go in a distro_debian
-allow system_dbusd_t self:capability { dac_override setgid setpcap setuid };
+allow system_dbusd_t self:capability { sys_resource dac_override setgid setpcap setuid };
 dontaudit system_dbusd_t self:capability sys_tty_config;
-allow system_dbusd_t self:process { getattr getsched signal_perms setpgid getcap setcap };
+allow system_dbusd_t self:process { getattr getsched signal_perms setpgid getcap setcap setrlimit };
 allow system_dbusd_t self:fifo_file rw_fifo_file_perms;
 allow system_dbusd_t self:dbus { send_msg acquire_svc };
-allow system_dbusd_t self:unix_stream_socket { connectto create_stream_socket_perms connectto };
-allow system_dbusd_t self:unix_dgram_socket create_socket_perms;
-# Receive notifications of policy reloads and enforcing status changes.
+allow system_dbusd_t self:unix_stream_socket { accept connectto listen };
 allow system_dbusd_t self:netlink_selinux_socket { create bind read };
-
-can_exec(system_dbusd_t, dbusd_exec_t)
 
 allow system_dbusd_t dbusd_etc_t:dir list_dir_perms;
 read_files_pattern(system_dbusd_t, dbusd_etc_t, dbusd_etc_t)
@@ -70,19 +64,33 @@ read_lnk_files_pattern(system_dbusd_t, dbusd_etc_t, dbusd_etc_t)
 
 manage_dirs_pattern(system_dbusd_t, system_dbusd_tmp_t, system_dbusd_tmp_t)
 manage_files_pattern(system_dbusd_t, system_dbusd_tmp_t, system_dbusd_tmp_t)
-files_tmp_filetrans(system_dbusd_t, system_dbusd_tmp_t, { file dir })
+files_tmp_filetrans(system_dbusd_t, system_dbusd_tmp_t, { dir file })
 
 read_files_pattern(system_dbusd_t, system_dbusd_var_lib_t, system_dbusd_var_lib_t)
 
+manage_dirs_pattern(system_dbusd_t, system_dbusd_var_run_t, system_dbusd_var_run_t)
 manage_files_pattern(system_dbusd_t, system_dbusd_var_run_t, system_dbusd_var_run_t)
 manage_sock_files_pattern(system_dbusd_t, system_dbusd_var_run_t, system_dbusd_var_run_t)
-files_pid_filetrans(system_dbusd_t, system_dbusd_var_run_t, file)
+files_pid_filetrans(system_dbusd_t, system_dbusd_var_run_t, { dir file })
+
+can_exec(system_dbusd_t, dbusd_exec_t)
 
 kernel_read_system_state(system_dbusd_t)
 kernel_read_kernel_sysctls(system_dbusd_t)
 
+corecmd_list_bin(system_dbusd_t)
+corecmd_read_bin_pipes(system_dbusd_t)
+corecmd_read_bin_sockets(system_dbusd_t)
+corecmd_exec_shell(system_dbusd_t)
+
 dev_read_urand(system_dbusd_t)
 dev_read_sysfs(system_dbusd_t)
+
+domain_use_interactive_fds(system_dbusd_t)
+domain_read_all_domains_state(system_dbusd_t)
+
+files_list_home(system_dbusd_t)
+files_read_usr_files(system_dbusd_t)
 
 fs_getattr_all_fs(system_dbusd_t)
 fs_list_inotifyfs(system_dbusd_t)
@@ -108,16 +116,9 @@ term_dontaudit_use_console(system_dbusd_t)
 auth_use_nsswitch(system_dbusd_t)
 auth_read_pam_console_data(system_dbusd_t)
 
-corecmd_list_bin(system_dbusd_t)
-corecmd_read_bin_pipes(system_dbusd_t)
-corecmd_read_bin_sockets(system_dbusd_t)
-
-domain_use_interactive_fds(system_dbusd_t)
-domain_read_all_domains_state(system_dbusd_t)
-
-files_read_etc_files(system_dbusd_t)
-files_list_home(system_dbusd_t)
-files_read_usr_files(system_dbusd_t)
+init_use_fds(system_dbusd_t)
+init_use_script_ptys(system_dbusd_t)
+init_domtrans_script(system_dbusd_t)
 
 init_use_fds(system_dbusd_t)
 init_use_script_ptys(system_dbusd_t)
@@ -141,6 +142,14 @@ optional_policy(`
 ')
 
 optional_policy(`
+	bluetooth_stream_connect(system_dbusd_t)
+')
+
+optional_policy(`
+	cpufreqselector_dbus_chat(system_dbusd_t)
+')
+
+optional_policy(`
 	policykit_dbus_chat(system_dbusd_t)
 	policykit_domtrans_auth(system_dbusd_t)
 	policykit_search_lib(system_dbusd_t)
@@ -156,7 +165,92 @@ optional_policy(`
 
 ########################################
 #
+# Common session bus local policy
+#
+
+allow session_bus_type self:capability2 block_suspend;
+dontaudit session_bus_type self:capability sys_resource;
+allow session_bus_type self:process { getattr sigkill signal };
+dontaudit session_bus_type self:process { ptrace setrlimit };
+allow session_bus_type self:file { getattr read write };
+allow session_bus_type self:fifo_file rw_fifo_file_perms;
+allow session_bus_type self:dbus { send_msg acquire_svc };
+allow session_bus_type self:unix_stream_socket { accept listen };
+allow session_bus_type self:tcp_socket { accept listen };
+allow session_bus_type self:netlink_selinux_socket create_socket_perms;
+
+allow session_bus_type dbusd_etc_t:dir list_dir_perms;
+read_files_pattern(session_bus_type, dbusd_etc_t, dbusd_etc_t)
+read_lnk_files_pattern(session_bus_type, dbusd_etc_t, dbusd_etc_t)
+
+manage_dirs_pattern(session_bus_type, session_dbusd_tmp_t, session_dbusd_tmp_t)
+manage_files_pattern(session_bus_type, session_dbusd_tmp_t, session_dbusd_tmp_t)
+files_tmp_filetrans(session_bus_type, session_dbusd_tmp_t, { dir file })
+
+kernel_read_system_state(session_bus_type)
+kernel_read_kernel_sysctls(session_bus_type)
+
+corecmd_list_bin(session_bus_type)
+corecmd_read_bin_symlinks(session_bus_type)
+corecmd_read_bin_files(session_bus_type)
+corecmd_read_bin_pipes(session_bus_type)
+corecmd_read_bin_sockets(session_bus_type)
+
+corenet_all_recvfrom_unlabeled(session_bus_type)
+corenet_all_recvfrom_netlabel(session_bus_type)
+corenet_tcp_sendrecv_generic_if(session_bus_type)
+corenet_tcp_sendrecv_generic_node(session_bus_type)
+corenet_tcp_sendrecv_all_ports(session_bus_type)
+corenet_tcp_bind_generic_node(session_bus_type)
+
+corenet_sendrecv_all_server_packets(session_bus_type)
+corenet_tcp_bind_reserved_port(session_bus_type)
+
+dev_read_urand(session_bus_type)
+
+domain_read_all_domains_state(session_bus_type)
+domain_use_interactive_fds(session_bus_type)
+
+files_list_home(session_bus_type)
+files_read_usr_files(session_bus_type)
+files_dontaudit_search_var(session_bus_type)
+
+fs_getattr_romfs(session_bus_type)
+fs_getattr_xattr_fs(session_bus_type)
+fs_list_inotifyfs(session_bus_type)
+fs_dontaudit_list_nfs(session_bus_type)
+
+selinux_get_fs_mount(session_bus_type)
+selinux_validate_context(session_bus_type)
+selinux_compute_access_vector(session_bus_type)
+selinux_compute_create_context(session_bus_type)
+selinux_compute_relabel_context(session_bus_type)
+selinux_compute_user_contexts(session_bus_type)
+
+auth_read_pam_console_data(session_bus_type)
+
+logging_send_audit_msgs(session_bus_type)
+logging_send_syslog_msg(session_bus_type)
+
+miscfiles_read_localization(session_bus_type)
+
+seutil_read_config(session_bus_type)
+seutil_read_default_contexts(session_bus_type)
+
+term_use_all_terms(session_bus_type)
+
+optional_policy(`
+	hal_dbus_chat(session_bus_type)
+')
+
+optional_policy(`
+	xserver_use_xdm_fds(session_bus_type)
+	xserver_rw_xdm_pipes(session_bus_type)
+')
+
+########################################
+#
 # Unconfined access to this module
 #
 
-allow dbusd_unconfined session_bus_type:dbus all_dbus_perms;
+allow dbusd_unconfined { system_dbusd_t session_bus_type }:dbus all_dbus_perms;
