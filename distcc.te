@@ -1,4 +1,4 @@
-policy_module(distcc, 1.8.0)
+policy_module(distcc, 1.8.2)
 
 ########################################
 #
@@ -8,6 +8,9 @@ policy_module(distcc, 1.8.0)
 type distccd_t;
 type distccd_exec_t;
 init_daemon_domain(distccd_t, distccd_exec_t)
+
+type distccd_initrc_exec_t;
+init_script_file(distccd_initrc_exec_t)
 
 type distccd_log_t;
 logging_log_file(distccd_log_t)
@@ -27,11 +30,11 @@ allow distccd_t self:capability { setgid setuid };
 dontaudit distccd_t self:capability sys_tty_config;
 allow distccd_t self:process { signal_perms setsched };
 allow distccd_t self:fifo_file rw_fifo_file_perms;
-allow distccd_t self:netlink_route_socket r_netlink_socket_perms;
-allow distccd_t self:tcp_socket create_stream_socket_perms;
-allow distccd_t self:udp_socket create_socket_perms;
+allow distccd_t self:tcp_socket { accept listen };
 
-allow distccd_t distccd_log_t:file manage_file_perms;
+allow distccd_t distccd_log_t:file append_file_perms;
+allow distccd_t distccd_log_t:file create_file_perms;
+allow distccd_t distccd_log_t:file setattr_file_perms;
 logging_log_filetrans(distccd_t, distccd_log_t, file)
 
 manage_dirs_pattern(distccd_t, distccd_tmp_t, distccd_tmp_t)
@@ -47,14 +50,12 @@ kernel_read_kernel_sysctls(distccd_t)
 corenet_all_recvfrom_unlabeled(distccd_t)
 corenet_all_recvfrom_netlabel(distccd_t)
 corenet_tcp_sendrecv_generic_if(distccd_t)
-corenet_udp_sendrecv_generic_if(distccd_t)
 corenet_tcp_sendrecv_generic_node(distccd_t)
-corenet_udp_sendrecv_generic_node(distccd_t)
-corenet_tcp_sendrecv_all_ports(distccd_t)
-corenet_udp_sendrecv_all_ports(distccd_t)
 corenet_tcp_bind_generic_node(distccd_t)
-corenet_tcp_bind_distccd_port(distccd_t)
+
 corenet_sendrecv_distccd_server_packets(distccd_t)
+corenet_tcp_bind_distccd_port(distccd_t)
+corenet_tcp_sendrecv_distccd_port(distccd_t)
 
 dev_read_sysfs(distccd_t)
 
@@ -62,12 +63,12 @@ fs_getattr_all_fs(distccd_t)
 fs_search_auto_mountpoints(distccd_t)
 
 corecmd_exec_bin(distccd_t)
-corecmd_read_bin_symlinks(distccd_t)
 
 domain_use_interactive_fds(distccd_t)
 
-files_read_etc_files(distccd_t)
 files_read_etc_runtime_files(distccd_t)
+
+auth_use_nsswitch(distccd_t)
 
 libs_exec_lib_files(distccd_t)
 
@@ -75,14 +76,8 @@ logging_send_syslog_msg(distccd_t)
 
 miscfiles_read_localization(distccd_t)
 
-sysnet_read_config(distccd_t)
-
 userdom_dontaudit_use_unpriv_user_fds(distccd_t)
 userdom_dontaudit_search_user_home_dirs(distccd_t)
-
-optional_policy(`
-	nis_use_ypbind(distccd_t)
-')
 
 optional_policy(`
 	seutil_sigchld_newrole(distccd_t)
