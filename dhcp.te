@@ -1,4 +1,4 @@
-policy_module(dhcp, 1.10.0)
+policy_module(dhcp, 1.10.1)
 
 ########################################
 #
@@ -6,9 +6,10 @@ policy_module(dhcp, 1.10.0)
 #
 
 ## <desc>
-## <p>
-## Allow DHCP daemon to use LDAP backends
-## </p>
+##	<p>
+##	Determine whether DHCP daemon
+##	can use LDAP backends.
+##	</p>
 ## </desc>
 gen_tunable(dhcpd_use_ldap, false)
 
@@ -33,29 +34,25 @@ files_pid_file(dhcpd_var_run_t)
 # Local policy
 #
 
-allow dhcpd_t self:capability { net_raw sys_resource };
+allow dhcpd_t self:capability { chown dac_override sys_chroot net_raw setgid setuid sys_resource };
 dontaudit dhcpd_t self:capability { net_admin sys_tty_config };
-allow dhcpd_t self:process signal_perms;
+allow dhcpd_t self:process { getcap setcap signal_perms };
 allow dhcpd_t self:fifo_file rw_fifo_file_perms;
-allow dhcpd_t self:unix_dgram_socket create_socket_perms;
-allow dhcpd_t self:unix_stream_socket create_socket_perms;
-allow dhcpd_t self:tcp_socket create_stream_socket_perms;
-allow dhcpd_t self:udp_socket create_socket_perms;
-# Allow dhcpd_t to use packet sockets
+allow dhcpd_t self:tcp_socket { accept listen };
 allow dhcpd_t self:packet_socket create_socket_perms;
 allow dhcpd_t self:rawip_socket create_socket_perms;
-
-can_exec(dhcpd_t, dhcpd_exec_t)
 
 manage_files_pattern(dhcpd_t, dhcpd_state_t, dhcpd_state_t)
 sysnet_dhcp_state_filetrans(dhcpd_t, dhcpd_state_t, file)
 
 manage_dirs_pattern(dhcpd_t, dhcpd_tmp_t, dhcpd_tmp_t)
 manage_files_pattern(dhcpd_t, dhcpd_tmp_t, dhcpd_tmp_t)
-files_tmp_filetrans(dhcpd_t, dhcpd_tmp_t, { file dir })
+files_tmp_filetrans(dhcpd_t, dhcpd_tmp_t, { dir file })
 
 manage_files_pattern(dhcpd_t, dhcpd_var_run_t, dhcpd_var_run_t)
 files_pid_filetrans(dhcpd_t, dhcpd_var_run_t, file)
+
+can_exec(dhcpd_t, dhcpd_exec_t)
 
 kernel_read_system_state(dhcpd_t)
 kernel_read_kernel_sysctls(dhcpd_t)
@@ -73,15 +70,20 @@ corenet_tcp_sendrecv_all_ports(dhcpd_t)
 corenet_udp_sendrecv_all_ports(dhcpd_t)
 corenet_tcp_bind_generic_node(dhcpd_t)
 corenet_udp_bind_generic_node(dhcpd_t)
+
+corenet_sendrecv_dhcpd_server_packets(dhcpd_t)
 corenet_tcp_bind_dhcpd_port(dhcpd_t)
 corenet_udp_bind_dhcpd_port(dhcpd_t)
-corenet_udp_bind_pxe_port(dhcpd_t)
-corenet_tcp_connect_all_ports(dhcpd_t)
-corenet_sendrecv_dhcpd_server_packets(dhcpd_t)
+
 corenet_sendrecv_pxe_server_packets(dhcpd_t)
+corenet_udp_bind_pxe_port(dhcpd_t)
+
 corenet_sendrecv_all_client_packets(dhcpd_t)
-# Needed to detect open number of interfaces (common/discover.c::begin_iface_scan)
+corenet_tcp_connect_all_ports(dhcpd_t)
+
 corenet_udp_bind_all_unreserved_ports(dhcpd_t)
+
+corecmd_exec_bin(dhcpd_t)
 
 dev_read_sysfs(dhcpd_t)
 dev_read_rand(dhcpd_t)
@@ -90,11 +92,8 @@ dev_read_urand(dhcpd_t)
 fs_getattr_all_fs(dhcpd_t)
 fs_search_auto_mountpoints(dhcpd_t)
 
-corecmd_exec_bin(dhcpd_t)
-
 domain_use_interactive_fds(dhcpd_t)
 
-files_read_etc_files(dhcpd_t)
 files_read_usr_files(dhcpd_t)
 files_read_etc_runtime_files(dhcpd_t)
 files_search_var_lib(dhcpd_t)
@@ -110,16 +109,11 @@ sysnet_read_dhcp_config(dhcpd_t)
 userdom_dontaudit_use_unpriv_user_fds(dhcpd_t)
 userdom_dontaudit_search_user_home_dirs(dhcpd_t)
 
-ifdef(`distro_gentoo',`
-	allow dhcpd_t self:capability { chown dac_override setgid setuid sys_chroot };
-')
-
 tunable_policy(`dhcpd_use_ldap',`
 	sysnet_use_ldap(dhcpd_t)
 ')
 
 optional_policy(`
-	# used for dynamic DNS
 	bind_read_dnssec_keys(dhcpd_t)
 ')
 
