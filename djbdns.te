@@ -1,49 +1,64 @@
-policy_module(djbdns, 1.5.1)
+policy_module(djbdns, 1.5.2)
 
 ########################################
 #
 # Declarations
 #
 
-type djbdns_axfrdns_t;
-type djbdns_axfrdns_exec_t;
-domain_type(djbdns_axfrdns_t)
-domain_entry_file(djbdns_axfrdns_t, djbdns_axfrdns_exec_t)
-role system_r types djbdns_axfrdns_t;
+attribute djbdns_domain;
 
-type djbdns_axfrdns_conf_t;
-files_config_file(djbdns_axfrdns_conf_t)
+djbdns_daemontools_domain_template(axfrdns)
+ucspitcp_service_domain(djbdns_axfrdns_t, djbdns_axfrdns_exec_t)
 
 djbdns_daemontools_domain_template(dnscache)
-
 djbdns_daemontools_domain_template(tinydns)
 
 ########################################
 #
-# Local policy for axfrdns component
+# Common local policy
 #
 
-daemontools_ipc_domain(djbdns_axfrdns_t)
-daemontools_read_svc(djbdns_axfrdns_t)
+allow djbdns_domain self:capability { net_bind_service setgid setuid sys_chroot };
+allow djbdns_domain self:process signal;
+allow djbdns_domain self:fifo_file rw_fifo_file_perms;
+allow djbdns_domain self:tcp_socket create_stream_socket_perms;
+allow djbdns_domain self:udp_socket create_socket_perms;
 
-allow djbdns_axfrdns_t self:capability { setuid setgid sys_chroot };
+corenet_all_recvfrom_unlabeled(djbdns_domain)
+corenet_all_recvfrom_netlabel(djbdns_domain)
+corenet_tcp_sendrecv_generic_if(djbdns_domain)
+corenet_udp_sendrecv_generic_if(djbdns_domain)
+corenet_tcp_sendrecv_generic_node(djbdns_domain)
+corenet_udp_sendrecv_generic_node(djbdns_domain)
+corenet_tcp_sendrecv_all_ports(djbdns_domain)
+corenet_udp_sendrecv_all_ports(djbdns_domain)
+corenet_tcp_bind_generic_node(djbdns_domain)
+corenet_udp_bind_generic_node(djbdns_domain)
 
-allow djbdns_axfrdns_t djbdns_axfrdns_conf_t:dir list_dir_perms;
-allow djbdns_axfrdns_t djbdns_axfrdns_conf_t:file read_file_perms;
+corenet_sendrecv_dns_server_packets(djbdns_domain)
+corenet_tcp_bind_dns_port(djbdns_domain)
+corenet_udp_bind_dns_port(djbdns_domain)
 
-allow djbdns_axfrdns_t djbdns_tinydns_t:dir list_dir_perms;
-allow djbdns_axfrdns_t djbdns_tinydns_t:file read_file_perms;
+corenet_sendrecv_dns_client_packets(djbdns_domain)
+corenet_tcp_connect_dns_port(djbdns_domain)
 
-allow djbdns_axfrdns_t djbdns_tinydns_conf_t:dir list_dir_perms;
-allow djbdns_axfrdns_t djbdns_tinydns_conf_t:file read_file_perms;
+corenet_sendrecv_generic_server_packets(djbdns_domain)
+corenet_tcp_bind_generic_port(djbdns_domain)
+corenet_udp_bind_generic_port(djbdns_domain)
 
-files_search_var(djbdns_axfrdns_t)
-
-ucspitcp_service_domain(djbdns_axfrdns_t, djbdns_axfrdns_exec_t)
+files_search_var(djbdns_domain)
 
 ########################################
 #
-# Local policy for tinydns
+# axfrdns local policy
+#
+
+allow djbdns_axfrdns_t { djbdns_tinydns_t djbdns_tinydns_conf_t }:dir list_dir_perms;
+allow djbdns_axfrdns_t { djbdns_tinydns_t djbdns_tinydns_conf_t }:file read_file_perms;
+
+########################################
+#
+# tinydns local policy
 #
 
 init_dontaudit_use_script_fds(djbdns_tinydns_t)
