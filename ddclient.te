@@ -1,13 +1,16 @@
-policy_module(ddclient, 1.9.0)
+policy_module(ddclient, 1.9.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role ddclient_roles;
+
 type ddclient_t;
 type ddclient_exec_t;
 init_daemon_domain(ddclient_t, ddclient_exec_t)
+role ddclient_roles types ddclient_t;
 
 type ddclient_etc_t;
 files_config_file(ddclient_etc_t)
@@ -17,6 +20,9 @@ init_script_file(ddclient_initrc_exec_t)
 
 type ddclient_log_t;
 logging_log_file(ddclient_log_t)
+
+type ddclient_tmp_t;
+files_tmp_file(ddclient_tmp_t)
 
 type ddclient_var_t;
 files_type(ddclient_var_t)
@@ -37,31 +43,37 @@ allow ddclient_t self:process signal_perms;
 allow ddclient_t self:fifo_file rw_fifo_file_perms;
 allow ddclient_t self:tcp_socket create_socket_perms;
 allow ddclient_t self:udp_socket create_socket_perms;
+allow ddclient_t self:netlink_route_socket r_netlink_socket_perms;
 
-allow ddclient_t ddclient_etc_t:file read_file_perms;
+read_files_pattern(ddclient_t, ddclient_etc_t, ddclient_etc_t)
+setattr_files_pattern(ddclient_t, ddclient_etc_t, ddclient_etc_t)
 
-allow ddclient_t ddclient_log_t:file manage_file_perms;
+allow ddclient_t ddclient_log_t:file append_file_perms;
+allow ddclient_t ddclient_log_t:file create_file_perms;
+allow ddclient_t ddclient_log_t:file setattr_file_perms;
 logging_log_filetrans(ddclient_t, ddclient_log_t, file)
+
+manage_files_pattern(ddclient_t, ddclient_tmp_t, ddclient_tmp_t)
+files_tmp_filetrans(ddclient_t, ddclient_tmp_t, file)
 
 manage_dirs_pattern(ddclient_t, ddclient_var_t, ddclient_var_t)
 manage_files_pattern(ddclient_t, ddclient_var_t, ddclient_var_t)
 manage_lnk_files_pattern(ddclient_t, ddclient_var_t, ddclient_var_t)
 manage_fifo_files_pattern(ddclient_t, ddclient_var_t, ddclient_var_t)
 manage_sock_files_pattern(ddclient_t, ddclient_var_t, ddclient_var_t)
-files_var_filetrans(ddclient_t, ddclient_var_t, { file lnk_file sock_file fifo_file })
 
 manage_files_pattern(ddclient_t, ddclient_var_lib_t, ddclient_var_lib_t)
-files_var_lib_filetrans(ddclient_t, ddclient_var_lib_t, file)
 
 manage_files_pattern(ddclient_t, ddclient_var_run_t, ddclient_var_run_t)
 files_pid_filetrans(ddclient_t, ddclient_var_run_t, file)
 
-kernel_read_system_state(ddclient_t)
-kernel_read_network_state(ddclient_t)
-kernel_read_software_raid_state(ddclient_t)
 kernel_getattr_core_if(ddclient_t)
 kernel_getattr_message_if(ddclient_t)
 kernel_read_kernel_sysctls(ddclient_t)
+kernel_read_network_state(ddclient_t)
+kernel_read_software_raid_state(ddclient_t)
+kernel_read_system_state(ddclient_t)
+kernel_search_network_sysctl(ddclient_t)
 
 corecmd_exec_shell(ddclient_t)
 corecmd_exec_bin(ddclient_t)
@@ -74,8 +86,9 @@ corenet_tcp_sendrecv_generic_node(ddclient_t)
 corenet_udp_sendrecv_generic_node(ddclient_t)
 corenet_tcp_sendrecv_all_ports(ddclient_t)
 corenet_udp_sendrecv_all_ports(ddclient_t)
-corenet_tcp_connect_all_ports(ddclient_t)
+
 corenet_sendrecv_all_client_packets(ddclient_t)
+corenet_tcp_connect_all_ports(ddclient_t)
 
 dev_read_sysfs(ddclient_t)
 dev_read_urand(ddclient_t)
