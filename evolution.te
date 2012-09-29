@@ -1,21 +1,25 @@
-policy_module(evolution, 2.3.1)
+policy_module(evolution, 2.3.2)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role evolution_roles;
+
 type evolution_t;
 type evolution_exec_t;
 typealias evolution_t alias { user_evolution_t staff_evolution_t sysadm_evolution_t };
 typealias evolution_t alias { auditadm_evolution_t secadm_evolution_t };
 userdom_user_application_domain(evolution_t, evolution_exec_t)
+role evolution_roles types evolution_t;
 
 type evolution_alarm_t;
 type evolution_alarm_exec_t;
 typealias evolution_alarm_t alias { user_evolution_alarm_t staff_evolution_alarm_t sysadm_evolution_alarm_t };
 typealias evolution_alarm_t alias { auditadm_evolution_alarm_t secadm_evolution_alarm_t };
 userdom_user_application_domain(evolution_alarm_t, evolution_alarm_exec_t)
+role evolution_roles types evolution_alarm_t;
 
 type evolution_alarm_tmpfs_t;
 typealias evolution_alarm_tmpfs_t alias { user_evolution_alarm_tmpfs_t staff_evolution_alarm_tmpfs_t sysadm_evolution_alarm_tmpfs_t };
@@ -32,6 +36,7 @@ type evolution_exchange_exec_t;
 typealias evolution_exchange_t alias { user_evolution_exchange_t staff_evolution_exchange_t sysadm_evolution_exchange_t };
 typealias evolution_exchange_t alias { auditadm_evolution_exchange_t secadm_evolution_exchange_t };
 userdom_user_application_domain(evolution_exchange_t, evolution_exchange_exec_t)
+role evolution_roles types evolution_exchange_t;
 
 type evolution_exchange_tmpfs_t;
 typealias evolution_exchange_tmpfs_t alias { user_evolution_exchange_tmpfs_t staff_evolution_exchange_tmpfs_t sysadm_evolution_exchange_tmpfs_t };
@@ -63,6 +68,7 @@ type evolution_server_exec_t;
 typealias evolution_server_t alias { user_evolution_server_t staff_evolution_server_t sysadm_evolution_server_t };
 typealias evolution_server_t alias { auditadm_evolution_server_t secadm_evolution_server_t };
 userdom_user_application_domain(evolution_server_t, evolution_server_exec_t)
+role evolution_roles types evolution_server_t;
 
 type evolution_server_orbit_tmp_t;
 typealias evolution_server_orbit_tmp_t alias { user_evolution_server_orbit_tmp_t staff_evolution_server_orbit_tmp_t sysadm_evolution_server_orbit_tmp_t };
@@ -79,6 +85,7 @@ type evolution_webcal_exec_t;
 typealias evolution_webcal_t alias { user_evolution_webcal_t staff_evolution_webcal_t sysadm_evolution_webcal_t };
 typealias evolution_webcal_t alias { auditadm_evolution_webcal_t secadm_evolution_webcal_t };
 userdom_user_application_domain(evolution_webcal_t, evolution_webcal_exec_t)
+role evolution_roles types evolution_webcal_t;
 
 type evolution_webcal_tmpfs_t;
 typealias evolution_webcal_tmpfs_t alias { user_evolution_webcal_tmpfs_t staff_evolution_webcal_tmpfs_t sysadm_evolution_webcal_tmpfs_t };
@@ -87,7 +94,7 @@ userdom_user_tmpfs_file(evolution_webcal_tmpfs_t)
 
 ########################################
 #
-# Evolution local policy
+# Local policy
 #
 
 allow evolution_t self:capability { setuid setgid sys_nice };
@@ -96,21 +103,9 @@ allow evolution_t self:fifo_file rw_file_perms;
 allow evolution_t self:tcp_socket create_socket_perms;
 allow evolution_t self:udp_socket create_socket_perms;
 
-allow evolution_t evolution_alarm_t:dir search_dir_perms;
-allow evolution_t evolution_alarm_t:file read;
-
-allow evolution_t evolution_alarm_t:unix_stream_socket connectto;
-allow evolution_t evolution_alarm_orbit_tmp_t:sock_file write;
-
-can_exec(evolution_t, evolution_alarm_exec_t)
-
-allow evolution_t evolution_exchange_t:unix_stream_socket connectto;
-allow evolution_t evolution_exchange_orbit_tmp_t:sock_file write;
-
 allow evolution_t evolution_home_t:dir manage_dir_perms;
 allow evolution_t evolution_home_t:file manage_file_perms;
 allow evolution_t evolution_home_t:lnk_file manage_lnk_file_perms;
-userdom_search_user_home_dirs(evolution_t)
 
 allow evolution_t evolution_orbit_tmp_t:dir manage_dir_perms;
 allow evolution_t evolution_orbit_tmp_t:file manage_file_perms;
@@ -120,14 +115,6 @@ allow evolution_server_t evolution_orbit_tmp_t:dir manage_dir_perms;
 allow evolution_server_t evolution_orbit_tmp_t:file manage_file_perms;
 files_tmp_filetrans(evolution_server_t, evolution_orbit_tmp_t, { dir file })
 
-allow evolution_t evolution_server_t:dir search_dir_perms;
-allow evolution_t evolution_server_t:file read;
-
-allow evolution_t evolution_server_t:unix_stream_socket connectto;
-allow evolution_t evolution_server_orbit_tmp_t:sock_file write;
-
-can_exec(evolution_t, evolution_server_exec_t)
-
 allow evolution_t evolution_tmpfs_t:dir rw_dir_perms;
 allow evolution_t evolution_tmpfs_t:file manage_file_perms;
 allow evolution_t evolution_tmpfs_t:lnk_file manage_lnk_file_perms;
@@ -135,16 +122,22 @@ allow evolution_t evolution_tmpfs_t:sock_file manage_sock_file_perms;
 allow evolution_t evolution_tmpfs_t:fifo_file manage_fifo_file_perms;
 fs_tmpfs_filetrans(evolution_t, evolution_tmpfs_t, { dir file lnk_file sock_file fifo_file })
 
-#FIXME check to see if really needed
+allow evolution_t { evolution_alarm_t evolution_server_t }:dir search_dir_perms;
+allow evolution_t { evolution_alarm_t evolution_server_t }:file read_file_perms;
+
+stream_connect_pattern(evolution_t, evolution_alarm_orbit_tmp_t, evolution_alarm_orbit_tmp_t, evolution_alarm_t)
+stream_connect_pattern(evolution_t, evolution_exchange_orbit_tmp_t, evolution_exchange_orbit_tmp_t, evolution_exchange_t)
+stream_connect_pattern(evolution_t, evolution_server_orbit_tmp_t, evolution_server_orbit_tmp_t, evolution_server_t)
+
+can_exec(evolution_t, { evolution_alarm_exec_t evolution_server_exec_t })
+
 kernel_read_kernel_sysctls(evolution_t)
 kernel_read_system_state(evolution_t)
-# Allow netstat
 kernel_read_network_state(evolution_t)
 kernel_read_net_sysctls(evolution_t)
 
-corecmd_exec_shell(evolution_t)
-# Run various programs
 corecmd_exec_bin(evolution_t)
+corecmd_exec_shell(evolution_t)
 
 corenet_all_recvfrom_unlabeled(evolution_t)
 corenet_all_recvfrom_netlabel(evolution_t)
@@ -153,29 +146,23 @@ corenet_udp_sendrecv_generic_if(evolution_t)
 corenet_raw_sendrecv_generic_if(evolution_t)
 corenet_tcp_sendrecv_generic_node(evolution_t)
 corenet_udp_sendrecv_generic_node(evolution_t)
-corenet_tcp_sendrecv_pop_port(evolution_t)
-corenet_udp_sendrecv_pop_port(evolution_t)
-corenet_tcp_sendrecv_smtp_port(evolution_t)
-corenet_udp_sendrecv_smtp_port(evolution_t)
-corenet_tcp_sendrecv_innd_port(evolution_t)
-corenet_udp_sendrecv_innd_port(evolution_t)
-corenet_tcp_sendrecv_ldap_port(evolution_t)
-corenet_udp_sendrecv_ldap_port(evolution_t)
-corenet_tcp_sendrecv_ipp_port(evolution_t)
-corenet_udp_sendrecv_ipp_port(evolution_t)
-corenet_tcp_connect_pop_port(evolution_t)
-corenet_tcp_connect_smtp_port(evolution_t)
-corenet_tcp_connect_innd_port(evolution_t)
-corenet_tcp_connect_ldap_port(evolution_t)
-corenet_tcp_connect_ipp_port(evolution_t)
+corenet_tcp_sendrecv_all_ports(evolution_t)
+corenet_udp_sendrecv_all_ports(evolution_t)
+
 corenet_sendrecv_pop_client_packets(evolution_t)
+corenet_tcp_connect_pop_port(evolution_t)
+
 corenet_sendrecv_smtp_client_packets(evolution_t)
+corenet_tcp_connect_smtp_port(evolution_t)
+
 corenet_sendrecv_innd_client_packets(evolution_t)
+corenet_tcp_connect_innd_port(evolution_t)
+
 corenet_sendrecv_ldap_client_packets(evolution_t)
+corenet_tcp_connect_ldap_port(evolution_t)
+
 corenet_sendrecv_ipp_client_packets(evolution_t)
-# not sure about this bind
-corenet_udp_bind_generic_node(evolution_t)
-corenet_udp_bind_generic_port(evolution_t)
+corenet_tcp_connect_ipp_port(evolution_t)
 
 dev_read_urand(evolution_t)
 
@@ -183,8 +170,6 @@ domain_dontaudit_read_all_domains_state(evolution_t)
 
 files_read_etc_files(evolution_t)
 files_read_usr_files(evolution_t)
-files_read_usr_symlinks(evolution_t)
-files_read_var_files(evolution_t)
 
 fs_search_auto_mountpoints(evolution_t)
 
@@ -202,10 +187,8 @@ userdom_manage_user_tmp_dirs(evolution_t)
 userdom_manage_user_tmp_sockets(evolution_t)
 userdom_manage_user_tmp_files(evolution_t)
 userdom_use_user_terminals(evolution_t)
-# FIXME: suppress access to .local/.icons/.themes until properly implemented
-# FIXME: suppress access to .gaim/blist.xml (buddy list synchronization)
-# until properly implemented
 userdom_dontaudit_read_user_home_content_files(evolution_t)
+userdom_search_user_home_dirs(evolution_t)
 
 mta_read_config(evolution_t)
 
@@ -276,7 +259,6 @@ optional_policy(`
 	automount_read_state(evolution_t)
 ')
 
-# Allow printing the mail
 optional_policy(`
 	cups_read_rw_config(evolution_t)
 ')
@@ -290,7 +272,6 @@ optional_policy(`
 	gnome_stream_connect_gconf(evolution_t)
 ')
 
-# Encrypt mail
 optional_policy(`
 	gpg_domtrans(evolution_t)
 	gpg_signal(evolution_t)
@@ -305,7 +286,6 @@ optional_policy(`
 	mozilla_domtrans(evolution_t)
 ')
 
-# Allow POP/IMAP/SMTP/NNTP/LDAP/IPP(printing)
 optional_policy(`
 	nis_use_ypbind(evolution_t)
 ')
@@ -314,13 +294,10 @@ optional_policy(`
 	nscd_socket_use(evolution_t)
 ')
 
-### Junk mail filtering (start spamd)
 optional_policy(`
 	spamassassin_exec_spamd(evolution_t)
 	spamassassin_domtrans_client(evolution_t)
 	spamassassin_domtrans_local_client(evolution_t)
-	# Allow evolution to signal the daemon
-	# FIXME: Now evolution can read spamd temp files
 	spamassassin_read_spamd_tmp_files(evolution_t)
 	spamassassin_signal_spamd(evolution_t)
 	spamassassin_dontaudit_getattr_spamd_tmp_sockets(evolution_t)
@@ -328,14 +305,11 @@ optional_policy(`
 
 ########################################
 #
-# Evolution alarm local policy
+# Alarm local policy
 #
 
 allow evolution_alarm_t self:process { signal getsched };
 allow evolution_alarm_t self:fifo_file rw_fifo_file_perms;
-
-allow evolution_alarm_t evolution_t:unix_stream_socket connectto;
-allow evolution_alarm_t evolution_orbit_tmp_t:sock_file write;
 
 allow evolution_alarm_t evolution_alarm_tmpfs_t:dir rw_dir_perms;
 allow evolution_alarm_t evolution_alarm_tmpfs_t:file manage_file_perms;
@@ -344,16 +318,13 @@ allow evolution_alarm_t evolution_alarm_tmpfs_t:sock_file manage_sock_file_perms
 allow evolution_alarm_t evolution_alarm_tmpfs_t:fifo_file manage_fifo_file_perms;
 fs_tmpfs_filetrans(evolution_alarm_t, evolution_alarm_tmpfs_t, { dir file lnk_file sock_file fifo_file })
 
-allow evolution_alarm_t evolution_exchange_t:unix_stream_socket connectto;
-allow evolution_alarm_t evolution_exchange_orbit_tmp_t:sock_file write;
-
-# Access evolution home
 allow evolution_alarm_t evolution_home_t:dir manage_dir_perms;
 allow evolution_alarm_t evolution_home_t:file manage_file_perms;
 allow evolution_alarm_t evolution_home_t:lnk_file manage_lnk_file_perms;
 
-allow evolution_alarm_t evolution_server_t:unix_stream_socket connectto;
-allow evolution_alarm_t evolution_server_orbit_tmp_t:sock_file write;
+stream_connect_pattern(evolution_alarm_t, evolution_orbit_tmp_t, evolution_orbit_tmp_t, evolution_t)
+stream_connect_pattern(evolution_alarm_t, evolution_exchange_orbit_tmp_t, evolution_exchange_orbit_tmp_t, evolution_exchange_t)
+stream_connect_pattern(evolution_alarm_t, evolution_server_orbit_tmp_t, evolution_server_orbit_tmp_t, evolution_server_t)
 
 dev_read_urand(evolution_alarm_t)
 
@@ -364,16 +335,11 @@ fs_search_auto_mountpoints(evolution_alarm_t)
 
 miscfiles_read_localization(evolution_alarm_t)
 
-# Access evolution home
 userdom_search_user_home_dirs(evolution_alarm_t)
-# FIXME: suppress access to .local/.icons/.themes until properly implemented
-# FIXME: suppress access to .gaim/blist.xml (buddy list synchronization)
-# until properly implemented
 userdom_dontaudit_read_user_home_content_files(evolution_alarm_t)
 
 xserver_user_x_domain_template(evolution_alarm, evolution_alarm_t, evolution_alarm_tmpfs_t)
 
-# Access evolution home
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_files(evolution_alarm_t)
 ')
@@ -396,30 +362,18 @@ optional_policy(`
 
 ########################################
 #
-# Evolution exchange connector local policy
+# Exchange local policy
 #
 
 allow evolution_exchange_t self:process getsched;
 allow evolution_exchange_t self:fifo_file rw_fifo_file_perms;
-
 allow evolution_exchange_t self:tcp_socket create_socket_perms;
 allow evolution_exchange_t self:udp_socket create_socket_perms;
 
-allow evolution_exchange_t evolution_t:unix_stream_socket connectto;
-allow evolution_exchange_t evolution_orbit_tmp_t:sock_file write;
-
-allow evolution_exchange_t evolution_alarm_t:unix_stream_socket connectto;
-allow evolution_exchange_t evolution_alarm_orbit_tmp_t:sock_file write;
-
-# Access evolution home
 allow evolution_exchange_t evolution_home_t:dir manage_dir_perms;
 allow evolution_exchange_t evolution_home_t:file manage_file_perms;
 allow evolution_exchange_t evolution_home_t:lnk_file manage_lnk_file_perms;
 
-allow evolution_exchange_t evolution_server_t:unix_stream_socket connectto;
-allow evolution_exchange_t evolution_server_orbit_tmp_t:sock_file write;
-
-# /tmp/.exchange-$USER
 allow evolution_exchange_t evolution_exchange_tmp_t:dir manage_dir_perms;
 allow evolution_exchange_t evolution_exchange_tmp_t:file manage_file_perms;
 files_tmp_filetrans(evolution_exchange_t, evolution_exchange_tmp_t, { file dir })
@@ -431,10 +385,13 @@ allow evolution_exchange_t evolution_exchange_tmpfs_t:sock_file manage_sock_file
 allow evolution_exchange_t evolution_exchange_tmpfs_t:fifo_file manage_fifo_file_perms;
 fs_tmpfs_filetrans(evolution_exchange_t, evolution_exchange_tmpfs_t, { dir file lnk_file sock_file fifo_file })
 
+stream_connect_pattern(evolution_exchange_t, evolution_orbit_tmp_t, evolution_orbit_tmp_t, evolution_t)
+stream_connect_pattern(evolution_exchange_t, evolution_server_orbit_tmp_t, evolution_server_orbit_tmp_t, evolution_server_t)
+stream_connect_pattern(evolution_exchange_t, evolution_alarm_orbit_tmp_t, evolution_alarm_orbit_tmp_t, evolution_alarm_t)
+
 kernel_read_network_state(evolution_exchange_t)
 kernel_read_net_sysctls(evolution_exchange_t)
 
-# Allow netstat
 corecmd_exec_bin(evolution_exchange_t)
 
 dev_read_urand(evolution_exchange_t)
@@ -442,22 +399,16 @@ dev_read_urand(evolution_exchange_t)
 files_read_etc_files(evolution_exchange_t)
 files_read_usr_files(evolution_exchange_t)
 
-# Access evolution home
 fs_search_auto_mountpoints(evolution_exchange_t)
 
 miscfiles_read_localization(evolution_exchange_t)
 
 userdom_write_user_tmp_sockets(evolution_exchange_t)
-# Access evolution home
 userdom_search_user_home_dirs(evolution_exchange_t)
-# FIXME: suppress access to .local/.icons/.themes until properly implemented
-# FIXME: suppress access to .gaim/blist.xml (buddy list synchronization)
-# until properly implemented
 userdom_dontaudit_read_user_home_content_files(evolution_exchange_t)
 
 xserver_user_x_domain_template(evolution_exchange, evolution_exchange_t, evolution_exchange_tmpfs_t)
 
-# Access evolution home
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_files(evolution_exchange_t)
 ')
@@ -476,72 +427,57 @@ optional_policy(`
 
 ########################################
 #
-# Evolution data server local policy
+# Server local policy
 #
 
 allow evolution_server_t self:process { getsched signal };
 
 allow evolution_server_t self:fifo_file { read write };
-allow evolution_server_t self:unix_stream_socket { accept connectto };
-# Talk to ldap (address book),
-# Obtain weather data via http (read server name from xml file in /usr)
+allow evolution_server_t self:unix_stream_socket { accept connectto listen };
 allow evolution_server_t self:tcp_socket create_socket_perms;
 
-allow evolution_server_t evolution_t:unix_stream_socket connectto;
-allow evolution_server_t evolution_orbit_tmp_t:sock_file write;
-
-allow evolution_server_t evolution_exchange_t:unix_stream_socket connectto;
-allow evolution_server_t evolution_exchange_orbit_tmp_t:sock_file write;
-
-# Access evolution home
 allow evolution_server_t evolution_home_t:dir manage_dir_perms;
 allow evolution_server_t evolution_home_t:file manage_file_perms;
 allow evolution_server_t evolution_home_t:lnk_file manage_lnk_file_perms;
 
-allow evolution_server_t evolution_alarm_t:unix_stream_socket connectto;
-allow evolution_server_t evolution_alarm_orbit_tmp_t:sock_file write;
+stream_connect_pattern(evolution_server_t, evolution_orbit_tmp_t, evolution_orbit_tmp_t, evolution_t)
+stream_connect_pattern(evolution_server_t, evolution_exchange_orbit_tmp_t, evolution_exchange_orbit_tmp_t, evolution_exchange_t)
+stream_connect_pattern(evolution_server_t, evolution_alarm_orbit_tmp_t, evolution_alarm_orbit_tmp_t, evolution_alarm_t)
 
 kernel_read_system_state(evolution_server_t)
 
 corecmd_exec_shell(evolution_server_t)
 
-# Obtain weather data via http (read server name from xml file in /usr)
 corenet_all_recvfrom_unlabeled(evolution_server_t)
 corenet_all_recvfrom_netlabel(evolution_server_t)
 corenet_tcp_sendrecv_generic_if(evolution_server_t)
 corenet_tcp_sendrecv_generic_node(evolution_server_t)
-corenet_tcp_sendrecv_http_port(evolution_server_t)
+
+corenet_sendrecv_http_cache_client_packets(evolution_server_t)
 corenet_tcp_sendrecv_http_cache_port(evolution_server_t)
 corenet_tcp_connect_http_cache_port(evolution_server_t)
-corenet_tcp_connect_http_port(evolution_server_t)
+
 corenet_sendrecv_http_client_packets(evolution_server_t)
-corenet_sendrecv_http_cache_client_packets(evolution_server_t)
+corenet_tcp_sendrecv_http_port(evolution_server_t)
+corenet_tcp_connect_http_port(evolution_server_t)
 
 dev_read_urand(evolution_server_t)
 
 files_read_etc_files(evolution_server_t)
-# Obtain weather data via http (read server name from xml file in /usr)
 files_read_usr_files(evolution_server_t)
 
 fs_search_auto_mountpoints(evolution_server_t)
 
 miscfiles_read_localization(evolution_server_t)
-# Look in /etc/pki
 miscfiles_read_generic_certs(evolution_server_t)
 
-# Talk to ldap (address book)
 sysnet_read_config(evolution_server_t)
 sysnet_dns_name_resolve(evolution_server_t)
 sysnet_use_ldap(evolution_server_t)
 
-# Access evolution home
 userdom_search_user_home_dirs(evolution_server_t)
-# FIXME: suppress access to .local/.icons/.themes until properly implemented
-# FIXME: suppress access to .gaim/blist.xml (buddy list synchronization)
-# until properly implemented
 userdom_dontaudit_read_user_home_content_files(evolution_server_t)
 
-# Access evolution home
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_files(evolution_server_t)
 ')
@@ -560,12 +496,11 @@ optional_policy(`
 
 ########################################
 #
-# Evolution webcal local policy
+# Webcal local policy
 #
 
 allow evolution_webcal_t self:tcp_socket create_socket_perms;
 
-# X/evolution common stuff
 allow evolution_webcal_t evolution_webcal_tmpfs_t:dir rw_dir_perms;
 allow evolution_webcal_t evolution_webcal_tmpfs_t:file manage_file_perms;
 allow evolution_webcal_t evolution_webcal_tmpfs_t:lnk_file manage_lnk_file_perms;
@@ -576,25 +511,20 @@ fs_tmpfs_filetrans(evolution_webcal_t, evolution_webcal_tmpfs_t, { dir file lnk_
 corenet_all_recvfrom_unlabeled(evolution_webcal_t)
 corenet_all_recvfrom_netlabel(evolution_webcal_t)
 corenet_tcp_sendrecv_generic_if(evolution_webcal_t)
-corenet_raw_sendrecv_generic_if(evolution_webcal_t)
 corenet_tcp_sendrecv_generic_node(evolution_webcal_t)
-corenet_raw_sendrecv_generic_node(evolution_webcal_t)
+
 corenet_tcp_sendrecv_http_port(evolution_webcal_t)
-corenet_tcp_sendrecv_http_cache_port(evolution_webcal_t)
-corenet_tcp_connect_http_cache_port(evolution_webcal_t)
 corenet_tcp_connect_http_port(evolution_webcal_t)
 corenet_sendrecv_http_client_packets(evolution_webcal_t)
+
+corenet_tcp_sendrecv_http_cache_port(evolution_webcal_t)
+corenet_tcp_connect_http_cache_port(evolution_webcal_t)
 corenet_sendrecv_http_cache_client_packets(evolution_webcal_t)
 
-# Networking capability - connect to website and handle ics link
 sysnet_read_config(evolution_webcal_t)
 sysnet_dns_name_resolve(evolution_webcal_t)
 
-# Search home directory (?)
 userdom_search_user_home_dirs(evolution_webcal_t)
-# FIXME: suppress access to .local/.icons/.themes until properly implemented
-# FIXME: suppress access to .gaim/blist.xml (buddy list synchronization)
-# until properly implemented
 userdom_dontaudit_read_user_home_content_files(evolution_webcal_t)
 
 xserver_user_x_domain_template(evolution_webcal, evolution_webcal_t, evolution_webcal_tmpfs_t)
