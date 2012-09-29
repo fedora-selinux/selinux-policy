@@ -1,4 +1,4 @@
-## <summary>Exim mail transfer agent</summary>
+## <summary>Mail transfer agent.</summary>
 
 ########################################
 ## <summary>
@@ -15,13 +15,14 @@ interface(`exim_domtrans',`
 		type exim_t, exim_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, exim_exec_t, exim_t)
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to read, 
-##	exim tmp files
+##	Do not audit attempts to read exim
+##	temporary tmp files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -39,7 +40,7 @@ interface(`exim_dontaudit_read_tmp_files',`
 
 ########################################
 ## <summary>
-##	Allow domain to read, exim tmp files
+##	Read exim temporary files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -58,7 +59,7 @@ interface(`exim_read_tmp_files',`
 
 ########################################
 ## <summary>
-##	Read exim PID files.
+##	Read exim pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -77,7 +78,7 @@ interface(`exim_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read exim's log files.
+##	Read exim log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -97,8 +98,7 @@ interface(`exim_read_log',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to append
-##	exim log files.
+##	Append exim log files.
 ## </summary>
 ## <param name="domain">
 ## 	<summary>
@@ -117,7 +117,8 @@ interface(`exim_append_log',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to manage exim's log files.
+##	Create, read, write, and delete
+##	exim log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -138,7 +139,7 @@ interface(`exim_manage_log',`
 ########################################
 ## <summary>
 ##	Create, read, write, and delete
-##	exim spool dirs.
+##	exim spool directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -193,4 +194,48 @@ interface(`exim_manage_spool_files',`
 
 	manage_files_pattern($1, exim_spool_t, exim_spool_t)
 	files_search_spool($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an exim environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`exim_admin',`
+	gen_require(`
+		type exim_t, exim_spool_t, exim_log_t;
+		type exim_var_run_t, exim_initrc_exec_t, exim_tmp_t;
+	')
+
+	allow $1 exim_t:process { ptrace signal_perms };
+	ps_process_pattern($1, exim_t)
+
+	init_labeled_script_domtrans($1, exim_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 exim_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_spool($1)
+	admin_pattern($1, exim_spool_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, exim_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, exim_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, exim_tmp_t)
 ')
