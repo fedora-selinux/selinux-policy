@@ -1,4 +1,4 @@
-policy_module(entropyd, 1.7.0)
+policy_module(entropyd, 1.7.1)
 
 ########################################
 #
@@ -6,15 +6,20 @@ policy_module(entropyd, 1.7.0)
 #
 
 ## <desc>
-## <p>
-##   Allow the use of the audio devices as the source for the entropy feeds
-## </p>
+##	<p>
+##	Determine whether entropyd can use
+##	audio devices as the source for
+##	the entropy feeds.
+##	</p>
 ## </desc>
 gen_tunable(entropyd_use_audio, false)
 
 type entropyd_t;
 type entropyd_exec_t;
 init_daemon_domain(entropyd_t, entropyd_exec_t)
+
+type entropyd_initrc_exec_t;
+init_script_file(entropyd_initrc_exec_t)
 
 type entropyd_var_run_t;
 files_pid_file(entropyd_var_run_t)
@@ -27,7 +32,6 @@ files_pid_file(entropyd_var_run_t)
 allow entropyd_t self:capability { dac_override ipc_lock sys_admin };
 dontaudit entropyd_t self:capability sys_tty_config;
 allow entropyd_t self:process signal_perms;
-allow entropyd_t self:unix_dgram_socket create_socket_perms;
 
 manage_files_pattern(entropyd_t, entropyd_var_run_t, entropyd_var_run_t)
 files_pid_filetrans(entropyd_t, entropyd_var_run_t, file)
@@ -59,8 +63,6 @@ userdom_dontaudit_search_user_home_dirs(entropyd_t)
 
 tunable_policy(`entropyd_use_audio',`
 	dev_read_sound(entropyd_t)
-	# set sound card parameters such as sample format, number of channels
-	# and sample rate.
 	dev_write_sound(entropyd_t)
 ')
 
