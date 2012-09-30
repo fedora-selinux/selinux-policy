@@ -1,4 +1,4 @@
-policy_module(cron, 2.5.0)
+policy_module(cron, 2.5.1)
 
 gen_require(`
 	class passwd rootok;
@@ -130,7 +130,7 @@ ifdef(`enable_mcs',`
 
 ##############################
 #
-# Common local policy
+# Common crontab local policy
 #
 
 allow crontab_domain self:capability { fowner setuid setgid chown dac_override };
@@ -152,7 +152,7 @@ selinux_dontaudit_search_fs(crontab_domain)
 files_list_spool(crontab_domain)
 files_read_etc_files(crontab_domain)
 files_read_usr_files(crontab_domain)
-files_dontaudit_search_pids(crontab_domain)
+files_search_pids(crontab_domain)
 
 fs_getattr_xattr_fs(crontab_domain)
 fs_manage_cgroup_dirs(crontab_domain)
@@ -166,6 +166,7 @@ auth_rw_var_auth(crontab_domain)
 
 logging_send_syslog_msg(crontab_domain)
 logging_send_audit_msgs(crontab_domain)
+logging_set_loginuid(crontab_domain)
 
 init_dontaudit_write_utmp(crontab_domain)
 init_read_utmp(crontab_domain)
@@ -180,10 +181,6 @@ userdom_manage_user_tmp_files(crontab_domain)
 userdom_use_user_terminals(crontab_domain)
 userdom_read_user_home_content_files(crontab_domain)
 userdom_read_user_home_content_symlinks(crontab_domain)
-
-tunable_policy(`cron_userdomain_transition',`
-	logging_set_loginuid(crontab_domain)
-')
 
 tunable_policy(`fcron_crond',`
 	dontaudit crontab_domain crond_t:process signal;
@@ -248,9 +245,10 @@ read_files_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
 read_lnk_files_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
 allow crond_t user_cron_spool_t:file manage_lnk_file_perms;
 
-allow crond_t { cronjob_t system_cronjob_t unconfined_cronjob_t }:process transition;
-allow crond_t { cronjob_t system_cronjob_t unconfined_cronjob_t }:fd use;
-allow crond_t { cronjob_t system_cronjob_t unconfined_cronjob_t }:key manage_key_perms;
+allow crond_t system_cronjob_t:process transition;
+allow crond_t system_cronjob_t:fd use;
+allow crond_t system_cronjob_t:key manage_key_perms;
+
 dontaudit crond_t { cronjob_t system_cronjob_t unconfined_cronjob_t }:process { noatsecure siginh rlimitinh };
 
 domtrans_pattern(crond_t, anacron_exec_t, system_cronjob_t)
@@ -284,7 +282,6 @@ files_search_var_lib(crond_t)
 files_search_default(crond_t)
 
 mls_fd_share_all_levels(crond_t)
-# crontab -e and kernel check of transition
 mls_file_read_all_levels(crond_t)
 mls_file_write_all_levels(crond_t)
 mls_process_set_level(crond_t)
@@ -314,16 +311,24 @@ seutil_read_default_contexts(crond_t)
 
 miscfiles_read_localization(crond_t)
 
-userdom_use_unpriv_users_fds(crond_t)
 userdom_list_user_home_dirs(crond_t)
 
 mta_send_mail(crond_t)
+
+tunable_policy(`cron_userdomain_transition',`
+	dontaudit crond_t { cronjob_t unconfined_cronjob_t }:process transition;
+	dontaudit crond_t { cronjob_t unconfined_cronjob_t }:fd use;
+	dontaudit crond_t { cronjob_t unconfined_cronjob_t }:key manage_key_perms;
+',`
+	allow crond_t { cronjob_t unconfined_cronjob_t }:process transition;
+	allow crond_t { cronjob_t unconfined_cronjob_t }:fd use;
+	allow crond_t { cronjob_t unconfined_cronjob_t }:key manage_key_perms;
+')
 
 ifdef(`distro_debian',`
 	allow crond_t self:process setrlimit;
 
 	optional_policy(`
-		# Debian logcheck has the home dir set to its cache
 		logwatch_search_cache_dir(crond_t)
 	')
 ')
@@ -338,8 +343,8 @@ tunable_policy(`allow_polyinstantiation',`
 	files_polyinstantiate_all(crond_t)
 ')
 
-tunable_policy(`fcron_crond', `
-	allow crond_t system_cron_spool_t:file manage_file_perms;
+tunable_policy(`fcron_crond',`
+	allow crond_t { system_cron_spool_t user_cron_spool_t }:file manage_file_perms;
 ')
 
 optional_policy(`
@@ -438,7 +443,7 @@ files_search_var_lib(system_cronjob_t)
 manage_files_pattern(system_cronjob_t, system_cronjob_var_lib_t, system_cronjob_var_lib_t)
 
 allow system_cronjob_t crond_t:fd use;
-allow system_cronjob_t crond_t:fifo_file rw_file_perms;
+allow system_cronjob_t crond_t:fifo_file rw_fifo_file_perms;
 allow system_cronjob_t crond_t:process sigchld;
 
 allow system_cronjob_t cron_spool_t:dir list_dir_perms;
@@ -584,7 +589,7 @@ optional_policy(`
 
 optional_policy(`
 	postfix_read_config(system_cronjob_t)
-')	
+')
 
 optional_policy(`
 	prelink_delete_cache(system_cronjob_t)
@@ -624,12 +629,6 @@ allow cronjob_t self:process { signal_perms setsched };
 allow cronjob_t self:fifo_file rw_fifo_file_perms;
 allow cronjob_t self:unix_stream_socket create_stream_socket_perms;
 allow cronjob_t self:unix_dgram_socket create_socket_perms;
-
-allow cronjob_t user_cron_spool_t:file entrypoint;
-
-allow cronjob_t crond_t:fd use;
-allow cronjob_t crond_t:fifo_file rw_file_perms;
-allow cronjob_t crond_t:process sigchld;
 
 kernel_read_system_state(cronjob_t)
 kernel_read_kernel_sysctls(cronjob_t)
@@ -683,8 +682,18 @@ userdom_manage_user_home_content_symlinks(cronjob_t)
 userdom_manage_user_home_content_pipes(cronjob_t)
 userdom_manage_user_home_content_sockets(cronjob_t)
 
-tunable_policy(`fcron_crond',`
-	allow crond_t user_cron_spool_t:file manage_file_perms;
+tunable_policy(`cron_userdomain_transition',`
+	dontaudit cronjob_t crond_t:fd use;
+	dontaudit cronjob_t crond_t:fifo_file rw_fifo_file_perms;
+	dontaudit cronjob_t crond_t:process sigchld;
+
+	dontaudit cronjob_t user_cron_spool_t:file entrypoint;
+',`
+	allow cronjob_t crond_t:fd use;
+	allow cronjob_t crond_t:fifo_file rw_fifo_file_perms;
+	allow cronjob_t crond_t:process sigchld;
+
+	allow cronjob_t user_cron_spool_t:file entrypoint;
 ')
 
 optional_policy(`
