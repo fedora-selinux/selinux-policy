@@ -1,0 +1,43 @@
+## <summary>Service daemon with a D-BUS interface that provides a dynamic managed firewall.</summary>
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an firewalld environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`firewalld_admin',`
+	gen_require(`
+		type firewalld_t, firewalld_initrc_exec_t;
+		type firewall_etc_rw_t, firewalld_var_run_t;
+		type firewalld_var_log_t;
+	')
+
+	allow $1 firewalld_t:process { ptrace signal_perms };
+	ps_process_pattern($1, firewalld_t)
+
+	init_labeled_script_domtrans($1, firewalld_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 firewalld_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, firewalld_var_run_t)
+	
+	logging_search_logs($1)
+	admin_pattern($1, firewalld_var_log_t)
+
+	files_search_etc($1)
+	admin_pattern($1, firewall_etc_rw_t)
+')
