@@ -1,8 +1,8 @@
-## <summary>File transfer protocol service</summary>
+## <summary>File transfer protocol service.</summary>
 
 #######################################
 ## <summary>
-##	Allow domain dyntransition to sftpd_anon domain.
+##	Execute a dyntransition to run anon sftpd.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -20,7 +20,7 @@ interface(`ftp_dyntrans_anon_sftpd',`
 
 ########################################
 ## <summary>
-##	Use ftp by connecting over TCP.  (Deprecated)
+##	Connect to over ftpd over TCP.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -34,7 +34,7 @@ interface(`ftp_tcp_connect',`
 
 ########################################
 ## <summary>
-##	Read ftpd etc files
+##	Read ftpd configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -67,12 +67,12 @@ interface(`ftp_check_exec',`
 	')
 
 	corecmd_search_bin($1)
-	allow $1 ftpd_exec_t:file { getattr execute };
+	allow $1 ftpd_exec_t:file mmap_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Read FTP transfer logs
+##	Read ftpd log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -91,7 +91,7 @@ interface(`ftp_read_log',`
 
 ########################################
 ## <summary>
-##	Execute the ftpdctl program in the ftpdctl domain.
+##	Execute the ftpdctl in the ftpdctl domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -110,7 +110,9 @@ interface(`ftp_domtrans_ftpdctl',`
 
 ########################################
 ## <summary>
-##	Execute the ftpdctl program in the ftpdctl domain.
+##	Execute the ftpdctl in the ftpdctl
+##	domain, and allow the specified
+##	role the ftpctl domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -119,23 +121,23 @@ interface(`ftp_domtrans_ftpdctl',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the ftpdctl domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`ftp_run_ftpdctl',`
 	gen_require(`
-		type ftpdctl_t;
+		attribute_role ftpdctl_roles;
 	')
 
 	ftp_domtrans_ftpdctl($1)
-	role $2 types ftpdctl_t;
+	roleattribute $2 ftpdctl_roles;
 ')
 
 #######################################
 ## <summary>
-##	Allow domain dyntransition to sftpd domain.
+##	Execute a dyntransition to run sftpd.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -153,8 +155,8 @@ interface(`ftp_dyntrans_sftpd',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an ftp environment
+##	All of the rules required to
+##	administrate an ftp environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -163,7 +165,7 @@ interface(`ftp_dyntrans_sftpd',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the ftp domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -171,26 +173,23 @@ interface(`ftp_dyntrans_sftpd',`
 interface(`ftp_admin',`
 	gen_require(`
 		type ftpd_t, ftpdctl_t, ftpd_tmp_t;
-		type ftpd_etc_t, ftpd_lock_t;
-		type ftpd_var_run_t, xferlog_t;
-		type ftpd_initrc_exec_t;
+		type ftpd_etc_t, ftpd_lock_t, sftpd_t;
+		type ftpd_var_run_t, xferlog_t, anon_sftpd_t;
+		type ftpd_initrc_exec_t, ftpdctl_tmp_t;
 	')
 
-	allow $1 ftpd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, ftpd_t)
+	allow $1 { ftpd_t ftpdctl_t sftpd_t anon_sftpd }:process { ptrace signal_perms };
+	ps_process_pattern($1, { ftpd_t ftpdctl_t sftpd_t anon_sftpd_t })
 
 	init_labeled_script_domtrans($1, ftpd_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 ftpd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	ps_process_pattern($1, ftpdctl_t)
-	ftp_run_ftpdctl($1, $2)
-
 	miscfiles_manage_public_files($1)
 
 	files_list_tmp($1)
-	admin_pattern($1, ftpd_tmp_t)
+	admin_pattern($1, { ftpd_tmp_t ftpdctl_tmp_t })
 
 	files_list_etc($1)
 	admin_pattern($1, ftpd_etc_t)
@@ -203,4 +202,6 @@ interface(`ftp_admin',`
 
 	logging_list_logs($1)
 	admin_pattern($1, xferlog_t)
+
+	ftp_run_ftpdctl($1, $2)
 ')
