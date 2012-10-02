@@ -1,15 +1,18 @@
-policy_module(games, 2.2.0)
+policy_module(games, 2.2.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role games_roles;
+
 type games_t;
 type games_exec_t;
 typealias games_t alias { user_games_t staff_games_t sysadm_games_t };
 typealias games_t alias { auditadm_games_t secadm_games_t };
 userdom_user_application_domain(games_t, games_exec_t)
+role games_roles types games_t;
 
 type games_data_t;
 typealias games_data_t alias { user_games_data_t staff_games_data_t sysadm_games_data_t };
@@ -23,8 +26,6 @@ typealias games_devpts_t alias { auditadm_games_devpts_t secadm_games_devpts_t }
 term_pty(games_devpts_t)
 ubac_constrained(games_devpts_t)
 
-# games_srv_t is for system operation of games, generic games daemons and
-# games recovery scripts
 type games_srv_t;
 init_system_domain(games_srv_t, games_exec_t)
 
@@ -91,7 +92,7 @@ optional_policy(`
 
 ########################################
 #
-# Local policy
+# Client local policy
 #
 
 allow games_t self:sem create_sem_perms;
@@ -123,22 +124,21 @@ corecmd_exec_bin(games_t)
 corenet_all_recvfrom_unlabeled(games_t)
 corenet_all_recvfrom_netlabel(games_t)
 corenet_tcp_sendrecv_generic_if(games_t)
-corenet_udp_sendrecv_generic_if(games_t)
 corenet_tcp_sendrecv_generic_node(games_t)
-corenet_udp_sendrecv_generic_node(games_t)
 corenet_tcp_sendrecv_all_ports(games_t)
-corenet_udp_sendrecv_all_ports(games_t)
 corenet_tcp_bind_generic_node(games_t)
-corenet_tcp_bind_generic_port(games_t)
-corenet_tcp_connect_generic_port(games_t)
-corenet_sendrecv_generic_client_packets(games_t)
+
 corenet_sendrecv_generic_server_packets(games_t)
+corenet_tcp_bind_generic_port(games_t)
+
+corenet_sendrecv_generic_client_packets(games_t)
+corenet_tcp_connect_generic_port(games_t)
 
 dev_read_sound(games_t)
-dev_write_sound(games_t)
 dev_read_input(games_t)
 dev_read_mouse(games_t)
 dev_read_urand(games_t)
+dev_write_sound(games_t)
 
 files_list_var(games_t)
 files_search_var_lib(games_t)
@@ -160,7 +160,6 @@ userdom_manage_user_tmp_dirs(games_t)
 userdom_manage_user_tmp_files(games_t)
 userdom_manage_user_tmp_symlinks(games_t)
 userdom_manage_user_tmp_sockets(games_t)
-# Suppress .icons denial until properly implemented
 userdom_dontaudit_read_user_home_content_files(games_t)
 
 tunable_policy(`allow_execmem',`
