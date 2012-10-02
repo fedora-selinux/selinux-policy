@@ -1,4 +1,4 @@
-policy_module(portage, 1.13.0)
+policy_module(portage, 1.13.1)
 
 ########################################
 #
@@ -193,8 +193,6 @@ files_manage_all_files(portage_t)
 selinux_get_fs_mount(portage_t)
 
 auth_manage_shadow(portage_t)
-auth_use_nsswitch(portage_fetch_t)
-auth_use_nsswitch(portage_sandbox_t)
 
 # merging baselayout will need this:
 init_exec(portage_t)
@@ -245,7 +243,7 @@ dontaudit portage_t device_type:blk_file read_blk_file_perms;
 allow portage_fetch_t self:process signal;
 allow portage_fetch_t self:capability { dac_override fowner fsetid chown };
 allow portage_fetch_t self:fifo_file rw_fifo_file_perms;
-allow portage_fetch_t self:tcp_socket create_stream_socket_perms;
+allow portage_fetch_t self:tcp_socket { accept listen };
 allow portage_fetch_t self:unix_stream_socket create_socket_perms;
 
 allow portage_fetch_t portage_conf_t:dir list_dir_perms;
@@ -294,10 +292,8 @@ dev_dontaudit_read_rand(portage_fetch_t)
 
 domain_use_interactive_fds(portage_fetch_t)
 
-files_read_etc_files(portage_fetch_t)
 files_read_etc_runtime_files(portage_fetch_t)
 files_read_usr_files(portage_fetch_t)
-files_search_var_lib(portage_fetch_t)
 files_dontaudit_search_pids(portage_fetch_t)
 
 fs_search_auto_mountpoints(portage_fetch_t)
@@ -307,10 +303,9 @@ logging_dontaudit_search_logs(portage_fetch_t)
 
 term_search_ptys(portage_fetch_t)
 
-miscfiles_read_localization(portage_fetch_t)
+auth_use_nsswitch(portage_fetch_t)
 
-sysnet_read_config(portage_fetch_t)
-sysnet_dns_name_resolve(portage_fetch_t)
+miscfiles_read_localization(portage_fetch_t)
 
 userdom_use_user_terminals(portage_fetch_t)
 userdom_dontaudit_read_user_home_content_files(portage_fetch_t)
@@ -322,7 +317,6 @@ ifdef(`hide_broken_symptoms',`
 ')
 
 tunable_policy(`portage_use_nfs',`
-	fs_getattr_nfs(portage_t)
 	fs_getattr_nfs(portage_fetch_t)
 	fs_manage_nfs_dirs(portage_fetch_t)
 	fs_manage_nfs_files(portage_fetch_t)
@@ -340,6 +334,8 @@ optional_policy(`
 #
 
 portage_compile_domain(portage_sandbox_t)
+
+auth_use_nsswitch(portage_sandbox_t)
 
 ifdef(`hide_broken_symptoms',`
 	# leaked descriptors
