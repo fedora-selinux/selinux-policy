@@ -3,8 +3,37 @@
 xend_selinux \- Security Enhanced Linux Policy for the xend processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the xend processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the xend processes via flexible mandatory access control.
+
+The xend processes execute with the xend_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep xend_t
+
+
+.SH "ENTRYPOINTS"
+
+The xend_t SELinux type can be entered via the "xend_exec_t" file type.  The default entrypoint paths for the xend_t domain are the following:"
+
+/usr/sbin/xend
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux xend policy is very flexible allowing users to setup their xend processes in as secure a method as possible.
+.PP 
+The following process types are defined for xend:
+
+.EX
+.B xend_t, xenstored_t, xenconsoled_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  xend policy is extremely flexible and has several booleans that allow you to manipulate the policy and run xend with the tightest access possible.
@@ -30,8 +59,6 @@ If you want to allow xend to run blktapctrl/tapdisk. Not required if using dedic
 .EX
 .B setsebool -P xend_run_blktap 1
 .EE
-
-.SH NSSWITCH DOMAIN
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -126,27 +153,9 @@ The following port types are defined for xend:
 Default Defined Ports:
 tcp 8002
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux xend policy is very flexible allowing users to setup their xend processes in as secure a method as possible.
-.PP 
-The following process types are defined for xend:
-
-.EX
-.B xend_t, xenstored_t, xenconsoled_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type xend_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type xend_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B dhcp_etc_t
@@ -279,6 +288,8 @@ The SELinux user type xend_t can manage files labeled with the following file ty
 .br
 	/var/run/xenstore\.pid
 .br
+
+.SH NSSWITCH DOMAIN
 
 .SH "COMMANDS"
 .B semanage fcontext

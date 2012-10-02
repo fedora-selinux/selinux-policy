@@ -3,8 +3,37 @@
 xserver_selinux \- Security Enhanced Linux Policy for the xserver processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the xserver processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the xserver processes via flexible mandatory access control.
+
+The xserver processes execute with the xserver_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep xserver_t
+
+
+.SH "ENTRYPOINTS"
+
+The xserver_t SELinux type can be entered via the "xserver_exec_t" file type.  The default entrypoint paths for the xserver_t domain are the following:"
+
+/usr/bin/Xair, /usr/X11R6/bin/XFree86, /etc/init\.d/xfree86-common, /usr/X11R6/bin/Xorg, /usr/X11R6/bin/Xipaq, /usr/bin/Xephyr, /usr/bin/Xorg, /usr/X11R6/bin/Xwrapper, /usr/X11R6/bin/X
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux xserver policy is very flexible allowing users to setup their xserver processes in as secure a method as possible.
+.PP 
+The following process types are defined for xserver:
+
+.EX
+.B xserver_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  xserver policy is extremely flexible and has several booleans that allow you to manipulate the policy and run xserver with the tightest access possible.
@@ -36,22 +65,6 @@ If you want to allows clients to write to the X server shared memory segments, y
 
 .EX
 .B setsebool -P xserver_clients_write_xshm 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the xserver_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the xserver_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -147,27 +160,9 @@ The following port types are defined for xserver:
 Default Defined Ports:
 tcp 6000-6020
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux xserver policy is very flexible allowing users to setup their xserver processes in as secure a method as possible.
-.PP 
-The following process types are defined for xserver:
-
-.EX
-.B xserver_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type xserver_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type xserver_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B bluetooth_helper_tmpfs_t
@@ -260,6 +255,18 @@ The SELinux user type xserver_t can manage files labeled with the following file
 .br
 	/home/[^/]*/\.fonts\.cache-.*
 .br
+	/home/dwalsh/\.fontconfig(/.*)?
+.br
+	/home/dwalsh/\.fonts/auto(/.*)?
+.br
+	/home/dwalsh/\.fonts\.cache-.*
+.br
+	/var/lib/xguest/home/xguest/\.fontconfig(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts/auto(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts\.cache-.*
+.br
 
 .br
 .B user_tmpfs_t
@@ -346,6 +353,22 @@ The SELinux user type xserver_t can manage files labeled with the following file
 .br
 	/var/run/video.rom
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the xserver_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the xserver_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

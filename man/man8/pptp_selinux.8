@@ -3,24 +3,37 @@
 pptp_selinux \- Security Enhanced Linux Policy for the pptp processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the pptp processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the pptp processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The pptp processes execute with the pptp_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep pptp_t
+
+
+.SH "ENTRYPOINTS"
+
+The pptp_t SELinux type can be entered via the "pptp_exec_t" file type.  The default entrypoint paths for the pptp_t domain are the following:"
+
+/usr/sbin/pptp
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the pptp_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux pptp policy is very flexible allowing users to setup their pptp processes in as secure a method as possible.
+.PP 
+The following process types are defined for pptp:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B pptp_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the pptp_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -89,27 +102,9 @@ tcp 1723
 .EE
 udp 1723
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux pptp policy is very flexible allowing users to setup their pptp processes in as secure a method as possible.
-.PP 
-The following process types are defined for pptp:
-
-.EX
-.B pptp_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type pptp_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type pptp_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B pptp_log_t
@@ -120,6 +115,22 @@ The SELinux user type pptp_t can manage files labeled with the following file ty
 
 	/var/run/pptp(/.*)?
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the pptp_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the pptp_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

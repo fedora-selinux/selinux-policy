@@ -3,24 +3,37 @@
 gpsd_selinux \- Security Enhanced Linux Policy for the gpsd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the gpsd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the gpsd processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The gpsd processes execute with the gpsd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep gpsd_t
+
+
+.SH "ENTRYPOINTS"
+
+The gpsd_t SELinux type can be entered via the "gpsd_exec_t" file type.  The default entrypoint paths for the gpsd_t domain are the following:"
+
+/usr/sbin/gpsd
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the gpsd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux gpsd policy is very flexible allowing users to setup their gpsd processes in as secure a method as possible.
+.PP 
+The following process types are defined for gpsd:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B gpsd_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the gpsd_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -99,27 +112,9 @@ The following port types are defined for gpsd:
 Default Defined Ports:
 tcp 2947
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux gpsd policy is very flexible allowing users to setup their gpsd processes in as secure a method as possible.
-.PP 
-The following process types are defined for gpsd:
-
-.EX
-.B gpsd_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type gpsd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type gpsd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B chronyd_tmpfs_t
@@ -140,6 +135,22 @@ The SELinux user type gpsd_t can manage files labeled with the following file ty
 .br
 .B ntpd_tmpfs_t
 
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the gpsd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the gpsd_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

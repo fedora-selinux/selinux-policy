@@ -3,8 +3,37 @@
 gpg_selinux \- Security Enhanced Linux Policy for the gpg processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the gpg processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the gpg processes via flexible mandatory access control.
+
+The gpg processes execute with the gpg_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep gpg_t
+
+
+.SH "ENTRYPOINTS"
+
+The gpg_t SELinux type can be entered via the "gpg_exec_t" file type.  The default entrypoint paths for the gpg_t domain are the following:"
+
+/usr/bin/gpgsm, /usr/bin/gpg(2)?, /usr/bin/kgpg, /usr/lib/gnupg/.*
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux gpg policy is very flexible allowing users to setup their gpg processes in as secure a method as possible.
+.PP 
+The following process types are defined for gpg:
+
+.EX
+.B gpg_t, gpg_pinentry_t, gpg_helper_t, gpg_web_t, gpg_agent_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  gpg policy is extremely flexible and has several booleans that allow you to manipulate the policy and run gpg with the tightest access possible.
@@ -22,22 +51,6 @@ If you want to allow httpd to run gpg, you must turn on the httpd_use_gpg boolea
 
 .EX
 .B setsebool -P httpd_use_gpg 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH SHARING FILES
@@ -144,27 +157,9 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux gpg policy is very flexible allowing users to setup their gpg processes in as secure a method as possible.
-.PP 
-The following process types are defined for gpg:
-
-.EX
-.B gpg_t, gpg_pinentry_t, gpg_helper_t, gpg_web_t, gpg_agent_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type gpg_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type gpg_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B etc_mail_t
@@ -177,6 +172,10 @@ The SELinux user type gpg_t can manage files labeled with the following file typ
 
 	/home/[^/]*/\.gnupg/log-socket
 .br
+	/home/dwalsh/\.gnupg/log-socket
+.br
+	/var/lib/xguest/home/xguest/\.gnupg/log-socket
+.br
 
 .br
 .B gpg_secret_t
@@ -184,6 +183,10 @@ The SELinux user type gpg_t can manage files labeled with the following file typ
 	/root/\.gnupg(/.+)?
 .br
 	/home/[^/]*/\.gnupg(/.+)?
+.br
+	/home/dwalsh/\.gnupg(/.+)?
+.br
+	/var/lib/xguest/home/xguest/\.gnupg(/.+)?
 .br
 
 .br
@@ -219,11 +222,75 @@ The SELinux user type gpg_t can manage files labeled with the following file typ
 .br
 	/home/[^/]*/\.config/chromium(/.*)?
 .br
+	/home/dwalsh/\.java(/.*)?
+.br
+	/home/dwalsh/\.adobe(/.*)?
+.br
+	/home/dwalsh/\.gnash(/.*)?
+.br
+	/home/dwalsh/\.galeon(/.*)?
+.br
+	/home/dwalsh/\.spicec(/.*)?
+.br
+	/home/dwalsh/\.mozilla(/.*)?
+.br
+	/home/dwalsh/\.phoenix(/.*)?
+.br
+	/home/dwalsh/\.netscape(/.*)?
+.br
+	/home/dwalsh/\.ICAClient(/.*)?
+.br
+	/home/dwalsh/\.macromedia(/.*)?
+.br
+	/home/dwalsh/\.thunderbird(/.*)?
+.br
+	/home/dwalsh/\.gcjwebplugin(/.*)?
+.br
+	/home/dwalsh/\.icedteaplugin(/.*)?
+.br
+	/home/dwalsh/zimbrauserdata(/.*)?
+.br
+	/home/dwalsh/\.config/chromium(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.java(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.adobe(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.gnash(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.galeon(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.spicec(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.mozilla(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.phoenix(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.netscape(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.ICAClient(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.macromedia(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.thunderbird(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.gcjwebplugin(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.icedteaplugin(/.*)?
+.br
+	/var/lib/xguest/home/xguest/zimbrauserdata(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.config/chromium(/.*)?
+.br
 
 .br
 .B user_home_t
 
 	/home/[^/]*/.+
+.br
+	/home/dwalsh/.+
+.br
+	/var/lib/xguest/home/xguest/.+
 .br
 
 .br
@@ -231,6 +298,22 @@ The SELinux user type gpg_t can manage files labeled with the following file typ
 
 	all user tmp files
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

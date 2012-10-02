@@ -3,24 +3,37 @@
 dirsrv_selinux \- Security Enhanced Linux Policy for the dirsrv processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the dirsrv processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the dirsrv processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The dirsrv processes execute with the dirsrv_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep dirsrv_t
+
+
+.SH "ENTRYPOINTS"
+
+The dirsrv_t SELinux type can be entered via the "dirsrv_exec_t" file type.  The default entrypoint paths for the dirsrv_t domain are the following:"
+
+/usr/sbin/ns-slapd
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the dirsrv_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux dirsrv policy is very flexible allowing users to setup their dirsrv processes in as secure a method as possible.
+.PP 
+The following process types are defined for dirsrv:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B dirsrvadmin_unconfined_script_t, dirsrv_snmp_t, dirsrvadmin_t, dirsrv_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the dirsrv_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -188,27 +201,9 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux dirsrv policy is very flexible allowing users to setup their dirsrv processes in as secure a method as possible.
-.PP 
-The following process types are defined for dirsrv:
-
-.EX
-.B dirsrvadmin_unconfined_script_t, dirsrv_snmp_t, dirsrvadmin_t, dirsrv_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type dirsrv_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type dirsrv_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B dirsrv_config_t
@@ -307,6 +302,22 @@ The SELinux user type dirsrv_t can manage files labeled with the following file 
 
 	/selinux
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the dirsrv_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the dirsrv_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

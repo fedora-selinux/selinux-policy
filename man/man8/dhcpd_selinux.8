@@ -3,8 +3,37 @@
 dhcpd_selinux \- Security Enhanced Linux Policy for the dhcpd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the dhcpd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the dhcpd processes via flexible mandatory access control.
+
+The dhcpd processes execute with the dhcpd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep dhcpd_t
+
+
+.SH "ENTRYPOINTS"
+
+The dhcpd_t SELinux type can be entered via the "dhcpd_exec_t" file type.  The default entrypoint paths for the dhcpd_t domain are the following:"
+
+/usr/sbin/dhcpd.*
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux dhcpd policy is very flexible allowing users to setup their dhcpd processes in as secure a method as possible.
+.PP 
+The following process types are defined for dhcpd:
+
+.EX
+.B dhcpc_t, dhcpd_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  dhcpd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run dhcpd with the tightest access possible.
@@ -22,22 +51,6 @@ If you want to allow DHCP daemon to use LDAP backends, you must turn on the dhcp
 
 .EX
 .B setsebool -P dhcpd_use_ldap 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the dhcpd_t, dhcpc_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the dhcpd_t, dhcpc_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -148,27 +161,9 @@ tcp 547,548,647,847,7911
 .EE
 udp 67,547,548,647,847
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux dhcpd policy is very flexible allowing users to setup their dhcpd processes in as secure a method as possible.
-.PP 
-The following process types are defined for dhcpd:
-
-.EX
-.B dhcpc_t, dhcpd_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type dhcpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type dhcpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B dhcpd_state_t
@@ -187,6 +182,22 @@ The SELinux user type dhcpd_t can manage files labeled with the following file t
 
 	/var/run/dhcpd(6)?\.pid
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the dhcpd_t, dhcpc_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the dhcpd_t, dhcpc_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

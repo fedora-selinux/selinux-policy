@@ -3,24 +3,37 @@
 pulseaudio_selinux \- Security Enhanced Linux Policy for the pulseaudio processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the pulseaudio processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the pulseaudio processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The pulseaudio processes execute with the pulseaudio_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep pulseaudio_t
+
+
+.SH "ENTRYPOINTS"
+
+The pulseaudio_t SELinux type can be entered via the "pulseaudio_exec_t" file type.  The default entrypoint paths for the pulseaudio_t domain are the following:"
+
+/usr/bin/pulseaudio
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the pulseaudio_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux pulseaudio policy is very flexible allowing users to setup their pulseaudio processes in as secure a method as possible.
+.PP 
+The following process types are defined for pulseaudio:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B pulseaudio_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the pulseaudio_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -109,27 +122,9 @@ tcp 4713
 .EE
 udp 4713
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux pulseaudio policy is very flexible allowing users to setup their pulseaudio processes in as secure a method as possible.
-.PP 
-The following process types are defined for pulseaudio:
-
-.EX
-.B pulseaudio_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type pulseaudio_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type pulseaudio_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B anon_inodefs_t
@@ -152,6 +147,26 @@ The SELinux user type pulseaudio_t can manage files labeled with the following f
 .br
 	/home/[^/]*/\.grl-metadata-store
 .br
+	/home/dwalsh/\.orc(/.*)?
+.br
+	/home/dwalsh/\.gstreamer-.*
+.br
+	/home/dwalsh/\.grl-bookmarks
+.br
+	/home/dwalsh/\.grl-bookmarks
+.br
+	/home/dwalsh/\.grl-metadata-store
+.br
+	/var/lib/xguest/home/xguest/\.orc(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.gstreamer-.*
+.br
+	/var/lib/xguest/home/xguest/\.grl-bookmarks
+.br
+	/var/lib/xguest/home/xguest/\.grl-bookmarks
+.br
+	/var/lib/xguest/home/xguest/\.grl-metadata-store
+.br
 
 .br
 .B pulseaudio_home_t
@@ -167,6 +182,18 @@ The SELinux user type pulseaudio_t can manage files labeled with the following f
 	/home/[^/]*/\.esd_auth
 .br
 	/home/[^/]*/\.pulse-cookie
+.br
+	/home/dwalsh/\.pulse(/.*)?
+.br
+	/home/dwalsh/\.esd_auth
+.br
+	/home/dwalsh/\.pulse-cookie
+.br
+	/var/lib/xguest/home/xguest/\.pulse(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.esd_auth
+.br
+	/var/lib/xguest/home/xguest/\.pulse-cookie
 .br
 
 .br
@@ -196,6 +223,18 @@ The SELinux user type pulseaudio_t can manage files labeled with the following f
 .br
 	/home/[^/]*/\.fonts\.cache-.*
 .br
+	/home/dwalsh/\.fontconfig(/.*)?
+.br
+	/home/dwalsh/\.fonts/auto(/.*)?
+.br
+	/home/dwalsh/\.fonts\.cache-.*
+.br
+	/var/lib/xguest/home/xguest/\.fontconfig(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts/auto(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts\.cache-.*
+.br
 
 .br
 .B user_tmp_type
@@ -222,6 +261,22 @@ The SELinux user type pulseaudio_t can manage files labeled with the following f
 .br
 	/tmp/\.X0-lock
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the pulseaudio_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the pulseaudio_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

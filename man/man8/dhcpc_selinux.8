@@ -3,8 +3,37 @@
 dhcpc_selinux \- Security Enhanced Linux Policy for the dhcpc processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the dhcpc processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the dhcpc processes via flexible mandatory access control.
+
+The dhcpc processes execute with the dhcpc_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep dhcpc_t
+
+
+.SH "ENTRYPOINTS"
+
+The dhcpc_t SELinux type can be entered via the "dhcpc_exec_t" file type.  The default entrypoint paths for the dhcpc_t domain are the following:"
+
+/usr/sbin/dhcpcd, /sbin/dhcpcd, /usr/sbin/pump, /sbin/dhclient.*, /usr/sbin/dhclient.*, /sbin/pump, /usr/sbin/dhcdbd, /sbin/dhcdbd
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux dhcpc policy is very flexible allowing users to setup their dhcpc processes in as secure a method as possible.
+.PP 
+The following process types are defined for dhcpc:
+
+.EX
+.B dhcpc_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  dhcpc policy is extremely flexible and has several booleans that allow you to manipulate the policy and run dhcpc with the tightest access possible.
@@ -15,22 +44,6 @@ If you want to allow dhcpc client applications to execute iptables commands, you
 
 .EX
 .B setsebool -P dhcpc_exec_iptables 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the dhcpc_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the dhcpc_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -128,27 +141,9 @@ tcp 68,546
 .EE
 udp 68,546
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux dhcpc policy is very flexible allowing users to setup their dhcpc processes in as secure a method as possible.
-.PP 
-The following process types are defined for dhcpc:
-
-.EX
-.B dhcpc_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type dhcpc_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type dhcpc_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B dhcpc_state_t
@@ -219,6 +214,22 @@ The SELinux user type dhcpc_t can manage files labeled with the following file t
 .br
 	/var/run/systemd/ask-password-block(/.*)?
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the dhcpc_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the dhcpc_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

@@ -3,24 +3,37 @@
 ntpd_selinux \- Security Enhanced Linux Policy for the ntpd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the ntpd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the ntpd processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The ntpd processes execute with the ntpd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep ntpd_t
+
+
+.SH "ENTRYPOINTS"
+
+The ntpd_t SELinux type can be entered via the "ntpd_exec_t,ntpdate_exec_t" file types.  The default entrypoint paths for the ntpd_t domain are the following:"
+
+/usr/sbin/ntpd, /etc/cron\.(daily|weekly)/ntp-server, /etc/cron\.(daily|weekly)/ntp-simple, /usr/sbin/ntpdate
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the ntpd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux ntpd policy is very flexible allowing users to setup their ntpd processes in as secure a method as possible.
+.PP 
+The following process types are defined for ntpd:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B ntpd_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the ntpd_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -147,27 +160,9 @@ The following port types are defined for ntpd:
 Default Defined Ports:
 udp 123
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux ntpd policy is very flexible allowing users to setup their ntpd processes in as secure a method as possible.
-.PP 
-The following process types are defined for ntpd:
-
-.EX
-.B ntpd_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type ntpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type ntpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B gpsd_tmpfs_t
@@ -214,6 +209,22 @@ The SELinux user type ntpd_t can manage files labeled with the following file ty
 .br
 	/usr/lib/udev/devices/shm
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the ntpd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the ntpd_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

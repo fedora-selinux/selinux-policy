@@ -3,8 +3,37 @@
 avahi_selinux \- Security Enhanced Linux Policy for the avahi processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the avahi processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the avahi processes via flexible mandatory access control.
+
+The avahi processes execute with the avahi_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep avahi_t
+
+
+.SH "ENTRYPOINTS"
+
+The avahi_t SELinux type can be entered via the "avahi_exec_t" file type.  The default entrypoint paths for the avahi_t domain are the following:"
+
+/usr/sbin/avahi-dnsconfd, /usr/sbin/avahi-autoipd, /usr/sbin/avahi-daemon
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux avahi policy is very flexible allowing users to setup their avahi processes in as secure a method as possible.
+.PP 
+The following process types are defined for avahi:
+
+.EX
+.B avahi_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  avahi policy is extremely flexible and has several booleans that allow you to manipulate the policy and run avahi with the tightest access possible.
@@ -15,22 +44,6 @@ If you want to allow Apache to communicate with avahi service via dbus, you must
 
 .EX
 .B setsebool -P httpd_dbus_avahi 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the avahi_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the avahi_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -95,27 +108,9 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux avahi policy is very flexible allowing users to setup their avahi processes in as secure a method as possible.
-.PP 
-The following process types are defined for avahi:
-
-.EX
-.B avahi_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type avahi_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type avahi_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B avahi_var_lib_t
@@ -154,6 +149,22 @@ The SELinux user type avahi_t can manage files labeled with the following file t
 .br
 	/etc/ethers
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the avahi_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the avahi_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

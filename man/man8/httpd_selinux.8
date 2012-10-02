@@ -3,8 +3,37 @@
 httpd_selinux \- Security Enhanced Linux Policy for the httpd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the httpd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the httpd processes via flexible mandatory access control.
+
+The httpd processes execute with the httpd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep httpd_t
+
+
+.SH "ENTRYPOINTS"
+
+The httpd_t SELinux type can be entered via the "httpd_exec_t" file type.  The default entrypoint paths for the httpd_t domain are the following:"
+
+/usr/sbin/apache(2)?, /usr/share/jetty/bin/jetty.sh, /usr/bin/mongrel_rails, /usr/lib/apache-ssl/.+, /usr/sbin/httpd\.event, /usr/sbin/httpd(\.worker)?, /usr/sbin/cherokee, /usr/sbin/apache-ssl(2)?, /usr/sbin/lighttpd
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux httpd policy is very flexible allowing users to setup their httpd processes in as secure a method as possible.
+.PP 
+The following process types are defined for httpd:
+
+.EX
+.B httpd_collectd_script_t, httpd_cvs_script_t, httpd_rotatelogs_t, httpd_bugzilla_script_t, httpd_smokeping_cgi_script_t, httpd_nagios_script_t, httpd_dirsrvadmin_script_t, httpd_suexec_t, httpd_mojomojo_script_t, httpd_php_t, httpd_w3c_validator_script_t, httpd_user_script_t, httpd_awstats_script_t, httpd_apcupsd_cgi_script_t, httpd_nutups_cgi_script_t, httpd_munin_script_t, httpd_zoneminder_script_t, httpd_openshift_script_t, httpd_sys_script_t, httpd_dspam_script_t, httpd_prewikka_script_t, httpd_git_script_t, httpd_t, httpd_man2html_script_t, httpd_passwd_t, httpd_helper_t, httpd_squid_script_t, httpd_cobbler_script_t, httpd_mediawiki_script_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  httpd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run httpd with the tightest access possible.
@@ -116,6 +145,13 @@ If you want to allow httpd to access FUSE file systems, you must turn on the htt
 .EE
 
 .PP
+If you want to allow httpd to connect to the ldap port, you must turn on the httpd_can_connect_ldap boolean.
+
+.EX
+.B setsebool -P httpd_can_connect_ldap 1
+.EE
+
+.PP
 If you want to allow Apache to use mod_auth_ntlm_winbind, you must turn on the httpd_mod_auth_ntlm_winbind boolean.
 
 .EX
@@ -179,13 +215,6 @@ If you want to allow httpd to use built in scripting (usually php), you must tur
 .EE
 
 .PP
-If you want to allow httpd to connect to the ldap port, you must turn on the httpd_can_connect_ldap boolean.
-
-.EX
-.B setsebool -P httpd_can_connect_ldap 1
-.EE
-
-.PP
 If you want to allow http daemon to check spam, you must turn on the httpd_can_check_spam boolean.
 
 .EX
@@ -246,22 +275,6 @@ If you want to allow httpd daemon to change its resource limits, you must turn o
 
 .EX
 .B setsebool -P httpd_setrlimit 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the httpd_prewikka_script_t, httpd_passwd_t, httpd_t, httpd_php_t, httpd_git_script_t, httpd_suexec_t, httpd_sys_script_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the httpd_prewikka_script_t, httpd_passwd_t, httpd_t, httpd_php_t, httpd_git_script_t, httpd_suexec_t, httpd_sys_script_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH SHARING FILES
@@ -1571,27 +1584,9 @@ udp 3130
 Default Defined Ports:
 tcp 80,81,443,488,8008,8009,8443
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux httpd policy is very flexible allowing users to setup their httpd processes in as secure a method as possible.
-.PP 
-The following process types are defined for httpd:
-
-.EX
-.B httpd_collectd_script_t, httpd_cvs_script_t, httpd_rotatelogs_t, httpd_bugzilla_script_t, httpd_smokeping_cgi_script_t, httpd_nagios_script_t, httpd_dirsrvadmin_script_t, httpd_suexec_t, httpd_mojomojo_script_t, httpd_php_t, httpd_w3c_validator_script_t, httpd_user_script_t, httpd_awstats_script_t, httpd_apcupsd_cgi_script_t, httpd_nutups_cgi_script_t, httpd_munin_script_t, httpd_zoneminder_script_t, httpd_openshift_script_t, httpd_sys_script_t, httpd_dspam_script_t, httpd_prewikka_script_t, httpd_git_script_t, httpd_t, httpd_man2html_script_t, httpd_passwd_t, httpd_helper_t, httpd_squid_script_t, httpd_cobbler_script_t, httpd_mediawiki_script_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type httpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type httpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B abrt_retrace_spool_t
@@ -1940,6 +1935,22 @@ The SELinux user type httpd_t can manage files labeled with the following file t
 .br
 	/var/lib/zarafa-webaccess(/.*)?
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the httpd_prewikka_script_t, httpd_passwd_t, httpd_t, httpd_php_t, httpd_git_script_t, httpd_suexec_t, httpd_sys_script_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the httpd_prewikka_script_t, httpd_passwd_t, httpd_t, httpd_php_t, httpd_git_script_t, httpd_suexec_t, httpd_sys_script_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

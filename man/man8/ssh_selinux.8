@@ -3,8 +3,37 @@
 ssh_selinux \- Security Enhanced Linux Policy for the ssh processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the ssh processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the ssh processes via flexible mandatory access control.
+
+The ssh processes execute with the ssh_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep ssh_t
+
+
+.SH "ENTRYPOINTS"
+
+The ssh_t SELinux type can be entered via the "ssh_exec_t" file type.  The default entrypoint paths for the ssh_t domain are the following:"
+
+/usr/bin/ssh
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux ssh policy is very flexible allowing users to setup their ssh processes in as secure a method as possible.
+.PP 
+The following process types are defined for ssh:
+
+.EX
+.B sshd_sandbox_t, ssh_keysign_t, ssh_keygen_t, ssh_t, sshd_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  ssh policy is extremely flexible and has several booleans that allow you to manipulate the policy and run ssh with the tightest access possible.
@@ -43,22 +72,6 @@ If you want to allow fenced domain to execute ssh, you must turn on the fenced_c
 
 .EX
 .B setsebool -P fenced_can_ssh 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -218,27 +231,9 @@ The following port types are defined for ssh:
 Default Defined Ports:
 tcp 22
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux ssh policy is very flexible allowing users to setup their ssh processes in as secure a method as possible.
-.PP 
-The following process types are defined for ssh:
-
-.EX
-.B sshd_sandbox_t, ssh_keysign_t, ssh_keygen_t, ssh_t, sshd_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type ssh_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type ssh_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B ssh_home_t
@@ -261,6 +256,14 @@ The SELinux user type ssh_t can manage files labeled with the following file typ
 .br
 	/home/[^/]*/\.shosts
 .br
+	/home/dwalsh/\.ssh(/.*)?
+.br
+	/home/dwalsh/\.shosts
+.br
+	/var/lib/xguest/home/xguest/\.ssh(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.shosts
+.br
 
 .br
 .B ssh_tmpfs_t
@@ -281,6 +284,18 @@ The SELinux user type ssh_t can manage files labeled with the following file typ
 .br
 	/home/[^/]*/\.fonts\.cache-.*
 .br
+	/home/dwalsh/\.fontconfig(/.*)?
+.br
+	/home/dwalsh/\.fonts/auto(/.*)?
+.br
+	/home/dwalsh/\.fonts\.cache-.*
+.br
+	/var/lib/xguest/home/xguest/\.fontconfig(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts/auto(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts\.cache-.*
+.br
 
 .br
 .B user_tmp_t
@@ -289,12 +304,32 @@ The SELinux user type ssh_t can manage files labeled with the following file typ
 .br
 	/tmp/gconfd-.*
 .br
+	/tmp/gconfd-dwalsh
+.br
+	/tmp/gconfd-xguest
+.br
 
 .br
 .B user_tmp_type
 
 	all user tmp files
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the ssh_keygen_t, sshd_t, ssh_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext
