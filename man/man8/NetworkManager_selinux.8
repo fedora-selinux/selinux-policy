@@ -3,24 +3,37 @@
 NetworkManager_selinux \- Security Enhanced Linux Policy for the NetworkManager processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the NetworkManager processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the NetworkManager processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The NetworkManager processes execute with the NetworkManager_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep NetworkManager_t
+
+
+.SH "ENTRYPOINTS"
+
+The NetworkManager_t SELinux type can be entered via the "NetworkManager_exec_t" file type.  The default entrypoint paths for the NetworkManager_t domain are the following:"
+
+/usr/s?bin/wpa_supplicant, /usr/sbin/wpa_supplicant, /sbin/wpa_supplicant, /usr/sbin/nm-system-settings, /usr/sbin/wicd, /usr/s?bin/NetworkManager, /usr/sbin/NetworkManagerDispatcher
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the NetworkManager_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux NetworkManager policy is very flexible allowing users to setup their NetworkManager processes in as secure a method as possible.
+.PP 
+The following process types are defined for NetworkManager:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B NetworkManager_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the NetworkManager_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -136,27 +149,9 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux NetworkManager policy is very flexible allowing users to setup their NetworkManager processes in as secure a method as possible.
-.PP 
-The following process types are defined for NetworkManager:
-
-.EX
-.B NetworkManager_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type NetworkManager_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type NetworkManager_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B NetworkManager_etc_rw_t
@@ -281,6 +276,22 @@ The SELinux user type NetworkManager_t can manage files labeled with the followi
 .br
 	/var/run/systemd/ask-password-block(/.*)?
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the NetworkManager_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the NetworkManager_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

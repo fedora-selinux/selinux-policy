@@ -3,24 +3,37 @@
 auditd_selinux \- Security Enhanced Linux Policy for the auditd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the auditd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the auditd processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The auditd processes execute with the auditd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep auditd_t
+
+
+.SH "ENTRYPOINTS"
+
+The auditd_t SELinux type can be entered via the "auditd_exec_t" file type.  The default entrypoint paths for the auditd_t domain are the following:"
+
+/sbin/auditd, /usr/sbin/auditd
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the auditadm_t, auditadm_gkeyringd_t, auditadm_su_t, auditd_t, auditadm_sudo_t, auditadm_screen_t, auditadm_wine_t, auditadm_seunshare_t, auditadm_dbusd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux auditd policy is very flexible allowing users to setup their auditd processes in as secure a method as possible.
+.PP 
+The following process types are defined for auditd:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B auditadm_su_t, auditadm_seunshare_t, auditadm_dbusd_t, auditadm_t, auditadm_sudo_t, auditadm_wine_t, auditadm_screen_t, auditadm_gkeyringd_t, auditd_t, auditctl_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the auditadm_t, auditadm_gkeyringd_t, auditadm_su_t, auditd_t, auditadm_sudo_t, auditadm_screen_t, auditadm_wine_t, auditadm_seunshare_t, auditadm_dbusd_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -123,27 +136,9 @@ The following port types are defined for auditd:
 Default Defined Ports:
 tcp 60
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux auditd policy is very flexible allowing users to setup their auditd processes in as secure a method as possible.
-.PP 
-The following process types are defined for auditd:
-
-.EX
-.B auditadm_su_t, auditadm_seunshare_t, auditadm_dbusd_t, auditadm_t, auditadm_sudo_t, auditadm_wine_t, auditadm_screen_t, auditadm_gkeyringd_t, auditd_t, auditctl_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type auditd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type auditd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B anon_inodefs_t
@@ -174,6 +169,22 @@ The SELinux user type auditd_t can manage files labeled with the following file 
 .br
 	/var/run/systemd/ask-password-block(/.*)?
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the auditadm_t, auditadm_gkeyringd_t, auditadm_su_t, auditd_t, auditadm_sudo_t, auditadm_screen_t, auditadm_wine_t, auditadm_seunshare_t, auditadm_dbusd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the auditadm_t, auditadm_gkeyringd_t, auditadm_su_t, auditd_t, auditadm_sudo_t, auditadm_screen_t, auditadm_wine_t, auditadm_seunshare_t, auditadm_dbusd_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

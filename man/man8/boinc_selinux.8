@@ -3,10 +3,37 @@
 boinc_selinux \- Security Enhanced Linux Policy for the boinc processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the boinc processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the boinc processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The boinc processes execute with the boinc_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep boinc_t
+
+
+.SH "ENTRYPOINTS"
+
+The boinc_t SELinux type can be entered via the "boinc_exec_t" file type.  The default entrypoint paths for the boinc_t domain are the following:"
+
+/usr/bin/boinc_client
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux boinc policy is very flexible allowing users to setup their boinc processes in as secure a method as possible.
+.PP 
+The following process types are defined for boinc:
+
+.EX
+.B boinc_t, boinc_project_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -136,27 +163,9 @@ tcp 1043
 Default Defined Ports:
 tcp 31416
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux boinc policy is very flexible allowing users to setup their boinc processes in as secure a method as possible.
-.PP 
-The following process types are defined for boinc:
-
-.EX
-.B boinc_t, boinc_project_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type boinc_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type boinc_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B boinc_log_t
@@ -185,6 +194,8 @@ The SELinux user type boinc_t can manage files labeled with the following file t
 
 	/var/lib/boinc(/.*)?
 .br
+
+.SH NSSWITCH DOMAIN
 
 .SH "COMMANDS"
 .B semanage fcontext

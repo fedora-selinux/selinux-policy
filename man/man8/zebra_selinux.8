@@ -3,8 +3,37 @@
 zebra_selinux \- Security Enhanced Linux Policy for the zebra processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the zebra processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the zebra processes via flexible mandatory access control.
+
+The zebra processes execute with the zebra_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep zebra_t
+
+
+.SH "ENTRYPOINTS"
+
+The zebra_t SELinux type can be entered via the "zebra_exec_t" file type.  The default entrypoint paths for the zebra_t domain are the following:"
+
+/usr/sbin/zebra, /usr/sbin/rip.*, /usr/sbin/bgpd, /usr/sbin/ospf.*
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux zebra policy is very flexible allowing users to setup their zebra processes in as secure a method as possible.
+.PP 
+The following process types are defined for zebra:
+
+.EX
+.B zebra_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  zebra policy is extremely flexible and has several booleans that allow you to manipulate the policy and run zebra with the tightest access possible.
@@ -16,8 +45,6 @@ If you want to allow zebra daemon to write it configuration files, you must turn
 .EX
 .B setsebool -P zebra_write_config 1
 .EE
-
-.SH NSSWITCH DOMAIN
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -130,27 +157,9 @@ tcp 2600-2604,2606
 .EE
 udp 2600-2604,2606
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux zebra policy is very flexible allowing users to setup their zebra processes in as secure a method as possible.
-.PP 
-The following process types are defined for zebra:
-
-.EX
-.B zebra_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type zebra_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type zebra_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B zebra_log_t
@@ -169,6 +178,8 @@ The SELinux user type zebra_t can manage files labeled with the following file t
 .br
 	/var/run/\.zserv
 .br
+
+.SH NSSWITCH DOMAIN
 
 .SH "COMMANDS"
 .B semanage fcontext

@@ -3,8 +3,37 @@
 syslogd_selinux \- Security Enhanced Linux Policy for the syslogd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the syslogd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the syslogd processes via flexible mandatory access control.
+
+The syslogd processes execute with the syslogd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep syslogd_t
+
+
+.SH "ENTRYPOINTS"
+
+The syslogd_t SELinux type can be entered via the "syslogd_exec_t" file type.  The default entrypoint paths for the syslogd_t domain are the following:"
+
+/usr/sbin/rsyslogd, /usr/sbin/syslog-ng, /usr/sbin/metalog, /usr/lib/systemd/systemd-journald, /usr/sbin/syslogd, /usr/sbin/minilogd, /sbin/rsyslogd, /usr/lib/systemd/systemd-kmsg-syslogd, /sbin/syslogd, /sbin/syslog-ng, /sbin/minilogd
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux syslogd policy is very flexible allowing users to setup their syslogd processes in as secure a method as possible.
+.PP 
+The following process types are defined for syslogd:
+
+.EX
+.B syslogd_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  syslogd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run syslogd with the tightest access possible.
@@ -22,22 +51,6 @@ If you want to allow syslogd daemon to send mail, you must turn on the logging_s
 
 .EX
 .B setsebool -P logging_syslogd_can_sendmail 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the syslogd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the syslogd_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -135,27 +148,9 @@ tcp 6514
 .EE
 udp 514,6514
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux syslogd policy is very flexible allowing users to setup their syslogd processes in as secure a method as possible.
-.PP 
-The following process types are defined for syslogd:
-
-.EX
-.B syslogd_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type syslogd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type syslogd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B logfile
@@ -194,6 +189,22 @@ The SELinux user type syslogd_t can manage files labeled with the following file
 .br
 	/var/run/syslogd\.pid
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the syslogd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the syslogd_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

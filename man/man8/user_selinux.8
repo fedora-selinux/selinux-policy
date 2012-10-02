@@ -116,10 +116,10 @@ If you want to allow pppd to be run for a regular user, you must turn on the ppp
 .EE
 
 .PP
-If you want to control users use of ping and traceroute, you must turn on the selinuxuser_ping boolean.
+If you want to allow user to r/w files on filesystems that do not have extended attributes (FAT, CDROM, FLOPPY), you must turn on the selinuxuser_rw_noexattrfile boolean.
 
 .EX
-.B setsebool -P selinuxuser_ping 1
+.B setsebool -P selinuxuser_rw_noexattrfile 1
 .EE
 
 .PP
@@ -130,6 +130,13 @@ If you want to determine whether calling user domains can execute Git daemon in 
 .EE
 
 .PP
+If you want to allow regular users direct dri device access, you must turn on the selinuxuser_direct_dri_enabled boolean.
+
+.EX
+.B setsebool -P selinuxuser_direct_dri_enabled 1
+.EE
+
+.PP
 If you want to allow dbadm to manage files in users home directories, you must turn on the dbadm_manage_user_files boolean.
 
 .EX
@@ -137,24 +144,24 @@ If you want to allow dbadm to manage files in users home directories, you must t
 .EE
 
 .PP
-If you want to allow w to display everyone, you must turn on the user_ttyfile_stat boolean.
+If you want to allow user music sharing, you must turn on the selinuxuser_user_share_music boolean.
 
 .EX
-.B setsebool -P user_ttyfile_stat 1
+.B setsebool -P selinuxuser_user_share_music 1
 .EE
 
 .PP
-If you want to allow user music sharing, you must turn on the user_share_music boolean.
+If you want to allow users to connect to PostgreSQL, you must turn on the selinuxuser_postgresql_connect_enabled boolean.
 
 .EX
-.B setsebool -P user_share_music 1
+.B setsebool -P selinuxuser_postgresql_connect_enabled 1
 .EE
 
 .PP
-If you want to allow regular users direct dri device access, you must turn on the user_direct_dri boolean.
+If you want to allow users to run TCP servers (bind to ports and accept connection from the same domain and outside users)  disabling this forces FTP passive mode and may change other protocols, you must turn on the selinuxuser_tcp_server boolean.
 
 .EX
-.B setsebool -P user_direct_dri 1
+.B setsebool -P selinuxuser_tcp_server 1
 .EE
 
 .PP
@@ -179,13 +186,6 @@ If you want to allow webadm to read files in users home directories, you must tu
 .EE
 
 .PP
-If you want to allow users to run TCP servers (bind to ports and accept connection from the same domain and outside users)  disabling this forces FTP passive mode and may change other protocols, you must turn on the user_tcp_server boolean.
-
-.EX
-.B setsebool -P user_tcp_server 1
-.EE
-
-.PP
 If you want to allow httpd to read user content, you must turn on the httpd_read_user_content boolean.
 
 .EX
@@ -193,24 +193,10 @@ If you want to allow httpd to read user content, you must turn on the httpd_read
 .EE
 
 .PP
-If you want to allow user to r/w files on filesystems that do not have extended attributes (FAT, CDROM, FLOPPY), you must turn on the user_rw_noexattrfile boolean.
+If you want to allow confined users the ability to execute the ping and traceroute commands, you must turn on the selinuxuser_ping boolean.
 
 .EX
-.B setsebool -P user_rw_noexattrfile 1
-.EE
-
-.PP
-If you want to allow regular users direct mouse access, you must turn on the user_direct_mouse boolean.
-
-.EX
-.B setsebool -P user_direct_mouse 1
-.EE
-
-.PP
-If you want to allow users to connect to PostgreSQL, you must turn on the user_postgresql_connect boolean.
-
-.EX
-.B setsebool -P user_postgresql_connect 1
+.B setsebool -P selinuxuser_ping 1
 .EE
 
 .PP
@@ -228,24 +214,10 @@ If you want to allow dbadm to read files in users home directories, you must tur
 .EE
 
 .PP
-If you want to allow user processes to change their priority, you must turn on the user_setrlimit boolean.
-
-.EX
-.B setsebool -P user_setrlimit 1
-.EE
-
-.PP
 If you want to determine whether calling user domains can execute Polipo daemon in the polipo_session_t domain, you must turn on the polipo_session_users boolean.
 
 .EX
 .B setsebool -P polipo_session_users 1
-.EE
-
-.PP
-If you want to allow users to connect to the local mysql server, you must turn on the user_mysql_connect boolean.
-
-.EX
-.B setsebool -P user_mysql_connect 1
 .EE
 
 .PP
@@ -256,10 +228,10 @@ If you want to allow webadm to manage files in users home directories, you must 
 .EE
 
 .PP
-If you want to allow users to read system messages, you must turn on the user_dmesg boolean.
+If you want to allow users to connect to the local mysql server, you must turn on the selinuxuser_mysql_connect_enabled boolean.
 
 .EX
-.B setsebool -P user_dmesg 1
+.B setsebool -P selinuxuser_mysql_connect_enabled 1
 .EE
 
 .SH HOME_EXEC
@@ -291,7 +263,7 @@ Execute the following to see the types that the SELinux user user_t can execute 
 
 .SH "MANAGED FILES"
 
-The SELinux user type user_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type user_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B anon_inodefs_t
@@ -336,11 +308,19 @@ The SELinux user type user_t can manage files labeled with the following file ty
 
 	/home/[^/]*/\.gnupg/log-socket
 .br
+	/home/dwalsh/\.gnupg/log-socket
+.br
+	/var/lib/xguest/home/xguest/\.gnupg/log-socket
+.br
 
 .br
 .B httpd_user_content_t
 
 	/home/[^/]*/((www)|(web)|(public_html))(/.+)?
+.br
+	/home/dwalsh/((www)|(web)|(public_html))(/.+)?
+.br
+	/var/lib/xguest/home/xguest/((www)|(web)|(public_html))(/.+)?
 .br
 
 .br
@@ -348,11 +328,19 @@ The SELinux user type user_t can manage files labeled with the following file ty
 
 	/home/[^/]*/((www)|(web)|(public_html))(/.*)?/\.htaccess
 .br
+	/home/dwalsh/((www)|(web)|(public_html))(/.*)?/\.htaccess
+.br
+	/var/lib/xguest/home/xguest/((www)|(web)|(public_html))(/.*)?/\.htaccess
+.br
 
 .br
 .B httpd_user_ra_content_t
 
 	/home/[^/]*/((www)|(web)|(public_html))(/.*)?/logs(/.*)?
+.br
+	/home/dwalsh/((www)|(web)|(public_html))(/.*)?/logs(/.*)?
+.br
+	/var/lib/xguest/home/xguest/((www)|(web)|(public_html))(/.*)?/logs(/.*)?
 .br
 
 .br
@@ -363,6 +351,10 @@ The SELinux user type user_t can manage files labeled with the following file ty
 .B httpd_user_script_exec_t
 
 	/home/[^/]*/((www)|(web)|(public_html))/cgi-bin(/.+)?
+.br
+	/home/dwalsh/((www)|(web)|(public_html))/cgi-bin(/.+)?
+.br
+	/var/lib/xguest/home/xguest/((www)|(web)|(public_html))/cgi-bin(/.+)?
 .br
 
 .br
@@ -375,6 +367,14 @@ The SELinux user type user_t can manage files labeled with the following file ty
 	/home/[^/]*/\.DCOP.*
 .br
 	/home/[^/]*/\.ICEauthority.*
+.br
+	/home/dwalsh/\.DCOP.*
+.br
+	/home/dwalsh/\.ICEauthority.*
+.br
+	/var/lib/xguest/home/xguest/\.DCOP.*
+.br
+	/var/lib/xguest/home/xguest/\.ICEauthority.*
 .br
 
 .br
@@ -424,6 +424,14 @@ The SELinux user type user_t can manage files labeled with the following file ty
 .br
 	/home/[^/]*/\.screenrc
 .br
+	/home/dwalsh/\.screen(/.*)?
+.br
+	/home/dwalsh/\.screenrc
+.br
+	/var/lib/xguest/home/xguest/\.screen(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.screenrc
+.br
 
 .br
 .B security_t
@@ -450,6 +458,18 @@ The SELinux user type user_t can manage files labeled with the following file ty
 .br
 	/home/[^/]*/\.fonts\.cache-.*
 .br
+	/home/dwalsh/\.fontconfig(/.*)?
+.br
+	/home/dwalsh/\.fonts/auto(/.*)?
+.br
+	/home/dwalsh/\.fonts\.cache-.*
+.br
+	/var/lib/xguest/home/xguest/\.fontconfig(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts/auto(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts\.cache-.*
+.br
 
 .br
 .B user_fonts_t
@@ -459,6 +479,10 @@ The SELinux user type user_t can manage files labeled with the following file ty
 	/tmp/\.font-unix(/.*)?
 .br
 	/home/[^/]*/\.fonts(/.*)?
+.br
+	/home/dwalsh/\.fonts(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts(/.*)?
 .br
 
 .br
@@ -505,6 +529,22 @@ The SELinux user type user_t can manage files labeled with the following file ty
 	/home/[^/]*/\.serverauth.*
 .br
 	/home/[^/]*/\.Xauthority.*
+.br
+	/home/dwalsh/\.xauth.*
+.br
+	/home/dwalsh/\.Xauth.*
+.br
+	/home/dwalsh/\.serverauth.*
+.br
+	/home/dwalsh/\.Xauthority.*
+.br
+	/var/lib/xguest/home/xguest/\.xauth.*
+.br
+	/var/lib/xguest/home/xguest/\.Xauth.*
+.br
+	/var/lib/xguest/home/xguest/\.serverauth.*
+.br
+	/var/lib/xguest/home/xguest/\.Xauthority.*
 .br
 
 .br

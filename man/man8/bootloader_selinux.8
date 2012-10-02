@@ -3,8 +3,37 @@
 bootloader_selinux \- Security Enhanced Linux Policy for the bootloader processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the bootloader processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the bootloader processes via flexible mandatory access control.
+
+The bootloader processes execute with the bootloader_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep bootloader_t
+
+
+.SH "ENTRYPOINTS"
+
+The bootloader_t SELinux type can be entered via the "bootloader_exec_t" file type.  The default entrypoint paths for the bootloader_t domain are the following:"
+
+/usr/sbin/ybin.*, /usr/sbin/zipl, /sbin/lilo.*, /sbin/ybin.*, /usr/sbin/lilo.*, /sbin/grub.*, /sbin/zipl, /usr/sbin/grub.*
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux bootloader policy is very flexible allowing users to setup their bootloader processes in as secure a method as possible.
+.PP 
+The following process types are defined for bootloader:
+
+.EX
+.B bootloader_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  bootloader policy is extremely flexible and has several booleans that allow you to manipulate the policy and run bootloader with the tightest access possible.
@@ -15,22 +44,6 @@ If you want to allow the graphical login program to execute bootloader, you must
 
 .EX
 .B setsebool -P xdm_exec_bootloader 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the bootloader_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the bootloader_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -91,27 +104,9 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux bootloader policy is very flexible allowing users to setup their bootloader processes in as secure a method as possible.
-.PP 
-The following process types are defined for bootloader:
-
-.EX
-.B bootloader_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type bootloader_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type bootloader_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B boot_t
@@ -258,6 +253,22 @@ The SELinux user type bootloader_t can manage files labeled with the following f
 .br
 	/var/spool/plymouth/boot\.log
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the bootloader_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the bootloader_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

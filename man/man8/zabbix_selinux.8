@@ -3,8 +3,37 @@
 zabbix_selinux \- Security Enhanced Linux Policy for the zabbix processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the zabbix processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the zabbix processes via flexible mandatory access control.
+
+The zabbix processes execute with the zabbix_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep zabbix_t
+
+
+.SH "ENTRYPOINTS"
+
+The zabbix_t SELinux type can be entered via the "zabbix_exec_t" file type.  The default entrypoint paths for the zabbix_t domain are the following:"
+
+/usr/sbin/zabbix_server_pgsql, /usr/sbin/zabbix_server_sqlite3, /usr/sbin/zabbix_server_mysql, /usr/(s)?bin/zabbix_server
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux zabbix policy is very flexible allowing users to setup their zabbix processes in as secure a method as possible.
+.PP 
+The following process types are defined for zabbix:
+
+.EX
+.B zabbix_agent_t, zabbix_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  zabbix policy is extremely flexible and has several booleans that allow you to manipulate the policy and run zabbix with the tightest access possible.
@@ -22,22 +51,6 @@ If you want to allow http daemon to connect to zabbix, you must turn on the http
 
 .EX
 .B setsebool -P httpd_can_connect_zabbix 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the zabbix_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the zabbix_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -164,27 +177,9 @@ tcp 10050
 Default Defined Ports:
 tcp 10051
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux zabbix policy is very flexible allowing users to setup their zabbix processes in as secure a method as possible.
-.PP 
-The following process types are defined for zabbix:
-
-.EX
-.B zabbix_agent_t, zabbix_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type zabbix_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type zabbix_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B zabbix_log_t
@@ -205,6 +200,22 @@ The SELinux user type zabbix_t can manage files labeled with the following file 
 
 	/var/run/zabbix(/.*)?
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the zabbix_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the zabbix_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

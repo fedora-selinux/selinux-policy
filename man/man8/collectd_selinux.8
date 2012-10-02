@@ -3,8 +3,37 @@
 collectd_selinux \- Security Enhanced Linux Policy for the collectd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the collectd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the collectd processes via flexible mandatory access control.
+
+The collectd processes execute with the collectd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep collectd_t
+
+
+.SH "ENTRYPOINTS"
+
+The collectd_t SELinux type can be entered via the "collectd_exec_t" file type.  The default entrypoint paths for the collectd_t domain are the following:"
+
+/usr/sbin/collectd
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux collectd policy is very flexible allowing users to setup their collectd processes in as secure a method as possible.
+.PP 
+The following process types are defined for collectd:
+
+.EX
+.B collectd_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  collectd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run collectd with the tightest access possible.
@@ -16,8 +45,6 @@ If you want to allow collectd to connect to the network using TCP, you must turn
 .EX
 .B setsebool -P collectd_can_network_connect 1
 .EE
-
-.SH NSSWITCH DOMAIN
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -77,27 +104,9 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux collectd policy is very flexible allowing users to setup their collectd processes in as secure a method as possible.
-.PP 
-The following process types are defined for collectd:
-
-.EX
-.B collectd_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type collectd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type collectd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B collectd_var_lib_t
@@ -110,6 +119,8 @@ The SELinux user type collectd_t can manage files labeled with the following fil
 
 	/var/run/collectd\.pid
 .br
+
+.SH NSSWITCH DOMAIN
 
 .SH "COMMANDS"
 .B semanage fcontext

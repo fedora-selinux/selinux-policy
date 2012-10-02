@@ -3,24 +3,37 @@
 rlogind_selinux \- Security Enhanced Linux Policy for the rlogind processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the rlogind processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the rlogind processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The rlogind processes execute with the rlogind_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep rlogind_t
+
+
+.SH "ENTRYPOINTS"
+
+The rlogind_t SELinux type can be entered via the "rlogind_exec_t" file type.  The default entrypoint paths for the rlogind_t domain are the following:"
+
+/usr/lib/telnetlogin, /usr/kerberos/sbin/klogind, /usr/sbin/in\.rlogind
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the rlogind_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux rlogind policy is very flexible allowing users to setup their rlogind processes in as secure a method as possible.
+.PP 
+The following process types are defined for rlogind:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B rlogind_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the rlogind_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -111,27 +124,9 @@ The following port types are defined for rlogind:
 Default Defined Ports:
 tcp 513
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux rlogind policy is very flexible allowing users to setup their rlogind processes in as secure a method as possible.
-.PP 
-The following process types are defined for rlogind:
-
-.EX
-.B rlogind_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type rlogind_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type rlogind_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B auth_cache_t
@@ -149,6 +144,14 @@ The SELinux user type rlogind_t can manage files labeled with the following file
 	/home/[^/]*/\.google_authenticator
 .br
 	/home/[^/]*/\.google_authenticator~
+.br
+	/home/dwalsh/\.google_authenticator
+.br
+	/home/dwalsh/\.google_authenticator~
+.br
+	/var/lib/xguest/home/xguest/\.google_authenticator
+.br
+	/var/lib/xguest/home/xguest/\.google_authenticator~
 .br
 
 .br
@@ -258,6 +261,10 @@ The SELinux user type rlogind_t can manage files labeled with the following file
 .br
 	/tmp/gconfd-.*
 .br
+	/tmp/gconfd-dwalsh
+.br
+	/tmp/gconfd-xguest
+.br
 
 .br
 .B var_auth_t
@@ -284,6 +291,22 @@ The SELinux user type rlogind_t can manage files labeled with the following file
 
 	/var/log/wtmp.*
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the rlogind_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the rlogind_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

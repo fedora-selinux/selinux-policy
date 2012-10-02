@@ -3,24 +3,37 @@
 udev_selinux \- Security Enhanced Linux Policy for the udev processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the udev processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the udev processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The udev processes execute with the udev_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep udev_t
+
+
+.SH "ENTRYPOINTS"
+
+The udev_t SELinux type can be entered via the "udev_exec_t,udev_helper_exec_t" file types.  The default entrypoint paths for the udev_t domain are the following:"
+
+/lib/udev/udevd, /usr/bin/udevinfo, /sbin/udevd, /sbin/udev, /usr/sbin/wait_for_sysfs, /sbin/udevsend, /usr/sbin/udevadm, /usr/bin/udevadm, /usr/sbin/start_udev, /usr/sbin/udev, /usr/sbin/udevsend, /sbin/start_udev, /sbin/udevstart, /bin/udevadm, /sbin/wait_for_sysfs, /lib/udev/udev-acl, /sbin/udevadm, /usr/sbin/udevd, /usr/lib/systemd/systemd-udevd, /usr/sbin/udevstart, /usr/lib/udev/udev-acl, /usr/lib/udev/udevd, /etc/udev/scripts/.+, /etc/hotplug\.d/default/udev.*, /etc/dev\.d/.+
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the udev_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux udev policy is very flexible allowing users to setup their udev processes in as secure a method as possible.
+.PP 
+The following process types are defined for udev:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B udev_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the udev_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type. 
@@ -92,27 +105,9 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux udev policy is very flexible allowing users to setup their udev processes in as secure a method as possible.
-.PP 
-The following process types are defined for udev:
-
-.EX
-.B udev_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type udev_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type udev_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B anon_inodefs_t
@@ -301,6 +296,22 @@ The SELinux user type udev_t can manage files labeled with the following file ty
 .br
 	/var/log/xen-hotplug\.log.*
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the udev_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the udev_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

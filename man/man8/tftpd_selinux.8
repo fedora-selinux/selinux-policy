@@ -3,24 +3,37 @@
 tftpd_selinux \- Security Enhanced Linux Policy for the tftpd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the tftpd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the tftpd processes via flexible mandatory access control.
 
-.SH NSSWITCH DOMAIN
+The tftpd processes execute with the tftpd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
 
+For example:
+
+.B ps -eZ | grep tftpd_t
+
+
+.SH "ENTRYPOINTS"
+
+The tftpd_t SELinux type can be entered via the "tftpd_exec_t" file type.  The default entrypoint paths for the tftpd_t domain are the following:"
+
+/usr/sbin/in\.tftpd, /usr/sbin/atftpd
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the tftpd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux tftpd policy is very flexible allowing users to setup their tftpd processes in as secure a method as possible.
+.PP 
+The following process types are defined for tftpd:
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.B tftpd_t 
 .EE
-
 .PP
-If you want to allow confined applications to run with kerberos for the tftpd_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH SHARING FILES
 If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
@@ -137,27 +150,9 @@ The following port types are defined for tftpd:
 Default Defined Ports:
 udp 69
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux tftpd policy is very flexible allowing users to setup their tftpd processes in as secure a method as possible.
-.PP 
-The following process types are defined for tftpd:
-
-.EX
-.B tftpd_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type tftpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type tftpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B tftpd_var_run_t
@@ -168,6 +163,22 @@ The SELinux user type tftpd_t can manage files labeled with the following file t
 
 	/var/lib/tftpboot(/.*)?
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the tftpd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the tftpd_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

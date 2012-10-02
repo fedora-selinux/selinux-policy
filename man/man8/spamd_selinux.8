@@ -3,8 +3,37 @@
 spamd_selinux \- Security Enhanced Linux Policy for the spamd processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the spamd processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the spamd processes via flexible mandatory access control.
+
+The spamd processes execute with the spamd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep spamd_t
+
+
+.SH "ENTRYPOINTS"
+
+The spamd_t SELinux type can be entered via the "spamd_exec_t" file type.  The default entrypoint paths for the spamd_t domain are the following:"
+
+/usr/sbin/spampd, /usr/sbin/spamd, /usr/bin/mimedefang-multiplexor, /usr/bin/pyzord, /usr/bin/spamd, /usr/bin/mimedefang
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux spamd policy is very flexible allowing users to setup their spamd processes in as secure a method as possible.
+.PP 
+The following process types are defined for spamd:
+
+.EX
+.B spamc_t, spamd_t, spamd_update_t, spamass_milter_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  spamd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run spamd with the tightest access possible.
@@ -29,22 +58,6 @@ If you want to allow http daemon to check spam, you must turn on the httpd_can_c
 
 .EX
 .B setsebool -P httpd_can_check_spam 1
-.EE
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the spamc_t, spamd_update_t, spamd_t, spamass_milter_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the spamc_t, spamd_update_t, spamd_t, spamass_milter_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
 .EE
 
 .SH FILE CONTEXTS
@@ -100,7 +113,7 @@ Paths:
 .br
 .TP 5
 Paths: 
-/etc/rc\.d/init\.d/spampd, /etc/rc\.d/init\.d/spamd, /etc/rc\.d/init\.d/mimedefang.*, /etc/rc\.d/init\.d/pyzord
+/etc/rc\.d/init\.d/spampd, /etc/rc\.d/init\.d/pyzord, /etc/rc\.d/init\.d/spamd, /etc/rc\.d/init\.d/mimedefang.*
 
 .EX
 .PP
@@ -196,27 +209,9 @@ The following port types are defined for spamd:
 Default Defined Ports:
 tcp 783,10026,10027
 .EE
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux spamd policy is very flexible allowing users to setup their spamd processes in as secure a method as possible.
-.PP 
-The following process types are defined for spamd:
-
-.EX
-.B spamc_t, spamd_t, spamd_update_t, spamass_milter_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type spamd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type spamd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B amavis_var_lib_t
@@ -258,6 +253,22 @@ The SELinux user type spamd_t can manage files labeled with the following file t
 	/home/[^/]*/\.razor(/.*)?
 .br
 	/home/[^/]*/\.spamassassin(/.*)?
+.br
+	/home/dwalsh/\.pyzor(/.*)?
+.br
+	/home/dwalsh/\.spamd(/.*)?
+.br
+	/home/dwalsh/\.razor(/.*)?
+.br
+	/home/dwalsh/\.spamassassin(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.pyzor(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.spamd(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.razor(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.spamassassin(/.*)?
 .br
 
 .br
@@ -311,6 +322,32 @@ The SELinux user type spamd_t can manage files labeled with the following file t
 .br
 	/var/spool/MD-Quarantine(/.*)?
 .br
+
+.br
+.B user_home_t
+
+	/home/[^/]*/.+
+.br
+	/home/dwalsh/.+
+.br
+	/var/lib/xguest/home/xguest/.+
+.br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the spamc_t, spamd_update_t, spamd_t, spamass_milter_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the spamc_t, spamd_update_t, spamd_t, spamass_milter_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext
