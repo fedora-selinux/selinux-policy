@@ -1,4 +1,4 @@
-policy_module(gatekeeper, 1.7.0)
+policy_module(gatekeeper, 1.7.1)
 
 ########################################
 #
@@ -9,13 +9,15 @@ type gatekeeper_t;
 type gatekeeper_exec_t;
 init_daemon_domain(gatekeeper_t, gatekeeper_exec_t)
 
+type gatekeeper_initrc_exec_t;
+init_script_file(gatekeeper_initrc_exec_t)
+
 type gatekeeper_etc_t;
 files_config_file(gatekeeper_etc_t)
 
 type gatekeeper_log_t;
 logging_log_file(gatekeeper_log_t)
 
-# for stupid symlinks
 type gatekeeper_tmp_t;
 files_tmp_file(gatekeeper_tmp_t)
 
@@ -33,19 +35,22 @@ allow gatekeeper_t self:fifo_file rw_fifo_file_perms;
 allow gatekeeper_t self:tcp_socket create_stream_socket_perms;
 allow gatekeeper_t self:udp_socket create_socket_perms;
 
-allow gatekeeper_t gatekeeper_etc_t:lnk_file { getattr read };
+allow gatekeeper_t gatekeeper_etc_t:lnk_file read_lnk_file_perms;
 allow gatekeeper_t gatekeeper_etc_t:file read_file_perms;
-files_search_etc(gatekeeper_t)
 
-manage_files_pattern(gatekeeper_t, gatekeeper_log_t, gatekeeper_log_t)
+manage_dirs_pattern(gatekeeper_t, gatekeeper_log_t, gatekeeper_log_t)
+append_files_pattern(gatekeeper_t, gatekeeper_log_t, gatekeeper_log_t)
+create_files_pattern(gatekeeper_t, gatekeeper_log_t, gatekeeper_log_t)
+setattr_files_pattern(gatekeeper_t, gatekeeper_log_t, gatekeeper_log_t)
 logging_log_filetrans(gatekeeper_t, gatekeeper_log_t, { file dir })
 
 manage_dirs_pattern(gatekeeper_t, gatekeeper_tmp_t, gatekeeper_tmp_t)
 manage_files_pattern(gatekeeper_t, gatekeeper_tmp_t, gatekeeper_tmp_t)
 files_tmp_filetrans(gatekeeper_t, gatekeeper_tmp_t, { file dir })
 
+manage_dirs_pattern(gatekeeper_t, gatekeeper_var_run_t, gatekeeper_var_run_t)
 manage_files_pattern(gatekeeper_t, gatekeeper_var_run_t, gatekeeper_var_run_t)
-files_pid_filetrans(gatekeeper_t, gatekeeper_var_run_t, file)
+files_pid_filetrans(gatekeeper_t, gatekeeper_var_run_t, { dir file })
 
 kernel_read_system_state(gatekeeper_t)
 kernel_read_kernel_sysctls(gatekeeper_t)
@@ -62,12 +67,12 @@ corenet_tcp_sendrecv_all_ports(gatekeeper_t)
 corenet_udp_sendrecv_all_ports(gatekeeper_t)
 corenet_tcp_bind_generic_node(gatekeeper_t)
 corenet_udp_bind_generic_node(gatekeeper_t)
+
+corenet_sendrecv_gatekeeper_server_packets(gatekeeper_t)
 corenet_tcp_bind_gatekeeper_port(gatekeeper_t)
 corenet_udp_bind_gatekeeper_port(gatekeeper_t)
-corenet_sendrecv_gatekeeper_server_packets(gatekeeper_t)
 
 dev_read_sysfs(gatekeeper_t)
-# for SSP
 dev_read_urand(gatekeeper_t)
 
 domain_use_interactive_fds(gatekeeper_t)
