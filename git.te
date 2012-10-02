@@ -1,4 +1,4 @@
-policy_module(git, 1.2.1)
+policy_module(git, 1.2.2)
 
 ########################################
 #
@@ -28,6 +28,15 @@ gen_tunable(git_cgi_use_cifs, false)
 ##	</p>
 ## </desc>
 gen_tunable(git_cgi_use_nfs, false)
+
+## <desc>
+##	<p>
+##	Determine whether Git session daemon
+##	can bind TCP sockets to all
+##	unreserved ports.
+##	</p>
+## </desc>
+gen_tunable(git_session_bind_all_unreserved_ports, false)
 
 ## <desc>
 ##	<p>
@@ -71,6 +80,7 @@ gen_tunable(git_system_use_cifs, false)
 gen_tunable(git_system_use_nfs, false)
 
 attribute git_daemon;
+attribute_role git_session_roles;
 
 apache_content_template(git)
 
@@ -80,6 +90,7 @@ inetd_service_domain(git_system_t, gitd_exec_t)
 
 type git_session_t, git_daemon;
 userdom_user_application_domain(git_session_t, gitd_exec_t)
+role git_session_roles types git_session_t;
 
 type git_sys_content_t;
 files_type(git_sys_content_t)
@@ -89,7 +100,7 @@ userdom_user_home_content(git_user_content_t)
 
 ########################################
 #
-# Git session policy
+# Session policy
 #
 
 allow git_session_t self:tcp_socket { accept listen };
@@ -103,26 +114,36 @@ corenet_all_recvfrom_unlabeled(git_session_t)
 corenet_tcp_bind_generic_node(git_session_t)
 corenet_tcp_sendrecv_generic_if(git_session_t)
 corenet_tcp_sendrecv_generic_node(git_session_t)
-corenet_tcp_sendrecv_generic_port(git_session_t)
+
+corenet_sendrecv_git_server_packets(git_session_t)
 corenet_tcp_bind_git_port(git_session_t)
 corenet_tcp_sendrecv_git_port(git_session_t)
-corenet_sendrecv_git_server_packets(git_session_t)
 
 auth_use_nsswitch(git_session_t)
 
 userdom_use_user_terminals(git_session_t)
+
+tunable_policy(`git_session_bind_all_unreserved_ports',`
+	corenet_sendrecv_all_server_packets(git_session_t)
+	corenet_tcp_bind_all_unreserved_ports(git_session_t)
+	corenet_tcp_sendrecv_all_ports(git_session_t)
+')
 
 tunable_policy(`git_session_send_syslog_msg',`
 	logging_send_syslog_msg(git_session_t)
 ')
 
 tunable_policy(`use_nfs_home_dirs',`
+	fs_getattr_nfs(git_session_t)
+	fs_list_nfs(git_session_t)
 	fs_read_nfs_files(git_session_t)
 ',`
 	fs_dontaudit_read_nfs_files(git_session_t)
 ')
 
 tunable_policy(`use_samba_home_dirs',`
+	fs_getattr_cifs(git_session_t)
+	fs_list_cifs(git_session_t)
 	fs_read_cifs_files(git_session_t)
 ',`
 	fs_dontaudit_read_cifs_files(git_session_t)
@@ -130,11 +151,12 @@ tunable_policy(`use_samba_home_dirs',`
 
 ########################################
 #
-# Git system policy
+# System policy
 #
 
 list_dirs_pattern(git_system_t, git_sys_content_t, git_sys_content_t)
 read_files_pattern(git_system_t, git_sys_content_t, git_sys_content_t)
+
 files_search_var_lib(git_system_t)
 
 auth_use_nsswitch(git_system_t)
@@ -146,24 +168,32 @@ tunable_policy(`git_system_enable_homedirs',`
 ')
 
 tunable_policy(`git_system_enable_homedirs && use_nfs_home_dirs',`
+	fs_getattr_nfs(git_system_t)
+	fs_list_nfs(git_system_t)
 	fs_read_nfs_files(git_system_t)
 ',`
 	fs_dontaudit_read_nfs_files(git_system_t)
 ')
 
 tunable_policy(`git_system_enable_homedirs && use_samba_home_dirs',`
+	fs_getattr_cifs(git_system_t)
+	fs_list_cifs(git_system_t)
 	fs_read_cifs_files(git_system_t)
 ',`
 	fs_dontaudit_read_cifs_files(git_system_t)
 ')
 
 tunable_policy(`git_system_use_cifs',`
+	fs_getattr_cifs(git_system_t)
+	fs_list_cifs(git_system_t)
 	fs_read_cifs_files(git_system_t)
 ',`
 	fs_dontaudit_read_cifs_files(git_system_t)
 ')
 
 tunable_policy(`git_system_use_nfs',`
+	fs_getattr_nfs(git_system_t)
+	fs_list_nfs(git_system_t)
 	fs_read_nfs_files(git_system_t)
 ',`
 	fs_dontaudit_read_nfs_files(git_system_t)
@@ -171,7 +201,7 @@ tunable_policy(`git_system_use_nfs',`
 
 ########################################
 #
-# Git CGI policy
+# CGI policy
 #
 
 list_dirs_pattern(httpd_git_script_t, { git_sys_content_t git_user_content_t }, { git_sys_content_t git_user_content_t })
@@ -187,24 +217,32 @@ tunable_policy(`git_cgi_enable_homedirs',`
 ')
 
 tunable_policy(`git_cgi_enable_homedirs && use_nfs_home_dirs',`
+	fs_getattr_nfs(httpd_git_script_t)
+	fs_list_nfs(httpd_git_script_t)
 	fs_read_nfs_files(httpd_git_script_t)
 ',`
 	fs_dontaudit_read_nfs_files(httpd_git_script_t)
 ')
 
 tunable_policy(`git_cgi_enable_homedirs && use_samba_home_dirs',`
+	fs_getattr_cifs(httpd_git_script_t)
+	fs_list_cifs(httpd_git_script_t)
 	fs_read_cifs_files(httpd_git_script_t)
 ',`
 	fs_dontaudit_read_cifs_files(httpd_git_script_t)
 ')
 
 tunable_policy(`git_cgi_use_cifs',`
+	fs_getattr_cifs(httpd_git_script_t)
+	fs_list_cifs(httpd_git_script_t)
 	fs_read_cifs_files(httpd_git_script_t)
 ',`
 	fs_dontaudit_read_cifs_files(httpd_git_script_t)
 ')
 
 tunable_policy(`git_cgi_use_nfs',`
+	fs_getattr_nfs(httpd_git_script_t)
+	fs_list_nfs(httpd_git_script_t)
 	fs_read_nfs_files(httpd_git_script_t)
 ',`
 	fs_dontaudit_read_nfs_files(httpd_git_script_t)
