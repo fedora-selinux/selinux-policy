@@ -1,4 +1,4 @@
-## <summary>gpsd monitor daemon</summary>
+## <summary>gpsd monitor daemon.</summary>
 
 ########################################
 ## <summary>
@@ -15,6 +15,7 @@ interface(`gpsd_domtrans',`
 		type gpsd_t, gpsd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, gpsd_exec_t, gpsd_t)
 ')
 
@@ -36,11 +37,11 @@ interface(`gpsd_domtrans',`
 #
 interface(`gpsd_run',`
 	gen_require(`
-		type gpsd_t;
+		attribute_role gpsd_roles;
 	')
 
 	gpsd_domtrans($1)
-	role $2 types gpsd_t;
+	roleattribute $2 gpsd_roles;
 ')
 
 ########################################
@@ -63,4 +64,40 @@ interface(`gpsd_rw_shm',`
 	rw_files_pattern($1, gpsd_tmpfs_t, gpsd_tmpfs_t)
 	read_lnk_files_pattern($1, gpsd_tmpfs_t, gpsd_tmpfs_t)
 	fs_search_tmpfs($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an gpsd environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`gpsd_admin',`
+	gen_require(`
+		type gpsd_t, gpsd_initrc_exec_t, gpsd_var_run_t;
+	')
+
+	allow $1 gpsd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, gpsd_t)
+
+	init_labeled_script_domtrans($1, gpsd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 gpsd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, gpsd_var_run_t)
+
+	gpsd_run($1, $2)
 ')

@@ -76,6 +76,68 @@ interface(`chronyd_read_log',`
 	read_files_pattern($1, chronyd_var_log_t, chronyd_var_log_t)
 ')
 
+########################################
+## <summary>
+##	Read and write chronyd shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_rw_shm',`
+	gen_require(`
+		type chronyd_t, chronyd_tmpfs_t;
+	')
+
+	allow $1 chronyd_t:shm rw_shm_perms;
+	allow $1 chronyd_tmpfs_t:dir list_dir_perms;
+	rw_files_pattern($1, chronyd_tmpfs_t, chronyd_tmpfs_t)
+	read_lnk_files_pattern($1, chronyd_tmpfs_t, chronyd_tmpfs_t)
+	fs_search_tmpfs($1)
+')
+
+########################################
+## <summary>
+##	Connect to chronyd using a unix
+##	domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_stream_connect',`
+	gen_require(`
+		type chronyd_t, chronyd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, chronyd_var_run_t, chronyd_var_run_t, chronyd_t)
+')
+
+########################################
+## <summary>
+##	Send to chronyd using a unix domain
+##	datagram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_dgram_send',`
+	gen_require(`
+		type chronyd_t, chronyd_var_run_t;
+	')
+
+	files_search_pids($1)
+	dgram_send_pattern($1, chronyd_var_run_t, chronyd_var_run_t, chronyd_t)
+')
+
 ####################################
 ## <summary>
 ##	All of the rules required to
