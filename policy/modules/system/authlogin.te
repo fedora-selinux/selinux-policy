@@ -24,6 +24,7 @@ attribute can_write_shadow_passwords;
 attribute can_relabelto_shadow_passwords;
 attribute polydomain;
 attribute nsswitch_domain;
+attribute login_pgm;
 
 type auth_cache_t;
 logging_log_file(auth_cache_t)
@@ -557,4 +558,123 @@ optional_policy(`
 	samba_stream_connect_winbind(nsswitch_domain)
 	samba_read_var_files(nsswitch_domain)
 	samba_dontaudit_write_var_files(nsswitch_domain)
+')
+
+#######################################
+#
+# Login Program local policy
+#
+
+domain_read_all_domains_state(login_pgm)
+corecmd_getattr_all_executables(login_pgm)
+domain_kill_all_domains(login_pgm)
+
+# pam_keyring
+allow login_pgm self:capability ipc_lock;
+allow login_pgm self:process setkeycreate;
+allow login_pgm self:key manage_key_perms;
+userdom_manage_all_users_keys(login_pgm)
+
+files_list_var_lib(login_pgm)
+manage_dirs_pattern(login_pgm, var_auth_t, var_auth_t)
+manage_files_pattern(login_pgm, var_auth_t, var_auth_t)
+
+manage_dirs_pattern(login_pgm, auth_cache_t, auth_cache_t)
+manage_files_pattern(login_pgm, auth_cache_t, auth_cache_t)
+manage_sock_files_pattern(login_pgm, auth_cache_t, auth_cache_t)
+files_var_filetrans(login_pgm, auth_cache_t, dir)
+
+manage_dirs_pattern(login_pgm, auth_home_t, auth_home_t)
+manage_files_pattern(login_pgm, auth_home_t, auth_home_t)
+auth_filetrans_admin_home_content(login_pgm)
+auth_filetrans_home_content(login_pgm)
+
+# needed for afs - https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=253321
+kernel_search_network_sysctl(login_pgm)
+kernel_rw_afs_state(login_pgm)
+
+tunable_policy(`authlogin_radius',`
+	corenet_udp_bind_all_unreserved_ports(login_pgm)
+')
+corenet_tcp_connect_pki_ca_port(login_pgm)
+
+# for fingerprint readers
+dev_rw_input_dev(login_pgm)
+dev_rw_generic_usb_dev(login_pgm)
+
+files_read_config_files(login_pgm)
+
+fs_list_auto_mountpoints(login_pgm)
+fs_manage_cgroup_dirs(login_pgm)
+fs_manage_cgroup_files(login_pgm)
+fs_read_ecryptfs_symlinks(login_pgm)
+fs_read_ecryptfs_files(login_pgm)
+
+selinux_validate_context(login_pgm)
+selinux_compute_access_vector(login_pgm)
+selinux_compute_create_context(login_pgm)
+selinux_compute_relabel_context(login_pgm)
+selinux_compute_user_contexts(login_pgm)
+
+auth_manage_faillog(login_pgm)
+auth_manage_pam_pid(login_pgm)
+
+init_rw_utmp(login_pgm)
+
+logging_set_loginuid(login_pgm)
+logging_set_tty_audit(login_pgm)
+
+miscfiles_dontaudit_write_generic_cert_files(login_pgm)
+
+seutil_read_config(login_pgm)
+seutil_read_login_config(login_pgm)
+seutil_read_default_contexts(login_pgm)
+systemd_login_read_pid_files(login_pgm)
+
+userdom_set_rlimitnh(login_pgm)
+userdom_read_user_home_content_symlinks(login_pgm)
+userdom_delete_user_tmp_files(login_pgm)
+userdom_search_admin_dir(login_pgm)
+userdom_stream_connect(login_pgm)
+userdom_manage_user_tmp_dirs(login_pgm)
+userdom_manage_user_tmp_files(login_pgm)
+
+optional_policy(`
+	afs_rw_udp_sockets(login_pgm)
+')
+
+optional_policy(`
+	kerberos_read_config(login_pgm)
+')
+
+optional_policy(`
+	oddjob_dbus_chat(login_pgm)
+	oddjob_domtrans_mkhomedir(login_pgm)
+')
+
+optional_policy(`
+	openct_stream_connect(login_pgm)
+	openct_signull(login_pgm)
+	openct_read_pid_files(login_pgm)
+')
+
+optional_policy(`
+	corecmd_exec_bin(login_pgm)
+	storage_getattr_fixed_disk_dev(login_pgm)
+	mount_domtrans(login_pgm)
+	mount_domtrans_ecryptmount(login_pgm)
+')
+
+optional_policy(`
+	fprintd_dbus_chat(login_pgm)
+')
+
+optional_policy(`
+	# allow execute tmux
+	screen_exec(login_pgm)
+')
+
+optional_policy(`
+	ssh_agent_exec(login_pgm)
+	ssh_read_user_home_files(login_pgm)
 ')
