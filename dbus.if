@@ -114,15 +114,9 @@ interface(`dbus_system_bus_client',`
 
 #######################################
 ## <summary>
-##	Acquire service on specified
-##	DBUS session bus.
+##	Acquire service on DBUS
+##	session bus.
 ## </summary>
-## <param name="role_prefix">
-##	<summary>
-##	The prefix of the user role (e.g., user
-##	is the prefix for user_r).
-##	</summary>
-## </param>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
@@ -130,12 +124,8 @@ interface(`dbus_system_bus_client',`
 ## </param>
 #
 interface(`dbus_connect_session_bus',`
-	gen_require(`
-		type $1_dbusd_t;
-		class dbus acquire_svc;
-	')
-
-	allow $2 $1_dbusd_t:dbus acquire_svc;
+	refpolicywarn(`$0($*) has been deprecated, use dbus_connect_all_session_bus() instead.')
+	dbus_connect_all_session_bus($1)
 ')
 
 #######################################
@@ -160,7 +150,7 @@ interface(`dbus_connect_all_session_bus',`
 
 #######################################
 ## <summary>
-##	Creating connections to specified
+##	Acquire service on specified
 ##	DBUS session bus.
 ## </summary>
 ## <param name="role_prefix">
@@ -175,15 +165,29 @@ interface(`dbus_connect_all_session_bus',`
 ##	</summary>
 ## </param>
 #
-interface(`dbus_session_bus_client',`
+interface(`dbus_connect_spec_session_bus',`
 	gen_require(`
 		type $1_dbusd_t;
-		class dbus send_msg;
+		class dbus acquire_svc;
 	')
 
-	allow $2 { $1_dbusd_t self }:dbus send_msg;
-	allow $2 $1_dbusd_t:unix_stream_socket connectto;
-	allow $2 $1_dbusd_t:fd use;
+	allow $2 $1_dbusd_t:dbus acquire_svc;
+')
+
+#######################################
+## <summary>
+##	Creating connections to DBUS
+##	session bus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dbus_session_bus_client',`
+	refpolicywarn(`$0($*) has been deprecated, use dbus_all_session_bus_client() instead.')
+	dbus_all_session_bus_client($1)
 ')
 
 #######################################
@@ -206,6 +210,34 @@ interface(`dbus_all_session_bus_client',`
 	allow $1 { session_bus_type self }:dbus send_msg;
 	allow $1 session_bus_type:unix_stream_socket connectto;
 	allow $1 session_bus_type:fd use;
+')
+
+#######################################
+## <summary>
+##	Creating connections to specified
+##	DBUS session bus.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dbus_spec_session_bus_client',`
+	gen_require(`
+		type $1_dbusd_t;
+		class dbus send_msg;
+	')
+
+	allow $2 { $1_dbusd_t self }:dbus send_msg;
+	allow $2 $1_dbusd_t:unix_stream_socket connectto;
+	allow $2 $1_dbusd_t:fd use;
 ')
 
 #######################################
@@ -316,14 +348,70 @@ interface(`dbus_manage_lib_files',`
 ## </param>
 #
 interface(`dbus_session_domain',`
+	refpolicywarn(`$0($*) has been deprecated, use dbus_all_session_domain() instead.')
+	dbus_all_session_domain($1, $2)
+')
+
+########################################
+## <summary>
+##	Allow a application domain to be
+##	started by the specified session bus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Type to be used as a domain.
+##	</summary>
+## </param>
+## <param name="entry_point">
+##	<summary>
+##	Type of the program to be used as an
+##	entry point to this domain.
+##	</summary>
+## </param>
+#
+interface(`dbus_all_session_domain',`
+	gen_require(`
+		type session_bus_type;
+	')
+
+	domtrans_pattern(session_bus_type, $2, $1)
+
+	dbus_all_session_bus_client($1)
+	dbus_connect_all_session_bus($1)
+')
+
+########################################
+## <summary>
+##	Allow a application domain to be
+##	started by the specified session bus.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Type to be used as a domain.
+##	</summary>
+## </param>
+## <param name="entry_point">
+##	<summary>
+##	Type of the program to be used as an
+##	entry point to this domain.
+##	</summary>
+## </param>
+#
+interface(`dbus_spec_session_domain',`
 	gen_require(`
 		type $1_dbusd_t;
 	')
 
 	domtrans_pattern($1_dbusd_t, $2, $3)
 
-	dbus_session_bus_client($1, $2)
-	dbus_connect_session_bus($1, $2)
+	dbus_spec_session_bus_client($1, $2)
+	dbus_connect_spec_session_bus($1, $2)
 ')
 
 ########################################
