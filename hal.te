@@ -1,15 +1,17 @@
-policy_module(hal, 1.14.1)
+policy_module(hal, 1.14.2)
 
 ########################################
 #
 # Declarations
 #
 
-type hald_t;
+attribute hald_domain;
+
+type hald_t, hald_domain;
 type hald_exec_t;
 init_daemon_domain(hald_t, hald_exec_t)
 
-type hald_acl_t;
+type hald_acl_t, hald_domain;
 type hald_acl_exec_t;
 domain_type(hald_acl_t)
 domain_entry_file(hald_acl_t, hald_acl_exec_t)
@@ -18,13 +20,13 @@ role system_r types hald_acl_t;
 type hald_cache_t;
 files_pid_file(hald_cache_t)
 
-type hald_dccm_t;
+type hald_dccm_t, hald_domain;
 type hald_dccm_exec_t;
 domain_type(hald_dccm_t)
 domain_entry_file(hald_dccm_t, hald_dccm_exec_t)
 role system_r types hald_dccm_t;
 
-type hald_keymap_t;
+type hald_keymap_t, hald_domain;
 type hald_keymap_exec_t;
 domain_type(hald_keymap_t)
 domain_entry_file(hald_keymap_t, hald_keymap_exec_t)
@@ -33,13 +35,13 @@ role system_r types hald_keymap_t;
 type hald_log_t;
 logging_log_file(hald_log_t)
 
-type hald_mac_t;
+type hald_mac_t, hald_domain;
 type hald_mac_exec_t;
 domain_type(hald_mac_t)
 domain_entry_file(hald_mac_t, hald_mac_exec_t)
 role system_r types hald_mac_t;
 
-type hald_sonypic_t;
+type hald_sonypic_t, hald_domain;
 type hald_sonypic_exec_t;
 domain_type(hald_sonypic_t)
 domain_entry_file(hald_sonypic_t, hald_sonypic_exec_t)
@@ -56,33 +58,40 @@ files_type(hald_var_lib_t)
 
 ########################################
 #
+# Common local policy
+#
+
+files_read_usr_files(hald_domain)
+
+miscfiles_read_localization(hald_domain)
+
+hal_stream_connect(hald_domain)
+
+########################################
+#
 # Local policy
 #
 
-# execute openvt which needs setuid
 allow hald_t self:capability { chown setuid setgid kill net_admin sys_admin sys_nice dac_override dac_read_search mknod sys_rawio sys_tty_config };
-dontaudit hald_t self:capability {sys_ptrace sys_tty_config };
+dontaudit hald_t self:capability { sys_ptrace sys_tty_config };
 allow hald_t self:process { getsched getattr signal_perms };
 allow hald_t self:fifo_file rw_fifo_file_perms;
-allow hald_t self:unix_stream_socket { create_stream_socket_perms connectto };
-allow hald_t self:unix_dgram_socket create_socket_perms;
+allow hald_t self:unix_stream_socket { accept listen };
 allow hald_t self:netlink_kobject_uevent_socket create_socket_perms;
-allow hald_t self:tcp_socket create_stream_socket_perms;
-allow hald_t self:udp_socket create_socket_perms;
-# For backwards compatibility with older kernels
+allow hald_t self:tcp_socket { accept listen };
 allow hald_t self:netlink_socket create_socket_perms;
 
 manage_files_pattern(hald_t, hald_cache_t, hald_cache_t)
 
-# log files for hald
-manage_files_pattern(hald_t, hald_log_t, hald_log_t)
+append_files_pattern(hald_t, hald_log_t, hald_log_t)
+create_files_pattern(hald_t, hald_log_t, hald_log_t)
+setattr_files_pattern(hald_t, hald_log_t, hald_log_t)
 logging_log_filetrans(hald_t, hald_log_t, file)
 
 manage_dirs_pattern(hald_t, hald_tmp_t, hald_tmp_t)
 manage_files_pattern(hald_t, hald_tmp_t, hald_tmp_t)
 files_tmp_filetrans(hald_t, hald_tmp_t, { file dir })
 
-# var/lib files for hald
 manage_dirs_pattern(hald_t, hald_var_lib_t, hald_var_lib_t)
 manage_files_pattern(hald_t, hald_var_lib_t, hald_var_lib_t)
 manage_sock_files_pattern(hald_t, hald_var_lib_t, hald_var_lib_t)
@@ -90,6 +99,14 @@ manage_sock_files_pattern(hald_t, hald_var_lib_t, hald_var_lib_t)
 manage_dirs_pattern(hald_t, hald_var_run_t, hald_var_run_t)
 manage_files_pattern(hald_t, hald_var_run_t, hald_var_run_t)
 files_pid_filetrans(hald_t, hald_var_run_t, { dir file })
+
+domtrans_pattern(hald_t, hald_acl_exec_t, hald_acl_t)
+domtrans_pattern(hald_t, hald_mac_exec_t, hald_mac_t)
+domtrans_pattern(hald_t, hald_sonypic_exec_t, hald_sonypic_t)
+domtrans_pattern(hald_t, hald_keymap_exec_t, hald_keymap_t)
+domtrans_pattern(hald_t, hald_dccm_exec_t, hald_dccm_t)
+
+allow hald_t hald_domain:process signal;
 
 kernel_read_system_state(hald_t)
 kernel_read_network_state(hald_t)
@@ -99,22 +116,11 @@ kernel_read_fs_sysctls(hald_t)
 kernel_rw_irq_sysctls(hald_t)
 kernel_rw_vm_sysctls(hald_t)
 kernel_write_proc_files(hald_t)
-kernel_search_network_sysctl(hald_t)
+kernel_rw_net_sysctls(hald_t)
 kernel_setsched(hald_t)
 kernel_request_load_module(hald_t)
 
-auth_read_pam_console_data(hald_t)
-
 corecmd_exec_all_executables(hald_t)
-
-corenet_all_recvfrom_unlabeled(hald_t)
-corenet_all_recvfrom_netlabel(hald_t)
-corenet_tcp_sendrecv_generic_if(hald_t)
-corenet_udp_sendrecv_generic_if(hald_t)
-corenet_tcp_sendrecv_generic_node(hald_t)
-corenet_udp_sendrecv_generic_node(hald_t)
-corenet_tcp_sendrecv_all_ports(hald_t)
-corenet_udp_sendrecv_all_ports(hald_t)
 
 dev_rw_usbfs(hald_t)
 dev_read_rand(hald_t)
@@ -124,13 +130,11 @@ dev_read_mouse(hald_t)
 dev_rw_printer(hald_t)
 dev_read_lvm_control(hald_t)
 dev_getattr_all_chr_files(hald_t)
-dev_manage_generic_chr_files(hald_t)
 dev_rw_generic_usb_dev(hald_t)
 dev_setattr_generic_usb_dev(hald_t)
 dev_setattr_usbfs_files(hald_t)
 dev_rw_power_management(hald_t)
 dev_read_raw_memory(hald_t)
-# hal is now execing pm-suspend
 dev_rw_sysfs(hald_t)
 dev_read_video_dev(hald_t)
 
@@ -139,14 +143,11 @@ domain_read_all_domains_state(hald_t)
 domain_dontaudit_ptrace_all_domains(hald_t)
 
 files_exec_etc_files(hald_t)
-files_read_etc_files(hald_t)
+files_getattr_all_mountpoints(hald_t)
 files_rw_etc_runtime_files(hald_t)
 files_manage_mnt_dirs(hald_t)
 files_manage_mnt_files(hald_t)
 files_manage_mnt_symlinks(hald_t)
-files_search_var_lib(hald_t)
-files_read_usr_files(hald_t)
-# hal is now execing pm-suspend
 files_create_boot_flag(hald_t)
 files_getattr_all_dirs(hald_t)
 files_getattr_all_files(hald_t)
@@ -164,8 +165,6 @@ fs_manage_dos_files(hald_t)
 fs_manage_fusefs_dirs(hald_t)
 fs_rw_removable_blk_files(hald_t)
 
-files_getattr_all_mountpoints(hald_t)
-
 mls_file_read_all_levels(hald_t)
 
 selinux_get_fs_mount(hald_t)
@@ -180,17 +179,16 @@ storage_raw_write_removable_device(hald_t)
 storage_raw_read_fixed_disk(hald_t)
 storage_raw_write_fixed_disk(hald_t)
 
-# hal_probe_serial causes these
 term_setattr_unallocated_ttys(hald_t)
 term_use_unallocated_ttys(hald_t)
 
 auth_use_nsswitch(hald_t)
+auth_read_pam_console_data(hald_t)
 
 fstools_getattr_swap_files(hald_t)
 
 init_domtrans_script(hald_t)
 init_read_utmp(hald_t)
-#hal runs shutdown, probably need a shutdown domain
 init_rw_utmp(hald_t)
 init_telinit(hald_t)
 
@@ -199,9 +197,7 @@ libs_exec_lib_files(hald_t)
 
 logging_send_audit_msgs(hald_t)
 logging_send_syslog_msg(hald_t)
-logging_search_logs(hald_t)
 
-miscfiles_read_localization(hald_t)
 miscfiles_read_hwdata(hald_t)
 
 modutils_domtrans_insmod(hald_t)
@@ -211,7 +207,6 @@ seutil_read_config(hald_t)
 seutil_read_default_contexts(hald_t)
 seutil_read_file_contexts(hald_t)
 
-sysnet_read_config(hald_t)
 sysnet_domtrans_dhcpc(hald_t)
 sysnet_domtrans_ifconfig(hald_t)
 sysnet_read_dhcp_config(hald_t)
@@ -229,8 +224,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# For /usr/libexec/hald-addon-acpi
-	# writes to /var/run/acpid.socket
 	apm_stream_connect(hald_t)
 ')
 
@@ -260,10 +253,13 @@ optional_policy(`
 	optional_policy(`
 		networkmanager_dbus_chat(hald_t)
 	')
+
+	optional_policy(`
+		policykit_dbus_chat(hald_t)
+	')
 ')
 
 optional_policy(`
-	# For /usr/libexec/hald-probe-smbios
 	dmidecode_domtrans(hald_t)
 ')
 
@@ -302,7 +298,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-        policykit_dbus_chat(hald_t)
 	policykit_domtrans_auth(hald_t)
 	policykit_domtrans_resolve(hald_t)
 	policykit_read_lib(hald_t)
@@ -315,6 +310,10 @@ optional_policy(`
 
 optional_policy(`
 	seutil_sigchld_newrole(hald_t)
+')
+
+optional_policy(`
+	shutdown_domtrans(hald_t)
 ')
 
 optional_policy(`
@@ -340,20 +339,15 @@ optional_policy(`
 
 ########################################
 #
-# Hal acl local policy
+# ACL local policy
 #
 
 allow hald_acl_t self:capability { dac_override fowner sys_resource };
 allow hald_acl_t self:process { getattr signal };
 allow hald_acl_t self:fifo_file rw_fifo_file_perms;
 
-domtrans_pattern(hald_t, hald_acl_exec_t, hald_acl_t)
-allow hald_t hald_acl_t:process signal;
-allow hald_acl_t hald_t:unix_stream_socket connectto;
-
 manage_dirs_pattern(hald_acl_t, hald_var_lib_t, hald_var_lib_t)
 manage_files_pattern(hald_acl_t, hald_var_lib_t, hald_var_lib_t)
-files_search_var_lib(hald_acl_t)
 
 manage_dirs_pattern(hald_acl_t, hald_var_run_t, hald_var_run_t)
 manage_files_pattern(hald_acl_t, hald_var_run_t, hald_var_run_t)
@@ -371,9 +365,6 @@ dev_setattr_sound_dev(hald_acl_t)
 dev_setattr_generic_usb_dev(hald_acl_t)
 dev_setattr_usbfs_files(hald_acl_t)
 
-files_read_usr_files(hald_acl_t)
-files_read_etc_files(hald_acl_t)
-
 fs_getattr_all_fs(hald_acl_t)
 
 storage_getattr_removable_dev(hald_acl_t)
@@ -385,10 +376,15 @@ auth_use_nsswitch(hald_acl_t)
 
 logging_send_syslog_msg(hald_acl_t)
 
-miscfiles_read_localization(hald_acl_t)
+optional_policy(`
+	dbus_system_bus_client(hald_acl_t)
+
+	optional_policy(`
+		policykit_dbus_chat(hald_acl_t)
+	')
+')
 
 optional_policy(`
-        policykit_dbus_chat(hald_acl_t)
 	policykit_domtrans_auth(hald_acl_t)
 	policykit_read_lib(hald_acl_t)
 	policykit_read_reload(hald_acl_t)
@@ -396,20 +392,15 @@ optional_policy(`
 
 ########################################
 #
-# Local hald mac policy
+# MAC local policy
 #
 
 allow hald_mac_t self:capability { setgid setuid sys_admin };
 
-domtrans_pattern(hald_t, hald_mac_exec_t, hald_mac_t)
-allow hald_t hald_mac_t:process signal;
-allow hald_mac_t hald_t:unix_stream_socket connectto;
-
 manage_dirs_pattern(hald_mac_t, hald_var_lib_t, hald_var_lib_t)
 manage_files_pattern(hald_mac_t, hald_var_lib_t, hald_var_lib_t)
-files_search_var_lib(hald_mac_t)
 
-write_files_pattern(hald_mac_t, hald_log_t, hald_log_t)
+append_files_pattern(hald_mac_t, hald_log_t, hald_log_t)
 
 kernel_read_system_state(hald_mac_t)
 
@@ -417,62 +408,45 @@ dev_read_raw_memory(hald_mac_t)
 dev_write_raw_memory(hald_mac_t)
 dev_read_sysfs(hald_mac_t)
 
-files_read_usr_files(hald_mac_t)
-files_read_etc_files(hald_mac_t)
-
 auth_use_nsswitch(hald_mac_t)
 
 logging_send_syslog_msg(hald_mac_t)
-
-miscfiles_read_localization(hald_mac_t)
+logging_search_logs(hald_mac_t)
 
 ########################################
 #
-# Local hald sonypic policy
+# Sonypic local policy
 #
-
-domtrans_pattern(hald_t, hald_sonypic_exec_t, hald_sonypic_t)
-allow hald_t hald_sonypic_t:process signal;
-allow hald_sonypic_t hald_t:unix_stream_socket connectto;
 
 dev_read_video_dev(hald_sonypic_t)
 dev_write_video_dev(hald_sonypic_t)
 
 manage_dirs_pattern(hald_sonypic_t, hald_var_lib_t, hald_var_lib_t)
 manage_files_pattern(hald_sonypic_t, hald_var_lib_t, hald_var_lib_t)
-files_search_var_lib(hald_sonypic_t)
 
-write_files_pattern(hald_sonypic_t, hald_log_t, hald_log_t)
+append_files_pattern(hald_sonypic_t, hald_log_t, hald_log_t)
 
-files_read_usr_files(hald_sonypic_t)
-
-miscfiles_read_localization(hald_sonypic_t)
+logging_search_logs(hald_sonypic_t)
 
 ########################################
 #
-# Hal keymap local policy
+# Keymap local policy
 #
-
-domtrans_pattern(hald_t, hald_keymap_exec_t, hald_keymap_t)
-allow hald_t hald_keymap_t:process signal;
-allow hald_keymap_t hald_t:unix_stream_socket connectto;
 
 manage_dirs_pattern(hald_keymap_t, hald_var_lib_t, hald_var_lib_t)
 manage_files_pattern(hald_keymap_t, hald_var_lib_t, hald_var_lib_t)
-files_search_var_lib(hald_keymap_t)
 
 write_files_pattern(hald_keymap_t, hald_log_t, hald_log_t)
 
 dev_rw_input_dev(hald_keymap_t)
 
 files_read_etc_files(hald_keymap_t)
-files_read_usr_files(hald_keymap_t)
 
-miscfiles_read_localization(hald_keymap_t)
+logging_search_logs(hald_keymap_t)
 
 ########################################
 #
-# Local hald dccm policy
+# Dccm local policy
 #
 
 allow hald_dccm_t self:capability { chown net_bind_service };
@@ -482,13 +456,8 @@ allow hald_dccm_t self:tcp_socket create_stream_socket_perms;
 allow hald_dccm_t self:udp_socket create_socket_perms;
 allow hald_dccm_t self:netlink_route_socket rw_netlink_socket_perms;
 
-domtrans_pattern(hald_t, hald_dccm_exec_t, hald_dccm_t)
-allow hald_t hald_dccm_t:process signal;
-allow hald_dccm_t hald_t:unix_stream_socket connectto;
-
 manage_dirs_pattern(hald_dccm_t, hald_var_lib_t, hald_var_lib_t)
 manage_files_pattern(hald_dccm_t, hald_var_lib_t, hald_var_lib_t)
-files_search_var_lib(hald_dccm_t)
 
 manage_dirs_pattern(hald_dccm_t, hald_var_run_t, hald_var_run_t)
 manage_files_pattern(hald_dccm_t, hald_var_run_t, hald_var_run_t)
@@ -498,11 +467,9 @@ files_pid_filetrans(hald_dccm_t, hald_var_run_t, { dir file sock_file })
 manage_sock_files_pattern(hald_dccm_t, hald_tmp_t, hald_tmp_t)
 files_tmp_filetrans(hald_dccm_t, hald_tmp_t, sock_file)
 
-write_files_pattern(hald_dccm_t, hald_log_t, hald_log_t)
+append_files_pattern(hald_dccm_t, hald_log_t, hald_log_t)
 
 kernel_search_network_sysctl(hald_dccm_t)
-
-dev_read_urand(hald_dccm_t)
 
 corenet_all_recvfrom_unlabeled(hald_dccm_t)
 corenet_all_recvfrom_netlabel(hald_dccm_t)
@@ -514,15 +481,20 @@ corenet_tcp_sendrecv_all_ports(hald_dccm_t)
 corenet_udp_sendrecv_all_ports(hald_dccm_t)
 corenet_tcp_bind_generic_node(hald_dccm_t)
 corenet_udp_bind_generic_node(hald_dccm_t)
+
+corenet_sendrecv_dhcpc_server_packets(hald_dccm_t)
 corenet_udp_bind_dhcpc_port(hald_dccm_t)
+
+corenet_sendrecv_ftp_server_packets(hald_dccm_t)
 corenet_tcp_bind_ftp_port(hald_dccm_t)
+
+corenet_sendrecv_dccm_server_packets(hald_dccm_t)
 corenet_tcp_bind_dccm_port(hald_dccm_t)
 
+dev_read_urand(hald_dccm_t)
+
 logging_send_syslog_msg(hald_dccm_t)
-
-files_read_usr_files(hald_dccm_t)
-
-miscfiles_read_localization(hald_dccm_t)
+logging_search_logs(hald_dccm_t)
 
 hal_dontaudit_rw_dgram_sockets(hald_dccm_t)
 

@@ -1,4 +1,4 @@
-## <summary>Hardware abstraction layer</summary>
+## <summary>Hardware abstraction layer.</summary>
 
 ########################################
 ## <summary>
@@ -15,12 +15,13 @@ interface(`hal_domtrans',`
 		type hald_t, hald_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, hald_exec_t, hald_t)
 ')
 
 ########################################
 ## <summary>
-##	Get the attributes of a hal process.
+##	Get attributes of hald processes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -38,7 +39,7 @@ interface(`hal_getattr',`
 
 ########################################
 ## <summary>
-##	Read hal system state
+##	Read hal process state files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -56,7 +57,7 @@ interface(`hal_read_state',`
 
 ########################################
 ## <summary>
-##	Allow ptrace of hal domain
+##	Trace hald processes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -74,7 +75,7 @@ interface(`hal_ptrace',`
 
 ########################################
 ## <summary>
-##	Allow domain to use file descriptors from hal.
+##	Inherit and use hald file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -92,7 +93,8 @@ interface(`hal_use_fds',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to use file descriptors from hal.
+##	Do not audit attempts to inherited
+##	and use hald file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -110,8 +112,7 @@ interface(`hal_dontaudit_use_fds',`
 
 ########################################
 ## <summary>
-##	Allow attempts to read and write to
-##	hald unnamed pipes.
+##	Read and write hald unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -129,8 +130,8 @@ interface(`hal_rw_pipes',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to read and write to
-##	hald unnamed pipes.
+##	Do not audit attempts to read and
+##	write hald unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -148,7 +149,7 @@ interface(`hal_dontaudit_rw_pipes',`
 
 ########################################
 ## <summary>
-##	Send to hal over a unix domain
+##	Send to hald over a unix domain
 ##	datagram socket.
 ## </summary>
 ## <param name="domain">
@@ -159,15 +160,16 @@ interface(`hal_dontaudit_rw_pipes',`
 #
 interface(`hal_dgram_send',`
 	gen_require(`
-		type hald_t;
+		type hald_t, hald_var_lib_t;
 	')
 
-	allow $1 hald_t:unix_dgram_socket sendto;
+	files_search_var_lib($1)
+	dgram_send_pattern($1, hald_var_lib_t, hald_var_lib_t, hald_t)
 ')
 
 ########################################
 ## <summary>
-##	Send to hal over a unix domain
+##	Send to hald over a unix domain
 ##	stream socket.
 ## </summary>
 ## <param name="domain">
@@ -178,15 +180,17 @@ interface(`hal_dgram_send',`
 #
 interface(`hal_stream_connect',`
 	gen_require(`
-		type hald_t;
+		type hald_t, hald_var_lib_t;
 	')
 
-	allow $1 hald_t:unix_stream_socket connectto;
+	files_search_var_lib($1)
+	stream_connect_pattern($1, hald_var_lib_t, hald_var_lib_t, hald_t)
 ')
 
 ########################################
 ## <summary>
-##	Dontaudit read/write to a hal unix datagram socket.
+##	Do not audit attempts to read and
+##	write hald unix datagram sockets.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -204,7 +208,7 @@ interface(`hal_dontaudit_rw_dgram_sockets',`
 
 ########################################
 ## <summary>
-##	Send a dbus message to hal.
+##	Send messages to hald over dbus.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -224,7 +228,7 @@ interface(`hal_dbus_send',`
 ########################################
 ## <summary>
 ##	Send and receive messages from
-##	hal over dbus.
+##	hald over dbus.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -257,13 +261,13 @@ interface(`hal_domtrans_mac',`
 		type hald_mac_t, hald_mac_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, hald_mac_exec_t, hald_mac_t)
 ')
 
 ########################################
 ## <summary>
-##	Allow attempts to write the hal
-##	log files.
+##	Write hald log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -277,12 +281,12 @@ interface(`hal_write_log',`
 	')
 
 	logging_search_logs($1)
-	allow $1 hald_log_t:file write_file_perms;
+	write_files_pattern($1, hald_log_t, hald_log_t)
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to write the hal
+##	Do not audit attempts to write hald
 ##	log files.
 ## </summary>
 ## <param name="domain">
@@ -301,7 +305,8 @@ interface(`hal_dontaudit_write_log',`
 
 ########################################
 ## <summary>
-##	Manage hald log files.
+##	Create, read, write, and delete
+##	hald log files..
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -314,13 +319,13 @@ interface(`hal_manage_log',`
 		type hald_log_t;
 	')
 
-	# log files for hald
+	logging_search_logs($1)
 	manage_files_pattern($1, hald_log_t, hald_log_t)
 ')
 
 ########################################
 ## <summary>
-##	Read hald tmp files.
+##	Read hald temporary files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -333,13 +338,14 @@ interface(`hal_read_tmp_files',`
 		type hald_tmp_t;
 	')
 
+	files_search_tmp($1)
 	allow $1 hald_tmp_t:file read_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to read or write
-##	HAL libraries files
+##	Do not audit attempts to append
+##	hald libraries files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -352,12 +358,12 @@ interface(`hal_dontaudit_append_lib_files',`
 		type hald_var_lib_t;
 	')
 
-	dontaudit $1 hald_var_lib_t:file { read_file_perms append_file_perms };
+	dontaudit $1 hald_var_lib_t:file append_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Read hald PID files.
+##	Read hald pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -376,7 +382,7 @@ interface(`hal_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Read/Write hald PID files.
+##	Read and write hald pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -395,7 +401,8 @@ interface(`hal_rw_pid_files',`
 
 ########################################
 ## <summary>
-##	Manage hald PID dirs.
+##	Create, read, write, and delete
+##	hald pid directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -414,7 +421,8 @@ interface(`hal_manage_pid_dirs',`
 
 ########################################
 ## <summary>
-##	Manage hald PID files.
+##	Create, read, write, and delete
+##	hald pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
