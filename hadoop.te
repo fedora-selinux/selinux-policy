@@ -1,15 +1,27 @@
-policy_module(hadoop, 1.2.1)
+policy_module(hadoop, 1.2.3)
 
 ########################################
 #
-# Declarations.
+# Declarations
 #
 
 attribute hadoop_domain;
+attribute hadoop_initrc_domain;
+
+attribute hadoop_init_script_file;
+attribute hadoop_pid_file;
+attribute hadoop_lock_file;
+attribute hadoop_log_file;
+attribute hadoop_tmp_file;
+attribute hadoop_var_lib_file;
+
+attribute_role hadoop_roles;
+attribute_role zookeeper_roles;
 
 type hadoop_t;
 type hadoop_exec_t;
 userdom_user_application_domain(hadoop_t, hadoop_exec_t)
+role hadoop_roles types hadoop_t;
 
 type hadoop_etc_t;
 files_config_file(hadoop_etc_t)
@@ -20,16 +32,16 @@ userdom_user_home_content(hadoop_home_t)
 type hadoop_lan_t;
 corenet_spd_type(hadoop_lan_t)
 
-type hadoop_log_t;
+type hadoop_log_t, hadoop_log_file;
 logging_log_file(hadoop_log_t)
 
-type hadoop_tmp_t;
+type hadoop_tmp_t, hadoop_tmp_file;
 userdom_user_tmp_file(hadoop_tmp_t)
 
-type hadoop_var_lib_t;
+type hadoop_var_lib_t, hadoop_var_lib_file;
 files_type(hadoop_var_lib_t)
 
-type hadoop_var_run_t;
+type hadoop_var_run_t, hadoop_pid_file;
 files_pid_file(hadoop_var_run_t)
 
 type hadoop_hsperfdata_t;
@@ -44,54 +56,46 @@ hadoop_domain_template(tasktracker)
 type zookeeper_t;
 type zookeeper_exec_t;
 userdom_user_application_domain(zookeeper_t, zookeeper_exec_t)
+role zookeeper_roles types zookeeper_t;
 
 type zookeeper_etc_t;
 files_config_file(zookeeper_etc_t)
 
-type zookeeper_log_t;
+type zookeeper_log_t, hadoop_log_file;
 logging_log_file(zookeeper_log_t)
 
 type zookeeper_server_t;
 type zookeeper_server_exec_t;
 init_daemon_domain(zookeeper_server_t, zookeeper_server_exec_t)
 
-type zookeeper_server_initrc_exec_t;
+type zookeeper_server_initrc_exec_t, hadoop_init_script_file;
 init_script_file(zookeeper_server_initrc_exec_t)
 
-type zookeeper_server_tmp_t;
+type zookeeper_server_tmp_t, hadoop_tmp_file;
 files_tmp_file(zookeeper_server_tmp_t)
 
 type zookeeper_server_var_t;
 files_type(zookeeper_server_var_t)
 
-# This will need a file context specification.
-type zookeeper_server_var_run_t;
+type zookeeper_server_var_run_t, hadoop_pid_file;
 files_pid_file(zookeeper_server_var_run_t)
 
-type zookeeper_tmp_t;
+type zookeeper_tmp_t, hadoop_tmp_file;
 userdom_user_tmp_file(zookeeper_tmp_t)
 
 ########################################
 #
-# Hadoop policy.
+# Local policy
 #
 
 allow hadoop_t self:capability sys_resource;
 allow hadoop_t self:process { getsched setsched signal signull setrlimit execmem };
 allow hadoop_t self:fifo_file rw_fifo_file_perms;
 allow hadoop_t self:key write;
-allow hadoop_t self:tcp_socket create_stream_socket_perms;
-allow hadoop_t self:udp_socket create_socket_perms;
-dontaudit hadoop_t self:netlink_route_socket rw_netlink_socket_perms;
+allow hadoop_t self:peer recv;
+allow hadoop_t self:tcp_socket { accept listen };
 
 allow hadoop_t hadoop_domain:process signull;
-
-hadoop_match_lan_spd(hadoop_t)
-allow hadoop_t self:peer recv;
-hadoop_recvfrom_datanode(hadoop_t)
-hadoop_recvfrom_jobtracker(hadoop_t)
-hadoop_recvfrom_namenode(hadoop_t)
-hadoop_recvfrom_tasktracker(hadoop_t)
 
 read_files_pattern(hadoop_t, hadoop_etc_t, hadoop_etc_t)
 read_lnk_files_pattern(hadoop_t, hadoop_etc_t, hadoop_etc_t)
@@ -126,22 +130,22 @@ corecmd_exec_shell(hadoop_t)
 corenet_all_recvfrom_unlabeled(hadoop_t)
 corenet_all_recvfrom_netlabel(hadoop_t)
 corenet_tcp_sendrecv_generic_if(hadoop_t)
-corenet_udp_sendrecv_generic_if(hadoop_t)
 corenet_tcp_sendrecv_generic_node(hadoop_t)
-corenet_udp_sendrecv_generic_node(hadoop_t)
-corenet_tcp_bind_generic_node(hadoop_t)
-corenet_udp_bind_generic_node(hadoop_t)
 corenet_tcp_sendrecv_all_ports(hadoop_t)
-corenet_udp_sendrecv_all_ports(hadoop_t)
-corenet_tcp_connect_hadoop_namenode_port(hadoop_t)
-corenet_tcp_connect_hadoop_datanode_port(hadoop_t)
-corenet_tcp_connect_portmap_port(hadoop_t)
-corenet_tcp_connect_zope_port(hadoop_t)
+
 corenet_sendrecv_hadoop_namenode_client_packets(hadoop_t)
+corenet_tcp_connect_hadoop_namenode_port(hadoop_t)
+
+corenet_sendrecv_hadoop_datanode_client_packets(hadoop_t)
+corenet_tcp_connect_hadoop_datanode_port(hadoop_t)
+
 corenet_sendrecv_portmap_client_packets(hadoop_t)
+corenet_tcp_connect_portmap_port(hadoop_t)
+
 corenet_sendrecv_zope_client_packets(hadoop_t)
-# Hadoop uses high ordered random ports for services
-# If permanent ports are chosen, remove line below and lock down
+corenet_tcp_connect_zope_port(hadoop_t)
+
+corenet_sendrecv_generic_client_packets(hadoop_t)
 corenet_tcp_connect_generic_port(hadoop_t)
 
 dev_read_rand(hadoop_t)
@@ -151,45 +155,162 @@ dev_read_urand(hadoop_t)
 domain_use_interactive_fds(hadoop_t)
 
 files_dontaudit_search_spool(hadoop_t)
-files_read_etc_files(hadoop_t)
 files_read_usr_files(hadoop_t)
 
 fs_getattr_xattr_fs(hadoop_t)
 
-miscfiles_read_localization(hadoop_t)
+auth_use_nsswitch(hadoop_t)
 
-sysnet_read_config(hadoop_t)
+miscfiles_read_localization(hadoop_t)
 
 userdom_use_user_terminals(hadoop_t)
 
-java_exec(hadoop_t)
-
-kerberos_use(hadoop_t)
-
-optional_policy(`
-	nis_use_ypbind(hadoop_t)
-')
+hadoop_match_lan_spd(hadoop_t)
+hadoop_recvfrom_datanode(hadoop_t)
+hadoop_recvfrom_jobtracker(hadoop_t)
+hadoop_recvfrom_namenode(hadoop_t)
+hadoop_recvfrom_tasktracker(hadoop_t)
 
 optional_policy(`
-	nscd_socket_use(hadoop_t)
+	java_exec(hadoop_t)
 ')
 
 ########################################
 #
-# Hadoop datanode policy.
+# Common hadoop_domain local policy
 #
 
-allow hadoop_datanode_t self:process signal;
+allow hadoop_domain self:capability { chown kill setgid setuid };
+allow hadoop_domain self:process { execmem getsched setsched sigkill signal };
+allow hadoop_domain self:fifo_file rw_fifo_file_perms;
+allow hadoop_domain self:key search;
+allow hadoop_domain self:peer recv;
+allow hadoop_domain self:tcp_socket { accept listen };
+
+allow hadoop_domain hadoop_domain:process signull;
+
+allow hadoop_domain hadoop_hsperfdata_t:dir manage_dir_perms;
+files_tmp_filetrans(hadoop_domain, hadoop_hsperfdata_t, dir)
+
+hadoop_exec_config(hadoop_domain)
+hadoop_match_lan_spd(hadoop_domain)
+
+kernel_read_kernel_sysctls(hadoop_domain)
+kernel_read_network_state(hadoop_domain)
+kernel_read_sysctl(hadoop_domain)
+kernel_read_system_state(hadoop_domain)
+
+corecmd_exec_bin(hadoop_domain)
+corecmd_exec_shell(hadoop_domain)
+
+corenet_all_recvfrom_unlabeled(hadoop_domain)
+corenet_all_recvfrom_netlabel(hadoop_domain)
+corenet_tcp_bind_all_nodes(hadoop_domain)
+corenet_tcp_sendrecv_generic_if(hadoop_domain)
+corenet_tcp_sendrecv_generic_node(hadoop_domain)
+corenet_tcp_sendrecv_all_ports(hadoop_domain)
+
+corenet_sendrecv_generic_client_packets(hadoop_domain)
+corenet_tcp_connect_generic_port(hadoop_domain)
+
+dev_read_rand(hadoop_domain)
+dev_read_urand(hadoop_domain)
+dev_read_sysfs(hadoop_domain)
+
+files_search_pids(hadoop_domain)
+files_search_var_lib(hadoop_domain)
+
+auth_domtrans_chkpwd(hadoop_domain)
+
+init_read_utmp(hadoop_domain)
+init_use_fds(hadoop_domain)
+init_use_script_fds(hadoop_domain)
+init_use_script_ptys(hadoop_domain)
+
+logging_search_logs(hadoop_domain)
+logging_send_audit_msgs(hadoop_domain)
+logging_send_syslog_msg(hadoop_domain)
+
+miscfiles_read_localization(hadoop_domain)
+
+optional_policy(`
+	java_exec(hadoop_domain)
+')
+
+optional_policy(`
+	su_exec(hadoop_domain)
+')
+
+########################################
+#
+# Common hadoop_initrc_domain local policy
+#
+
+allow hadoop_initrc_domain self:capability { setuid setgid };
+dontaudit hadoop_initrc_domain self:capability sys_tty_config;
+allow hadoop_initrc_domain self:process setsched;
+allow hadoop_initrc_domain self:fifo_file rw_fifo_file_perms;
+
+manage_dirs_pattern(hadoop_initrc_domain, hadoop_var_run_t, hadoop_var_run_t)
+manage_files_pattern(hadoop_initrc_domain, hadoop_var_run_t, hadoop_var_run_t)
+
+hadoop_exec_config(hadoop_initrc_domain)
+
+kernel_read_kernel_sysctls(hadoop_initrc_domain)
+kernel_read_sysctl(hadoop_initrc_domain)
+kernel_read_system_state(hadoop_initrc_domain)
+
+corecmd_exec_bin(hadoop_initrc_domain)
+corecmd_exec_shell(hadoop_initrc_domain)
+
+files_read_etc_files(hadoop_initrc_domain)
+files_read_usr_files(hadoop_initrc_domain)
+files_search_locks(hadoop_initrc_domain)
+files_search_pids(hadoop_initrc_domain)
+
+fs_getattr_xattr_fs(hadoop_initrc_domain)
+fs_search_cgroup_dirs(hadoop_initrc_domain)
+
+term_use_generic_ptys(hadoop_initrc_domain)
+
+init_rw_utmp(hadoop_initrc_domain)
+init_use_fds(hadoop_initrc_domain)
+init_use_script_ptys(hadoop_initrc_domain)
+
+logging_search_logs(hadoop_initrc_domain)
+logging_send_syslog_msg(hadoop_initrc_domain)
+logging_send_audit_msgs(hadoop_initrc_domain)
+
+miscfiles_read_localization(hadoop_initrc_domain)
+
+userdom_dontaudit_search_user_home_dirs(hadoop_initrc_domain)
+
+optional_policy(`
+	consoletype_exec(hadoop_initrc_domain)
+')
+
+optional_policy(`
+	nscd_socket_use(hadoop_initrc_domain)
+')
+
+########################################
+#
+# Datanode local policy
+#
 
 manage_dirs_pattern(hadoop_datanode_t, hadoop_var_lib_t, hadoop_var_lib_t)
 
+corenet_sendrecv_hadoop_datanode_server_packets(hadoop_datanode_t)
 corenet_tcp_bind_hadoop_datanode_port(hadoop_datanode_t)
+
+corenet_sendrecv_hadoop_datanode_client_packets(hadoop_datanode_t)
 corenet_tcp_connect_hadoop_datanode_port(hadoop_datanode_t)
+
+corenet_sendrecv_hadoop_namenode_client_packets(hadoop_datanode_t)
 corenet_tcp_connect_hadoop_namenode_port(hadoop_datanode_t)
 
 fs_getattr_xattr_fs(hadoop_datanode_t)
 
-allow hadoop_datanode_t self:peer recv;
 hadoop_recvfrom_jobtracker(hadoop_datanode_t)
 hadoop_recvfrom_namenode(hadoop_datanode_t)
 hadoop_recvfrom(hadoop_datanode_t)
@@ -197,7 +318,7 @@ hadoop_recvfrom_tasktracker(hadoop_datanode_t)
 
 ########################################
 #
-# Hadoop jobtracker policy.
+# Jobtracker local policy
 #
 
 create_dirs_pattern(hadoop_jobtracker_t, hadoop_jobtracker_log_t, hadoop_jobtracker_log_t)
@@ -205,11 +326,15 @@ setattr_dirs_pattern(hadoop_jobtracker_t, hadoop_jobtracker_log_t, hadoop_jobtra
 
 manage_dirs_pattern(hadoop_jobtracker_t, hadoop_var_lib_t, hadoop_var_lib_t)
 
+corenet_sendrecv_zope_server_packets(hadoop_jobtracker_t)
 corenet_tcp_bind_zope_port(hadoop_jobtracker_t)
+
+corenet_sendrecv_hadoop_datanode_client_packets(hadoop_jobtracker_t)
 corenet_tcp_connect_hadoop_datanode_port(hadoop_jobtracker_t)
+
+corenet_sendrecv_hadoop_namenode_client_packets(hadoop_jobtracker_t)
 corenet_tcp_connect_hadoop_namenode_port(hadoop_jobtracker_t)
 
-allow hadoop_jobtracker_t self:peer recv;
 hadoop_recvfrom_datanode(hadoop_jobtracker_t)
 hadoop_recvfrom_namenode(hadoop_jobtracker_t)
 hadoop_recvfrom(hadoop_jobtracker_t)
@@ -217,16 +342,18 @@ hadoop_recvfrom_tasktracker(hadoop_jobtracker_t)
 
 ########################################
 #
-# Hadoop namenode policy.
+# Namenode local policy
 #
 
 manage_dirs_pattern(hadoop_namenode_t, hadoop_var_lib_t, hadoop_var_lib_t)
 manage_files_pattern(hadoop_namenode_t, hadoop_var_lib_t, hadoop_var_lib_t)
 
+corenet_sendrecv_hadoop_namenode_server_packets(hadoop_namenode_t)
 corenet_tcp_bind_hadoop_namenode_port(hadoop_namenode_t)
+
+corenet_sendrecv_hadoop_namenode_client_packets(hadoop_namenode_t)
 corenet_tcp_connect_hadoop_namenode_port(hadoop_namenode_t)
 
-allow hadoop_namenode_t self:peer recv;
 hadoop_recvfrom_datanode(hadoop_namenode_t)
 hadoop_recvfrom_jobtracker(hadoop_namenode_t)
 hadoop_recvfrom(hadoop_namenode_t)
@@ -235,39 +362,41 @@ hadoop_recvfrom_tasktracker(hadoop_namenode_t)
 
 ########################################
 #
-# Hadoop secondary namenode policy.
+# Secondary namenode local policy
 #
 
 manage_dirs_pattern(hadoop_secondarynamenode_t, hadoop_var_lib_t, hadoop_var_lib_t)
 
+corenet_sendrecv_hadoop_namenode_client_packets(hadoop_secondarynamenode_t)
 corenet_tcp_connect_hadoop_namenode_port(hadoop_secondarynamenode_t)
 
-allow hadoop_secondarynamenode_t self:peer recv;
 hadoop_recvfrom_namenode(hadoop_secondarynamenode_t)
 
 ########################################
 #
-# Hadoop tasktracker policy.
+# Tasktracker local policy
 #
-
-allow hadoop_tasktracker_t self:process signal;
 
 manage_dirs_pattern(hadoop_tasktracker_t, hadoop_tasktracker_log_t, hadoop_tasktracker_log_t)
 setattr_dirs_pattern(hadoop_tasktracker_t, hadoop_log_t, hadoop_log_t)
 filetrans_pattern(hadoop_tasktracker_t, hadoop_log_t, hadoop_tasktracker_log_t, dir)
 
-filetrans_pattern(hadoop_tasktracker_t, hadoop_var_lib_t, hadoop_tasktracker_var_lib_t, lnk_file)
 manage_lnk_files_pattern(hadoop_tasktracker_t, hadoop_tasktracker_var_lib_t, hadoop_tasktracker_var_lib_t)
+filetrans_pattern(hadoop_tasktracker_t, hadoop_var_lib_t, hadoop_tasktracker_var_lib_t, lnk_file)
 
 manage_dirs_pattern(hadoop_tasktracker_t, hadoop_var_lib_t, hadoop_var_lib_t)
 
+corenet_sendrecv_hadoop_datanode_client_packets(hadoop_tasktracker_t)
 corenet_tcp_connect_hadoop_datanode_port(hadoop_tasktracker_t)
+
+corenet_sendrecv_hadoop_namenode_client_packets(hadoop_tasktracker_t)
 corenet_tcp_connect_hadoop_namenode_port(hadoop_tasktracker_t)
+
+corenet_sendrecv_zope_client_packets(hadoop_tasktracker_t)
 corenet_tcp_connect_zope_port(hadoop_tasktracker_t)
 
 fs_getattr_xattr_fs(hadoop_tasktracker_t)
 
-allow hadoop_tasktracker_t self:peer recv;
 hadoop_recvfrom_datanode(hadoop_tasktracker_t)
 hadoop_recvfrom_jobtracker(hadoop_tasktracker_t)
 hadoop_recvfrom(hadoop_tasktracker_t)
@@ -275,17 +404,12 @@ hadoop_recvfrom_namenode(hadoop_tasktracker_t)
 
 ########################################
 #
-# Hadoop zookeeper client policy.
+# Zookeeper client local policy
 #
 
 allow zookeeper_t self:process { getsched sigkill signal signull execmem };
 allow zookeeper_t self:fifo_file rw_fifo_file_perms;
-allow zookeeper_t self:tcp_socket create_stream_socket_perms;
-allow zookeeper_t self:udp_socket create_socket_perms;
-dontaudit zookeeper_t self:netlink_route_socket rw_netlink_socket_perms;
-
-hadoop_match_lan_spd(zookeeper_t)
-hadoop_recvfrom_zookeeper_server(zookeeper_t)
+allow zookeeper_t self:tcp_socket { accept listen };
 
 read_files_pattern(zookeeper_t, zookeeper_etc_t, zookeeper_etc_t)
 read_lnk_files_pattern(zookeeper_t, zookeeper_etc_t, zookeeper_etc_t)
@@ -314,17 +438,13 @@ corecmd_exec_shell(zookeeper_t)
 corenet_all_recvfrom_unlabeled(zookeeper_t)
 corenet_all_recvfrom_netlabel(zookeeper_t)
 corenet_tcp_sendrecv_generic_if(zookeeper_t)
-corenet_udp_sendrecv_generic_if(zookeeper_t)
 corenet_tcp_sendrecv_generic_node(zookeeper_t)
-corenet_udp_sendrecv_generic_node(zookeeper_t)
 corenet_tcp_sendrecv_all_ports(zookeeper_t)
-corenet_udp_sendrecv_all_ports(zookeeper_t)
-corenet_tcp_bind_generic_node(zookeeper_t)
-corenet_udp_bind_generic_node(zookeeper_t)
-corenet_tcp_connect_zookeeper_client_port(zookeeper_t)
+
 corenet_sendrecv_zookeeper_client_client_packets(zookeeper_t)
-# Hadoop uses high ordered random ports for services
-# If permanent ports are chosen, remove line below and lock down
+corenet_tcp_connect_zookeeper_client_port(zookeeper_t)
+
+corenet_sendrecv_generic_client_packets(zookeeper_t)
 corenet_tcp_connect_generic_port(zookeeper_t)
 
 dev_read_rand(zookeeper_t)
@@ -333,37 +453,32 @@ dev_read_urand(zookeeper_t)
 
 domain_use_interactive_fds(zookeeper_t)
 
-files_read_etc_files(zookeeper_t)
 files_read_usr_files(zookeeper_t)
 
-miscfiles_read_localization(zookeeper_t)
+auth_use_nsswitch(zookeeper_t)
 
-sysnet_read_config(zookeeper_t)
+miscfiles_read_localization(zookeeper_t)
 
 userdom_use_user_terminals(zookeeper_t)
 userdom_dontaudit_search_user_home_dirs(zookeeper_t)
 
-java_exec(zookeeper_t)
+hadoop_match_lan_spd(zookeeper_t)
+hadoop_recvfrom_zookeeper_server(zookeeper_t)
 
 optional_policy(`
-	nscd_socket_use(zookeeper_t)
+	java_exec(zookeeper_t)
 ')
 
 ########################################
 #
-# Hadoop zookeeper server policy.
+# Zookeeper server local policy
 #
 
 allow zookeeper_server_t self:capability kill;
 allow zookeeper_server_t self:process { execmem getsched sigkill signal signull };
 allow zookeeper_server_t self:fifo_file rw_fifo_file_perms;
-allow zookeeper_server_t self:netlink_route_socket rw_netlink_socket_perms;
-allow zookeeper_server_t self:tcp_socket create_stream_socket_perms;
-allow zookeeper_server_t self:udp_socket create_socket_perms;
-
-hadoop_match_lan_spd(zookeeper_server_t)
 allow zookeeper_server_t self:peer recv;
-hadoop_recvfrom_zookeeper_client(zookeeper_server_t)
+allow zookeeper_server_t self:tcp_socket { accept listen };
 
 allow zookeeper_server_t hadoop_hsperfdata_t:dir manage_dir_perms;
 files_tmp_filetrans(zookeeper_server_t, hadoop_hsperfdata_t, dir)
@@ -396,32 +511,32 @@ corecmd_exec_shell(zookeeper_server_t)
 corenet_all_recvfrom_unlabeled(zookeeper_server_t)
 corenet_all_recvfrom_netlabel(zookeeper_server_t)
 corenet_tcp_sendrecv_generic_if(zookeeper_server_t)
-corenet_udp_sendrecv_generic_if(zookeeper_server_t)
 corenet_tcp_sendrecv_generic_node(zookeeper_server_t)
-corenet_udp_sendrecv_generic_node(zookeeper_server_t)
 corenet_tcp_sendrecv_all_ports(zookeeper_server_t)
-corenet_udp_sendrecv_all_ports(zookeeper_server_t)
 corenet_tcp_bind_generic_node(zookeeper_server_t)
-corenet_udp_bind_generic_node(zookeeper_server_t)
-corenet_tcp_bind_zookeeper_client_port(zookeeper_server_t)
-corenet_tcp_bind_zookeeper_election_port(zookeeper_server_t)
-corenet_tcp_bind_zookeeper_leader_port(zookeeper_server_t)
-corenet_tcp_connect_zookeeper_election_port(zookeeper_server_t)
-corenet_tcp_connect_zookeeper_leader_port(zookeeper_server_t)
-corenet_sendrecv_zookeeper_election_client_packets(zookeeper_server_t)
-corenet_sendrecv_zookeeper_leader_client_packets(zookeeper_server_t)
+
 corenet_sendrecv_zookeeper_client_server_packets(zookeeper_server_t)
+corenet_tcp_bind_zookeeper_client_port(zookeeper_server_t)
+
 corenet_sendrecv_zookeeper_election_server_packets(zookeeper_server_t)
+corenet_tcp_bind_zookeeper_election_port(zookeeper_server_t)
+
 corenet_sendrecv_zookeeper_leader_server_packets(zookeeper_server_t)
-# Hadoop uses high ordered random ports for services
-# If permanent ports are chosen, remove line below and lock down
+corenet_tcp_bind_zookeeper_leader_port(zookeeper_server_t)
+
+corenet_sendrecv_zookeeper_election_client_packets(zookeeper_server_t)
+corenet_tcp_connect_zookeeper_election_port(zookeeper_server_t)
+
+corenet_tcp_connect_zookeeper_leader_port(zookeeper_server_t)
+corenet_sendrecv_zookeeper_leader_client_packets(zookeeper_server_t)
+
+corenet_sendrecv_generic_client_packets(zookeeper_server_t)
 corenet_tcp_connect_generic_port(zookeeper_server_t)
 
 dev_read_rand(zookeeper_server_t)
 dev_read_sysfs(zookeeper_server_t)
 dev_read_urand(zookeeper_server_t)
 
-files_read_etc_files(zookeeper_server_t)
 files_read_usr_files(zookeeper_server_t)
 
 fs_getattr_xattr_fs(zookeeper_server_t)
@@ -430,6 +545,9 @@ logging_send_syslog_msg(zookeeper_server_t)
 
 miscfiles_read_localization(zookeeper_server_t)
 
-sysnet_read_config(zookeeper_server_t)
+hadoop_match_lan_spd(zookeeper_server_t)
+hadoop_recvfrom_zookeeper_client(zookeeper_server_t)
 
-java_exec(zookeeper_server_t)
+optional_policy(`
+	java_exec(zookeeper_server_t)
+')
