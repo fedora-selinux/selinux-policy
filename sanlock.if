@@ -78,6 +78,29 @@ interface(`sanlock_stream_connect',`
 
 ########################################
 ## <summary>
+##	Execute virt server in the virt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`virt_systemctl',`
+	gen_require(`
+		type sanlock_unit_file_t;
+		type sanlock_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 sanlock_unit_file_t:file read_file_perms;
+	allow $1 sanlock_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, sanlock_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an sanlock environment
 ## </summary>
@@ -97,6 +120,7 @@ interface(`sanlock_admin',`
 	gen_require(`
 		type sanlock_t;
 		type sanlock_initrc_exec_t;
+		type sanlock_unit_file_t;
 	')
 
 	allow $1 sanlock_t:process signal_perms;
@@ -110,4 +134,7 @@ interface(`sanlock_admin',`
 	role_transition $2 sanlock_initrc_exec_t system_r;
 	allow $2 system_r;
 
+	virt_systemctl($1)
+	admin_pattern($1, sanlock_unit_file_t)
+	allow $1 sanlock_unit_file_t:service all_service_perms;
 ')
