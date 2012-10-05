@@ -652,6 +652,29 @@ interface(`virt_manage_images',`
 
 ########################################
 ## <summary>
+##	Execute virt server in the virt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`virt_systemctl',`
+	gen_require(`
+		type virtd_unit_file_t;
+		type virtd_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 virtd_unit_file_t:file read_file_perms;
+	allow $1 virtd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, virtd_t)
+')
+
+########################################
+## <summary>
 ##	All of the rules required to administrate
 ##	an virt environment
 ## </summary>
@@ -672,6 +695,7 @@ interface(`virt_admin',`
 		type virtd_t, virtd_initrc_exec_t;
 		attribute virt_domain;
 		type virt_lxc_t;
+		type virtd_unit_file_t;
 	')
 
 	allow $1 virtd_t:process signal_perms;
@@ -698,6 +722,10 @@ interface(`virt_admin',`
 	virt_manage_images($1)
 
 	allow $1 virt_domain:process signal_perms;
+
+	virt_systemctl($1)
+	admin_pattern($1, virtd_unit_file_t)
+	allow $1 virtd_unit_file_t:service all_service_perms;
 ')
 
 ########################################
