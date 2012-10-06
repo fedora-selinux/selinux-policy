@@ -1,4 +1,4 @@
-policy_module(gift, 2.3.1)
+policy_module(gift, 2.3.2)
 
 ########################################
 #
@@ -36,8 +36,6 @@ role gift_roles types gift_t;
 # Client local policy
 #
 
-allow gift_t self:tcp_socket create_socket_perms;
-
 manage_files_pattern(gift_t, gift_tmpfs_t, gift_tmpfs_t)
 manage_lnk_files_pattern(gift_t, gift_tmpfs_t, gift_tmpfs_t)
 manage_fifo_files_pattern(gift_t, gift_tmpfs_t, gift_tmpfs_t)
@@ -64,7 +62,7 @@ corenet_tcp_sendrecv_giftd_port(gift_t)
 
 fs_search_auto_mountpoints(gift_t)
 
-sysnet_read_config(gift_t)
+auth_use_nsswitch(gift_t)
 
 userdom_dontaudit_read_user_home_content_files(gift_t)
 
@@ -81,10 +79,6 @@ tunable_policy(`use_samba_home_dirs',`
 ')
 
 optional_policy(`
-	nscd_socket_use(gift_t)
-')
-
-optional_policy(`
 	xserver_user_x_domain_template(gift, gift_t, gift_tmpfs_t)
 ')
 
@@ -95,8 +89,7 @@ optional_policy(`
 
 allow giftd_t self:process { signal setsched };
 allow giftd_t self:unix_stream_socket create_socket_perms;
-allow giftd_t self:tcp_socket create_stream_socket_perms;
-allow giftd_t self:udp_socket create_socket_perms;
+allow giftd_t self:tcp_socket { accept listen };
 
 manage_dirs_pattern(giftd_t, gift_home_t, gift_home_t)
 manage_files_pattern(giftd_t, gift_home_t, gift_home_t)
@@ -129,7 +122,7 @@ files_read_usr_files(giftd_t)
 
 miscfiles_read_localization(giftd_t)
 
-sysnet_read_config(giftd_t)
+sysnet_dns_name_resolve(giftd_t)
 
 userdom_use_user_terminals(giftd_t)
 
