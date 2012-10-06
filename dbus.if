@@ -68,12 +68,9 @@ template(`dbus_role_template',`
 	
 	allow $3 system_dbusd_t:dbus { send_msg acquire_svc };
 
-	allow $3 session_dbusd_home_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 session_dbusd_home_t:file { manage_file_perms relabel_file_perms };
+	allow $3 { session_dbusd_home_t session_dbusd_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $3 { session_dbusd_home_t session_dbusd_tmp_t }:file { manage_file_perms relabel_file_perms };
 	userdom_user_home_dir_filetrans($3, session_dbusd_home_t, dir, ".dbus")
-
-	allow $3 session_dbusd_tmp_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 session_dbusd_tmp_t:file { manage_file_perms relabel_file_perms };
 
 	domtrans_pattern($3, dbusd_exec_t, $1_dbusd_t)
 
@@ -112,11 +109,12 @@ interface(`dbus_system_bus_client',`
 	allow $1 { system_dbusd_t self }:dbus send_msg;
 	allow system_dbusd_t $1:dbus send_msg;
 
-	read_files_pattern($1, system_dbusd_var_lib_t, system_dbusd_var_lib_t)
 	files_search_var_lib($1)
+	read_files_pattern($1, system_dbusd_var_lib_t, system_dbusd_var_lib_t)
 
 	files_search_pids($1)
 	stream_connect_pattern($1, system_dbusd_var_run_t, system_dbusd_var_run_t, system_dbusd_t)
+
 	dbus_read_config($1)
 ')
 
@@ -250,8 +248,43 @@ interface(`dbus_spec_session_bus_client',`
 
 #######################################
 ## <summary>
+##	Send messages to DBUS session bus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dbus_send_session_bus',`
+	refpolicywarn(`$0($*) has been deprecated, use dbus_send_all_session_bus() instead.')
+	dbus_send_all_session_bus($1)
+')
+
+#######################################
+## <summary>
+##	Send messages to all DBUS
+##	session busses.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dbus_send_all_session_bus',`
+	gen_require(`
+		attribute session_bus_type;
+		class dbus send_msg;
+	')
+
+	allow $1 dbus_session_bus_type:dbus send_msg;
+')
+
+#######################################
+## <summary>
 ##	Send messages to specified
-##	DBUS session bus.
+##	DBUS session busses.
 ## </summary>
 ## <param name="role_prefix">
 ##	<summary>
@@ -265,7 +298,7 @@ interface(`dbus_spec_session_bus_client',`
 ##	</summary>
 ## </param>
 #
-interface(`dbus_send_session_bus',`
+interface(`dbus_send_spec_session_bus',`
 	gen_require(`
 		type $1_dbusd_t;
 		class dbus send_msg;
