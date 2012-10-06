@@ -40,7 +40,27 @@ interface(`tftp_manage_rw_content',`
 
 ########################################
 ## <summary>
-##	Manage tftp config files.
+##	Read tftpd configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tftp_read_config_files',`
+	gen_require(`
+		type tftpd_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 tftpd_conf_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	tftpd configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -50,17 +70,17 @@ interface(`tftp_manage_rw_content',`
 #
 interface(`tftp_manage_config_files',`
 	gen_require(`
-		type tftpd_etc_t;
+		type tftpd_conf_t;
 	')
 
 	files_search_etc($1)
- 	manage_files_pattern($1, tftpd_etc_t, tftpd_etc_t)
+	allow $1 tftpd_conf_t:file manage_file_perms;
 ')
 
 ########################################
 ## <summary>
 ##	Create objects in etc directories
-##	with tftp etc type.
+##	with tftp conf type.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -80,10 +100,10 @@ interface(`tftp_manage_config_files',`
 #
 interface(`tftp_etc_filetrans_config',`
 	gen_require(`
-		type tftp_etc_t;
+		type tftp_conf_t;
 	')
 
-	files_etc_filetrans($1, tftp_etc_t, $2, $3)
+	files_etc_filetrans($1, tftp_conf_t, $2, $3)
 ')
 
 ########################################
@@ -136,10 +156,14 @@ interface(`tftp_filetrans_tftpdir',`
 interface(`tftp_admin',`
 	gen_require(`
 		type tftpd_t, tftpdir_t, tftpdir_rw_t, tftpd_var_run_t;
+		type tftpd_conf_t;
 	')
 
 	allow $1 tftpd_t:process { ptrace signal_perms getattr };
 	ps_process_pattern($1, tftpd_t)
+
+	files_search_etc($1)
+	admin_pattern($1, tftpd_conf_t)
 
 	admin_pattern($1, tftpdir_rw_t)
 
