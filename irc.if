@@ -1,31 +1,47 @@
-## <summary>IRC client policy</summary>
+## <summary>IRC client policy.</summary>
 
 ########################################
 ## <summary>
-##	Role access for IRC
+##	Role access for IRC.
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role
+##	User domain for the role.
 ##	</summary>
 ## </param>
 #
 interface(`irc_role',`
 	gen_require(`
-		type irc_t, irc_exec_t;
+		attribute_role irc_roles;
+		type irc_t, irc_exec_t, irc_home_t;
+		type irc_tmp_t;
 	')
 
-	role $1 types irc_t;
+	########################################
+	#
+	# Declarations
+	#
 
-	# Transition from the user domain to the derived domain.
+	roleattribute $1 irc_roles;
+
+	########################################
+	#
+	# Policy
+	#
+
 	domtrans_pattern($2, irc_exec_t, irc_t)
 
-	# allow ps to show irc
 	ps_process_pattern($2, irc_t)
-	allow $2 irc_t:process signal;
+	allow $2 irc_t:process { ptrace signal_perms };
+
+	allow $2 { irc_home_t irc_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { irc_home_t irc_tmp_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 { irc_home_t irc_tmp_t }:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	userdom_user_home_dir_filetrans(irc_t, irc_home_t, dir, ".irssi")
+	userdom_user_home_dir_filetrans(irc_t, irc_home_t, file, ".ircmotd")
 ')
