@@ -1,4 +1,4 @@
-## <summary> ShoutCast compatible streaming media server</summary>
+## <summary>ShoutCast compatible streaming media server.</summary>
 
 ########################################
 ## <summary>
@@ -15,12 +15,13 @@ interface(`icecast_domtrans',`
 		type icecast_t, icecast_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, icecast_exec_t, icecast_t)
 ')
 
 ########################################
 ## <summary>
-##	Allow domain signal icecast
+##	Send generic signals to icecast.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -56,7 +57,7 @@ interface(`icecast_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	Read icecast PID files.
+##	Read icecast pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -75,7 +76,8 @@ interface(`icecast_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Manage icecast pid files.
+##	Create, read, write, and delete
+##	icecast pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -94,7 +96,7 @@ interface(`icecast_manage_pid_files',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read icecast's log files.
+##	Read icecast log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -114,8 +116,7 @@ interface(`icecast_read_log',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to append
-##	icecast log files.
+##	Append icecast log files.
 ## </summary>
 ## <param name="domain">
 ## 	<summary>
@@ -134,7 +135,8 @@ interface(`icecast_append_log',`
 
 ########################################
 ## <summary>
-##	Allow domain to manage icecast log files
+##	Create, read, write, and delete
+##	icecast log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -153,8 +155,8 @@ interface(`icecast_manage_log',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an icecast environment
+##	All of the rules required to
+##	administrate an icecast environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -170,19 +172,21 @@ interface(`icecast_manage_log',`
 #
 interface(`icecast_admin',`
 	gen_require(`
-		type icecast_t, icecast_initrc_exec_t;
+		type icecast_t, icecast_initrc_exec_t, icecast_log_t;
+		type icecast_var_run_t;
 	')
 
-	ps_process_pattern($1, icecast_t)
-
-	# Allow icecast_t to restart the apache service
 	icecast_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 icecast_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	icecast_manage_pid_files($1)
+	allow $1 icecast_t:process { ptrace signal_perms };
+	ps_process_pattern($1, icecast_t)
 
-	icecast_manage_log($1)
+	logging_search_logs($1)
+	admin_pattern($1, icecast_log_t)
 
+	files_search_pids($1)
+	admin_pattern($1, icecast_var_run_t)
 ')
