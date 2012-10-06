@@ -20,7 +20,7 @@ interface(`gpg_role',`
 		attribute_role gpg_roles, gpg_agent_roles, gpg_helper_roles, gpg_pinentry_roles;
 		type gpg_t, gpg_exec_t, gpg_agent_t;
 		type gpg_agent_exec_t, gpg_agent_tmp_t, gpg_helper_t;
-		type gpg_pinentry_t, gpg_pinentry_tmp_t;
+		type gpg_pinentry_t, gpg_pinentry_tmp_t, gpg_secret_t;
 	')
 
 	roleattribute $1 gpg_roles;
@@ -37,9 +37,12 @@ interface(`gpg_role',`
 	allow gpg_helper_t $2:fd use;
 	allow { gpg_t gpg_agent_t gpg_helper_t gpg_pinentry_t } $2:fifo_file { read write };
 
-	allow $2 gpg_agent_tmp_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 gpg_agent_tmp_t:file { manage_file_perms relabel_file_perms };
-	allow $2 { gpg_agent_tmp_t gpg_pinentry_tmp_t }:sock_file { manage_sock_file_perms relabel_sock_file_perms };
+	allow $2 { gpg_agent_tmp_t gpg_secret_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { gpg_agent_tmp_t gpg_secret_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 gpg_secret_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	allow $2 { gpg_agent_tmp_t gpg_pinentry_tmp_t gpg_secret_t }:sock_file { manage_sock_file_perms relabel_sock_file_perms };
+	filetrans_pattern($2, gpg_secret_t, gpg_agent_tmp_t, sock_file, "log-socket")
+	userdom_user_home_dir_filetrans($2, gpg_secret_t, dir, ".gnupg")
 
 	optional_policy(`
 		gpg_pinentry_dbus_chat($2)
