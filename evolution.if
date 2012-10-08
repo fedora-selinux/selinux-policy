@@ -19,11 +19,12 @@ interface(`evolution_role',`
 	gen_require(`
 		attribute_role evolution_roles;
 		type evolution_t, evolution_exec_t, evolution_home_t;
-		type evolution_alarm_t, evolution_alarm_exec_t;
-		type evolution_exchange_t, evolution_exchange_exec_t;
-		type evolution_exchange_orbit_tmp_t, evolution_orbit_tmp_t;
-		type evolution_server_t, evolution_server_exec_t;
-		type evolution_webcal_t, evolution_webcal_exec_t;
+		type evolution_alarm_t, evolution_alarm_exec_t, evolution_alarm_orbit_tmp_t;
+		type evolution_exchange_t, evolution_exchange_exec_t, evolution_exchange_tmp_t;
+		type evolution_exchange_orbit_tmp_t, evolution_orbit_tmp_t, evolution_server_orbit_tmp_t;
+		type evolution_server_t, evolution_server_exec_t, evolution_webcal_t;
+		type evolution_webcal_exec_t, evolution_alarm_tmpfs_t, evolution_exchange_tmpfs_t;
+		type evolution_tmpfs_t, evolution_webcal_tmpfs_t;
 	')
 
 	roleattribute $1 evolution_roles;
@@ -34,18 +35,29 @@ interface(`evolution_role',`
 	domtrans_pattern($2, evolution_server_exec_t, evolution_server_t)
 	domtrans_pattern($2, evolution_webcal_exec_t, evolution_webcal_t)
 
+	allow $2 { evolution_t evolution_alarm_t evolution_exchange_t evolution_server_t evolution_webcal_t }:process { noatsecure ptrace signal_perms };
 	ps_process_pattern($2, { evolution_t evolution_alarm_t evolution_exchange_t })
 	ps_process_pattern($2, { evolution_server_t evolution_webcal_t })
 
-	allow evolution_t $2:dir search;
-	allow evolution_t $2:file read;
-	allow evolution_t $2:lnk_file read;
-
-	allow $2 evolution_t:process { noatsecure ptrace signal_perms };
+	allow evolution_t $2:dir search_dir_perms;
+	allow evolution_t $2:file read_file_perms;
+	allow evolution_t $2:lnk_file read_lnk_file_perms;
 
 	allow $2 evolution_home_t:dir { relabel_dir_perms manage_dir_perms };
 	allow $2 evolution_home_t:file { relabel_file_perms manage_file_perms };
 	allow $2 evolution_home_t:lnk_file { relabel_lnk_file_perms manage_lnk_file_perms };
+
+	userdom_user_home_dir_filetrans($2, evolution_home_t, dir, ".camel_certs")
+	userdom_user_home_dir_filetrans($2, evolution_home_t, dir, ".evolution")
+
+	allow $2 evolution_exchange_tmp_t:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { evolution_alarm_orbit_tmp_t evolution_exchange_orbit_tmp_t evolution_orbit_tmp_t evolution_server_orbit_tmp_t }:sock_file { manage_sock_file_perms relabel_sock_file_perms };
+
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:sock_file { manage_sock_file_perms relabel_sock_file_perms };
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
 
 	allow { evolution_t evolution_exchange_t } $2:unix_stream_socket connectto;
 
