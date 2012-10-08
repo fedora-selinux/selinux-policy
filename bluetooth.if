@@ -22,24 +22,30 @@ interface(`bluetooth_role',`
 		type bluetooth_helper_tmp_t, bluetooth_helper_tmpfs_t, bluetooth_var_run_t;
 	')
 
+	########################################
+	#
+	# Declarations
+	#
+
 	roleattribute $1 bluetooth_helper_roles;
 
-	allow $2 bluetooth_t:socket rw_socket_perms;
+	########################################
+	#
+	# Policy
+	#
 
 	domtrans_pattern($2, bluetooth_helper_exec_t, bluetooth_helper_t)
 
 	ps_process_pattern($2, bluetooth_helper_t)
 	allow $2 bluetooth_helper_t:process { ptrace signal_perms };
 
-	manage_dirs_pattern($2, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
-	manage_files_pattern($2, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
-	manage_sock_files_pattern($2, bluetooth_helper_tmp_t, bluetooth_helper_tmp_t)
+	allow $2 bluetooth_t:socket rw_socket_perms;
 
-	manage_dirs_pattern($2, bluetooth_helper_tmpfs_t, bluetooth_helper_tmpfs_t)
-	manage_files_pattern($2, bluetooth_helper_tmpfs_t, bluetooth_helper_tmpfs_t)
+	allow $2 { bluetooth_helper_tmp_t bluetooth_helper_tmpfs_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { bluetooth_helper_tmp_t bluetooth_helper_tmpfs_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 bluetooth_helper_tmp_t:sock_file { manage_sock_file_perms relabel_sock_file_perms };
 
 	stream_connect_pattern($2, bluetooth_var_run_t, bluetooth_var_run_t, bluetooth_t)
-
 	files_search_pids($2)
 ')
 
