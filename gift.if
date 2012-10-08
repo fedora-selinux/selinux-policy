@@ -19,7 +19,7 @@ interface(`gift_role',`
 	gen_require(`
 		attribute_role gift_roles;
 		type gift_t, gift_exec_t, gift_home_t;
-		type giftd_t, giftd_exec_t;
+		type giftd_t, giftd_exec_t, gift_tmpfs_t;
 	')
 
 	roleattribute $1 gift_roles;
@@ -27,13 +27,12 @@ interface(`gift_role',`
 	domtrans_pattern($2, gift_exec_t, gift_t)
 	domtrans_pattern($2, giftd_exec_t, giftd_t)
 
-	manage_dirs_pattern($2, gift_home_t, gift_home_t)
-	manage_files_pattern($2, gift_home_t, gift_home_t)
-	manage_lnk_files_pattern($2, gift_home_t, gift_home_t)
-
-	relabel_dirs_pattern($2, gift_home_t, gift_home_t)
-	relabel_files_pattern($2, gift_home_t, gift_home_t)
-	relabel_lnk_files_pattern($2, gift_home_t, gift_home_t)
+	allow $2 gift_home_t:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { gift_home_t gift_tmpfs_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 { gift_home_t gift_tmpfs_t }:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	allow $2 gift_tmpfs_t:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
+	allow $2 gift_tmpfs_t:sock_file { manage_sock_file_perms relabel_sock_file_perms };
+	userdom_user_home_dir_filetrans($2, gift_home_t, dir, ".giFT")
 
 	ps_process_pattern($2, { gift_t giftd_t })
 	allow $2 { gift_t giftd_t }:process { ptrace signal_perms };
