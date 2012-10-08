@@ -1,4 +1,4 @@
-## <summary>Kernel crash dumping mechanism</summary>
+## <summary>Kernel crash dumping mechanism.</summary>
 
 ######################################
 ## <summary>
@@ -39,7 +39,7 @@ interface(`kdump_initrc_domtrans',`
 
 #####################################
 ## <summary>
-##	Read kdump configuration file.
+##	Read kdump configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -58,7 +58,8 @@ interface(`kdump_read_config',`
 
 ####################################
 ## <summary>
-##	Manage kdump configuration file.
+##	Create, read, write, and delete
+##	kdmup configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -77,8 +78,8 @@ interface(`kdump_manage_config',`
 
 ######################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an kdump environment
+##	All of the rules required to
+##	administrate an kdump environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -87,19 +88,19 @@ interface(`kdump_manage_config',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the kdump domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`kdump_admin',`
 	gen_require(`
-		type kdump_t, kdump_etc_t;
-		type kdump_initrc_exec_t;
+		type kdump_t, kdump_etc_t, kdumpctl_tmp_t;
+		type kdump_initrc_exec_t, kdumpctl_t;
 	')
 
-	allow $1 kdump_t:process { ptrace signal_perms };
-	ps_process_pattern($1, kdump_t)
+	allow $1 { kdump_t kdumpctl_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { kdump_t kdumpctl_t })
 
 	init_labeled_script_domtrans($1, kdump_initrc_exec_t)
 	domain_system_change_exemption($1)
@@ -108,4 +109,7 @@ interface(`kdump_admin',`
 
 	files_search_etc($1)
 	admin_pattern($1, kdump_etc_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, kdumpctl_tmp_t)
 ')
