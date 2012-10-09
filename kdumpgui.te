@@ -1,4 +1,4 @@
-policy_module(kdumpgui, 1.1.0)
+policy_module(kdumpgui, 1.1.1)
 
 ########################################
 #
@@ -7,16 +7,23 @@ policy_module(kdumpgui, 1.1.0)
 
 type kdumpgui_t;
 type kdumpgui_exec_t;
-dbus_system_domain(kdumpgui_t, kdumpgui_exec_t)
+init_system_domain(kdumpgui_t, kdumpgui_exec_t)
+
+type kdumpgui_tmp_t;
+files_tmp_file(kdumpgui_tmp_t)
 
 ######################################
 #
-# system-config-kdump local policy
+# Local policy
 #
 
 allow kdumpgui_t self:capability { net_admin sys_admin sys_rawio };
 allow kdumpgui_t self:fifo_file rw_fifo_file_perms;
 allow kdumpgui_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+manage_dirs_pattern(kdumpgui_t, kdumpgui_tmp_t, kdumpgui_tmp_t)
+manage_files_pattern(kdumpgui_t, kdumpgui_tmp_t, kdumpgui_tmp_t)
+files_tmp_filetrans(kdumpgui_t, kdumpgui_tmp_t, { dir file })
 
 kernel_read_system_state(kdumpgui_t)
 kernel_read_network_state(kdumpgui_t)
@@ -29,12 +36,12 @@ dev_read_sysfs(kdumpgui_t)
 
 files_manage_boot_files(kdumpgui_t)
 files_manage_boot_symlinks(kdumpgui_t)
-# Needed for running chkconfig
 files_manage_etc_symlinks(kdumpgui_t)
-# for blkid.tab
 files_manage_etc_runtime_files(kdumpgui_t)
 files_etc_filetrans_etc_runtime(kdumpgui_t, file)
 files_read_usr_files(kdumpgui_t)
+
+fs_read_dos_files(kdumpgui_t)
 
 storage_raw_read_fixed_disk(kdumpgui_t)
 storage_raw_write_fixed_disk(kdumpgui_t)
@@ -45,10 +52,24 @@ logging_send_syslog_msg(kdumpgui_t)
 
 miscfiles_read_localization(kdumpgui_t)
 
+mount_exec(kdumpgui_t)
+
 init_dontaudit_read_all_script_files(kdumpgui_t)
+
+# optional_policy(`
+#	bootloader_exec(kdumpgui_t)
+#')
 
 optional_policy(`
 	consoletype_exec(kdumpgui_t)
+')
+
+optional_policy(`
+	dbus_system_domain(kdumpgui_t, kdumpgui_exec_t)
+
+	optional_policy(`
+		policykit_dbus_chat(kdumpgui_t)
+	')
 ')
 
 optional_policy(`
@@ -58,8 +79,4 @@ optional_policy(`
 optional_policy(`
 	kdump_manage_config(kdumpgui_t)
 	kdump_initrc_domtrans(kdumpgui_t)
-')
-
-optional_policy(`
-	policykit_dbus_chat(kdumpgui_t)
 ')
