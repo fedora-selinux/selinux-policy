@@ -1,4 +1,4 @@
-## <summary>Kernel Samepage Merging (KSM) Tuning Daemon</summary>
+## <summary>Kernel Samepage Merging Tuning Daemon.</summary>
 
 ########################################
 ## <summary>
@@ -15,12 +15,14 @@ interface(`ksmtuned_domtrans',`
 		type ksmtuned_t, ksmtuned_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, ksmtuned_exec_t, ksmtuned_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute ksmtuned server in the ksmtuned domain.
+##	Execute ksmtuned server in
+##	the ksmtuned domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -38,8 +40,8 @@ interface(`ksmtuned_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an ksmtuned environment
+##	All of the rules required to
+##	administrate an ksmtuned environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -56,8 +58,13 @@ interface(`ksmtuned_initrc_domtrans',`
 interface(`ksmtuned_admin',`
 	gen_require(`
 		type ksmtuned_t, ksmtuned_var_run_t;
-		type ksmtuned_initrc_exec_t;
+		type ksmtuned_initrc_exec_t, ksmtuned_log_t;
 	')
+
+	ksmtuned_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 ksmtuned_initrc_exec_t system_r;
+	allow $2 system_r;
 
 	allow $1 ksmtuned_t:process { ptrace signal_perms };
 	ps_process_pattern(ksmtumed_t)
@@ -65,10 +72,6 @@ interface(`ksmtuned_admin',`
 	files_list_pids($1)
 	admin_pattern($1, ksmtuned_var_run_t)
 
-	# Allow ksmtuned_t to restart the apache service
-	ksmtuned_initrc_domtrans($1)
-	domain_system_change_exemption($1)
-	role_transition $2 ksmtuned_initrc_exec_t system_r;
-	allow $2 system_r;
-
+	logging_search_logs($1)
+	admin_pattern($1, ksmtuned_log_t)
 ')
