@@ -1,33 +1,44 @@
-## <summary>Line printer daemon</summary>
+## <summary>Line printer daemon.</summary>
 
 ########################################
 ## <summary>
-##	Role access for lpd
+##	Role access for lpd.
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role
+##	User domain for the role.
 ##	</summary>
 ## </param>
 #
 interface(`lpd_role',`
 	gen_require(`
-		type lpr_t, lpr_exec_t, print_spool_t;
+		attribute_role lpr_roles;
+		type lpr_t, lpr_exec_t;
 	')
 
-	role $1 types lpr_t;
+	########################################
+	#
+	# Declarations
+	#
 
-	# Transition from the user domain to the derived domain.
+	roleattribute $1 lpr_roles;
+
+	########################################
+	#
+	# Policy
+	#
+
 	domtrans_pattern($2, lpr_exec_t, lpr_t)
-	dontaudit lpr_t $2:unix_stream_socket { read write };
 
+	allow $2 lpr_t:process { ptrace signal_perms };
 	ps_process_pattern($2, lpr_t)
-	allow $2 lpr_t:process signull;
+
+	dontaudit lpr_t $2:unix_stream_socket { read write };
 
 	optional_policy(`
 		cups_read_config($2)
@@ -49,13 +60,15 @@ interface(`lpd_domtrans_checkpc',`
 		type checkpc_t, checkpc_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, checkpc_exec_t, checkpc_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute amrecover in the lpd domain, and
-##	allow the specified role the lpd domain.
+##	Execute amrecover in the lpd
+##	domain, and allow the specified
+##	role the lpd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -71,16 +84,16 @@ interface(`lpd_domtrans_checkpc',`
 #
 interface(`lpd_run_checkpc',`
 	gen_require(`
-		type checkpc_t;
+		attribute_role checkpc_roles;
 	')
 
 	lpd_domtrans_checkpc($1)
-	role $2 types checkpc_t;
+	roleattribute $2 checkpc_roles;
 ')
 
 ########################################
 ## <summary>
-##	List the contents of the printer spool directories.
+##	List printer spool directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -99,7 +112,7 @@ interface(`lpd_list_spool',`
 
 ########################################
 ## <summary>
-##	Read the printer spool files.
+##	Read printer spool files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -118,7 +131,8 @@ interface(`lpd_read_spool',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete printer spool files.
+##	Create, read, write, and delete
+##	printer spool content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -139,7 +153,7 @@ interface(`lpd_manage_spool',`
 
 ########################################
 ## <summary>
-##	Relabel from and to the spool files.
+##	Relabel spool files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -153,12 +167,12 @@ interface(`lpd_relabel_spool',`
 	')
 
 	files_search_spool($1)
-	allow $1 print_spool_t:file { relabelto relabelfrom };
+	allow $1 print_spool_t:file relabel_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	List the contents of the printer spool directories.
+##	Read printer configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -191,13 +205,13 @@ template(`lpd_domtrans_lpr',`
 		type lpr_t, lpr_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, lpr_exec_t, lpr_t)
 ')
 
 ########################################
 ## <summary>
-##	Allow the specified domain to execute lpr
-##	in the caller domain.
+##	Execute lpr in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -210,5 +224,6 @@ interface(`lpd_exec_lpr',`
 		type lpr_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	can_exec($1, lpr_exec_t)
 ')
