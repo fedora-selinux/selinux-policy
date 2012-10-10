@@ -1,4 +1,4 @@
-policy_module(logwatch, 1.11.0)
+policy_module(logwatch, 1.11.1)
 
 #################################
 #
@@ -7,8 +7,7 @@ policy_module(logwatch, 1.11.0)
 
 type logwatch_t;
 type logwatch_exec_t;
-application_domain(logwatch_t, logwatch_exec_t)
-role system_r types logwatch_t;
+init_system_domain(logwatch_t, logwatch_exec_t)
 
 type logwatch_cache_t;
 files_type(logwatch_cache_t)
@@ -19,6 +18,12 @@ files_lock_file(logwatch_lock_t)
 type logwatch_tmp_t;
 files_tmp_file(logwatch_tmp_t)
 
+type logwatch_var_run_t;
+files_pid_file(logwatch_var_run_t)
+
+mta_base_mail_template(logwatch)
+role system_r types logwatch_mail_t;
+
 ########################################
 #
 # Local policy
@@ -26,8 +31,8 @@ files_tmp_file(logwatch_tmp_t)
 
 allow logwatch_t self:capability { dac_override dac_read_search setgid };
 allow logwatch_t self:process signal;
-allow logwatch_t self:fifo_file rw_file_perms;
-allow logwatch_t self:unix_stream_socket create_stream_socket_perms;
+allow logwatch_t self:fifo_file rw_fifo_file_perms;
+allow logwatch_t self:unix_stream_socket { accept listen };
 
 manage_dirs_pattern(logwatch_t, logwatch_cache_t, logwatch_cache_t)
 manage_files_pattern(logwatch_t, logwatch_cache_t, logwatch_cache_t)
@@ -38,6 +43,9 @@ files_lock_filetrans(logwatch_t, logwatch_lock_t, file)
 manage_dirs_pattern(logwatch_t, logwatch_tmp_t, logwatch_tmp_t)
 manage_files_pattern(logwatch_t, logwatch_tmp_t, logwatch_tmp_t)
 files_tmp_filetrans(logwatch_t, logwatch_tmp_t, { file dir })
+
+allow logwatch_t logwatch_var_run_t:file manage_file_perms;
+files_pid_filetrans(logwatch_t, logwatch_var_run_t, file)
 
 kernel_read_fs_sysctls(logwatch_t)
 kernel_read_kernel_sysctls(logwatch_t)
@@ -51,24 +59,23 @@ corecmd_exec_shell(logwatch_t)
 dev_read_urand(logwatch_t)
 dev_read_sysfs(logwatch_t)
 
-# Read /proc/PID directories for all domains.
 domain_read_all_domains_state(logwatch_t)
 
+files_getattr_all_files(logwatch_t)
+files_getattr_all_file_type_fs(logwatch_t)
 files_list_var(logwatch_t)
+files_search_all(logwatch_t)
 files_read_var_symlinks(logwatch_t)
-files_read_etc_files(logwatch_t)
 files_read_etc_runtime_files(logwatch_t)
 files_read_usr_files(logwatch_t)
-files_search_spool(logwatch_t)
-files_search_mnt(logwatch_t)
-files_dontaudit_search_home(logwatch_t)
-files_dontaudit_search_boot(logwatch_t)
-# Execs df and if file system mounted with a context avc raised
-files_dontaudit_search_all_dirs(logwatch_t)
 
 fs_getattr_all_fs(logwatch_t)
 fs_dontaudit_list_auto_mountpoints(logwatch_t)
 fs_list_inotifyfs(logwatch_t)
+
+storage_dontaudit_getattr_fixed_disk_dev(logwatch_t)
+
+mls_file_read_to_clearance(logwatch_t)
 
 term_dontaudit_getattr_pty_dirs(logwatch_t)
 term_dontaudit_list_ptys(logwatch_t)
@@ -88,17 +95,12 @@ miscfiles_read_localization(logwatch_t)
 
 selinux_dontaudit_getattr_dir(logwatch_t)
 
-sysnet_dns_name_resolve(logwatch_t)
 sysnet_exec_ifconfig(logwatch_t)
 
 userdom_dontaudit_search_user_home_dirs(logwatch_t)
 
-mta_send_mail(logwatch_t)
-
-ifdef(`distro_redhat',`
-	files_search_all(logwatch_t)
-	files_getattr_all_file_type_fs(logwatch_t)
-')
+mta_sendmail_domtrans(logwatch_t, logwatch_mail_t)
+mta_getattr_spool(logwatch_t)
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_list_nfs(logwatch_t)
@@ -130,10 +132,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	mta_getattr_spool(logwatch_t)
-')
-
-optional_policy(`
 	ntp_domtrans(logwatch_t)
 ')
 
@@ -144,4 +142,23 @@ optional_policy(`
 optional_policy(`
 	samba_read_log(logwatch_t)
 	samba_read_share_files(logwatch_t)
+')
+
+########################################
+#
+# Mail local policy
+#
+
+allow logwatch_mail_t self:capability { dac_read_search dac_override };
+
+manage_files_pattern(logwatch_mail_t, logwatch_tmp_t, logwatch_tmp_t)
+
+dev_read_rand(logwatch_mail_t)
+dev_read_urand(logwatch_mail_t)
+dev_read_sysfs(logwatch_mail_t)
+
+logging_read_all_logs(logwatch_mail_t)
+
+optional_policy(`
+	cron_use_system_job_fds(logwatch_mail_t)
 ')
