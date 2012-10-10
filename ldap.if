@@ -1,9 +1,8 @@
-## <summary>OpenLDAP directory server</summary>
+## <summary>OpenLDAP directory server.</summary>
 
 ########################################
 ## <summary>
-##	Read the contents of the OpenLDAP
-##	database directories.
+##	List ldap database directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -16,12 +15,13 @@ interface(`ldap_list_db',`
 		type slapd_db_t;
 	')
 
+	files_search_etc($1)
 	allow $1 slapd_db_t:dir list_dir_perms;
 ')
 
 ########################################
 ## <summary>
-##	Read the OpenLDAP configuration files.
+##	Read ldap configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -55,7 +55,8 @@ interface(`ldap_use',`
 
 ########################################
 ## <summary>
-##	Connect to slapd over an unix stream socket.
+##	Connect to slapd over an unix
+##	stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -95,8 +96,8 @@ interface(`ldap_tcp_connect',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an ldap environment
+##	All of the rules required to
+##	administrate an ldap environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -105,7 +106,7 @@ interface(`ldap_tcp_connect',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the ldap domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -114,7 +115,8 @@ interface(`ldap_admin',`
 	gen_require(`
 		type slapd_t, slapd_tmp_t, slapd_replog_t;
 		type slapd_lock_t, slapd_etc_t, slapd_var_run_t;
-		type slapd_initrc_exec_t;
+		type slapd_initrc_exec_t, slapd_log_t, slapd_cert_t;
+		type slapd_db_t;
 	')
 
 	allow $1 slapd_t:process { ptrace signal_perms };
@@ -126,10 +128,15 @@ interface(`ldap_admin',`
 	allow $2 system_r;
 
 	files_list_etc($1)
-	admin_pattern($1, slapd_etc_t)
+	admin_pattern($1, { slapd_etc_t slapd_db_t slapd_cert_t })
 
+	files_list_locks($1)
 	admin_pattern($1, slapd_lock_t)
 
+	logging_list_logs($1)
+	admin_pattern($1, slapd_log_t)
+
+	files_search_var_lib($1)
 	admin_pattern($1, slapd_replog_t)
 
 	files_list_tmp($1)
