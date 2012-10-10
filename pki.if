@@ -100,6 +100,8 @@ template(`pki_apache_template',`
 	kernel_read_kernel_sysctls($1_t)
 	kernel_read_system_state($1_t)
 
+	corenet_all_recvfrom_unlabeled($1_t)
+
 	# need to resolve addresses?
 	auth_use_nsswitch($1_t)
 
@@ -224,70 +226,3 @@ interface(`pki_manage_apache_config_files',`
     manage_files_pattern($1, pki_apache_config, pki_apache_config)
 ')
 
-########################################
-## <summary>
-##	Execute pki_apache server in the pki_apache domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	The type of the process performing this action.
-##	</summary>
-## </param>
-#
-interface(`pki_apache_script_domtrans',`
-	gen_require(`
-		attribute $1_script;
-	')
-
-	init_script_domtrans_spec($1, $1_script)
-')
-
-
-########################################
-## <summary>
-##	All of the rules required to administrate 
-##	an pki_apache environment
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="role">
-##	<summary>
-##	The role to be allowed to manage the syslog domain.
-##	</summary>
-## </param>
-## <param name="terminal">
-##	<summary>
-##	The type of the user terminal.
-##	</summary>
-## </param>
-## <rolecap/>
-#
-interface(`pki_apache_admin',`
-	gen_require(`
-		attribute $1_process;
-		attribute $1_config;
-		attribute $1_executable;
-		attribute $1_var_lib;
-		attribute $1_var_log;
-		attribute $1_var_run;
-		attribute $1_script;
-	')
-
-	allow $1 $1_process:process { ptrace signal_perms };
-	ps_process_pattern($1, $1_t)
-
-	# Allow pki_apache_t to restart the service
-	$1_script_domtrans($1)
-	domain_system_change_exemption($1)
-	role_transition $2 $1_script system_r;
-	allow $2 system_r;
-
-	manage_all_pattern($1, $1_config)
-	manage_all_pattern($1, $1_var_run)
-	manage_all_pattern($1, $1_var_lib)
-	manage_all_pattern($1, $1_var_log)
-	manage_all_pattern($1, $1_config)
-')
