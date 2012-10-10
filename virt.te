@@ -161,6 +161,17 @@ type virt_bridgehelper_exec_t;
 domain_entry_file(virt_bridgehelper_t, virt_bridgehelper_exec_t)
 role system_r types virt_bridgehelper_t;
 
+# policy for qemu_ga
+type virt_qemu_ga_t;
+type virt_qemu_ga_exec_t;
+init_daemon_domain(virt_qemu_ga_t, virt_qemu_ga_exec_t)
+
+type virt_qemu_ga_var_run_t;
+files_pid_file(virt_qemu_ga_var_run_t)
+
+type virt_qemu_ga_log_t;
+logging_log_file(virt_qemu_ga_log_t)
+
 ########################################
 #
 # Declarations
@@ -1153,3 +1164,29 @@ kernel_read_network_state(virt_bridgehelper_t)
 corenet_rw_tun_tap_dev(virt_bridgehelper_t)
 
 userdom_use_inherited_user_ptys(virt_bridgehelper_t)
+
+#######################################
+#
+# virt_qemu_ga local policy
+#
+
+allow virt_qemu_ga_t self:fifo_file rw_fifo_file_perms;
+allow virt_qemu_ga_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_var_run_t, virt_qemu_ga_var_run_t)
+manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_var_run_t, virt_qemu_ga_var_run_t)
+filetrans_pattern(virt_qemu_ga_t, virt_qemu_ga_var_run_t, virt_qemu_ga_var_run_t,{ dir file } )
+
+manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_log_t, virt_qemu_ga_log_t)
+logging_log_filetrans(virt_qemu_ga_t, virt_qemu_ga_log_t, file )
+
+files_read_etc_files(virt_qemu_ga_t)
+
+term_use_virtio_console(virt_qemu_ga_t)
+
+logging_send_syslog_msg(virt_qemu_ga_t)
+
+miscfiles_read_localization(virt_qemu_ga_t)
+
+sysnet_dns_name_resolve(virt_qemu_ga_t)
+
