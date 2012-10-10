@@ -1,0 +1,293 @@
+
+## <summary>policy for pki</summary>
+########################################
+## <summary>
+##      Allow read and write pki cert files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`pki_rw_tomcat_cert',`
+        gen_require(`
+                type pki_tomcat_cert_t;
+        ')
+
+        rw_files_pattern($1, pki_tomcat_cert_t, pki_tomcat_cert_t)
+')
+
+########################################
+## <summary>
+##	Create a set of derived types for apache
+##	web content.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix to be used for deriving type names.
+##	</summary>
+## </param>
+#
+template(`pki_apache_template',`
+	gen_require(`
+		attribute pki_apache_domain;
+		attribute pki_apache_config, pki_apache_var_lib, pki_apache_var_run;
+		attribute pki_apache_executable, pki_apache_script, pki_apache_var_log;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	type $1_t, pki_apache_domain;
+	type $1_exec_t, pki_apache_executable;
+	domain_type($1_t)
+	init_daemon_domain($1_t, $1_exec_t)
+
+	type $1_script_exec_t, pki_apache_script;
+	init_script_file($1_script_exec_t)
+
+	type $1_etc_rw_t, pki_apache_config;
+	files_type($1_etc_rw_t)
+
+	type $1_var_run_t, pki_apache_var_run;
+	files_pid_file($1_var_run_t)
+
+	type $1_var_lib_t, pki_apache_var_lib;
+	files_type($1_var_lib_t)
+
+	type $1_log_t, pki_apache_var_log;
+	logging_log_file($1_log_t)
+
+	type $1_lock_t;
+	files_lock_file($1_lock_t)
+
+	########################################
+	#
+	# $1 local policy
+	#
+
+	files_read_etc_files($1_t)
+	allow $1_t $1_etc_rw_t:lnk_file read;
+
+	manage_dirs_pattern($1_t, $1_etc_rw_t, $1_etc_rw_t)
+	manage_files_pattern($1_t, $1_etc_rw_t, $1_etc_rw_t)
+	files_etc_filetrans($1_t,$1_etc_rw_t, { file dir })
+
+	manage_dirs_pattern($1_t, $1_var_run_t,  $1_var_run_t)
+	manage_files_pattern($1_t, $1_var_run_t,  $1_var_run_t)
+	files_pid_filetrans($1_t,$1_var_run_t, { file dir })
+
+	manage_dirs_pattern($1_t, $1_var_lib_t,  $1_var_lib_t)
+	manage_files_pattern($1_t, $1_var_lib_t,  $1_var_lib_t)
+	read_lnk_files_pattern($1_t, $1_var_lib_t, $1_var_lib_t)
+	files_var_lib_filetrans($1_t, $1_var_lib_t, { file dir } )
+
+	manage_dirs_pattern($1_t, $1_log_t,  $1_log_t)
+	manage_files_pattern($1_t, $1_log_t,  $1_log_t)
+	logging_log_filetrans($1_t, $1_log_t, { file dir } )
+
+	manage_dirs_pattern($1_t, $1_lock_t, $1_lock_t)
+	manage_files_pattern($1_t, $1_lock_t, $1_lock_t)
+	manage_lnk_files_pattern($1_t, $1_lock_t, $1_lock_t)
+	files_lock_filetrans($1_t, $1_lock_t, { dir file lnk_file })
+
+	#talk to lunasa hsm
+	logging_send_syslog_msg($1_t)
+
+	kernel_read_kernel_sysctls($1_t)
+	kernel_read_system_state($1_t)
+
+	# need to resolve addresses?
+	auth_use_nsswitch($1_t)
+
+		#pki_apache_domain_signal(httpd_t)
+		#pki_apache_domain_signal(httpd_t)
+		#pki_manage_apache_run(httpd_t)
+		#pki_manage_apache_config_files(httpd_t)
+		#pki_manage_apache_log_files(httpd_t)
+		#pki_manage_apache_lib(httpd_t)
+')
+
+#######################################
+## <summary>
+##  Send a null signal to pki apache domains.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_apache_domain_signal',`
+    gen_require(`
+        type pki_apache_domain;
+    ')
+
+    allow $1 pki_apache_domain:process signal;
+')
+
+#######################################
+## <summary>
+##  Send a null signal to pki apache domains.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_apache_domain_signull',`
+    gen_require(`
+        type pki_apache_domain;
+    ')
+
+    allow $1 pki_apache_domain:process signull;
+')
+
+###################################
+## <summary>
+##  Allow domain to read pki apache subsystem pid files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_apache_run',`
+    gen_require(`
+        attribute pki_apache_var_run;
+    ')
+
+    files_search_var_lib($1)
+    read_files_pattern($1, pki_apache_var_run, pki_apache_var_run)
+')
+
+####################################
+## <summary>
+##  Allow domain to manage pki apache subsystem lib files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_apache_lib',`
+    gen_require(`
+        attribute pki_apache_var_lib;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, pki_apache_var_lib, pki_apache_var_lib)
+	manage_lnk_files_pattern($1, pki_apache_var_lib, pki_apache_var_lib)
+')
+
+###################################
+## <summary>
+##  Allow domain to manage pki apache subsystem log files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_apache_log_files',`
+    gen_require(`
+        attribute pki_apache_var_log;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, pki_apache_var_log, pki_apache_var_log)
+')
+
+##################################
+## <summary>
+##  Allow domain to manage pki apache subsystem config files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_apache_config_files',`
+    gen_require(`
+        attribute pki_apache_config;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, pki_apache_config, pki_apache_config)
+')
+
+########################################
+## <summary>
+##	Execute pki_apache server in the pki_apache domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`pki_apache_script_domtrans',`
+	gen_require(`
+		attribute $1_script;
+	')
+
+	init_script_domtrans_spec($1, $1_script)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an pki_apache environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the syslog domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the user terminal.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`pki_apache_admin',`
+	gen_require(`
+		attribute $1_process;
+		attribute $1_config;
+		attribute $1_executable;
+		attribute $1_var_lib;
+		attribute $1_var_log;
+		attribute $1_var_run;
+		attribute $1_script;
+	')
+
+	allow $1 $1_process:process { ptrace signal_perms };
+	ps_process_pattern($1, $1_t)
+
+	# Allow pki_apache_t to restart the service
+	$1_script_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 $1_script system_r;
+	allow $2 system_r;
+
+	manage_all_pattern($1, $1_config)
+	manage_all_pattern($1, $1_var_run)
+	manage_all_pattern($1, $1_var_lib)
+	manage_all_pattern($1, $1_var_log)
+	manage_all_pattern($1, $1_config)
+')
