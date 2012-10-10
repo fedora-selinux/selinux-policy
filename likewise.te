@@ -1,4 +1,4 @@
-policy_module(likewise, 1.2.0)
+policy_module(likewise, 1.2.1)
 
 #################################
 #
@@ -6,6 +6,15 @@ policy_module(likewise, 1.2.0)
 #
 
 attribute likewise_domains;
+
+likewise_domain_template(dcerpcd)
+likewise_domain_template(eventlogd)
+likewise_domain_template(lsassd)
+likewise_domain_template(lwiod)
+likewise_domain_template(lwregd)
+likewise_domain_template(lwsmd)
+likewise_domain_template(netlogond)
+likewise_domain_template(srvsvcd)
 
 type likewise_etc_t;
 files_config_file(likewise_etc_t)
@@ -22,51 +31,58 @@ files_type(likewise_pstore_lock_t)
 type likewise_krb5_ad_t;
 files_type(likewise_krb5_ad_t)
 
-likewise_domain_template(dcerpcd)
-
-likewise_domain_template(eventlogd)
-
-likewise_domain_template(lsassd)
-
 type lsassd_tmp_t;
 files_tmp_file(lsassd_tmp_t)
 
-likewise_domain_template(lwiod)
+#################################
+#
+# Common local policy
+#
 
-likewise_domain_template(lwregd)
+allow likewise_domains likewise_var_lib_t:dir setattr_dir_perms;
 
-likewise_domain_template(lwsmd)
+kernel_read_system_state(likewise_domains)
 
-likewise_domain_template(netlogond)
+dev_read_rand(likewise_domains)
+dev_read_urand(likewise_domains)
 
-likewise_domain_template(srvsvcd)
+domain_use_interactive_fds(likewise_domains)
+
+files_read_etc_files(likewise_domains)
+files_search_var_lib(likewise_domains)
+
+logging_send_syslog_msg(likewise_domains)
+
+miscfiles_read_localization(likewise_domains)
 
 #################################
 #
-# Likewise dcerpcd personal policy
+# dcerpcd local policy
 #
 
 stream_connect_pattern(dcerpcd_t, likewise_var_lib_t, lwregd_var_socket_t, lwregd_t)
 
 corenet_all_recvfrom_netlabel(dcerpcd_t)
 corenet_all_recvfrom_unlabeled(dcerpcd_t)
-corenet_sendrecv_generic_client_packets(dcerpcd_t)
-corenet_sendrecv_generic_server_packets(dcerpcd_t)
 corenet_tcp_sendrecv_generic_if(dcerpcd_t)
 corenet_tcp_sendrecv_generic_node(dcerpcd_t)
 corenet_tcp_sendrecv_generic_port(dcerpcd_t)
 corenet_tcp_bind_generic_node(dcerpcd_t)
-corenet_tcp_bind_epmap_port(dcerpcd_t)
-corenet_tcp_connect_generic_port(dcerpcd_t)
 corenet_udp_bind_generic_node(dcerpcd_t)
-corenet_udp_bind_epmap_port(dcerpcd_t)
 corenet_udp_sendrecv_generic_if(dcerpcd_t)
 corenet_udp_sendrecv_generic_node(dcerpcd_t)
 corenet_udp_sendrecv_generic_port(dcerpcd_t)
 
+corenet_sendrecv_epmap_server_packets(dcerpcd_t)
+corenet_tcp_bind_epmap_port(dcerpcd_t)
+corenet_udp_bind_epmap_port(dcerpcd_t)
+
+corenet_sendrecv_generic_client_packets(dcerpcd_t)
+corenet_tcp_connect_generic_port(dcerpcd_t)
+
 #################################
 #
-# Likewise Auditing and Logging service policy
+# eventlogd local policy
 #
 
 stream_connect_pattern(eventlogd_t, likewise_var_lib_t, dcerpcd_var_socket_t, dcerpcd_t)
@@ -74,19 +90,16 @@ stream_connect_pattern(eventlogd_t, likewise_var_lib_t, lwregd_var_socket_t, lwr
 
 corenet_all_recvfrom_netlabel(eventlogd_t)
 corenet_all_recvfrom_unlabeled(eventlogd_t)
-corenet_sendrecv_generic_server_packets(eventlogd_t)
 corenet_tcp_sendrecv_generic_if(eventlogd_t)
 corenet_tcp_sendrecv_generic_node(eventlogd_t)
-corenet_tcp_sendrecv_generic_port(eventlogd_t)
-corenet_tcp_bind_generic_node(eventlogd_t)
-corenet_udp_bind_generic_node(eventlogd_t)
-corenet_udp_sendrecv_generic_if(eventlogd_t)
-corenet_udp_sendrecv_generic_node(eventlogd_t)
-corenet_udp_sendrecv_generic_port(eventlogd_t)
+
+corenet_sendrecv_epmap_client_packets(eventlogd_t)
+corenet_tcp_connect_epmap_port(eventlogd_t)
+corenet_tcp_sendrecv_epmap_port(eventlogd_t)
 
 #################################
 #
-# Likewise Authentication service local policy
+# lsassd local policy
 #
 
 allow lsassd_t self:capability { fowner chown fsetid dac_override sys_time };
@@ -107,10 +120,7 @@ stream_connect_pattern(lsassd_t, likewise_var_lib_t, lwiod_var_socket_t, lwiod_t
 stream_connect_pattern(lsassd_t, likewise_var_lib_t, lwregd_var_socket_t, lwregd_t)
 stream_connect_pattern(lsassd_t, likewise_var_lib_t, netlogond_var_socket_t, netlogond_t)
 
-kernel_read_system_state(lsassd_t)
-kernel_getattr_proc_files(lsassd_t)
 kernel_list_all_proc(lsassd_t)
-kernel_list_proc(lsassd_t)
 
 corecmd_exec_bin(lsassd_t)
 corecmd_exec_shell(lsassd_t)
@@ -119,12 +129,13 @@ corenet_all_recvfrom_netlabel(lsassd_t)
 corenet_all_recvfrom_unlabeled(lsassd_t)
 corenet_tcp_sendrecv_generic_if(lsassd_t)
 corenet_tcp_sendrecv_generic_node(lsassd_t)
-corenet_tcp_sendrecv_generic_port(lsassd_t)
-corenet_tcp_bind_generic_node(lsassd_t)
+
+corenet_sendrecv_epmap_client_packets(lsassd_t)
 corenet_tcp_connect_epmap_port(lsassd_t)
 corenet_tcp_sendrecv_epmap_port(lsassd_t)
 
 domain_obj_id_change_exemption(lsassd_t)
+domain_dontaudit_search_all_domains_state(lsassd_t)
 
 files_manage_etc_files(lsassd_t)
 files_manage_etc_symlinks(lsassd_t)
@@ -140,7 +151,6 @@ seutil_read_file_contexts(lsassd_t)
 seutil_run_semanage(lsassd_t, system_r)
 
 sysnet_use_ldap(lsassd_t)
-sysnet_read_config(lsassd_t)
 
 userdom_home_filetrans_user_home_dir(lsassd_t)
 userdom_manage_user_home_content_files(lsassd_t)
@@ -152,28 +162,30 @@ optional_policy(`
 
 #################################
 #
-# Likewise I/O service local policy
+# lwiod local policy
 #
 
-allow lwiod_t self:capability { fowner chown fsetid dac_override };
+allow lwiod_t self:capability { fowner chown fsetid dac_override sys_resource };
+allow lwiod_t self:process setrlimit;
 allow lwiod_t self:netlink_route_socket rw_netlink_socket_perms;
 
-allow lwiod_t likewise_krb5_ad_t:file read_file_perms;
-allow lwiod_t netlogond_var_lib_t:file read_file_perms;
+allow lwiod_t { likewise_krb5_ad_t netlogond_var_lib_t }:file read_file_perms;
 
 stream_connect_pattern(lwiod_t, likewise_var_lib_t, lwregd_var_socket_t, lwregd_t)
 stream_connect_pattern(lwiod_t, likewise_var_lib_t, lsassd_var_socket_t, lsassd_t)
+stream_connect_pattern(lwiod_t, likewise_var_lib_t, netlogond_var_socket_t, netlogond_t)
 
 corenet_all_recvfrom_netlabel(lwiod_t)
 corenet_all_recvfrom_unlabeled(lwiod_t)
-corenet_sendrecv_smbd_server_packets(lwiod_t)
-corenet_sendrecv_smbd_client_packets(lwiod_t)
 corenet_tcp_sendrecv_generic_if(lwiod_t)
 corenet_tcp_sendrecv_generic_node(lwiod_t)
-corenet_tcp_sendrecv_generic_port(lwiod_t)
 corenet_tcp_bind_generic_node(lwiod_t)
+
+corenet_sendrecv_smbd_server_packets(lwiod_t)
 corenet_tcp_bind_smbd_port(lwiod_t)
+corenet_sendrecv_smbd_client_packets(lwiod_t)
 corenet_tcp_connect_smbd_port(lwiod_t)
+corenet_tcp_sendrecv_smbd_port(lwiod_t)
 
 sysnet_read_config(lwiod_t)
 
@@ -184,10 +196,14 @@ optional_policy(`
 
 #################################
 #
-# Likewise Service Manager service local policy
+# lwsmd local policy
 #
 
+allow lwsmd_t self:process setpgid;
+
 allow lwsmd_t likewise_domains:process signal;
+
+allow lwsmd_t { likewise_krb5_ad_t netlogond_var_lib_t }:file read_file_perms;
 
 domtrans_pattern(lwsmd_t, dcerpcd_exec_t, dcerpcd_t)
 domtrans_pattern(lwsmd_t, eventlogd_exec_t, eventlogd_t)
@@ -202,10 +218,10 @@ stream_connect_pattern(lwsmd_t, likewise_var_lib_t, lwregd_var_socket_t, lwregd_
 
 #################################
 #
-# Likewise DC location service local policy
+# netlogond local policy
 #
 
-allow netlogond_t self:capability {dac_override};
+allow netlogond_t self:capability dac_override;
 
 manage_files_pattern(netlogond_t, likewise_etc_t, likewise_etc_t)
 
@@ -216,7 +232,7 @@ sysnet_use_ldap(netlogond_t)
 
 #################################
 #
-# Likewise Srv service local policy
+# srvsvcd local policy
 #
 
 allow srvsvcd_t likewise_etc_t:dir search_dir_perms;

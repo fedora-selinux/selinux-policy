@@ -1,22 +1,9 @@
 ## <summary>Likewise Active Directory support for UNIX.</summary>
-## <desc>
-##	<p>
-##	Likewise Open is a free, open source application that joins Linux, Unix,
-##	and Mac machines to Microsoft Active Directory to securely authenticate
-##	users with their domain credentials.
-##	</p>
-## </desc>
 
 #######################################
 ## <summary>
 ##	The template to define a likewise domain.
 ## </summary>
-## <desc>
-##	<p>
-##	This template creates a domain to be used for
-##	a new likewise daemon.
-##	</p>
-## </desc>
 ## <param name="userdomain_prefix">
 ##	<summary>
 ##	The type of daemon to be used.
@@ -24,7 +11,6 @@
 ## </param>
 #
 template(`likewise_domain_template',`
-
 	gen_require(`
 		attribute likewise_domains;
 		type likewise_var_lib_t;
@@ -38,7 +24,6 @@ template(`likewise_domain_template',`
 	type $1_t;
 	type $1_exec_t;
 	init_daemon_domain($1_t, $1_exec_t)
-	domain_use_interactive_fds($1_t)
 
 	typeattribute $1_t likewise_domains;
 
@@ -53,17 +38,14 @@ template(`likewise_domain_template',`
 
 	####################################
 	#
-	# Local Policy
+	# Policy
 	#
 
 	allow $1_t self:process { signal_perms getsched setsched };
 	allow $1_t self:fifo_file rw_fifo_file_perms;
-	allow $1_t self:unix_dgram_socket create_socket_perms;
-	allow $1_t self:unix_stream_socket create_stream_socket_perms;
+	allow $1_t self:unix_stream_socket { accept listen };
 	allow $1_t self:tcp_socket create_stream_socket_perms;
 	allow $1_t self:udp_socket create_socket_perms;
-
-	allow $1_t likewise_var_lib_t:dir setattr;
 
 	manage_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
 	files_pid_filetrans($1_t, $1_var_run_t, file)
@@ -73,21 +55,12 @@ template(`likewise_domain_template',`
 
 	manage_sock_files_pattern($1_t, likewise_var_lib_t, $1_var_socket_t)
 	filetrans_pattern($1_t, likewise_var_lib_t, $1_var_socket_t, sock_file)
-
-	dev_read_rand($1_t)
-	dev_read_urand($1_t)
-
-	files_read_etc_files($1_t)
-	files_search_var_lib($1_t)
-
-	logging_send_syslog_msg($1_t)
-
-	miscfiles_read_localization($1_t)
 ')
 
 ########################################
 ## <summary>
-##	Connect to lsassd.
+##	Connect to lsassd with a unix domain
+##	stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -102,4 +75,60 @@ interface(`likewise_stream_connect_lsassd',`
 
 	files_search_pids($1)
 	stream_connect_pattern($1, likewise_var_lib_t, lsassd_var_socket_t, lsassd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an likewise environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`likewise_admin',`
+	gen_require(`
+		attribute likewise_domains;
+		type likewise_initrc_exec_t, likewise_etc_t, likewise_pstore_lock_t;
+		type likewise_krb5_ad_t, likewise_var_lib_t, eventlogd_var_socket_t;
+		type lsassd_var_socket_t, lwiod_var_socket_t, lwregd_var_socket_t;
+		type lwsmd_var_socket_t, lwsmd_var_lib_t, netlogond_var_socket_t;
+		type netlogond_var_lib_t, lsassd_var_lib_t, lwregd_var_lib_t;
+		type eventlogd_var_lib_t, dcerpcd_var_lib_t, lsassd_tmp_t;
+		type eventlogd_var_run_t, lsassd_var_run_t, lwiod_var_run_t;
+		type lwregd_var_run_t, netlogond_var_run_t, srvsvcd_var_run_t;
+	')
+
+	allow $1 likewise_domains:process { ptrace signal_perms };
+	ps_process_pattern($1, likewise_domains)
+
+	init_labeled_script_domtrans($1, likewise_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 likewise_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, { likewise_etc_t likewise_pstore_lock_t likewise_krb5_ad_t })
+
+	files_search_var_lib($1)
+	admin_pattern($1, { likewise_var_lib_t eventlogd_var_socket_t lsassd_var_socket_t })
+	admin_pattern($1, { lwiod_var_socket_t lwregd_var_socket_t lwsmd_var_socket_t })
+	admin_pattern($1, { lwsmd_var_lib_t netlogond_var_socket_t netlogond_var_lib_t })
+	admin_pattern($1, { lsassd_var_lib_t lwregd_var_lib_t eventlogd_var_lib_t })
+	admin_pattern($1, dcerpcd_var_lib_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, lsassd_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, { eventlogd_var_run_t lsassd_var_run_t lwiod_var_run_t })
+	admin_pattern($1, { lwregd_var_run_t netlogond_var_run_t srvsvcd_var_run_t })
 ')
