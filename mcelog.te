@@ -1,4 +1,4 @@
-policy_module(mcelog, 1.1.2)
+policy_module(mcelog, 1.1.3)
 
 ########################################
 #
@@ -6,53 +6,47 @@ policy_module(mcelog, 1.1.2)
 #
 
 ## <desc>
-## <p>
-## Allow mcelog to run in client mode.
-## Required to run mcelog in client
-## mode.
-## </p>
+##	<p>
+##	Determine whether mcelog supports
+##	client mode.
+##	</p>
 ## </desc>
 gen_tunable(mcelog_client, false)
 
 ## <desc>
-## <p>
-## Allow mcelog to execute scripts.
-## Required to execute optional triggers
-## and/or local scripts.
-## </p>
+##	<p>
+##	Determine whether mcelog can execute scripts.
+##	</p>
 ## </desc>
 gen_tunable(mcelog_exec_scripts, true)
 
 ## <desc>
-## <p>
-## Allow mcelog to use all the user ttys.
-## Required in foreground mode and to
-## print out usage and version information.
-## </p>
+##	<p>
+##	Determine whether mcelog can use all
+##	the user ttys.
+##	</p>
 ## </desc>
 gen_tunable(mcelog_foreground, false)
 
 ## <desc>
-## <p>
-## Allow mcelog to run a server.
-## Required to enable the optional configurable
-## Unix stream socket server functionality.
-## </p>
+##	<p>
+##	Determine whether mcelog supports
+##	server mode.
+##	</p>
 ## </desc>
 gen_tunable(mcelog_server, false)
 
 ## <desc>
-## <p>
-## Allow mcelog to use syslog.
-## Required to use the configurable
-## syslog option.
-## </p>
+##	<p>
+##	Determine whether mcelog can use syslog.
+##	</p>
 ## </desc>
 gen_tunable(mcelog_syslog, false)
 
 type mcelog_t;
 type mcelog_exec_t;
 init_daemon_domain(mcelog_t, mcelog_exec_t)
+application_executable_file(mcelog_exec_t)
 
 type mcelog_initrc_exec_t;
 init_script_file(mcelog_initrc_exec_t)
@@ -68,23 +62,25 @@ files_pid_file(mcelog_var_run_t)
 
 ########################################
 #
-# mcelog local policy
+# Local policy
 #
 
 allow mcelog_t self:capability sys_admin;
 allow mcelog_t self:unix_stream_socket connected_socket_perms;
-allow mcelog_t mcelog_etc_t:dir list_dir_perms;
 
+allow mcelog_t mcelog_etc_t:dir list_dir_perms;
 read_files_pattern(mcelog_t, mcelog_etc_t, mcelog_etc_t)
 
-# manage a logfile in a generic or private log directory
 manage_dirs_pattern(mcelog_t, mcelog_log_t, mcelog_log_t)
-manage_files_pattern(mcelog_t, mcelog_log_t, mcelog_log_t)
-logging_log_filetrans(mcelog_t, mcelog_log_t, file)
+append_files_pattern(mcelog_t, mcelog_log_t, mcelog_log_t)
+create_files_pattern(mcelog_t, mcelog_log_t, mcelog_log_t)
+setattr_files_pattern(mcelog_t, mcelog_log_t, mcelog_log_t)
+logging_log_filetrans(mcelog_t, mcelog_log_t, { dir file })
 
+manage_dirs_pattern(mcelog_t, mcelog_var_run_t, mcelog_var_run_t)
 manage_files_pattern(mcelog_t, mcelog_var_run_t, mcelog_var_run_t)
 manage_sock_files_pattern(mcelog_t, mcelog_var_run_t, mcelog_var_run_t)
-files_pid_filetrans(mcelog_t, mcelog_var_run_t, { file sock_file })
+files_pid_filetrans(mcelog_t, mcelog_var_run_t, { dir file sock_file })
 
 kernel_read_system_state(mcelog_t)
 
@@ -94,42 +90,34 @@ dev_rw_sysfs(mcelog_t)
 
 files_read_etc_files(mcelog_t)
 
-# for /dev/mem access
 mls_file_read_all_levels(mcelog_t)
 
 locallogin_use_fds(mcelog_t)
 
 miscfiles_read_localization(mcelog_t)
 
-# needed in client-mode
 tunable_policy(`mcelog_client',`
 	allow mcelog_t self:unix_stream_socket connectto;
 ')
 
-# required for executing optional triggers and scripts
 tunable_policy(`mcelog_exec_scripts',`
-	allow mcelog_t self:fifo_file { read getattr write };
+	allow mcelog_t self:fifo_file rw_fifo_file_perms;
 	corecmd_exec_bin(mcelog_t)
 	corecmd_exec_shell(mcelog_t)
 ')
 
-# required for optional foreground mode and
-# console output
 tunable_policy(`mcelog_foreground',`
 	userdom_use_user_terminals(mcelog_t)
 ')
 
-# required for the optional server functionality
 tunable_policy(`mcelog_server',`
 	allow mcelog_t self:unix_stream_socket { listen accept };
 ')
 
-# use syslog functionality (optional, configurable)
 tunable_policy(`mcelog_syslog',`
 	logging_send_syslog_msg(mcelog_t)
 ')
 
-# optional support for running it as a cron job
 optional_policy(`
 	cron_system_entry(mcelog_t, mcelog_exec_t)
 ')
