@@ -1,17 +1,4 @@
-policy_module(apache, 2.5.4)
-
-#
-# NOTES:
-#  This policy will work with SUEXEC enabled as part of the Apache
-#  configuration. However, the user CGI scripts will run under the
-#  system_u:system_r:httpd_user_script_t.
-#
-#  The user CGI scripts must be labeled with the httpd_user_script_exec_t
-#  type, and the directory containing the scripts should also be labeled
-#  with these types. This policy allows the user role to perform that
-#  relabeling. If it is desired that only admin role should be able to relabel
-#  the user CGI scripts, then relabel rule for user roles should be removed.
-#
+policy_module(apache, 2.5.5)
 
 ########################################
 #
@@ -255,15 +242,14 @@ gen_tunable(httpd_use_gpg, false)
 gen_tunable(httpd_use_nfs, false)
 
 attribute httpdcontent;
-attribute httpd_user_content_type;
+attribute httpd_htaccess_type;
 
-# domains that can exec all users scripts
+# domains that can exec all scripts
 attribute httpd_exec_scripts;
 
 attribute httpd_script_exec_type;
-attribute httpd_user_script_exec_type;
 
-# user script domains
+# all script domains
 attribute httpd_script_domains;
 
 attribute_role httpd_helper_roles;
@@ -296,8 +282,8 @@ logging_log_file(httpd_log_t)
 type httpd_modules_t;
 files_type(httpd_modules_t)
 
-type httpd_php_t;
-type httpd_php_exec_t;
+type httpd_php_t, httpd_script_domains;
+type httpd_php_exec_t, httpd_script_exec_type;
 domain_type(httpd_php_t)
 domain_entry_file(httpd_php_t, httpd_php_exec_t)
 role system_r types httpd_php_t;
@@ -337,7 +323,6 @@ userdom_user_home_content(httpd_user_htaccess_t)
 userdom_user_home_content(httpd_user_script_exec_t)
 userdom_user_home_content(httpd_user_ra_content_t)
 userdom_user_home_content(httpd_user_rw_content_t)
-typeattribute httpd_user_script_t httpd_script_domains;
 typealias httpd_user_content_t alias { httpd_staff_content_t httpd_sysadm_content_t };
 typealias httpd_user_content_t alias { httpd_auditadm_content_t httpd_secadm_content_t };
 typealias httpd_user_content_t alias { httpd_staff_script_ro_t httpd_sysadm_script_ro_t };
@@ -368,8 +353,8 @@ domain_type(httpd_passwd_t)
 domain_entry_file(httpd_passwd_t, httpd_passwd_exec_t)
 role system_r types httpd_passwd_t;
 
-type httpd_unconfined_script_t;
-type httpd_unconfined_script_exec_t;
+type httpd_unconfined_script_t, httpd_script_domains;
+type httpd_unconfined_script_exec_t, httpd_script_exec_type;
 domain_type(httpd_unconfined_script_t)
 domain_entry_file(httpd_unconfined_script_t, httpd_unconfined_script_exec_t)
 role system_r types httpd_unconfined_script_t;
@@ -471,8 +456,8 @@ domtrans_pattern(httpd_t, httpd_php_exec_t, httpd_php_t)
 domtrans_pattern(httpd_t, httpd_rotatelogs_exec_t, httpd_rotatelogs_t)
 domtrans_pattern(httpd_t, httpd_suexec_exec_t, httpd_suexec_t)
 
-domtrans_pattern(httpd_t, httpd_unconfined_script_exec_t, httpd_unconfined_script_t)
-allow httpd_t httpd_unconfined_script_t:process signal_perms;
+allow httpd_t httpd_script_exec_type:dir search_dir_perms;
+read_files_pattern(httpd_t, httpdcontent, { httpd_htaccess_type httpdcontent })
 
 kernel_read_kernel_sysctls(httpd_t)
 kernel_read_network_state(httpd_t)
@@ -590,6 +575,23 @@ tunable_policy(`httpd_can_network_relay',`
 	corenet_sendrecv_squid_client_packets(httpd_t)
 	corenet_tcp_connect_squid_port(httpd_t)
 	corenet_tcp_sendrecv_squid_port(httpd_t)
+')
+
+tunable_policy(`httpd_builtin_scripting',`
+	allow httpd_t httpdcontent:dir search_dir_perms;
+
+	allow httpd_t httpdcontent:dir list_dir_perms;
+	read_files_pattern(httpd_t, httpdcontent, httpdcontent)
+	read_lnk_files_pattern(httpd_t, httpdcontent, httpdcontent)
+
+	allow httpd_t httpdcontent:dir list_dir_perms;
+	read_files_pattern(httpd_t, httpdcontent, httpdcontent)
+	read_lnk_files_pattern(httpd_t, httpdcontent, httpdcontent)
+')
+
+tunable_policy(`httpd_enable_cgi',`
+	domtrans_pattern(httpd_t, httpd_unconfined_script_exec_t, httpd_unconfined_script_t)
+	allow httpd_t httpd_unconfined_script_t:process signal_perms;
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_use_nfs',`
@@ -775,6 +777,9 @@ optional_policy(`
 
 optional_policy(`
 	kerberos_keytab_template(httpd, httpd_t)
+	kerberos_manage_host_rcache(httpd_t)
+	kerberos_tmp_filetrans_host_rcache(httpd_t, file, "HTTP_23")
+	kerberos_tmp_filetrans_host_rcache(httpd_t, file, "HTTP_48")
 ')
 
 optional_policy(`
@@ -892,30 +897,19 @@ tunable_policy(`httpd_tty_comm',`
 
 allow httpd_php_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
 allow httpd_php_t self:fd use;
-allow httpd_php_t self:fifo_file rw_fifo_file_perms;
 allow httpd_php_t self:sock_file read_sock_file_perms;
 allow httpd_php_t self:unix_dgram_socket create_socket_perms;
 allow httpd_php_t self:unix_stream_socket create_stream_socket_perms;
 allow httpd_php_t self:unix_dgram_socket sendto;
-allow httpd_php_t self:unix_stream_socket connectto;
 allow httpd_php_t self:shm create_shm_perms;
 allow httpd_php_t self:sem create_sem_perms;
 allow httpd_php_t self:msgq create_msgq_perms;
 allow httpd_php_t self:msg { send receive };
 allow httpd_php_t self:tcp_socket { accept listen };
 
-append_files_pattern(httpd_php_t, httpd_log_t, httpd_log_t)
-read_files_pattern(httpd_php_t, httpd_log_t, httpd_log_t)
-read_lnk_files_pattern(httpd_php_t, httpd_log_t, httpd_log_t)
-
 manage_dirs_pattern(httpd_php_t, httpd_php_tmp_t, httpd_php_tmp_t)
 manage_files_pattern(httpd_php_t, httpd_php_tmp_t, httpd_php_tmp_t)
 files_tmp_filetrans(httpd_php_t, httpd_php_tmp_t, { file dir })
-
-corenet_all_recvfrom_unlabeled(httpd_php_t)
-corenet_all_recvfrom_netlabel(httpd_php_t)
-corenet_tcp_sendrecv_generic_if(httpd_php_t)
-corenet_tcp_sendrecv_generic_node(httpd_php_t)
 
 fs_search_auto_mountpoints(httpd_php_t)
 
@@ -927,26 +921,10 @@ logging_search_logs(httpd_php_t)
 
 userdom_use_unpriv_users_fds(httpd_php_t)
 
-ifdef(`hide_broken_symptoms',`
-	libs_exec_lib_files(httpd_php_t)
-')
-
 tunable_policy(`httpd_can_network_connect',`
 	corenet_tcp_connect_all_ports(httpd_php_t)
 	corenet_sendrecv_all_client_packets(httpd_php_t)
 	corenet_tcp_sendrecv_all_ports(httpd_php_t)
-')
-
-tunable_policy(`httpd_can_network_connect_db',`
-	corenet_sendrecv_gds_db_client_packets(httpd_php_t)
-	corenet_tcp_connect_gds_db_port(httpd_php_t)
-	corenet_tcp_sendrecv_gds_db_port(httpd_php_t)
-	corenet_sendrecv_mssql_client_packets(httpd_php_t)
-	corenet_tcp_connect_mssql_port(httpd_php_t)
-	corenet_tcp_sendrecv_mssql_port(httpd_php_t)
-	corenet_sendrecv_oracledb_client_packets(httpd_php_t)
-	corenet_tcp_connect_oracledb_port(httpd_php_t)
-	corenet_tcp_sendrecv_oracledb_port(httpd_php_t)
 ')
 
 tunable_policy(`httpd_can_sendmail',`
@@ -988,25 +966,6 @@ tunable_policy(`httpd_use_fusefs',`
 	fs_exec_fusefs_files(httpd_php_t)
 ')
 
-optional_policy(`
-	mysql_read_config(httpd_php_t)
-	mysql_stream_connect(httpd_php_t)
-	mysql_rw_db_sockets(httpd_php_t)
-
-	tunable_policy(`httpd_can_network_connect_db',`
-		mysql_tcp_connect(httpd_php_t)
-	')
-')
-
-optional_policy(`
-	postgresql_stream_connect(httpd_php_t)
-	postgresql_unpriv_client(httpd_php_t)
-
-	tunable_policy(`httpd_can_network_connect_db',`
-		postgresql_tcp_connect(httpd_php_t)
-	')
-')
-
 ########################################
 #
 # Suexec local policy
@@ -1023,11 +982,11 @@ append_files_pattern(httpd_suexec_t, httpd_log_t, httpd_log_t)
 read_files_pattern(httpd_suexec_t, httpd_log_t, httpd_log_t)
 read_lnk_files_pattern(httpd_suexec_t, httpd_log_t, httpd_log_t)
 
-allow httpd_suexec_t httpd_t:fifo_file read_fifo_file_perms;
-
 manage_dirs_pattern(httpd_suexec_t, httpd_suexec_tmp_t, httpd_suexec_tmp_t)
 manage_files_pattern(httpd_suexec_t, httpd_suexec_tmp_t, httpd_suexec_tmp_t)
 files_tmp_filetrans(httpd_suexec_t, httpd_suexec_tmp_t, { file dir })
+
+allow httpd_suexec_t httpd_t:fifo_file read_fifo_file_perms;
 
 kernel_read_kernel_sysctls(httpd_suexec_t)
 kernel_list_proc(httpd_suexec_t)
@@ -1057,6 +1016,10 @@ logging_send_syslog_msg(httpd_suexec_t)
 
 miscfiles_read_localization(httpd_suexec_t)
 miscfiles_read_public_files(httpd_suexec_t)
+
+tunable_policy(`httpd_builtin_scripting',`
+	allow httpd_suexec_t { httpdcontent httpd_script_exec_type }:dir search_dir_perms;
+')
 
 tunable_policy(`httpd_can_network_connect',`
 	corenet_tcp_connect_all_ports(httpd_suexec_t)
@@ -1176,13 +1139,124 @@ tunable_policy(`httpd_enable_homedirs',`
 
 ########################################
 #
+# Common script local policy
+#
+
+allow httpd_script_domains self:fifo_file rw_file_perms;
+allow httpd_script_domains self:unix_stream_socket connectto;
+
+allow httpd_script_domains httpd_t:fifo_file write;
+
+allow httpd_script_domains httpd_sys_content_t:dir search_dir_perms;
+
+append_files_pattern(httpd_script_domains, httpd_log_t, httpd_log_t)
+read_lnk_files_pattern(httpd_script_domains, httpd_log_t, httpd_log_t)
+
+kernel_dontaudit_search_sysctl(httpd_script_domains)
+kernel_dontaudit_search_kernel_sysctl(httpd_script_domains)
+
+corenet_all_recvfrom_unlabeled(httpd_script_domains)
+corenet_all_recvfrom_netlabel(httpd_script_domains)
+corenet_tcp_sendrecv_generic_if(httpd_script_domains)
+corenet_tcp_sendrecv_generic_node(httpd_script_domains)
+
+corecmd_exec_all_executables(httpd_script_domains)
+
+dev_read_rand(httpd_script_domains)
+dev_read_urand(httpd_script_domains)
+
+files_exec_etc_files(httpd_script_domains)
+files_read_etc_files(httpd_script_domains)
+files_search_home(httpd_script_domains)
+
+libs_exec_ld_so(httpd_script_domains)
+libs_exec_lib_files(httpd_script_domains)
+
+logging_search_logs(httpd_script_domains)
+
+miscfiles_read_fonts(httpd_script_domains)
+miscfiles_read_public_files(httpd_script_domains)
+
+seutil_dontaudit_search_config(httpd_script_domains)
+
+tunable_policy(`httpd_enable_cgi && httpd_unified',`
+	allow httpd_script_domains httpdcontent:file entrypoint;
+
+	manage_dirs_pattern(httpd_script_domains, httpdcontent, httpdcontent)
+	manage_files_pattern(httpd_script_domains, httpdcontent, httpdcontent)
+	manage_lnk_files_pattern(httpd_script_domains, httpdcontent, httpdcontent)
+	can_exec(httpd_script_domains, httpdcontent)
+')
+
+tunable_policy(`httpd_enable_cgi',`
+	allow httpd_t httpd_script_domains:process { signal sigkill sigstop };
+	allow httpd_t httpd_script_exec_type:dir list_dir_perms;
+
+	allow httpd_script_domains self:process { setsched signal_perms };
+	allow httpd_script_domains self:unix_stream_socket create_stream_socket_perms;
+
+	allow httpd_script_domains httpd_t:fd use;
+	allow httpd_script_domains httpd_t:process sigchld;
+
+	kernel_read_system_state(httpd_script_domains)
+
+	fs_getattr_xattr_fs(httpd_script_domains)
+
+	files_read_etc_runtime_files(httpd_script_domains)
+	files_read_usr_files(httpd_script_domains)
+
+	libs_read_lib_files(httpd_script_domains)
+
+	miscfiles_read_localization(httpd_script_domains)
+')
+
+optional_policy(`
+	tunable_policy(`httpd_enable_cgi && allow_ypbind',`
+		nis_use_ypbind_uncond(httpd_script_domains)
+	')
+')
+
+tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
+	corenet_sendrecv_gds_db_client_packets(httpd_script_domains)
+	corenet_tcp_connect_gds_db_port(httpd_script_domains)
+	corenet_tcp_sendrecv_gds_db_port(httpd_script_domains)
+	corenet_sendrecv_mssql_client_packets(httpd_script_domains)
+	corenet_tcp_connect_mssql_port(httpd_script_domains)
+	corenet_tcp_sendrecv_mssql_port(httpd_script_domains)
+	corenet_sendrecv_oracledb_client_packets(httpd_script_domains)
+	corenet_tcp_connect_oracledb_port(httpd_script_domains)
+	corenet_tcp_sendrecv_oracledb_port(httpd_script_domains)
+')
+
+optional_policy(`
+	mysql_read_config(httpd_script_domains)
+	mysql_stream_connect(httpd_script_domains)
+	mysql_rw_db_sockets(httpd_script_domains)
+
+	tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
+		mysql_tcp_connect(httpd_script_domains)
+	')
+')
+
+optional_policy(`
+	postgresql_stream_connect(httpd_script_domains)
+
+	tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
+		postgresql_tcp_connect(httpd_script_domains)
+	')
+')
+
+optional_policy(`
+	nscd_socket_use(httpd_script_domains)
+')
+
+########################################
+#
 # System script local policy
 #
 
-allow httpd_sys_script_t self:process getsched;
 allow httpd_sys_script_t self:tcp_socket { accept listen };
 
-allow httpd_sys_script_t httpd_t:unix_stream_socket rw_stream_socket_perms;
 allow httpd_sys_script_t httpd_t:tcp_socket { read write };
 
 dontaudit httpd_sys_script_t httpd_config_t:dir search;
@@ -1194,11 +1268,6 @@ read_files_pattern(httpd_sys_script_t, squirrelmail_spool_t, squirrelmail_spool_
 read_lnk_files_pattern(httpd_sys_script_t, squirrelmail_spool_t, squirrelmail_spool_t)
 
 kernel_read_kernel_sysctls(httpd_sys_script_t)
-
-corenet_all_recvfrom_unlabeled(httpd_sys_script_t)
-corenet_all_recvfrom_netlabel(httpd_sys_script_t)
-corenet_tcp_sendrecv_generic_if(httpd_sys_script_t)
-corenet_tcp_sendrecv_generic_node(httpd_sys_script_t)
 
 fs_search_auto_mountpoints(httpd_sys_script_t)
 
@@ -1231,26 +1300,6 @@ tunable_policy(`httpd_enable_cgi && httpd_can_network_connect',`
 	corenet_tcp_sendrecv_all_ports(httpd_sys_script_t)
 ')
 
-tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
-	corenet_sendrecv_gds_db_client_packets(httpd_sys_script_t)
-	corenet_tcp_connect_gds_db_port(httpd_sys_script_t)
-	corenet_tcp_sendrecv_gds_db_port(httpd_sys_script_t)
-	corenet_sendrecv_mssql_client_packets(httpd_sys_script_t)
-	corenet_tcp_connect_mssql_port(httpd_sys_script_t)
-	corenet_tcp_sendrecv_mssql_port(httpd_sys_script_t)
-	corenet_sendrecv_oracledb_client_packets(httpd_sys_script_t)
-	corenet_tcp_connect_oracledb_port(httpd_sys_script_t)
-	corenet_tcp_sendrecv_oracledb_port(httpd_sys_script_t)
-')
-
-tunable_policy(`httpd_enable_cgi && httpd_unified',`
-	allow httpd_sys_script_t httpdcontent:file entrypoint;
-	manage_dirs_pattern(httpd_sys_script_t, httpdcontent, httpdcontent)
-	manage_files_pattern(httpd_sys_script_t, httpdcontent, httpdcontent)
-	manage_sock_files_pattern(httpd_sys_script_t, httpdcontent, httpdcontent)
-	manage_lnk_files_pattern(httpd_sys_script_t, httpdcontent, httpdcontent)
-')
-
 tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs',`
 	fs_list_auto_mountpoints(httpd_sys_script_t)
 	fs_read_nfs_files(httpd_sys_script_t)
@@ -1275,7 +1324,7 @@ tunable_policy(`httpd_read_user_content',`
 
 tunable_policy(`httpd_ssi_exec',`
 	allow httpd_sys_script_t httpd_t:fd use;
-	allow httpd_sys_script_t httpd_t:fifo_file rw_file_perms;
+	allow httpd_sys_script_t httpd_t:fifo_file rw_fifo_file_perms;
 	allow httpd_sys_script_t httpd_t:process sigchld;
 ')
 

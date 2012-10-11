@@ -13,10 +13,9 @@
 #
 template(`apache_content_template',`
 	gen_require(`
-		attribute httpdcontent;
-		attribute httpd_exec_scripts;
-		attribute httpd_script_exec_type;
-		type httpd_t, httpd_suexec_t, httpd_log_t;
+		attribute httpdcontent, httpd_exec_scripts, httpd_script_exec_type;
+		attribute httpd_script_domains, httpd_htaccess_type;
+		type httpd_t, httpd_suexec_t;
 	')
 
 	########################################
@@ -24,18 +23,24 @@ template(`apache_content_template',`
 	# Declarations
 	#
 
-	# Determine whether the script domain type can
-	# manage public file transfer services files.
+	## <desc>
+	##	<p>
+	##	Determine whether the script domain can
+	##	modify public files used for public file
+	##	transfer services. Directories/Files must
+	##	be labeled public_content_rw_t.
+	##	</p>
+	## </desc>
 	gen_tunable(allow_httpd_$1_script_anon_write, false)
 
 	type httpd_$1_content_t, httpdcontent; # customizable
 	typealias httpd_$1_content_t alias httpd_$1_script_ro_t;
 	files_type(httpd_$1_content_t)
 
-	type httpd_$1_htaccess_t; # customizable;
+	type httpd_$1_htaccess_t, httpd_htaccess_type; # customizable;
 	files_type(httpd_$1_htaccess_t)
 
-	type httpd_$1_script_t;
+	type httpd_$1_script_t, httpd_script_domains;
 	domain_type(httpd_$1_script_t)
 	role system_r types httpd_$1_script_t;
 
@@ -56,22 +61,9 @@ template(`apache_content_template',`
 	# Policy
 	#
 
-	allow httpd_$1_script_t self:fifo_file rw_file_perms;
-	allow httpd_$1_script_t self:unix_stream_socket connectto;
-
-	read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_htaccess_t)
-
 	domtrans_pattern(httpd_suexec_t, httpd_$1_script_exec_t, httpd_$1_script_t)
 
-	allow httpd_t { httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
-	allow httpd_suexec_t { httpd_$1_content_t httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
-
-	allow httpd_$1_script_t httpd_t:fifo_file write;
-
 	allow httpd_$1_script_t httpd_$1_content_t:dir search_dir_perms;
-
-	append_files_pattern(httpd_$1_script_t, httpd_log_t, httpd_log_t)
-	read_lnk_files_pattern(httpd_$1_script_t, httpd_log_t, httpd_log_t)
 
 	can_exec(httpd_$1_script_t, httpd_$1_script_exec_t)
 	allow httpd_$1_script_t httpd_$1_script_exec_t:dir list_dir_perms;
@@ -91,37 +83,6 @@ template(`apache_content_template',`
 	manage_fifo_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 	manage_sock_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 	files_tmp_filetrans(httpd_$1_script_t, httpd_$1_rw_content_t, { dir file lnk_file sock_file fifo_file })
-
-	kernel_dontaudit_search_sysctl(httpd_$1_script_t)
-	kernel_dontaudit_search_kernel_sysctl(httpd_$1_script_t)
-
-	dev_read_rand(httpd_$1_script_t)
-	dev_read_urand(httpd_$1_script_t)
-
-	corecmd_exec_all_executables(httpd_$1_script_t)
-
-	files_exec_etc_files(httpd_$1_script_t)
-	files_read_etc_files(httpd_$1_script_t)
-	files_search_home(httpd_$1_script_t)
-
-	libs_exec_ld_so(httpd_$1_script_t)
-	libs_exec_lib_files(httpd_$1_script_t)
-
-	logging_search_logs(httpd_$1_script_t)
-
-	miscfiles_read_fonts(httpd_$1_script_t)
-	miscfiles_read_public_files(httpd_$1_script_t)
-
-	seutil_dontaudit_search_config(httpd_$1_script_t)
-
-	tunable_policy(`httpd_enable_cgi && httpd_unified',`
-		allow httpd_$1_script_t httpdcontent:file entrypoint;
-
-		manage_dirs_pattern(httpd_$1_script_t, httpdcontent, httpdcontent)
-		manage_files_pattern(httpd_$1_script_t, httpdcontent, httpdcontent)
-		manage_lnk_files_pattern(httpd_$1_script_t, httpdcontent, httpdcontent)
-		can_exec(httpd_$1_script_t, httpdcontent)
-	')
 
 	tunable_policy(`allow_httpd_$1_script_anon_write',`
 		miscfiles_manage_public_files(httpd_$1_script_t)
@@ -153,55 +114,10 @@ template(`apache_content_template',`
 		domtrans_pattern(httpd_exec_scripts, httpd_$1_script_exec_t, httpd_$1_script_t)
 
 		domtrans_pattern(httpd_t, httpd_$1_script_exec_t, httpd_$1_script_t)
-
-		allow httpd_t httpd_$1_script_t:process { signal sigkill sigstop };
-		allow httpd_t httpd_$1_script_exec_t:dir list_dir_perms;
-
-		allow httpd_$1_script_t self:process { setsched signal_perms };
-		allow httpd_$1_script_t self:unix_stream_socket create_stream_socket_perms;
-
-		allow httpd_$1_script_t httpd_t:fd use;
-		allow httpd_$1_script_t httpd_t:process sigchld;
-
-		kernel_read_system_state(httpd_$1_script_t)
-
-		fs_getattr_xattr_fs(httpd_$1_script_t)
-
-		files_read_etc_runtime_files(httpd_$1_script_t)
-		files_read_usr_files(httpd_$1_script_t)
-
-		libs_read_lib_files(httpd_$1_script_t)
-
-		miscfiles_read_localization(httpd_$1_script_t)
 	')
 
 	optional_policy(`
-		tunable_policy(`httpd_enable_cgi && allow_ypbind',`
-			nis_use_ypbind_uncond(httpd_$1_script_t)
-		')
-	')
-
-	optional_policy(`
-		mysql_read_config(httpd_$1_script_t)
-		mysql_stream_connect(httpd_$1_script_t)
-		mysql_rw_db_sockets(httpd_$1_script_t)
-
-		tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
-			mysql_tcp_connect(httpd_$1_script_t)
-		')
-	')
-
-	optional_policy(`
-		postgresql_stream_connect(httpd_$1_script_t)
 		postgresql_unpriv_client(httpd_$1_script_t)
-
-		tunable_policy(`httpd_enable_cgi && httpd_can_network_connect_db',`
-			postgresql_tcp_connect(httpd_$1_script_t)
-		')
-	')
-
-	optional_policy(`
-		nscd_socket_use(httpd_$1_script_t)
 	')
 ')
 
@@ -1098,17 +1014,8 @@ interface(`apache_search_sys_scripts',`
 ## <rolecap/>
 #
 interface(`apache_manage_all_user_content',`
-	gen_require(`
-		attribute httpd_user_content_type, httpd_user_script_exec_type;
-	')
-
-	manage_dirs_pattern($1, httpd_user_content_type, httpd_user_content_type)
-	manage_files_pattern($1, httpd_user_content_type, httpd_user_content_type)
-	manage_lnk_files_pattern($1, httpd_user_content_type, httpd_user_content_type)
-
-	manage_dirs_pattern($1, httpd_user_script_exec_type, httpd_user_script_exec_type)
-	manage_files_pattern($1, httpd_user_script_exec_type, httpd_user_script_exec_type)
-	manage_lnk_files_pattern($1, httpd_user_script_exec_type, httpd_user_script_exec_type)
+	refpolicywarn(`$0($*) has been deprecated, use apache_manage_all_content() instead.')
+	apache_manage_all_content($1)
 ')
 
 ########################################
@@ -1219,18 +1126,20 @@ interface(`apache_cgi_domain',`
 #
 interface(`apache_admin',`
 	gen_require(`
-		attribute httpdcontent;
-		attribute httpd_script_exec_type;
-
+		attribute httpdcontent, httpd_script_exec_type;
+		attribute httpd_script_domains, httpd_htaccess_type;
 		type httpd_t, httpd_config_t, httpd_log_t;
-		type httpd_modules_t, httpd_lock_t;
-		type httpd_var_run_t, httpd_php_tmp_t;
-		type httpd_suexec_tmp_t, httpd_tmp_t;
-		type httpd_initrc_exec_t;
+		type httpd_modules_t, httpd_lock_t, httpd_helper_t;
+		type httpd_var_run_t, httpd_php_tmp_t, httpd_php_t;
+		type httpd_suexec_tmp_t, httpd_tmp_t, httpd_rotatelogs_t;
+		type httpd_initrc_exec_t, httpd_suexec_t, httpd_passwd_t;
+		type httpd_unconfined_script_t, httpd_unconfined_script_exec_t, httpd_keytab_t;
 	')
 
-	allow $1 httpd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, httpd_t)
+	allow $1 { httpd_script_domains httpd_t httpd_helper_t httpd_unconfined_script_t }:process { ptrace signal_perms };
+	allow $1 { httpd_php_t httpd_rotatelogs_t httpd_suexec_t httpd_passwd_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { httpd_script_domains httpd_t httpd_helper_t httpd_passwd_t })
+	ps_process_pattern($1, { httpd_php_t httpd_rotatelogs_t httpd_suexec_t httpd_unconfined_script_t })
 
 	init_labeled_script_domtrans($1, httpd_initrc_exec_t)
 	domain_system_change_exemption($1)
@@ -1241,7 +1150,7 @@ interface(`apache_admin',`
 	miscfiles_manage_public_files($1)
 
 	files_search_etc($1)
-	admin_pattern($1, httpd_config_t)
+	admin_pattern($1, { httpd_config_t httpd_keytab_t })
 
 	logging_search_logs($1)
 	admin_pattern($1, httpd_log_t)
@@ -1254,9 +1163,9 @@ interface(`apache_admin',`
 	admin_pattern($1, httpd_var_run_t)
 	files_pid_filetrans($1, httpd_var_run_t, file)
 
-	admin_pattern($1, httpdcontent)
-	admin_pattern($1, httpd_script_exec_type)
-	admin_pattern($1, httpd_tmp_t)
-	admin_pattern($1, httpd_php_tmp_t)
-	admin_pattern($1, httpd_suexec_tmp_t)
+	admin_pattern($1, { httpdcontent httpd_script_exec_type httpd_unconfined_script_exec_t })
+	admin_pattern($1, { httpd_php_tmp_t httpd_tmp_t httpd_suexec_tmp_t httpd_htaccess_type })
+
+	apache_run_all_scripts($1, $2)
+	apache_run_helper($1, $2)
 ')
