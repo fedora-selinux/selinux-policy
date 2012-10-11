@@ -1,9 +1,11 @@
-policy_module(mailman, 1.9.0)
+policy_module(mailman, 1.9.1)
 
 ########################################
 #
 # Declarations
 #
+
+attribute mailman_domain;
 
 mailman_domain_template(cgi)
 
@@ -19,6 +21,9 @@ logging_log_file(mailman_log_t)
 type mailman_lock_t;
 files_lock_file(mailman_lock_t)
 
+type mailman_var_run_t;
+files_pid_file(mailman_var_run_t)
+
 mailman_domain_template(mail)
 init_daemon_domain(mailman_mail_t, mailman_mail_exec_t)
 
@@ -26,28 +31,70 @@ mailman_domain_template(queue)
 
 ########################################
 #
-# Mailman CGI local policy
+# Common local policy
 #
 
-# cjp: the template invocation for cgi should be
-# in the below optional policy; however, there are no
-# optionals for file contexts yet, so it is promoted
-# to global scope until such facilities exist.
+allow mailman_domain self:tcp_socket { accept listen };
+
+manage_dirs_pattern(mailman_domain, mailman_archive_t, mailman_archive_t)
+manage_files_pattern(mailman_domain, mailman_archive_t, mailman_archive_t)
+manage_lnk_files_pattern(mailman_domain, mailman_archive_t, mailman_archive_t)
+
+manage_dirs_pattern(mailman_domain, mailman_data_t, mailman_data_t)
+manage_files_pattern(mailman_domain, mailman_data_t, mailman_data_t)
+manage_lnk_files_pattern(mailman_domain, mailman_data_t, mailman_data_t)
+
+manage_files_pattern(mailman_domain, mailman_lock_t, mailman_lock_t)
+files_lock_filetrans(mailman_domain, mailman_lock_t, file)
+
+append_files_pattern(mailman_domain, mailman_log_t, mailman_log_t)
+create_files_pattern(mailman_domain, mailman_log_t, mailman_log_t)
+setattr_files_pattern(mailman_domain, mailman_log_t, mailman_log_t)
+logging_log_filetrans(mailman_domain, mailman_log_t, file)
+
+kernel_read_kernel_sysctls(mailman_domain)
+kernel_read_system_state(mailman_domain)
+
+corenet_all_recvfrom_unlabeled(mailman_domain)
+corenet_all_recvfrom_netlabel(mailman_domain)
+corenet_tcp_sendrecv_generic_if(mailman_domain)
+corenet_tcp_sendrecv_generic_node(mailman_domain)
+
+corenet_sendrecv_smtp_client_packets(mailman_domain)
+corenet_tcp_connect_smtp_port(mailman_domain)
+corenet_tcp_sendrecv_smtp_port(mailman_domain)
+
+corecmd_exec_all_executables(mailman_domain)
+
+files_exec_etc_files(mailman_domain)
+files_list_usr(mailman_domain)
+files_list_var(mailman_domain)
+files_list_var_lib(mailman_domain)
+files_read_var_lib_symlinks(mailman_domain)
+files_read_etc_runtime_files(mailman_domain)
+files_search_spool(mailman_domain)
+
+fs_getattr_all_fs(mailman_domain)
+
+libs_exec_ld_so(mailman_domain)
+libs_exec_lib_files(mailman_domain)
+
+logging_send_syslog_msg(mailman_domain)
+
+miscfiles_read_localization(mailman_domain)
+
+########################################
+#
+# CGI local policy
+#
+
+dev_read_urand(mailman_cgi_t)
+
+term_use_controlling_term(mailman_cgi_t)
+
+libs_dontaudit_write_lib_dirs(mailman_cgi_t)
 
 optional_policy(`
-	dev_read_urand(mailman_cgi_t)
-
-	manage_dirs_pattern(mailman_cgi_t, mailman_archive_t, mailman_archive_t)
-	manage_files_pattern(mailman_cgi_t, mailman_archive_t, mailman_archive_t)
-	manage_lnk_files_pattern(mailman_cgi_t, mailman_archive_t, mailman_archive_t)
-
-	files_search_spool(mailman_cgi_t)
-
-	term_use_controlling_term(mailman_cgi_t)
-
-	# for python pre-compile foolishness
-	libs_dontaudit_write_lib_dirs(mailman_cgi_t)
-
 	apache_sigchld(mailman_cgi_t)
 	apache_use_fds(mailman_cgi_t)
 	apache_dontaudit_append_log(mailman_cgi_t)
@@ -56,20 +103,31 @@ optional_policy(`
 	apache_dontaudit_rw_stream_sockets(mailman_cgi_t)
 ')
 
+optional_policy(`
+	postfix_read_config(mailman_cgi_t)
+')
+
 ########################################
 #
-# Mailman mail local policy
+# Mail local policy
 #
 
-allow mailman_mail_t self:unix_dgram_socket create_socket_perms;
-allow mailman_mail_t self:process { signal signull };
 allow mailman_mail_t self:capability { kill dac_override setuid setgid sys_tty_config };
+allow mailman_mail_t self:process { signal signull };
 
-manage_dirs_pattern(mailman_mail_t, mailman_archive_t, mailman_archive_t)
-manage_files_pattern(mailman_mail_t, mailman_archive_t, mailman_archive_t)
-manage_lnk_files_pattern(mailman_mail_t, mailman_archive_t, mailman_archive_t)
+manage_files_pattern(mailman_mail_t, mailman_var_run_t, mailman_var_run_t)
+manage_dirs_pattern(mailman_mail_t, mailman_var_run_t, mailman_var_run_t)
+files_pid_filetrans(mailman_mail_t, mailman_var_run_t, { file dir })
 
-files_search_spool(mailman_mail_t)
+corenet_sendrecv_innd_client_packets(mailman_mail_t)
+corenet_tcp_connect_innd_port(mailman_mail_t)
+corenet_tcp_sendrecv_innd_port(mailman_mail_t)
+
+corenet_sendrecv_spamd_client_packets(mailman_mail_t)
+corenet_tcp_connect_spamd_port(mailman_mail_t)
+corenet_tcp_sendrecv_spamd_port(mailman_mail_t)
+
+dev_read_urand(mailman_mail_t)
 
 fs_rw_anon_inodefs_files(mailman_mail_t)
 
@@ -86,33 +144,28 @@ optional_policy(`
 
 optional_policy(`
 	postfix_search_spool(mailman_mail_t)
+	postfix_rw_master_pipes(mailman_mail_t)
 ')
 
 ########################################
 #
-# Mailman queue local policy
+# Queue local policy
 #
 
 allow mailman_queue_t self:capability { setgid setuid };
 allow mailman_queue_t self:process signal;
 allow mailman_queue_t self:fifo_file rw_fifo_file_perms;
-allow mailman_queue_t self:unix_dgram_socket create_socket_perms;
 
-manage_dirs_pattern(mailman_queue_t, mailman_archive_t, mailman_archive_t)
-manage_files_pattern(mailman_queue_t, mailman_archive_t, mailman_archive_t)
-manage_lnk_files_pattern(mailman_queue_t, mailman_archive_t, mailman_archive_t)
-
-kernel_read_proc_symlinks(mailman_queue_t)
+corenet_sendrecv_innd_client_packets(mailman_queue_t)
+corenet_tcp_connect_innd_port(mailman_queue_t)
+corenet_tcp_sendrecv_innd_port(mailman_queue_t)
 
 auth_domtrans_chk_passwd(mailman_queue_t)
 
 files_dontaudit_search_pids(mailman_queue_t)
 
-# for su
 seutil_dontaudit_search_config(mailman_queue_t)
 
-# some of the following could probably be changed to dontaudit, someone who
-# knows mailman well should test this out and send the changes
 userdom_search_user_home_dirs(mailman_queue_t)
 
 optional_policy(`
