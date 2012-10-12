@@ -515,3 +515,44 @@ userdom_home_manager(chroot_user_t)
 optional_policy(`
     ssh_rw_dgram_sockets(chroot_user_t)
 ')
+
+######################################
+#
+# ssh_agent_type common policy local policy
+#
+allow ssh_agent_type self:process setrlimit;
+allow ssh_agent_type self:capability setgid;
+
+manage_dirs_pattern(ssh_agent_type, ssh_agent_tmp_t, ssh_agent_tmp_t)
+manage_sock_files_pattern(ssh_agent_type, ssh_agent_tmp_t, ssh_agent_tmp_t)
+files_tmp_filetrans(ssh_agent_type, ssh_agent_tmp_t, { dir sock_file })
+
+kernel_read_kernel_sysctls(ssh_agent_type)
+
+dev_read_urand(ssh_agent_type)
+dev_read_rand(ssh_agent_type)
+
+fs_search_auto_mountpoints(ssh_agent_type)
+
+domain_use_interactive_fds(ssh_agent_type)
+
+files_read_etc_files(ssh_agent_type)
+files_read_etc_runtime_files(ssh_agent_type)
+
+libs_read_lib_files(ssh_agent_type)
+
+logging_send_syslog_msg(ssh_agent_type)
+
+miscfiles_read_generic_certs(ssh_agent_type)
+
+# Write to the user domain tty.
+userdom_use_inherited_user_terminals(ssh_agent_type)
+
+# for the transition back to normal privs upon exec
+userdom_search_user_home_content(ssh_agent_type)
+
+optional_policy(`
+	xserver_use_xdm_fds(ssh_agent_type)
+	xserver_rw_xdm_pipes(ssh_agent_type)
+')
+

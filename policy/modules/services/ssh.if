@@ -379,16 +379,9 @@ template(`ssh_role_template',`
 	# SSH agent local policy
 	#
 
-	allow $1_ssh_agent_t self:process setrlimit;
-	allow $1_ssh_agent_t self:capability setgid;
-
 	allow $1_ssh_agent_t { $1_ssh_agent_t $3 }:process signull;
 
 	allow $1_ssh_agent_t self:unix_stream_socket { create_stream_socket_perms connectto };
-
-	manage_dirs_pattern($1_ssh_agent_t, ssh_agent_tmp_t, ssh_agent_tmp_t)
-	manage_sock_files_pattern($1_ssh_agent_t, ssh_agent_tmp_t, ssh_agent_tmp_t)
-	files_tmp_filetrans($1_ssh_agent_t, ssh_agent_tmp_t, { dir sock_file })
 
 	# for ssh-add
 	stream_connect_pattern($3, ssh_agent_tmp_t, ssh_agent_tmp_t, $1_ssh_agent_t)
@@ -402,47 +395,18 @@ template(`ssh_role_template',`
 
 	domtrans_pattern($3, ssh_agent_exec_t, $1_ssh_agent_t)
 
-	kernel_read_kernel_sysctls($1_ssh_agent_t)
-
-	dev_read_urand($1_ssh_agent_t)
-	dev_read_rand($1_ssh_agent_t)
-
-	fs_search_auto_mountpoints($1_ssh_agent_t)
+	kernel_read_system_state($1_ssh_agent_t)
 
 	# transition back to normal privs upon exec
 	corecmd_shell_domtrans($1_ssh_agent_t, $3)
 	corecmd_bin_domtrans($1_ssh_agent_t, $3)
 
-	domain_use_interactive_fds($1_ssh_agent_t)
+	auth_use_nsswitch($1_ssh_agent_t)
 
-	files_read_etc_files($1_ssh_agent_t)
-	files_read_etc_runtime_files($1_ssh_agent_t)
-
-	libs_read_lib_files($1_ssh_agent_t)
-
-	logging_send_syslog_msg($1_ssh_agent_t)
-
-	miscfiles_read_generic_certs($1_ssh_agent_t)
-
-	# Write to the user domain tty.
-	userdom_use_inherited_user_terminals($1_ssh_agent_t)
-
-	# for the transition back to normal privs upon exec
-	userdom_search_user_home_content($1_ssh_agent_t)
 	userdom_user_home_domtrans($1_ssh_agent_t, $3)
-
-	ssh_exec_keygen($3)
-
 	userdom_home_manager($1_ssh_agent_t)
 
-	optional_policy(`
-		nis_use_ypbind($1_ssh_agent_t)
-	')
-
-	optional_policy(`
-		xserver_use_xdm_fds($1_ssh_agent_t)
-		xserver_rw_xdm_pipes($1_ssh_agent_t)
-	')
+	ssh_exec_keygen($3)
 ')
 
 ########################################
