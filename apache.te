@@ -1,4 +1,4 @@
-policy_module(apache, 2.5.5)
+policy_module(apache, 2.5.6)
 
 ########################################
 #
@@ -17,14 +17,7 @@ gen_tunable(allow_httpd_anon_write, false)
 
 ## <desc>
 ##	<p>
-##	Determine whether httpd can use mod_auth_pam.
-##	</p>
-## </desc>
-gen_tunable(allow_httpd_mod_auth_pam, false)
-
-## <desc>
-##	<p>
-##	Determine whether httpd can use built in scripting (usually php).
+##	Determine whether httpd can use built in scripting.
 ##	</p>
 ## </desc>
 gen_tunable(httpd_builtin_scripting, false)
@@ -282,15 +275,6 @@ logging_log_file(httpd_log_t)
 type httpd_modules_t;
 files_type(httpd_modules_t)
 
-type httpd_php_t, httpd_script_domains;
-type httpd_php_exec_t, httpd_script_exec_type;
-domain_type(httpd_php_t)
-domain_entry_file(httpd_php_t, httpd_php_exec_t)
-role system_r types httpd_php_t;
-
-type httpd_php_tmp_t;
-files_tmp_file(httpd_php_tmp_t)
-
 type httpd_rotatelogs_t;
 type httpd_rotatelogs_exec_t;
 init_daemon_domain(httpd_rotatelogs_t, httpd_rotatelogs_exec_t)
@@ -352,12 +336,6 @@ type httpd_passwd_exec_t;
 domain_type(httpd_passwd_t)
 domain_entry_file(httpd_passwd_t, httpd_passwd_exec_t)
 role system_r types httpd_passwd_t;
-
-type httpd_unconfined_script_t, httpd_script_domains;
-type httpd_unconfined_script_exec_t, httpd_script_exec_type;
-domain_type(httpd_unconfined_script_t)
-domain_entry_file(httpd_unconfined_script_t, httpd_unconfined_script_exec_t)
-role system_r types httpd_unconfined_script_t;
 
 optional_policy(`
 	prelink_object_file(httpd_modules_t)
@@ -452,7 +430,6 @@ can_exec(httpd_t, httpd_exec_t)
 
 domtrans_pattern(httpd_t, httpd_helper_exec_t, httpd_helper_t)
 domtrans_pattern(httpd_t, httpd_passwd_exec_t, httpd_passwd_t)
-domtrans_pattern(httpd_t, httpd_php_exec_t, httpd_php_t)
 domtrans_pattern(httpd_t, httpd_rotatelogs_exec_t, httpd_rotatelogs_t)
 domtrans_pattern(httpd_t, httpd_suexec_exec_t, httpd_suexec_t)
 
@@ -527,16 +504,6 @@ ifdef(`hide_broken_symptoms',`
 	libs_exec_lib_files(httpd_t)
 ')
 
-ifdef(`TODO',`
-#
-# We need optionals to be able to be within booleans to make this work
-#
-tunable_policy(`allow_httpd_mod_auth_pam',`
-	auth_domtrans_chk_passwd(httpd_t)
-	logging_send_audit_msgs(httpd_t)
-')
-')
-
 tunable_policy(`allow_httpd_anon_write',`
 	miscfiles_manage_public_files(httpd_t)
 ')
@@ -587,11 +554,6 @@ tunable_policy(`httpd_builtin_scripting',`
 	allow httpd_t httpdcontent:dir list_dir_perms;
 	read_files_pattern(httpd_t, httpdcontent, httpdcontent)
 	read_lnk_files_pattern(httpd_t, httpdcontent, httpdcontent)
-')
-
-tunable_policy(`httpd_enable_cgi',`
-	domtrans_pattern(httpd_t, httpd_unconfined_script_exec_t, httpd_unconfined_script_t)
-	allow httpd_t httpd_unconfined_script_t:process signal_perms;
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_use_nfs',`
@@ -888,82 +850,6 @@ tunable_policy(`httpd_tty_comm',`
 	userdom_use_user_terminals(httpd_helper_t)
 ',`
 	userdom_dontaudit_use_user_terminals(httpd_helper_t)
-')
-
-########################################
-#
-# PHP script local policy
-#
-
-allow httpd_php_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
-allow httpd_php_t self:fd use;
-allow httpd_php_t self:sock_file read_sock_file_perms;
-allow httpd_php_t self:unix_dgram_socket create_socket_perms;
-allow httpd_php_t self:unix_stream_socket create_stream_socket_perms;
-allow httpd_php_t self:unix_dgram_socket sendto;
-allow httpd_php_t self:shm create_shm_perms;
-allow httpd_php_t self:sem create_sem_perms;
-allow httpd_php_t self:msgq create_msgq_perms;
-allow httpd_php_t self:msg { send receive };
-allow httpd_php_t self:tcp_socket { accept listen };
-
-manage_dirs_pattern(httpd_php_t, httpd_php_tmp_t, httpd_php_tmp_t)
-manage_files_pattern(httpd_php_t, httpd_php_tmp_t, httpd_php_tmp_t)
-files_tmp_filetrans(httpd_php_t, httpd_php_tmp_t, { file dir })
-
-fs_search_auto_mountpoints(httpd_php_t)
-
-auth_use_nsswitch(httpd_php_t)
-
-libs_read_lib_files(httpd_php_t)
-
-logging_search_logs(httpd_php_t)
-
-userdom_use_unpriv_users_fds(httpd_php_t)
-
-tunable_policy(`httpd_can_network_connect',`
-	corenet_tcp_connect_all_ports(httpd_php_t)
-	corenet_sendrecv_all_client_packets(httpd_php_t)
-	corenet_tcp_sendrecv_all_ports(httpd_php_t)
-')
-
-tunable_policy(`httpd_can_sendmail',`
-	corenet_sendrecv_smtp_client_packets(httpd_php_t)
-	corenet_tcp_connect_smtp_port(httpd_php_t)
-	corenet_tcp_sendrecv_smtp_port(httpd_php_t)
-	corenet_sendrecv_pop_client_packets(httpd_php_t)
-	corenet_tcp_connect_pop_port(httpd_php_t)
-	corenet_tcp_sendrecv_pop_port(httpd_php_t)
-	mta_send_mail(httpd_php_t)
-	mta_signal_system_mail(httpd_php_t)
-')
-
-tunable_policy(`httpd_tmp_exec',`
-	can_exec(httpd_php_t, httpd_php_tmp_t)
-')
-
-tunable_policy(`httpd_use_cifs',`
-	fs_list_auto_mountpoints(httpd_php_t)
-	fs_manage_cifs_dirs(httpd_php_t)
-	fs_manage_cifs_files(httpd_php_t)
-	fs_manage_cifs_symlinks(httpd_php_t)
-	fs_exec_cifs_files(httpd_php_t)
-')
-
-tunable_policy(`httpd_use_nfs',`
-	fs_list_auto_mountpoints(httpd_php_t)
-	fs_manage_nfs_dirs(httpd_php_t)
-	fs_manage_nfs_files(httpd_php_t)
-	fs_manage_nfs_symlinks(httpd_php_t)
-	fs_exec_nfs_files(httpd_php_t)
-')
-
-tunable_policy(`httpd_use_fusefs',`
-	fs_list_auto_mountpoints(httpd_php_t)
-	fs_manage_fusefs_dirs(httpd_php_t)
-	fs_manage_fusefs_files(httpd_php_t)
-	# fs_manage_fusefs_symlinks(httpd_php_t)
-	fs_exec_fusefs_files(httpd_php_t)
 ')
 
 ########################################
@@ -1356,6 +1242,10 @@ optional_policy(`
 	clamav_domtrans_clamscan(httpd_sys_script_t)
 ')
 
+optional_policy(`
+	postgresql_unpriv_client(httpd_sys_script_t)
+')
+
 ########################################
 #
 # Rotatelogs local policy
@@ -1381,6 +1271,7 @@ miscfiles_read_localization(httpd_rotatelogs_t)
 #
 
 optional_policy(`
+	apache_content_template(unconfined)
 	unconfined_domain(httpd_unconfined_script_t)
 ')
 
@@ -1403,6 +1294,10 @@ tunable_policy(`httpd_enable_homedirs',`
 
 tunable_policy(`httpd_read_user_content',`
 	userdom_read_user_home_content_files(httpd_user_script_t)
+')
+
+optional_policy(`
+	postgresql_unpriv_client(httpd_user_script_t)
 ')
 
 ########################################

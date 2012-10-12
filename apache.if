@@ -115,10 +115,6 @@ template(`apache_content_template',`
 
 		domtrans_pattern(httpd_t, httpd_$1_script_exec_t, httpd_$1_script_t)
 	')
-
-	optional_policy(`
-		postgresql_unpriv_client(httpd_$1_script_t)
-	')
 ')
 
 ########################################
@@ -1130,16 +1126,15 @@ interface(`apache_admin',`
 		attribute httpd_script_domains, httpd_htaccess_type;
 		type httpd_t, httpd_config_t, httpd_log_t;
 		type httpd_modules_t, httpd_lock_t, httpd_helper_t;
-		type httpd_var_run_t, httpd_php_tmp_t, httpd_php_t;
+		type httpd_var_run_t, httpd_keytab_t, httpd_passwd_t;
 		type httpd_suexec_tmp_t, httpd_tmp_t, httpd_rotatelogs_t;
-		type httpd_initrc_exec_t, httpd_suexec_t, httpd_passwd_t;
-		type httpd_unconfined_script_t, httpd_unconfined_script_exec_t, httpd_keytab_t;
+		type httpd_initrc_exec_t, httpd_suexec_t;
 	')
 
-	allow $1 { httpd_script_domains httpd_t httpd_helper_t httpd_unconfined_script_t }:process { ptrace signal_perms };
-	allow $1 { httpd_php_t httpd_rotatelogs_t httpd_suexec_t httpd_passwd_t }:process { ptrace signal_perms };
-	ps_process_pattern($1, { httpd_script_domains httpd_t httpd_helper_t httpd_passwd_t })
-	ps_process_pattern($1, { httpd_php_t httpd_rotatelogs_t httpd_suexec_t httpd_unconfined_script_t })
+	allow $1 { httpd_script_domains httpd_t httpd_helper_t }:process { ptrace signal_perms };
+	allow $1 { httpd_rotatelogs_t httpd_suexec_t httpd_passwd_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { httpd_script_domains httpd_t httpd_helper_t })
+	ps_process_pattern($1, { httpd_rotatelogs_t httpd_suexec_t httpd_passwd_t })
 
 	init_labeled_script_domtrans($1, httpd_initrc_exec_t)
 	domain_system_change_exemption($1)
@@ -1163,8 +1158,8 @@ interface(`apache_admin',`
 	admin_pattern($1, httpd_var_run_t)
 	files_pid_filetrans($1, httpd_var_run_t, file)
 
-	admin_pattern($1, { httpdcontent httpd_script_exec_type httpd_unconfined_script_exec_t })
-	admin_pattern($1, { httpd_php_tmp_t httpd_tmp_t httpd_suexec_tmp_t httpd_htaccess_type })
+	admin_pattern($1, { httpdcontent httpd_script_exec_type httpd_htaccess_type })
+	admin_pattern($1, { httpd_tmp_t httpd_suexec_tmp_t })
 
 	apache_run_all_scripts($1, $2)
 	apache_run_helper($1, $2)
