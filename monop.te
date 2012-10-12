@@ -1,4 +1,4 @@
-policy_module(monop, 1.7.0)
+policy_module(monop, 1.7.1)
 
 ########################################
 #
@@ -8,6 +8,9 @@ policy_module(monop, 1.7.0)
 type monopd_t;
 type monopd_exec_t;
 init_daemon_domain(monopd_t, monopd_exec_t)
+
+type monopd_initrc_exec_t;
+init_script_file(monopd_initrc_exec_t)
 
 type monopd_etc_t;
 files_config_file(monopd_etc_t)
@@ -25,11 +28,9 @@ files_pid_file(monopd_var_run_t)
 
 dontaudit monopd_t self:capability sys_tty_config;
 allow monopd_t self:process signal_perms;
-allow monopd_t self:tcp_socket create_stream_socket_perms;
-allow monopd_t self:udp_socket create_socket_perms;
+allow monopd_t self:tcp_socket { accept listen };
 
 allow monopd_t monopd_etc_t:file read_file_perms;
-files_search_etc(monopd_t)
 
 allow monopd_t monopd_share_t:dir list_dir_perms;
 read_files_pattern(monopd_t, monopd_share_t, monopd_share_t)
@@ -45,14 +46,12 @@ kernel_read_proc_symlinks(monopd_t)
 corenet_all_recvfrom_unlabeled(monopd_t)
 corenet_all_recvfrom_netlabel(monopd_t)
 corenet_tcp_sendrecv_generic_if(monopd_t)
-corenet_udp_sendrecv_generic_if(monopd_t)
 corenet_tcp_sendrecv_generic_node(monopd_t)
-corenet_udp_sendrecv_generic_node(monopd_t)
-corenet_tcp_sendrecv_all_ports(monopd_t)
-corenet_udp_sendrecv_all_ports(monopd_t)
 corenet_tcp_bind_generic_node(monopd_t)
-corenet_tcp_bind_monopd_port(monopd_t)
+
 corenet_sendrecv_monopd_server_packets(monopd_t)
+corenet_tcp_bind_monopd_port(monopd_t)
+corenet_tcp_sendrecv_monopd_port(monopd_t)
 
 dev_read_sysfs(monopd_t)
 
@@ -67,7 +66,7 @@ logging_send_syslog_msg(monopd_t)
 
 miscfiles_read_localization(monopd_t)
 
-sysnet_read_config(monopd_t)
+sysnet_dns_name_resolve(monopd_t)
 
 userdom_dontaudit_use_unpriv_user_fds(monopd_t)
 userdom_dontaudit_search_user_home_dirs(monopd_t)
