@@ -14,14 +14,19 @@ attribute mailserver_sender;
 
 attribute user_mail_domain;
 
+attribute_role user_mail_roles;
+
 type etc_aliases_t;
 files_type(etc_aliases_t)
 
 type etc_mail_t;
 files_config_file(etc_mail_t)
 
-type mail_forward_t;
-files_type(mail_forward_t)
+type mail_home_t alias mail_forward_t;
+userdom_user_home_content(mail_home_t)
+
+type mail_home_rw_t;
+userdom_user_home_content(mail_home_rw_t)
 
 type mqueue_spool_t;
 files_mountpoint(mqueue_spool_t)
@@ -38,39 +43,152 @@ role system_r types system_mail_t;
 mta_base_mail_template(user)
 typealias user_mail_t alias { staff_mail_t sysadm_mail_t };
 typealias user_mail_t alias { auditadm_mail_t secadm_mail_t };
+userdom_user_application_type(user_mail_t)
+role user_mail_roles types user_mail_t;
+
 typealias user_mail_tmp_t alias { staff_mail_tmp_t sysadm_mail_tmp_t };
 typealias user_mail_tmp_t alias { auditadm_mail_tmp_t secadm_mail_tmp_t };
-userdom_user_application_type(user_mail_t)
 userdom_user_tmp_file(user_mail_tmp_t)
 
 ########################################
 #
-# System mail local policy
+# Common base mail policy
 #
 
-# newalias required this, not sure if it is needed in 'if' file
+allow user_mail_domain self:capability { setuid setgid chown };
+allow user_mail_domain self:process { signal_perms setrlimit };
+allow user_mail_domain self:tcp_socket create_socket_perms;
+allow user_mail_domain self:fifo_file rw_fifo_file_perms;
+
+allow user_mail_domain mta_exec_type:file entrypoint;
+
+allow user_mail_domain mail_home_t:file { append_file_perms read_file_perms };
+
+manage_dirs_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
+manage_files_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
+userdom_user_home_dir_filetrans(user_mail_domain, mail_home_rw_t, dir, "Maildir")
+
+read_files_pattern(user_mail_domain, { etc_mail_t etc_aliases_t }, { etc_mail_t etc_aliases_t })
+
+manage_files_pattern(user_mail_domain, { mqueue_spool_t mail_spool_t }, { mqueue_spool_t mail_spool_t })
+read_lnk_files_pattern(user_mail_domain, { mqueue_spool_t mail_spool_t }, { mqueue_spool_t mail_spool_t })
+
+allow user_mail_domain sendmail_exec_t:lnk_file read_lnk_file_perms;
+
+can_exec(user_mail_domain, { mta_exec_type sendmail_exec_t })
+
+kernel_read_system_state(user_mail_domain)
+kernel_read_kernel_sysctls(user_mail_domain)
+kernel_read_network_state(user_mail_domain)
+kernel_request_load_module(user_mail_domain)
+
+corenet_all_recvfrom_netlabel(user_mail_domain)
+corenet_tcp_sendrecv_generic_if(user_mail_domain)
+corenet_tcp_sendrecv_generic_node(user_mail_domain)
+
+corenet_sendrecv_all_client_packets(user_mail_domain)
+corenet_tcp_connect_all_ports(user_mail_domain)
+corenet_tcp_sendrecv_all_ports(user_mail_domain)
+
+corecmd_exec_bin(user_mail_domain)
+
+dev_read_urand(user_mail_domain)
+
+domain_use_interactive_fds(user_mail_domain)
+
+files_read_etc_files(user_mail_domain)
+files_read_etc_runtime_files(user_mail_domain)
+files_read_usr_files(user_mail_domain)
+files_search_spool(user_mail_domain)
+files_dontaudit_search_pids(user_mail_domain)
+
+fs_getattr_all_fs(user_mail_domain)
+
+init_dontaudit_rw_utmp(user_mail_domain)
+
+logging_send_syslog_msg(user_mail_domain)
+
+miscfiles_read_localization(user_mail_domain)
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_manage_cifs_dirs(user_mail_domain)
+	fs_manage_cifs_files(user_mail_domain)
+	fs_read_cifs_symlinks(user_mail_domain)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_manage_nfs_dirs(user_mail_domain)
+	fs_manage_nfs_files(user_mail_domain)
+	fs_read_nfs_symlinks(user_mail_domain)
+')
+
+optional_policy(`
+	courier_manage_spool_dirs(user_mail_domain)
+	courier_manage_spool_files(user_mail_domain)
+	courier_rw_spool_pipes(user_mail_domain)
+')
+
+optional_policy(`
+	exim_domtrans(user_mail_domain)
+	exim_manage_log(user_mail_domain)
+	exim_manage_spool_files(user_mail_domain)
+')
+
+optional_policy(`
+	files_getattr_tmp_dirs(user_mail_domain)
+
+	postfix_exec_master(user_mail_domain)
+	postfix_read_config(user_mail_domain)
+	postfix_search_spool(user_mail_domain)
+	postfix_rw_master_pipes(user_mail_domain)
+
+	ifdef(`distro_redhat',`
+		postfix_config_filetrans(user_mail_domain, etc_aliases_t, { dir file lnk_file sock_file fifo_file })
+	')
+')
+
+optional_policy(`
+	procmail_exec(user_mail_domain)
+')
+
+optional_policy(`
+	qmail_domtrans_inject(user_mail_domain)
+')
+
+optional_policy(`
+	sendmail_manage_log(user_mail_domain)
+	sendmail_create_log(user_mail_domain)
+')
+
+optional_policy(`
+	uucp_manage_spool(user_mail_domain)
+')
+
+########################################
+#
+# System local policy
+#
+
 allow system_mail_t self:capability { dac_override fowner };
-allow system_mail_t self:fifo_file rw_fifo_file_perms;
 
 read_files_pattern(system_mail_t, etc_mail_t, etc_mail_t)
 
 read_files_pattern(system_mail_t, mailcontent_type, mailcontent_type)
 
-allow system_mail_t mail_forward_t:file read_file_perms;
+allow system_mail_t mail_home_t:file manage_file_perms;
+userdom_user_home_dir_filetrans(system_mail_t, mail_home_t, file, ".esmtp_queue")
+userdom_user_home_dir_filetrans(system_mail_t, mail_home_t, file, ".forward")
+userdom_user_home_dir_filetrans(system_mail_t, mail_home_t, file, ".mailrc")
+userdom_user_home_dir_filetrans(system_mail_t, mail_home_t, file, "dead.letter")
 
-allow system_mail_t mta_exec_type:file entrypoint;
+allow system_mail_t user_mail_domain:dir list_dir_perms;
+allow system_mail_t user_mail_domain:file read_file_perms;
+allow system_mail_t user_mail_domain:lnk_file read_lnk_file_perms;
 
-can_exec(system_mail_t, mta_exec_type)
+corecmd_exec_shell(system_mail_t)
 
-kernel_read_system_state(system_mail_t)
-kernel_read_network_state(system_mail_t)
-kernel_request_load_module(system_mail_t)
-
-dev_read_sysfs(system_mail_t)
 dev_read_rand(system_mail_t)
-dev_read_urand(system_mail_t)
-
-files_read_usr_files(system_mail_t)
+dev_read_sysfs(system_mail_t)
 
 fs_rw_anon_inodefs_files(system_mail_t)
 
@@ -81,13 +199,10 @@ term_dontaudit_use_unallocated_ttys(system_mail_t)
 init_use_script_ptys(system_mail_t)
 
 userdom_use_user_terminals(system_mail_t)
-userdom_dontaudit_search_user_home_dirs(system_mail_t)
 
 optional_policy(`
 	apache_read_squirrelmail_data(system_mail_t)
 	apache_append_squirrelmail_data(system_mail_t)
-
-	# apache should set close-on-exec
 	apache_dontaudit_append_log(system_mail_t)
 	apache_dontaudit_rw_stream_sockets(system_mail_t)
 	apache_dontaudit_rw_tcp_sockets(system_mail_t)
@@ -97,9 +212,14 @@ optional_policy(`
 optional_policy(`
 	arpwatch_manage_tmp_files(system_mail_t)
 
-	ifdef(`hide_broken_symptoms', `
+	ifdef(`hide_broken_symptoms',`
 		arpwatch_dontaudit_rw_packet_sockets(system_mail_t)
 	')
+')
+
+optional_policy(`
+	bugzilla_search_content(system_mail_t)
+	bugzilla_dontaudit_rw_stream_sockets(system_mail_t)
 ')
 
 optional_policy(`
@@ -114,6 +234,7 @@ optional_policy(`
 ')
 
 optional_policy(`
+	courier_stream_connect_authdaemon(system_mail_t)
 	courier_manage_spool_dirs(system_mail_t)
 	courier_manage_spool_files(system_mail_t)
 	courier_rw_spool_pipes(system_mail_t)
@@ -130,6 +251,7 @@ optional_policy(`
 
 optional_policy(`
 	fail2ban_append_log(system_mail_t)
+	fail2ban_rw_inherited_tmp_files(system_mail_t)
 ')
 
 optional_policy(`
@@ -141,7 +263,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# newaliases runs as system_mail_t when the sendmail initscript does a restart
 	milter_getattr_all_sockets(system_mail_t)
 ')
 
@@ -156,24 +277,6 @@ optional_policy(`
 	manage_fifo_files_pattern(system_mail_t, etc_aliases_t, etc_aliases_t)
 	manage_sock_files_pattern(system_mail_t, etc_aliases_t, etc_aliases_t)
 	files_etc_filetrans(system_mail_t, etc_aliases_t, { file lnk_file sock_file fifo_file })
-
-	domain_use_interactive_fds(system_mail_t)
-
-	# postfix needs this for newaliases
-	files_getattr_tmp_dirs(system_mail_t)
-
-	postfix_exec_master(system_mail_t)
-	postfix_read_config(system_mail_t)
-	postfix_search_spool(system_mail_t)
-
-	ifdef(`distro_redhat',`
-		# compatability for old default main.cf
-		postfix_config_filetrans(system_mail_t, etc_aliases_t, { dir file lnk_file sock_file fifo_file })
-	')
-')
-
-optional_policy(`
-	qmail_domtrans_inject(system_mail_t)
 ')
 
 optional_policy(`
@@ -189,17 +292,28 @@ optional_policy(`
 ')
 
 optional_policy(`
+	spamassassin_stream_connect_spamd(system_mail_t)
+')
+
+optional_policy(`
 	smartmon_read_tmp_files(system_mail_t)
 ')
 
-# should break this up among sections:
+########################################
+#
+# MTA user agent local policy
+#
+
+userdom_use_user_terminals(mta_user_agent)
 
 optional_policy(`
-	# why is mail delivered to a directory of type arpwatch_data_t?
-	arpwatch_search_data(mailserver_delivery)
+	apache_append_log(mta_user_agent)
+')
+
+optional_policy(`
 	arpwatch_manage_tmp_files(mta_user_agent)
 
-	ifdef(`hide_broken_symptoms', `
+	ifdef(`hide_broken_symptoms',`
 		arpwatch_dontaudit_rw_packet_sockets(mta_user_agent)
 	')
 
@@ -213,25 +327,39 @@ optional_policy(`
 # Mailserver delivery local policy
 #
 
+allow mailserver_delivery self:fifo_file rw_fifo_file_perms;
+
 allow mailserver_delivery mail_spool_t:dir list_dir_perms;
-manage_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
+create_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
+read_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
+append_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
 create_lnk_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
 read_lnk_files_pattern(mailserver_delivery, mail_spool_t, mail_spool_t)
 
-read_files_pattern(mailserver_delivery, mail_forward_t, mail_forward_t)
+manage_dirs_pattern(mailserver_delivery, mail_home_rw_t, mail_home_rw_t)
+manage_files_pattern(mailserver_delivery, { mail_home_t mail_home_rw_t }, { mail_home_t mail_home_rw_t })
+userdom_user_home_dir_filetrans(mailserver_delivery, mail_home_t, file, ".esmtp_queue")
+userdom_user_home_dir_filetrans(mailserver_delivery, mail_home_t, file, ".forward")
+userdom_user_home_dir_filetrans(mailserver_delivery, mail_home_t, file, ".mailrc")
+userdom_user_home_dir_filetrans(mailserver_delivery, mail_home_t, file, "dead.letter")
+userdom_user_home_dir_filetrans(mailserver_delivery, mail_home_rw_t, dir, "Maildir")
 
 read_files_pattern(mailserver_delivery, system_mail_tmp_t, system_mail_tmp_t)
 
 tunable_policy(`use_samba_home_dirs',`
 	fs_manage_cifs_dirs(mailserver_delivery)
 	fs_manage_cifs_files(mailserver_delivery)
-	fs_manage_cifs_symlinks(mailserver_delivery)
+	fs_read_cifs_symlinks(mailserver_delivery)
 ')
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_dirs(mailserver_delivery)
 	fs_manage_nfs_files(mailserver_delivery)
-	fs_manage_nfs_symlinks(mailserver_delivery)
+	fs_read_nfs_symlinks(mailserver_delivery)
+')
+
+optional_policy(`
+	arpwatch_search_data(mailserver_delivery)
 ')
 
 optional_policy(`
@@ -240,51 +368,38 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# so MTA can access /var/lib/mailman/mail/wrapper
 	files_search_var_lib(mailserver_delivery)
 
 	mailman_domtrans(mailserver_delivery)
 	mailman_read_data_symlinks(mailserver_delivery)
 ')
 
+optional_policy(`
+	postfix_rw_master_pipes(mailserver_delivery)
+')
+
+optional_policy(`
+	uucp_domtrans_uux(mailserver_delivery)
+')
+
 ########################################
 #
-# User send mail local policy
+# User local policy
 #
 
-domain_use_interactive_fds(user_mail_t)
+manage_files_pattern(user_mail_t, mail_home_t, mail_home_t)
+userdom_user_home_dir_filetrans(user_mail_t, mail_home_t, file, ".esmtp_queue")
+userdom_user_home_dir_filetrans(user_mail_t, mail_home_t, file, ".forward")
+userdom_user_home_dir_filetrans(user_mail_t, mail_home_t, file, ".mailrc")
+userdom_user_home_dir_filetrans(user_mail_t, mail_home_t, file, "dead.letter")
+
+dev_read_sysfs(user_mail_t)
 
 userdom_use_user_terminals(user_mail_t)
-# Write to the user domain tty. cjp: why?
-userdom_use_user_terminals(mta_user_agent)
-# Create dead.letter in user home directories.
-userdom_manage_user_home_content_files(user_mail_t)
-userdom_user_home_dir_filetrans_user_home_content(user_mail_t, file)
-# for reading .forward - maybe we need a new type for it?
-# also for delivering mail to maildir
-userdom_manage_user_home_content_dirs(mailserver_delivery)
-userdom_manage_user_home_content_files(mailserver_delivery)
-userdom_manage_user_home_content_symlinks(mailserver_delivery)
-userdom_manage_user_home_content_pipes(mailserver_delivery)
-userdom_manage_user_home_content_sockets(mailserver_delivery)
-userdom_user_home_dir_filetrans_user_home_content(mailserver_delivery, { dir file lnk_file fifo_file sock_file })
-# Read user temporary files.
-userdom_read_user_tmp_files(user_mail_t)
-userdom_dontaudit_append_user_tmp_files(user_mail_t)
-# cjp: this should probably be read all user tmp
-# files in an appropriate place for mta_user_agent
-userdom_read_user_tmp_files(mta_user_agent)
-
-tunable_policy(`use_samba_home_dirs',`
-	fs_manage_cifs_files(user_mail_t)
-	fs_manage_cifs_symlinks(user_mail_t)
-')
 
 optional_policy(`
 	allow user_mail_t self:capability dac_override;
 
-	# Read user temporary files.
-	# postfix seems to need write access if the file handle is opened read/write
 	userdom_rw_user_tmp_files(user_mail_t)
 
 	postfix_read_config(user_mail_t)
