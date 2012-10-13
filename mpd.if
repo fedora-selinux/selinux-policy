@@ -1,4 +1,31 @@
-## <summary>Music Player Daemon</summary>
+## <summary>Music Player Daemon.</summary>
+
+########################################
+## <summary>
+##	Role access for mpd.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+template(`mpd_role',`
+	gen_require(`
+		type mpd_exec_t, mpd_user_data_t;
+	')
+
+	can_exec($2, mpd_exec_t)
+
+	allow $2 mpd_user_data_t:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 mpd_user_data_t:file { manage_file_perms relabel_file_perms };
+	allow $2 mpd_user_data_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+')
 
 ########################################
 ## <summary>
@@ -15,6 +42,7 @@ interface(`mpd_domtrans',`
 		type mpd_t, mpd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, mpd_exec_t, mpd_t)
 ')
 
@@ -57,7 +85,8 @@ interface(`mpd_read_data_files',`
 
 ######################################
 ## <summary>
-##	Manage mpd data files.
+##	Create, read, write, and delete
+##	mpd data files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -95,7 +124,8 @@ interface(`mpd_read_tmpfs_files',`
 
 ###################################
 ## <summary>
-##	Manage mpd tmpfs files.
+##	Create, read, write, and delete
+##	mpd tmpfs files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -128,8 +158,8 @@ interface(`mpd_search_lib',`
 		type mpd_var_lib_t;
 	')
 
-	allow $1 mpd_var_lib_t:dir search_dir_perms;
 	files_search_var_lib($1)
+	allow $1 mpd_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
@@ -173,8 +203,8 @@ interface(`mpd_manage_lib_files',`
 
 #######################################
 ## <summary>
-##	Create an object in the root directory, with a private
-##	type using a type transition.
+##	Create specified objects in mpd
+##	lib directories with a private type.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -191,6 +221,11 @@ interface(`mpd_manage_lib_files',`
 ##	The object class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`mpd_var_lib_filetrans',`
 	gen_require(`
@@ -198,12 +233,13 @@ interface(`mpd_var_lib_filetrans',`
 	')
 
 	files_search_var_lib($1)
-	filetrans_pattern($1, mpd_var_lib_t, $2, $3)
+	filetrans_pattern($1, mpd_var_lib_t, $2, $3, $4)
 ')
 
 ########################################
 ## <summary>
-##	Manage mpd lib dirs files.
+##	Create, read, write, and delete
+##	mpd lib dirs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -222,8 +258,8 @@ interface(`mpd_manage_lib_dirs',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an mpd environment
+##	All of the rules required to
+##	administrate an mpd environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -241,7 +277,7 @@ interface(`mpd_admin',`
 	gen_require(`
 		type mpd_t, mpd_initrc_exec_t, mpd_etc_t;
 		type mpd_data_t, mpd_log_t, mpd_var_lib_t;
-		type mpd_tmpfs_t;
+		type mpd_tmpfs_t, mpd_tmp_t, mpd_user_data_t;
 	')
 
 	allow $1 mpd_t:process { ptrace signal_perms };
@@ -252,16 +288,18 @@ interface(`mpd_admin',`
 	role_transition $2 mpd_initrc_exec_t system_r;
 	allow $2 system_r;
 
+	files_search_etc($1)
 	admin_pattern($1, mpd_etc_t)
-	files_list_etc($1)
 
-	files_list_var_lib($1)
-	admin_pattern($1, mpd_var_lib_t)
+	files_search_var_lib($1)
+	admin_pattern($1, { mpd_data_t mpd_user_data_t mpd_var_lib_t })
 
-	admin_pattern($1, mpd_data_t)
-
+	logging_search_logs($1)
 	admin_pattern($1, mpd_log_t)
 
-	fs_list_tmpfs($1)
+	files_search_tmp($1)
+	admin_pattern($1, mpd_tmp_t)
+
+	fs_search_tmpfs($1)
 	admin_pattern($1, mpd_tmpfs_t)
 ')
