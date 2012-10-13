@@ -84,6 +84,11 @@ interface(`mta_role',`
 
 	roleattribute $1 user_mail_roles;
 
+	# this is something i need to fix
+	# i dont know if and why it is needed
+	# will role attribute work?
+	role $1 types mta_user_agent;
+
 	domtrans_pattern($2, sendmail_exec_t, user_mail_t)
 	allow $2 sendmail_exec_t:lnk_file read_lnk_file_perms;
 
@@ -156,6 +161,127 @@ interface(`mta_agent_executable',`
 	application_executable_file($1)
 ')
 
+#######################################
+## <summary>
+##	Read mta mail home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mta_read_mail_home_files',`
+	gen_require(`
+		type mail_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 mail_home_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	mta mail home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mta_manage_mail_home_files',`
+	gen_require(`
+		type mail_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 mail_home_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Create specified objects in user home
+##	directories with the generic mail
+##	home type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`mta_home_filetrans_home',`
+	gen_require(`
+		type mail_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, mail_home_t, $2, $3)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	mta mail home rw content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mta_manage_mail_home_rw_content',`
+	gen_require(`
+		type mail_home_rw_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	manage_dirs_pattern($1, mail_home_rw_t, mail_home_rw_t)
+	manage_files_pattern($1, mail_home_rw_t, mail_home_rw_t)
+	manage_lnk_files_pattern($1, mail_home_rw_t, mail_home_rw_t)
+')
+
+########################################
+## <summary>
+##	Create specified objects in user home
+##	directories with the generic mail
+##	home rw type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`mta_home_filetrans_home_rw',`
+	gen_require(`
+		type mail_home_rw_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, mail_home_rw_t, $2, $3)
+')
+
 ########################################
 ## <summary>
 ##	Make the specified type by a system MTA.
@@ -206,6 +332,7 @@ interface(`mta_sendmail_mailserver',`
 	')
 
 	init_system_domain($1, sendmail_exec_t)
+
 	typeattribute $1 mailserver_domain;
 ')
 
@@ -242,7 +369,6 @@ interface(`mta_mailserver_sender',`
 interface(`mta_mailserver_delivery',`
 	gen_require(`
 		attribute mailserver_delivery;
-		type mail_spool_t;
 	')
 
 	typeattribute $1 mailserver_delivery;
@@ -322,6 +448,8 @@ interface(`mta_sendmail_domtrans',`
 
 	corecmd_search_bin($1)
 	domain_auto_trans($1, sendmail_exec_t, $2)
+
+	allow $1 sendmail_exec_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
@@ -454,13 +582,23 @@ interface(`mta_manage_aliases',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
+## <param name="object">
+##	<summary>
+##	The object class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`mta_etc_filetrans_aliases',`
 	gen_require(`
 		type etc_aliases_t;
 	')
 
-	files_etc_filetrans($1, etc_aliases_t, file)
+	files_etc_filetrans($1, etc_aliases_t, $2, $3)
 ')
 
 ########################################
