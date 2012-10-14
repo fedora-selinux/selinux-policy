@@ -1,4 +1,4 @@
-policy_module(gpg, 2.7.1)
+policy_module(gpg, 2.7.2)
 
 ########################################
 #
@@ -13,16 +13,6 @@ policy_module(gpg, 2.7.1)
 ##	</p>
 ## </desc>
 gen_tunable(gpg_agent_env_file, false)
-
-## <desc>
-##	<p>
-##	Determine whether gpg web can modify
-##	public files used for public file
-##	transfer services. Directories/Files must
-##	be labeled public_content_rw_t.
-##	</p>
-## </desc>
-gen_tunable(gpg_web_anon_write, false)
 
 attribute_role gpg_roles;
 roleattribute system_r gpg_roles;
@@ -77,11 +67,6 @@ userdom_user_tmp_file(gpg_pinentry_tmp_t)
 
 type gpg_pinentry_tmpfs_t;
 userdom_user_tmpfs_file(gpg_pinentry_tmpfs_t)
-
-type gpg_web_t;
-domain_type(gpg_web_t)
-domain_entry_file(gpg_web_t, gpg_exec_t)
-role system_r types gpg_web_t;
 
 ########################################
 #
@@ -358,28 +343,4 @@ optional_policy(`
 
 optional_policy(`
 	xserver_user_x_domain_template(gpg_pinentry, gpg_pinentry_t, gpg_pinentry_tmpfs_t)
-')
-
-#############################
-#
-# Web local policy
-#
-
-allow gpg_web_t self:process setrlimit;
-
-dev_read_rand(gpg_web_t)
-dev_read_urand(gpg_web_t)
-
-can_exec(gpg_web_t, gpg_exec_t)
-
-files_read_usr_files(gpg_web_t)
-
-miscfiles_read_localization(gpg_web_t)
-
-tunable_policy(`gpg_web_anon_write',`
-	miscfiles_manage_public_files(gpg_web_t)
-')
-
-optional_policy(`
-	apache_manage_sys_rw_content(gpg_web_t)
 ')

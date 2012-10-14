@@ -1,4 +1,4 @@
-policy_module(apache, 2.5.6)
+policy_module(apache, 2.5.7)
 
 ########################################
 #
@@ -14,6 +14,13 @@ policy_module(apache, 2.5.6)
 ##	</p>
 ## </desc>
 gen_tunable(allow_httpd_anon_write, false)
+
+## <desc>
+##	<p>
+##	Determine whether httpd can use mod_auth_pam.
+##	</p>
+## </desc>
+gen_tunable(allow_httpd_mod_auth_pam, false)
 
 ## <desc>
 ##	<p>
@@ -121,6 +128,16 @@ gen_tunable(httpd_enable_ftp_server, false)
 ##	</p>
 ## </desc>
 gen_tunable(httpd_enable_homedirs, false)
+
+## <desc>
+##	<p>
+##	Determine whether httpd gpg can modify
+##	public files used for public file
+##	transfer services. Directories/Files must
+##	be labeled public_content_rw_t.
+##	</p>
+## </desc>
+gen_tunable(httpd_gpg_anon_write, false)
 
 ## <desc>
 ##	<p>
@@ -337,6 +354,11 @@ domain_type(httpd_passwd_t)
 domain_entry_file(httpd_passwd_t, httpd_passwd_exec_t)
 role system_r types httpd_passwd_t;
 
+type httpd_gpg_t;
+domain_type(httpd_gpg_t)
+gpg_entry_type(httpd_gpg_t)
+role system_r types httpd_gpg_t;
+
 optional_policy(`
 	prelink_object_file(httpd_modules_t)
 ')
@@ -500,6 +522,14 @@ seutil_dontaudit_search_config(httpd_t)
 
 userdom_use_unpriv_users_fds(httpd_t)
 
+ifdef(`TODO',`
+	tunable_policy(`allow_httpd_mod_auth_pam',`
+		auth_domtrans_chk_passwd(httpd_t)
+
+		logging_send_audit_msgs(httpd_t)
+	')
+')
+
 ifdef(`hide_broken_symptoms',`
 	libs_exec_lib_files(httpd_t)
 ')
@@ -554,6 +584,10 @@ tunable_policy(`httpd_builtin_scripting',`
 	allow httpd_t httpdcontent:dir list_dir_perms;
 	read_files_pattern(httpd_t, httpdcontent, httpdcontent)
 	read_lnk_files_pattern(httpd_t, httpdcontent, httpdcontent)
+')
+
+tunable_policy(`httpd_enable_cgi && httpd_use_gpg',`
+	gpg_spec_domtrans(httpd_t, httpd_gpg_t)
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_use_nfs',`
@@ -729,12 +763,6 @@ optional_policy(`
 
 optional_policy(`
 	gitosis_read_lib_files(httpd_t)
-')
-
-optional_policy(`
-	tunable_policy(`httpd_enable_cgi && httpd_use_gpg',`
-		gpg_domtrans_web(httpd_t)
-	')
 ')
 
 optional_policy(`
@@ -1324,3 +1352,31 @@ auth_use_nsswitch(httpd_passwd_t)
 
 miscfiles_read_generic_certs(httpd_passwd_t)
 miscfiles_read_localization(httpd_passwd_t)
+
+########################################
+#
+# GPG local policy
+#
+
+allow httpd_gpg_t self:process setrlimit;
+
+allow httpd_gpg_t httpd_t:fd use;
+allow httpd_gpg_t httpd_t:fifo_file rw_fifo_file_perms;
+allow httpd_gpg_t httpd_t:process sigchld;
+
+dev_read_rand(httpd_gpg_t)
+dev_read_urand(httpd_gpg_t)
+
+files_read_usr_files(httpd_gpg_t)
+
+miscfiles_read_localization(httpd_gpg_t)
+
+gpg_exec(httpd_gpg_t)
+
+tunable_policy(`httpd_gpg_anon_write',`
+	miscfiles_manage_public_files(httpd_gpg_t)
+')
+
+optional_policy(`
+	apache_manage_sys_rw_content(httpd_gpg_t)
+')
