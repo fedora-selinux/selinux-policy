@@ -1,4 +1,4 @@
-policy_module(mozilla, 2.6.6)
+policy_module(mozilla, 2.6.7)
 
 ########################################
 #
@@ -33,6 +33,9 @@ type mozilla_plugin_t;
 type mozilla_plugin_exec_t;
 userdom_user_application_domain(mozilla_plugin_t, mozilla_plugin_exec_t)
 role mozilla_plugin_roles types mozilla_plugin_t;
+
+type mozilla_plugin_home_t;
+userdom_user_home_content(mozilla_plugin_home_t)
 
 type mozilla_plugin_tmp_t;
 userdom_user_tmp_file(mozilla_plugin_tmp_t)
@@ -72,13 +75,15 @@ allow mozilla_t self:unix_stream_socket { accept listen };
 allow mozilla_t mozilla_plugin_t:unix_stream_socket rw_socket_perms;
 allow mozilla_t mozilla_plugin_t:fd use;
 
-manage_dirs_pattern(mozilla_t, mozilla_home_t, mozilla_home_t)
-manage_files_pattern(mozilla_t, mozilla_home_t, mozilla_home_t)
-manage_lnk_files_pattern(mozilla_t, mozilla_home_t, mozilla_home_t)
+allow mozilla_t { mozilla_home_t mozilla_plugin_home_t }:dir manage_dir_perms;
+allow mozilla_t { mozilla_home_t mozilla_plugin_home_t }:file manage_file_perms;
+allow mozilla_t mozilla_home_t:lnk_file manage_lnk_file_perms;
 userdom_user_home_dir_filetrans(mozilla_t, mozilla_home_t, dir, ".galeon")
 userdom_user_home_dir_filetrans(mozilla_t, mozilla_home_t, dir, ".mozilla")
 userdom_user_home_dir_filetrans(mozilla_t, mozilla_home_t, dir, ".netscape")
 userdom_user_home_dir_filetrans(mozilla_t, mozilla_home_t, dir, ".phoenix")
+
+filetrans_pattern(mozilla_t, mozilla_home_t, mozilla_plugin_home_t, dir, "plugins")
 
 manage_files_pattern(mozilla_t, mozilla_tmp_t, mozilla_tmp_t)
 manage_dirs_pattern(mozilla_t, mozilla_tmp_t, mozilla_tmp_t)
@@ -96,7 +101,7 @@ allow mozilla_t mozilla_plugin_rw_t:lnk_file read_lnk_file_perms;
 
 stream_connect_pattern(mozilla_t, mozilla_plugin_tmpfs_t, mozilla_plugin_tmpfs_t, mozilla_plugin_t)
 
-can_exec(mozilla_t, { mozilla_exec_t mozilla_plugin_rw_t })
+can_exec(mozilla_t, { mozilla_exec_t mozilla_plugin_rw_t mozilla_plugin_home_t })
 
 kernel_read_kernel_sysctls(mozilla_t)
 kernel_read_network_state(mozilla_t)
@@ -306,13 +311,15 @@ allow mozilla_plugin_t mozilla_t:unix_dgram_socket rw_socket_perms;
 allow mozilla_plugin_t mozilla_t:shm { rw_shm_perms destroy };
 allow mozilla_plugin_t mozilla_t:sem create_sem_perms;
 
-manage_dirs_pattern(mozilla_plugin_t, mozilla_home_t, mozilla_home_t)
-manage_files_pattern(mozilla_plugin_t, mozilla_home_t, mozilla_home_t)
-manage_lnk_files_pattern(mozilla_plugin_t, mozilla_home_t, mozilla_home_t)
+manage_dirs_pattern(mozilla_plugin_t, { mozilla_home_t mozilla_plugin_home_t }, { mozilla_home_t mozilla_plugin_home_t })
+manage_files_pattern(mozilla_plugin_t, { mozilla_home_t mozilla_plugin_home_t }, mozilla_plugin_home_t)
+manage_lnk_files_pattern(mozilla_plugin_t, { mozilla_home_t mozilla_plugin_home_t }, mozilla_plugin_home_t)
 userdom_user_home_dir_filetrans(mozilla_plugin_t, mozilla_home_t, dir, ".galeon")
 userdom_user_home_dir_filetrans(mozilla_plugin_t, mozilla_home_t, dir, ".mozilla")
 userdom_user_home_dir_filetrans(mozilla_plugin_t, mozilla_home_t, dir, ".netscape")
 userdom_user_home_dir_filetrans(mozilla_plugin_t, mozilla_home_t, dir, ".phoenix")
+
+filetrans_pattern(mozilla_plugin_t, mozilla_home_t, mozilla_plugin_home_t, dir, "plugins")
 
 manage_dirs_pattern(mozilla_plugin_t, mozilla_plugin_tmp_t, mozilla_plugin_tmp_t)
 manage_files_pattern(mozilla_plugin_t, mozilla_plugin_tmp_t, mozilla_plugin_tmp_t)
@@ -327,13 +334,13 @@ manage_sock_files_pattern(mozilla_plugin_t, mozilla_plugin_tmpfs_t, mozilla_plug
 fs_tmpfs_filetrans(mozilla_plugin_t, mozilla_plugin_tmpfs_t, { file lnk_file sock_file fifo_file })
 
 allow mozilla_plugin_t mozilla_plugin_rw_t:dir list_dir_perms;
-read_files_pattern(mozilla_plugin_t, mozilla_plugin_rw_t, mozilla_plugin_rw_t)
-read_lnk_files_pattern(mozilla_plugin_t, mozilla_plugin_rw_t, mozilla_plugin_rw_t)
+allow mozilla_plugin_t mozilla_plugin_rw_t:file read_file_perms;
+allow mozilla_plugin_t mozilla_plugin_rw_t:lnk_file read_lnk_file_perms;
 
 dgram_send_pattern(mozilla_plugin_t, mozilla_plugin_tmpfs_t, mozilla_plugin_tmpfs_t, mozilla_t)
 stream_connect_pattern(mozilla_plugin_t, mozilla_plugin_tmpfs_t, mozilla_plugin_tmpfs_t, mozilla_t)
 
-can_exec(mozilla_plugin_t, { mozilla_exec_t mozilla_home_t mozilla_plugin_tmp_t })
+can_exec(mozilla_plugin_t, { mozilla_exec_t mozilla_plugin_home_t mozilla_plugin_tmp_t })
 
 kernel_read_all_sysctls(mozilla_plugin_t)
 kernel_read_system_state(mozilla_plugin_t)
@@ -561,19 +568,22 @@ allow mozilla_plugin_config_t self:process { setsched signal_perms getsched };
 allow mozilla_plugin_config_t self:fifo_file rw_fifo_file_perms;
 allow mozilla_plugin_config_t self:unix_stream_socket create_stream_socket_perms;
 
-manage_dirs_pattern(mozilla_plugin_config_t, mozilla_plugin_rw_t, mozilla_plugin_rw_t)
-manage_files_pattern(mozilla_plugin_config_t, mozilla_plugin_rw_t, mozilla_plugin_rw_t)
-manage_lnk_files_pattern(mozilla_plugin_config_t, mozilla_plugin_rw_t, mozilla_plugin_rw_t)
+allow mozilla_plugin_config_t mozilla_plugin_rw_t:dir manage_dir_perms;
+allow mozilla_plugin_config_t mozilla_plugin_rw_t:file manage_file_perms;
+allow mozilla_plugin_config_t mozilla_plugin_rw_t:lnk_file manage_lnk_file_perms;
 
-manage_dirs_pattern(mozilla_plugin_config_t, mozilla_home_t, mozilla_home_t)
-manage_files_pattern(mozilla_plugin_config_t, mozilla_home_t, mozilla_home_t)
-manage_lnk_files_pattern(mozilla_plugin_config_t, mozilla_home_t, mozilla_home_t)
+manage_dirs_pattern(mozilla_plugin_config_t, { mozilla_home_t mozilla_plugin_home_t }, { mozilla_home_t mozilla_plugin_home_t })
+manage_files_pattern(mozilla_plugin_config_t, { mozilla_home_t mozilla_plugin_home_t }, mozilla_plugin_home_t)
+manage_lnk_files_pattern(mozilla_plugin_config_t, { mozilla_home_t mozilla_plugin_home_t }, mozilla_plugin_home_t)
+
 userdom_user_home_dir_filetrans(mozilla_plugin_config_t, mozilla_home_t, dir, ".galeon")
 userdom_user_home_dir_filetrans(mozilla_plugin_config_t, mozilla_home_t, dir, ".mozilla")
 userdom_user_home_dir_filetrans(mozilla_plugin_config_t, mozilla_home_t, dir, ".netscape")
 userdom_user_home_dir_filetrans(mozilla_plugin_config_t, mozilla_home_t, dir, ".phoenix")
 
-can_exec(mozilla_plugin_config_t, mozilla_plugin_rw_t)
+filetrans_pattern(mozilla_plugin_config_t, mozilla_home_t, mozilla_plugin_home_t, dir, "plugins")
+
+can_exec(mozilla_plugin_config_t, { mozilla_plugin_rw_t mozilla_plugin_home_t })
 
 kernel_read_system_state(mozilla_plugin_config_t)
 kernel_request_load_module(mozilla_plugin_config_t)

@@ -19,7 +19,7 @@ interface(`mozilla_role',`
 	gen_require(`
 		type mozilla_t, mozilla_exec_t, mozilla_home_t;
 		type mozilla_tmp_t, mozilla_tmpfs_t, mozilla_plugin_tmp_t;
-		type mozilla_plugin_tmpfs_t;
+		type mozilla_plugin_tmpfs_t, mozilla_plugin_home_t;
 		attribute_role mozilla_roles;
 	')
 
@@ -48,13 +48,15 @@ interface(`mozilla_role',`
 
 	stream_connect_pattern($2, mozilla_tmpfs_t, mozilla_tmpfs_t, mozilla_t)
 
-	allow $2 mozilla_home_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 mozilla_home_t:file { manage_file_perms relabel_file_perms };
+	allow $2 { mozilla_home_t mozilla_plugin_home_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { mozilla_home_t mozilla_plugin_home_t }:file { manage_file_perms relabel_file_perms };
 	allow $2 mozilla_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
 	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".galeon")
 	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".mozilla")
 	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".netscape")
 	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".phoenix")
+
+	filetrans_pattern($2, mozilla_home_t, mozilla_plugin_home_t, dir, "plugins")
 
 	allow $2 { mozilla_tmp_t mozilla_plugin_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
 	allow $2 { mozilla_tmp_t mozilla_plugin_tmp_t }:file { manage_file_perms relabel_file_perms };
@@ -219,7 +221,7 @@ interface(`mozilla_dontaudit_manage_user_home_files',`
 
 ########################################
 ## <summary>
-##	Execute mozilla home directory files.
+##	Execute mozilla home directory files.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -228,18 +230,33 @@ interface(`mozilla_dontaudit_manage_user_home_files',`
 ## </param>
 #
 interface(`mozilla_exec_user_home_files',`
+	refpolicywarn(`$0($*) has been deprecated, use mozilla_exec_user_plugin_home_files() instead.')
+	mozilla_exec_user_plugin_home_files($1)
+')
+
+########################################
+## <summary>
+##	Execute mozilla plugin home directory files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_exec_user_plugin_home_files',`
 	gen_require(`
-		type mozilla_home_t;
+		type mozilla_home_t, mozilla_plugin_home_t;
 	')
 
 	userdom_search_user_home_dirs($1)
-	can_exec($1, mozilla_home_t)
+	exec_files_pattern($1, { mozilla_home_t mozilla_plugin_home_t }, mozilla_plugin_home_t)
 ')
 
 ########################################
 ## <summary>
 ##	Mozilla home directory file
-##	text relocation.
+##	text relocation.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -248,11 +265,27 @@ interface(`mozilla_exec_user_home_files',`
 ## </param>
 #
 interface(`mozilla_execmod_user_home_files',`
+	refpolicywarn(`$0($*) has been deprecated, use mozilla_execmod_user_plugin_home_files() instead.')
+	mozilla_execmod_user_plugin_home_files($1)
+')
+
+########################################
+## <summary>
+##	Mozilla plugin home directory file
+##	text relocation.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_execmod_user_plugin_home_files',`
 	gen_require(`
-		type mozilla_home_t;
+		type mozilla_plugin_home_t;
 	')
 
-	allow $1 mozilla_home_t:file execmod;
+	allow $1 mozilla_plugin_home_t:file execmod;
 ')
 
 ########################################
