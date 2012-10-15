@@ -927,31 +927,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	pwauth_domtrans(httpd_t)
-')
-
-optional_policy(`
-	tunable_policy(`httpd_run_stickshift', `
-		allow httpd_t self:capability { fowner fsetid sys_resource };
-		dontaudit httpd_t self:capability sys_ptrace;
-		allow httpd_t self:process setexec;
-
-		files_dontaudit_getattr_all_files(httpd_t)
-		domain_dontaudit_read_all_domains_state(httpd_t)
-		domain_getpgid_all_domains(httpd_t)
-
-		#optional_policy(`
-			passenger_exec(httpd_t)
-			passenger_manage_pid_content(httpd_t)
-			passenger_manage_lib_files(httpd_t)
-		#')
-	',`
-		passenger_domtrans(httpd_t)
-		passenger_manage_pid_content(httpd_t)
-		passenger_read_lib_files(httpd_t)
-		passenger_stream_connect(httpd_t)
-		passenger_manage_tmp_files(httpd_t)
-	')
+	passenger_exec(httpd_t)
+	passenger_manage_pid_content(httpd_t)
 ')
 
 optional_policy(`
@@ -965,6 +942,10 @@ optional_policy(`
 
 optional_policy(`
 	puppet_read_lib(httpd_t)
+')
+
+optional_policy(`
+	pwauth_domtrans(httpd_t)
 ')
 
 optional_policy(`
@@ -1023,6 +1004,33 @@ allow httpd_helper_t httpd_log_t:file append_file_perms;
 logging_send_syslog_msg(httpd_helper_t)
 
 userdom_use_inherited_user_terminals(httpd_helper_t)
+
+tunable_policy(`httpd_run_stickshift', `
+	allow httpd_t self:capability { fowner fsetid sys_resource };
+	dontaudit httpd_t self:capability sys_ptrace;
+	allow httpd_t self:process setexec;
+
+	files_dontaudit_getattr_all_files(httpd_t)
+	domain_dontaudit_read_all_domains_state(httpd_t)
+	domain_getpgid_all_domains(httpd_t)
+')
+
+optional_policy(`
+	tunable_policy(`httpd_run_stickshift', `
+		passenger_manage_lib_files(httpd_t)
+	',`
+		passenger_domtrans(httpd_t)
+		passenger_read_lib_files(httpd_t)
+		passenger_stream_connect(httpd_t)
+		passenger_manage_tmp_files(httpd_t)
+	')
+')
+
+optional_policy(`
+	tunable_policy(`httpd_run_stickshift', `
+		oddjob_dbus_chat(httpd_t)
+	')
+')
 
 tunable_policy(`httpd_tty_comm',`
 	userdom_use_inherited_user_terminals(httpd_helper_t)
