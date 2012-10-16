@@ -1,4 +1,4 @@
-## <summary>Policy for NIS (YP) servers and clients</summary>
+## <summary>Policy for NIS (YP) servers and clients.</summary>
 
 ########################################
 ## <summary>
@@ -34,8 +34,8 @@ interface(`nis_use_ypbind_uncond',`
 	allow $1 self:udp_socket create_socket_perms;
 
 	allow $1 var_yp_t:dir list_dir_perms;
-	allow $1 var_yp_t:lnk_file { getattr read };
 	allow $1 var_yp_t:file read_file_perms;
+	allow $1 var_yp_t:lnk_file read_lnk_file_perms;
 
 	corenet_all_recvfrom_unlabeled($1)
 	corenet_all_recvfrom_netlabel($1)
@@ -95,7 +95,7 @@ interface(`nis_use_ypbind',`
 
 ########################################
 ## <summary>
-##	Use the nis to authenticate passwords
+##	Use nis to authenticate passwords.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -150,11 +150,11 @@ interface(`nis_domtrans_ypbind',`
 #
 interface(`nis_run_ypbind',`
 	gen_require(`
-		type ypbind_t;
+		attribute_role ypbind_roles;
 	')
 
 	nis_domtrans_ypbind($1)
-	role $2 types ypbind_t;
+	roleattribute $2 ypbind_roles;
 ')
 
 ########################################
@@ -177,7 +177,7 @@ interface(`nis_signal_ypbind',`
 
 ########################################
 ## <summary>
-##	List the contents of the NIS data directory.
+##	List nis data directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -253,11 +253,10 @@ interface(`nis_read_ypbind_pid',`
 #
 interface(`nis_delete_ypbind_pid',`
 	gen_require(`
-		type ypbind_t;
+		type ypbind_var_run_t;
 	')
 
-	# TODO: add delete pid from dir call to files
-	allow $1 ypbind_t:file unlink;
+	allow $1 ypbind_var_run_t:file delete_file_perms;
 ')
 
 ########################################
@@ -337,8 +336,8 @@ interface(`nis_initrc_domtrans_ypbind',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an nis environment
+##	All of the rules required to
+##	administrate an nis environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -357,40 +356,29 @@ interface(`nis_admin',`
 		type ypbind_t, yppasswdd_t, ypserv_t, ypxfr_t;
 		type ypbind_tmp_t, ypserv_tmp_t, ypserv_conf_t;
 		type ypbind_var_run_t, yppasswdd_var_run_t, ypserv_var_run_t;
-		type ypbind_initrc_exec_t, nis_initrc_exec_t;
+		type ypbind_initrc_exec_t, nis_initrc_exec_t, var_yp_t;
 	')
 
-	allow $1 ypbind_t:process { ptrace signal_perms };
-	ps_process_pattern($1, ypbind_t)
-
-	allow $1 yppasswdd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, yppasswdd_t)
-
-	allow $1 ypserv_t:process { ptrace signal_perms };
-	ps_process_pattern($1, ypserv_t)
-
-	allow $1 ypxfr_t:process { ptrace signal_perms };
-	ps_process_pattern($1, ypxfr_t)
+	allow $1 { ypbind_t yppasswdd_t ypserv_t ypxfr_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { ypbind_t yppasswdd_t ypserv_t ypxfr_t })
 
 	nis_initrc_domtrans($1)
 	nis_initrc_domtrans_ypbind($1)
 	domain_system_change_exemption($1)
-	role_transition $2 nis_initrc_exec_t system_r;
-	role_transition $2 ypbind_initrc_exec_t system_r;
+	role_transition $2 { nis_initrc_exec_t ypbind_initrc_exec_t } system_r;
 	allow $2 system_r;
 
 	files_list_tmp($1)
-	admin_pattern($1, ypbind_tmp_t)
+	admin_pattern($1, { ypserv_tmp_t ypbind_tmp_t })
 
 	files_list_pids($1)
-	admin_pattern($1, ypbind_var_run_t)
-
-	admin_pattern($1, yppasswdd_var_run_t)
+	admin_pattern($1, { ypserv_var_run_t ypbind_var_run_t yppasswdd_var_run_t })
 
 	files_list_etc($1)
 	admin_pattern($1, ypserv_conf_t)
 
-	admin_pattern($1, ypserv_tmp_t)
+	files_search_var($1)
+	admin_pattern($1, var_yp_t)
 
-	admin_pattern($1, ypserv_var_run_t)
+	nis_run_ypbind($1, $2)
 ')
