@@ -1,8 +1,8 @@
-## <summary>NX remote desktop</summary>
+## <summary>NX remote desktop.</summary>
 
 ########################################
 ## <summary>
-##	Transition to NX server.
+##	Transition to nx server.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -15,12 +15,13 @@ interface(`nx_spec_domtrans_server',`
 		type nx_server_t, nx_server_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	spec_domtrans_pattern($1, nx_server_exec_t, nx_server_t)
 ')
 
 ########################################
 ## <summary>
-##	Read nx home directory content
+##	Read nx home directory content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -33,13 +34,13 @@ interface(`nx_read_home_files',`
 		type nx_server_home_ssh_t, nx_server_var_lib_t;
 	')
 
-	allow $1 nx_server_var_lib_t:dir search_dir_perms;
-	read_files_pattern($1, nx_server_home_ssh_t, nx_server_home_ssh_t)
+	files_search_var_lib($1)
+	read_files_pattern($1, { nx_server_var_lib_t nx_server_home_ssh_t }, nx_server_home_ssh_t)
 ')
 
 ########################################
 ## <summary>
-##	Read nx /var/lib content
+##	Search nx lib directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -52,13 +53,14 @@ interface(`nx_search_var_lib',`
 		type nx_server_var_lib_t;
 	')
 
+	files_search_var_lib($1)
 	allow $1 nx_server_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
 ## <summary>
-##	Create an object in the root directory, with a private
-##	type using a type transition.
+##	Create specified objects in nx lib
+##	directories with a private type.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -75,11 +77,16 @@ interface(`nx_search_var_lib',`
 ##	The object class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`nx_var_lib_filetrans',`
 	gen_require(`
 		type nx_server_var_lib_t;
 	')
 
-	filetrans_pattern($1, nx_server_var_lib_t, $2, $3)
+	filetrans_pattern($1, nx_server_var_lib_t, $2, $3, $4)
 ')
