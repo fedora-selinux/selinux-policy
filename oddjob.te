@@ -1,9 +1,11 @@
-policy_module(oddjob, 1.9.0)
+policy_module(oddjob, 1.9.1)
 
 ########################################
 #
 # Declarations
 #
+
+attribute_role oddjob_mkhomedir_roles;
 
 type oddjob_t;
 type oddjob_exec_t;
@@ -18,9 +20,8 @@ type oddjob_mkhomedir_exec_t;
 domain_type(oddjob_mkhomedir_t)
 domain_obj_id_change_exemption(oddjob_mkhomedir_t)
 init_system_domain(oddjob_mkhomedir_t, oddjob_mkhomedir_exec_t)
-oddjob_system_entry(oddjob_mkhomedir_t, oddjob_mkhomedir_exec_t)
+role oddjob_mkhomedir_roles types oddjob_mkhomedir_t;
 
-# pid files
 type oddjob_var_run_t;
 files_pid_file(oddjob_var_run_t)
 
@@ -30,7 +31,7 @@ ifdef(`enable_mcs',`
 
 ########################################
 #
-# oddjob local policy
+# Local policy
 #
 
 allow oddjob_t self:capability setgid;
@@ -42,6 +43,8 @@ manage_files_pattern(oddjob_t, oddjob_var_run_t, oddjob_var_run_t)
 manage_sock_files_pattern(oddjob_t, oddjob_var_run_t, oddjob_var_run_t)
 files_pid_filetrans(oddjob_t, oddjob_var_run_t, { file sock_file })
 
+domtrans_pattern(oddjob_t, oddjob_mkhomedir_exec_t, oddjob_mkhomedir_t)
+
 kernel_read_system_state(oddjob_t)
 
 corecmd_exec_bin(oddjob_t)
@@ -51,7 +54,7 @@ mcs_process_set_categories(oddjob_t)
 
 selinux_compute_create_context(oddjob_t)
 
-files_read_etc_files(oddjob_t)
+auth_use_nsswitch(oddjob_t)
 
 miscfiles_read_localization(oddjob_t)
 
@@ -68,17 +71,15 @@ optional_policy(`
 
 ########################################
 #
-# oddjob_mkhomedir local policy
+# Mkhomedir local policy
 #
 
 allow oddjob_mkhomedir_t self:capability { chown fowner fsetid dac_override };
 allow oddjob_mkhomedir_t self:process setfscreate;
 allow oddjob_mkhomedir_t self:fifo_file rw_fifo_file_perms;
-allow oddjob_mkhomedir_t self:unix_stream_socket create_stream_socket_perms;
+allow oddjob_mkhomedir_t self:unix_stream_socket { accept listen };
 
 kernel_read_system_state(oddjob_mkhomedir_t)
-
-files_read_etc_files(oddjob_mkhomedir_t)
 
 auth_use_nsswitch(oddjob_mkhomedir_t)
 
@@ -97,10 +98,8 @@ seutil_read_config(oddjob_mkhomedir_t)
 seutil_read_file_contexts(oddjob_mkhomedir_t)
 seutil_read_default_contexts(oddjob_mkhomedir_t)
 
-# Add/remove user home directories
 userdom_home_filetrans_user_home_dir(oddjob_mkhomedir_t)
 userdom_manage_user_home_content_dirs(oddjob_mkhomedir_t)
 userdom_manage_user_home_content_files(oddjob_mkhomedir_t)
 userdom_manage_user_home_dirs(oddjob_mkhomedir_t)
 userdom_user_home_dir_filetrans_user_home_content(oddjob_mkhomedir_t, notdevfile_class_set)
-
