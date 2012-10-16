@@ -1,0 +1,49 @@
+policy_module(pacemaker, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type pacemaker_t;
+type pacemaker_exec_t;
+init_daemon_domain(pacemaker_t, pacemaker_exec_t)
+
+type pacemaker_initrc_exec_t;
+init_script_file(pacemaker_initrc_exec_t)
+
+type pacemaker_var_lib_t;
+files_type(pacemaker_var_lib_t)
+
+type pacemaker_var_run_t;
+files_pid_file(pacemaker_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow pacemaker_t self:capability { chown dac_override setuid };
+allow pacemaker_t self:process { setrlimit signal };
+allow pacemaker_t self:fifo_file rw_fifo_file_perms;
+allow pacemaker_t self:unix_stream_socket { accept listen };
+
+manage_dirs_pattern(pacemaker_t, pacemaker_var_lib_t, pacemaker_var_lib_t)
+manage_files_pattern(pacemaker_t, pacemaker_var_lib_t, pacemaker_var_lib_t)
+files_var_lib_filetrans(pacemaker_t, pacemaker_var_lib_t, { dir file })
+
+manage_dirs_pattern(pacemaker_t, pacemaker_var_run_t, pacemaker_var_run_t)
+manage_files_pattern(pacemaker_t, pacemaker_var_run_t, pacemaker_var_run_t)
+files_pid_filetrans(pacemaker_t, pacemaker_var_run_t, { dir file })
+
+domain_use_interactive_fds(pacemaker_t)
+
+auth_use_nsswitch(pacemaker_t)
+
+logging_send_syslog_msg(pacemaker_t)
+
+miscfiles_read_localization(pacemaker_t)
+
+optional_policy(`
+	corosync_stream_connect(pacemaker_t)
+')
