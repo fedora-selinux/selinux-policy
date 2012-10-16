@@ -1,15 +1,17 @@
-policy_module(oav, 1.9.0)
+policy_module(oav, 1.9.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role oav_update_roles;
+
 type oav_update_t;
 type oav_update_exec_t;
 application_domain(oav_update_t, oav_update_exec_t)
+role oav_update_roles types oav_update_t;
 
-# cjp: may be collapsable to etc_t
 type oav_update_etc_t;
 files_config_file(oav_update_etc_t)
 
@@ -31,31 +33,20 @@ files_pid_file(scannerdaemon_var_run_t)
 
 ########################################
 #
-# OAV update local policy
+# Update local policy
 #
 
 allow oav_update_t self:tcp_socket create_stream_socket_perms;
 allow oav_update_t self:udp_socket create_socket_perms;
 
-# Can read /etc/oav-update/* files
 allow oav_update_t oav_update_etc_t:dir list_dir_perms;
 allow oav_update_t oav_update_etc_t:file read_file_perms;
 
-# Can read /var/lib/oav-update/current
 manage_dirs_pattern(oav_update_t, oav_update_var_lib_t, oav_update_var_lib_t)
 manage_files_pattern(oav_update_t, oav_update_var_lib_t, oav_update_var_lib_t)
 read_lnk_files_pattern(oav_update_t, oav_update_var_lib_t, oav_update_var_lib_t)
 
 corecmd_exec_all_executables(oav_update_t)
-
-corenet_all_recvfrom_unlabeled(oav_update_t)
-corenet_all_recvfrom_netlabel(oav_update_t)
-corenet_tcp_sendrecv_generic_if(oav_update_t)
-corenet_udp_sendrecv_generic_if(oav_update_t)
-corenet_tcp_sendrecv_generic_node(oav_update_t)
-corenet_udp_sendrecv_generic_node(oav_update_t)
-corenet_tcp_sendrecv_all_ports(oav_update_t)
-corenet_udp_sendrecv_all_ports(oav_update_t)
 
 files_exec_etc_files(oav_update_t)
 
@@ -85,7 +76,6 @@ allow scannerdaemon_t self:udp_socket create_socket_perms;
 
 allow scannerdaemon_t oav_update_var_lib_t:dir list_dir_perms;
 allow scannerdaemon_t oav_update_var_lib_t:file read_file_perms;
-files_search_var_lib(scannerdaemon_t)
 
 allow scannerdaemon_t scannerdaemon_etc_t:file read_file_perms;
 
@@ -98,33 +88,22 @@ files_pid_filetrans(scannerdaemon_t, scannerdaemon_var_run_t, file)
 kernel_read_system_state(scannerdaemon_t)
 kernel_read_kernel_sysctls(scannerdaemon_t)
 
-# Can run kaffe
 corecmd_exec_all_executables(scannerdaemon_t)
-
-corenet_all_recvfrom_unlabeled(scannerdaemon_t)
-corenet_all_recvfrom_netlabel(scannerdaemon_t)
-corenet_tcp_sendrecv_generic_if(scannerdaemon_t)
-corenet_udp_sendrecv_generic_if(scannerdaemon_t)
-corenet_tcp_sendrecv_generic_node(scannerdaemon_t)
-corenet_udp_sendrecv_generic_node(scannerdaemon_t)
-corenet_tcp_sendrecv_all_ports(scannerdaemon_t)
-corenet_udp_sendrecv_all_ports(scannerdaemon_t)
 
 dev_read_sysfs(scannerdaemon_t)
 
 domain_use_interactive_fds(scannerdaemon_t)
 
+files_exec_etc_files(scannerdaemon_t)
 files_read_etc_files(scannerdaemon_t)
 files_read_etc_runtime_files(scannerdaemon_t)
-# Can run kaffe
-files_exec_etc_files(scannerdaemon_t)
+files_search_var_lib(scannerdaemon_t)
 
 fs_getattr_all_fs(scannerdaemon_t)
 fs_search_auto_mountpoints(scannerdaemon_t)
 
 auth_dontaudit_read_shadow(scannerdaemon_t)
 
-# Can run kaffe
 libs_exec_ld_so(scannerdaemon_t)
 libs_exec_lib_files(scannerdaemon_t)
 
