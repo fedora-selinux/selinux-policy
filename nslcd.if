@@ -1,4 +1,4 @@
-## <summary>nslcd - local LDAP name service daemon.</summary>
+## <summary>Local LDAP name service daemon.</summary>
 
 ########################################
 ## <summary>
@@ -15,6 +15,7 @@ interface(`nslcd_domtrans',`
 		type nslcd_t, nslcd_exec_t;
 	')
 
+	corecmd_searh_bin($1)
 	domtrans_pattern($1, nslcd_exec_t, nslcd_t)
 ')
 
@@ -38,7 +39,7 @@ interface(`nslcd_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	Read nslcd PID files.
+##	Read nslcd pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -57,7 +58,8 @@ interface(`nslcd_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Connect to nslcd over an unix stream socket.
+##	Connect to nslcd over an unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -70,14 +72,14 @@ interface(`nslcd_stream_connect',`
 		type nslcd_t, nslcd_var_run_t;
 	')
 
-	stream_connect_pattern($1, nslcd_var_run_t, nslcd_var_run_t, nslcd_t)
 	files_search_pids($1)
+	stream_connect_pattern($1, nslcd_var_run_t, nslcd_var_run_t, nslcd_t)
 ')
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an nslcd environment
+##	All of the rules required to
+##	administrate an nslcd environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -93,22 +95,21 @@ interface(`nslcd_stream_connect',`
 #
 interface(`nslcd_admin',`
 	gen_require(`
-		type nslcd_t, nslcd_initrc_exec_t;
-		type nslcd_conf_t, nslcd_var_run_t;
+		type nslcd_t, nslcd_initrc_exec_t, nslcd_var_run_t;
+		type nslcd_conf_t;
 	')
 
-	ps_process_pattern($1, nslcd_t)
 	allow $1 nslcd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, nslcd_t)
 
-	# Allow nslcd_t to restart the apache service
 	nslcd_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 nslcd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	manage_files_pattern($1, nslcd_conf_t, nslcd_conf_t)
+	files_search_etc($1)
+	admin_pattern($1, nslcd_conf_t)
 
-	manage_dirs_pattern($1, nslcd_var_run_t, nslcd_var_run_t)
-	manage_files_pattern($1, nslcd_var_run_t, nslcd_var_run_t)
-	manage_lnk_files_pattern($1, nslcd_var_run_t, nslcd_var_run_t)
+	files_search_pids($1)
+	admin_pattern($1, nslcd_var_run_t)
 ')

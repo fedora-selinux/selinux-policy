@@ -1,4 +1,4 @@
-policy_module(nslcd, 1.3.0)
+policy_module(nslcd, 1.3.1)
 
 ########################################
 #
@@ -16,16 +16,16 @@ type nslcd_var_run_t;
 files_pid_file(nslcd_var_run_t)
 
 type nslcd_conf_t;
-files_type(nslcd_conf_t)
+files_config_file(nslcd_conf_t)
 
 ########################################
 #
-# nslcd local policy
+# Local policy
 #
 
 allow nslcd_t self:capability { setgid setuid dac_override };
 allow nslcd_t self:process signal;
-allow nslcd_t self:unix_stream_socket create_stream_socket_perms;
+allow nslcd_t self:unix_stream_socket { accept listen };
 
 allow nslcd_t nslcd_conf_t:file read_file_perms;
 
@@ -38,16 +38,23 @@ kernel_read_system_state(nslcd_t)
 
 corenet_all_recvfrom_unlabeled(nslcd_t)
 corenet_all_recvfrom_netlabel(nslcd_t)
-corenet_tcp_connect_ldap_port(nslcd_t)
-corenet_sendrecv_ldap_client_packets(nslcd_t)
+corenet_tcp_sendrecv_generic_if(nslcd_t)
+corenet_tcp_sendrecv_generic_node(nslcd_t)
 
-files_read_etc_files(nslcd_t)
+corenet_sendrecv_ldap_client_packets(nslcd_t)
+corenet_tcp_connect_ldap_port(nslcd_t)
+corenet_tcp_sendrecv_ldap_port(nslcd_t)
+
+files_read_usr_symlinks(nslcd_t)
+files_list_tmp(nslcd_t)
 
 auth_use_nsswitch(nslcd_t)
 
 logging_send_syslog_msg(nslcd_t)
 
 miscfiles_read_localization(nslcd_t)
+
+userdom_read_user_tmp_files(nslcd_t)
 
 optional_policy(`
 	ldap_stream_connect(nslcd_t)
