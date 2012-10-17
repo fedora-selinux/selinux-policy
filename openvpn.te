@@ -1,4 +1,4 @@
-policy_module(openvpn, 1.11.0)
+policy_module(openvpn, 1.11.1)
 
 ########################################
 #
@@ -6,18 +6,20 @@ policy_module(openvpn, 1.11.0)
 #
 
 ## <desc>
-## <p>
-## Allow openvpn to read home directories
-## </p>
+##	<p>
+##	Determine whether openvpn can
+##	read generic user home content files.
+##	</p>
 ## </desc>
 gen_tunable(openvpn_enable_homedirs, false)
 
-# main openvpn domain
+attribute_role openvpn_roles;
+
 type openvpn_t;
 type openvpn_exec_t;
 init_daemon_domain(openvpn_t, openvpn_exec_t)
+role openvpn_roles types openvpn_t;
 
-# configuration files
 type openvpn_etc_t;
 files_config_file(openvpn_etc_t)
 
@@ -27,47 +29,50 @@ files_config_file(openvpn_etc_rw_t)
 type openvpn_initrc_exec_t;
 init_script_file(openvpn_initrc_exec_t)
 
-# log files
 type openvpn_var_log_t;
 logging_log_file(openvpn_var_log_t)
 
-# pid files
 type openvpn_var_run_t;
 files_pid_file(openvpn_var_run_t)
 
 ########################################
 #
-# openvpn local policy
+# Local policy
 #
 
-allow openvpn_t self:capability { dac_read_search dac_override ipc_lock net_bind_service net_admin setgid setuid sys_chroot sys_tty_config };
-allow openvpn_t self:process { signal getsched };
+allow openvpn_t self:capability { dac_read_search dac_override ipc_lock net_bind_service net_admin setgid setuid sys_chroot sys_tty_config sys_nice };
+allow openvpn_t self:process { signal getsched setsched };
 allow openvpn_t self:fifo_file rw_fifo_file_perms;
-
-allow openvpn_t self:unix_dgram_socket { create_socket_perms sendto };
-allow openvpn_t self:unix_stream_socket { create_stream_socket_perms connectto };
-allow openvpn_t self:udp_socket create_socket_perms;
+allow openvpn_t self:unix_dgram_socket sendto;
+allow openvpn_t self:unix_stream_socket { accept connectto listen };
 allow openvpn_t self:tcp_socket server_stream_socket_perms;
-allow openvpn_t self:tun_socket create;
-allow openvpn_t self:netlink_route_socket rw_netlink_socket_perms;
+allow openvpn_t self:tun_socket { create_socket_perms relabelfrom relabelto };
+allow openvpn_t self:netlink_route_socket nlmsg_write;
 
-can_exec(openvpn_t, openvpn_etc_t)
-read_files_pattern(openvpn_t, openvpn_etc_t, openvpn_etc_t)
-read_lnk_files_pattern(openvpn_t, openvpn_etc_t, openvpn_etc_t)
+allow openvpn_t openvpn_etc_t:dir list_dir_perms;
+allow openvpn_t openvpn_etc_t:file read_file_perms;
+allow openvpn_t openvpn_etc_t:lnk_file read_lnk_file_perms;
 
 manage_files_pattern(openvpn_t, openvpn_etc_t, openvpn_etc_rw_t)
 filetrans_pattern(openvpn_t, openvpn_etc_t, openvpn_etc_rw_t, file)
 
-allow openvpn_t openvpn_var_log_t:file manage_file_perms;
+manage_dirs_pattern(openvpn_t, openvpn_var_log_t, openvpn_var_log_t)
+append_files_pattern(openvpn_t, openvpn_var_log_t, openvpn_var_log_t)
+create_files_pattern(openvpn_t, openvpn_var_log_t, openvpn_var_log_t)
+setattr_files_pattern(openvpn_t, openvpn_var_log_t, openvpn_var_log_t)
 logging_log_filetrans(openvpn_t, openvpn_var_log_t, file)
 
+manage_dirs_pattern(openvpn_t, openvpn_var_run_t, openvpn_var_run_t)
 manage_files_pattern(openvpn_t, openvpn_var_run_t, openvpn_var_run_t)
 files_pid_filetrans(openvpn_t, openvpn_var_run_t, { file dir })
+
+can_exec(openvpn_t, openvpn_etc_t)
 
 kernel_read_kernel_sysctls(openvpn_t)
 kernel_read_net_sysctls(openvpn_t)
 kernel_read_network_state(openvpn_t)
 kernel_read_system_state(openvpn_t)
+kernel_request_load_module(openvpn_t)
 
 corecmd_exec_bin(openvpn_t)
 corecmd_exec_shell(openvpn_t)
@@ -78,39 +83,45 @@ corenet_tcp_sendrecv_generic_if(openvpn_t)
 corenet_udp_sendrecv_generic_if(openvpn_t)
 corenet_tcp_sendrecv_generic_node(openvpn_t)
 corenet_udp_sendrecv_generic_node(openvpn_t)
-corenet_tcp_sendrecv_all_ports(openvpn_t)
-corenet_udp_sendrecv_all_ports(openvpn_t)
 corenet_tcp_bind_generic_node(openvpn_t)
 corenet_udp_bind_generic_node(openvpn_t)
+
+corenet_sendrecv_openvpn_server_packets(openvpn_t)
 corenet_tcp_bind_openvpn_port(openvpn_t)
 corenet_udp_bind_openvpn_port(openvpn_t)
-corenet_tcp_bind_http_port(openvpn_t)
-corenet_tcp_connect_openvpn_port(openvpn_t)
-corenet_tcp_connect_http_port(openvpn_t)
-corenet_tcp_connect_http_cache_port(openvpn_t)
-corenet_rw_tun_tap_dev(openvpn_t)
-corenet_sendrecv_openvpn_server_packets(openvpn_t)
 corenet_sendrecv_openvpn_client_packets(openvpn_t)
+corenet_tcp_connect_openvpn_port(openvpn_t)
+corenet_tcp_sendrecv_openvpn_port(openvpn_t)
+corenet_udp_sendrecv_openvpn_port(openvpn_t)
+
+corenet_sendrecv_http_server_packets(openvpn_t)
+corenet_tcp_bind_http_port(openvpn_t)
 corenet_sendrecv_http_client_packets(openvpn_t)
+corenet_tcp_connect_http_port(openvpn_t)
+corenet_tcp_sendrecv_http_port(openvpn_t)
 
-dev_search_sysfs(openvpn_t)
+corenet_sendrecv_http_cache_client_packets(openvpn_t)
+corenet_tcp_connect_http_cache_port(openvpn_t)
+corenet_tcp_sendrecv_http_cache_port(openvpn_t)
+
+corenet_rw_tun_tap_dev(openvpn_t)
+
 dev_read_rand(openvpn_t)
-dev_read_urand(openvpn_t)
 
-files_read_etc_files(openvpn_t)
 files_read_etc_runtime_files(openvpn_t)
 
-auth_use_pam(openvpn_t)
+fs_getattr_all_fs(openvpn_t)
+fs_search_auto_mountpoints(openvpn_t)
 
-logging_send_syslog_msg(openvpn_t)
+auth_use_pam(openvpn_t)
 
 miscfiles_read_localization(openvpn_t)
 miscfiles_read_all_certs(openvpn_t)
 
-sysnet_dns_name_resolve(openvpn_t)
 sysnet_exec_ifconfig(openvpn_t)
 sysnet_manage_config(openvpn_t)
 sysnet_etc_filetrans_config(openvpn_t)
+sysnet_use_ldap(openvpn_t)
 
 userdom_use_user_terminals(openvpn_t)
 
@@ -119,14 +130,12 @@ tunable_policy(`openvpn_enable_homedirs',`
 ')
 
 tunable_policy(`openvpn_enable_homedirs && use_nfs_home_dirs',`
-        fs_read_nfs_files(openvpn_t)
-        fs_read_nfs_symlinks(openvpn_t)
-')  
+	fs_read_nfs_files(openvpn_t)
+')
 
 tunable_policy(`openvpn_enable_homedirs && use_samba_home_dirs',`
-        fs_read_cifs_files(openvpn_t)
-        fs_read_cifs_symlinks(openvpn_t)
-')  
+	fs_read_cifs_files(openvpn_t)
+')
 
 optional_policy(`
 	daemontools_service_domain(openvpn_t, openvpn_exec_t)
@@ -136,5 +145,7 @@ optional_policy(`
 	dbus_system_bus_client(openvpn_t)
 	dbus_connect_system_bus(openvpn_t)
 
-	networkmanager_dbus_chat(openvpn_t)
+	optional_policy(`
+		networkmanager_dbus_chat(openvpn_t)
+	')
 ')

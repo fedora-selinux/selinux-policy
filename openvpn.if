@@ -1,8 +1,9 @@
-## <summary>full-featured SSL VPN solution</summary>
+## <summary>full-featured SSL VPN solution.</summary>
 
 ########################################
 ## <summary>
-##	Execute OPENVPN clients in the openvpn domain.
+##	Execute openvpn clients in the
+##	openvpn domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -15,13 +16,15 @@ interface(`openvpn_domtrans',`
 		type openvpn_t, openvpn_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, openvpn_exec_t, openvpn_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute OPENVPN clients in the openvpn domain, and
-##	allow the specified role the openvpn domain.
+##	Execute openvpn clients in the
+##	openvpn domain, and allow the
+##	specified role the openvpn domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -37,16 +40,16 @@ interface(`openvpn_domtrans',`
 #
 interface(`openvpn_run',`
 	gen_require(`
-		type openvpn_t;
+		attribute_role openvpn_roles;
 	')
 
 	openvpn_domtrans($1)
-	role $2 types openvpn_t;
+	roleattribute $2 openvpn_roles;
 ')
 
 ########################################
 ## <summary>
-##	Send OPENVPN clients the kill signal.
+##	Send kill signals to openvpn.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -64,7 +67,7 @@ interface(`openvpn_kill',`
 
 ########################################
 ## <summary>
-##	Send generic signals to OPENVPN clients.
+##	Send generic signals to openvpn.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -82,7 +85,7 @@ interface(`openvpn_signal',`
 
 ########################################
 ## <summary>
-##	Send signulls to OPENVPN clients.
+##	Send null signals to openvpn.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -100,8 +103,7 @@ interface(`openvpn_signull',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read
-##	OpenVPN configuration files.
+##	Read openvpn configuration content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -117,14 +119,14 @@ interface(`openvpn_read_config',`
 
 	files_search_etc($1)
 	allow $1 openvpn_etc_t:dir list_dir_perms;
-	read_files_pattern($1, openvpn_etc_t, openvpn_etc_t)
-	read_lnk_files_pattern($1, openvpn_etc_t, openvpn_etc_t)
+	allow $1 openvpn_etc_t:file read_file_perms;
+	allow $1 openvpn_etc_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an openvpn environment
+##	All of the rules required to
+##	administrate an openvpn environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -133,7 +135,7 @@ interface(`openvpn_read_config',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the openvpn domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -141,7 +143,7 @@ interface(`openvpn_read_config',`
 interface(`openvpn_admin',`
 	gen_require(`
 		type openvpn_t, openvpn_etc_t, openvpn_var_log_t;
-		type openvpn_var_run_t, openvpn_initrc_exec_t;
+		type openvpn_var_run_t, openvpn_initrc_exec_t, openvpn_etc_rw_t;
 	')
 
 	allow $1 openvpn_t:process { ptrace signal_perms };
@@ -153,7 +155,7 @@ interface(`openvpn_admin',`
 	allow $2 system_r;
 
 	files_list_etc($1)
-	admin_pattern($1, openvpn_etc_t)
+	admin_pattern($1, { openvpn_etc_t openvpn_etc_rw_t })
 
 	logging_list_logs($1)
 	admin_pattern($1, openvpn_var_log_t)
