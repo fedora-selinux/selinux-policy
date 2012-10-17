@@ -1,4 +1,4 @@
-policy_module(plymouthd, 1.1.1)
+policy_module(plymouthd, 1.1.2)
 
 ########################################
 #
@@ -8,6 +8,7 @@ policy_module(plymouthd, 1.1.1)
 type plymouth_t;
 type plymouth_exec_t;
 application_domain(plymouth_t, plymouth_exec_t)
+role system_r types plymouth_t;
 
 type plymouthd_t;
 type plymouthd_exec_t;
@@ -19,12 +20,15 @@ files_type(plymouthd_spool_t)
 type plymouthd_var_lib_t;
 files_type(plymouthd_var_lib_t)
 
+type plymouthd_var_log_t;
+logging_log_file(plymouthd_var_log_t)
+
 type plymouthd_var_run_t;
 files_pid_file(plymouthd_var_run_t)
 
 ########################################
 #
-# Plymouthd private policy
+# Daemon local policy
 #
 
 allow plymouthd_t self:capability { sys_admin sys_tty_config };
@@ -42,6 +46,15 @@ manage_dirs_pattern(plymouthd_t, plymouthd_var_lib_t, plymouthd_var_lib_t)
 manage_files_pattern(plymouthd_t, plymouthd_var_lib_t, plymouthd_var_lib_t)
 files_var_lib_filetrans(plymouthd_t, plymouthd_var_lib_t, { file dir })
 
+manage_dirs_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+append_files_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+create_files_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+setattr_files_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+
+files_pid_filetrans(plymouthd_t, plymouthd_var_log_t, file, "boot.log")
+filetrans_pattern(plymouthd_t, plymouthd_spool_t, plymouthd_var_log_t, file, "boot.log")
+logging_log_filetrans(plymouthd_t, plymouthd_var_log_t, { file dir })
+
 manage_dirs_pattern(plymouthd_t, plymouthd_var_run_t, plymouthd_var_run_t)
 manage_files_pattern(plymouthd_t, plymouthd_var_run_t, plymouthd_var_run_t)
 files_pid_filetrans(plymouthd_t, plymouthd_var_run_t, { file dir })
@@ -57,6 +70,8 @@ dev_write_framebuffer(plymouthd_t)
 
 domain_use_interactive_fds(plymouthd_t)
 
+fs_getattr_all_fs(plymouthd_t)
+
 files_read_etc_files(plymouthd_t)
 files_read_usr_files(plymouthd_t)
 
@@ -68,17 +83,35 @@ miscfiles_read_localization(plymouthd_t)
 miscfiles_read_fonts(plymouthd_t)
 miscfiles_manage_fonts_cache(plymouthd_t)
 
+optional_policy(`
+	gnome_read_generic_home_content(plymouthd_t)
+')
+
+optional_policy(`
+	sssd_stream_connect(plymouthd_t)
+')
+
+# pending
+# optional_policy(`
+#	xserver_manage_spool_files_xdm(plymouthd_t)
+#	xserver_read_state_xdm(plymouthd_t)
+# ')
+
 ########################################
 #
-# Plymouth private policy
+# Client local policy
 #
 
 allow plymouth_t self:capability2 block_suspend;
 allow plymouth_t self:process signal;
-allow plymouth_t self:fifo_file rw_file_perms;
+allow plymouth_t self:fifo_file rw_fifo_file_perms;
 allow plymouth_t self:unix_stream_socket create_stream_socket_perms;
 
+stream_connect_pattern(plymouth_t, plymouthd_spool_t, plymouthd_spool_t, plymouthd_t)
+
 kernel_read_system_state(plymouth_t)
+# pending
+# kernel_stream_connect(plymouth_t)
 
 domain_use_interactive_fds(plymouth_t)
 
@@ -90,9 +123,7 @@ miscfiles_read_localization(plymouth_t)
 
 sysnet_read_config(plymouth_t)
 
-plymouthd_stream_connect(plymouth_t)
-
-ifdef(`hide_broken_symptoms', `
+ifdef(`hide_broken_symptoms',`
 	optional_policy(`
 		hal_dontaudit_write_log(plymouth_t)
 		hal_dontaudit_rw_pipes(plymouth_t)
