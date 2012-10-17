@@ -1,4 +1,4 @@
-policy_module(pcscd, 1.7.0)
+policy_module(pcscd, 1.7.1)
 
 ########################################
 #
@@ -7,24 +7,25 @@ policy_module(pcscd, 1.7.0)
 
 type pcscd_t;
 type pcscd_exec_t;
-domain_type(pcscd_t)
 init_daemon_domain(pcscd_t, pcscd_exec_t)
 
-# pid files
+type pcscd_initrc_exec_t;
+init_script_file(pcscd_initrc_exec_t)
+
 type pcscd_var_run_t;
 files_pid_file(pcscd_var_run_t)
 
 ########################################
 #
-# pcscd local policy
+# Local policy
 #
 
 allow pcscd_t self:capability { dac_override dac_read_search };
 allow pcscd_t self:process signal;
 allow pcscd_t self:fifo_file rw_fifo_file_perms;
-allow pcscd_t self:unix_stream_socket create_stream_socket_perms;
-allow pcscd_t self:unix_dgram_socket create_socket_perms;
-allow pcscd_t self:tcp_socket create_stream_socket_perms;
+allow pcscd_t self:unix_stream_socket { accept listen };
+allow pcscd_t self:tcp_socket { accept listen };
+allow pcscd_t self:netlink_kobject_uevent_socket create_socket_perms;
 
 manage_dirs_pattern(pcscd_t, pcscd_var_run_t, pcscd_var_run_t)
 manage_files_pattern(pcscd_t, pcscd_var_run_t, pcscd_var_run_t)
@@ -38,8 +39,10 @@ corenet_all_recvfrom_unlabeled(pcscd_t)
 corenet_all_recvfrom_netlabel(pcscd_t)
 corenet_tcp_sendrecv_generic_if(pcscd_t)
 corenet_tcp_sendrecv_generic_node(pcscd_t)
-corenet_tcp_sendrecv_all_ports(pcscd_t)
+
+corenet_sendrecv_http_client_packets(pcscd_t)
 corenet_tcp_connect_http_port(pcscd_t)
+corenet_tcp_sendrecv_http_port(pcscd_t)
 
 dev_rw_generic_usb_dev(pcscd_t)
 dev_rw_smartcard(pcscd_t)
@@ -76,4 +79,8 @@ optional_policy(`
 
 optional_policy(`
 	rpm_use_script_fds(pcscd_t)
+')
+
+optional_policy(`
+	udev_read_db(pcscd_t)
 ')
