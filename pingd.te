@@ -1,4 +1,4 @@
-policy_module(pingd, 1.0.0)
+policy_module(pingd, 1.0.1)
 
 ########################################
 #
@@ -9,33 +9,40 @@ type pingd_t;
 type pingd_exec_t;
 init_daemon_domain(pingd_t, pingd_exec_t)
 
-# type for config
 type pingd_etc_t;
 files_type(pingd_etc_t)
 
 type pingd_initrc_exec_t;
 init_script_file(pingd_initrc_exec_t)
 
-# type for pingd modules
 type pingd_modules_t;
 files_type(pingd_modules_t)
 
 ########################################
 #
-# pingd local policy
+# Local policy
 #
 
 allow pingd_t self:capability net_raw;
-allow pingd_t self:tcp_socket create_stream_socket_perms;
-allow pingd_t self:rawip_socket { write read create bind };
+allow pingd_t self:tcp_socket { accept listen };
+allow pingd_t self:rawip_socket create_socket_perms;
 
-read_files_pattern(pingd_t, pingd_etc_t, pingd_etc_t)
+allow pingd_t pingd_etc_t:file read_file_perms;
 
 read_files_pattern(pingd_t, pingd_modules_t, pingd_modules_t)
 mmap_files_pattern(pingd_t, pingd_modules_t, pingd_modules_t)
 
+corenet_all_recvfrom_unlabeled(pingd_t)
+corenet_all_recvfrom_netlabel(pingd_t)
+corenet_tcp_sendrecv_generic_if(pingd_t)
+corenet_raw_sendrecv_generic_if(pingd_t)
+corenet_tcp_sendrecv_generic_node(pingd_t)
+corenet_raw_sendrecv_generic_node(pingd_t)
+corenet_tcp_sendrecv_all_ports(pingd_t)
 corenet_raw_bind_generic_node(pingd_t)
 corenet_tcp_bind_generic_node(pingd_t)
+
+corenet_sendrecv_pingd_server_packets(pingd_t)
 corenet_tcp_bind_pingd_port(pingd_t)
 
 auth_use_nsswitch(pingd_t)
