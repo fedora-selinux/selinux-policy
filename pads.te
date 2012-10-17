@@ -1,4 +1,4 @@
-policy_module(pads, 1.0.0) 
+policy_module(pads, 1.0.1)
 
 ########################################
 #
@@ -8,7 +8,7 @@ policy_module(pads, 1.0.0)
 type pads_t;
 type pads_exec_t;
 init_daemon_domain(pads_t, pads_exec_t)
-role system_r types pads_t;
+application_executable_file(pads_exec_t)
 
 type pads_initrc_exec_t;
 init_script_file(pads_initrc_exec_t)
@@ -25,10 +25,8 @@ files_pid_file(pads_var_run_t)
 #
 
 allow pads_t self:capability { dac_override net_raw };
-allow pads_t self:netlink_route_socket { write getattr read bind create nlmsg_read };
-allow pads_t self:packet_socket { ioctl setopt getopt read bind create };
-allow pads_t self:udp_socket { create ioctl };
-allow pads_t self:unix_dgram_socket { write create connect };
+allow pads_t self:packet_socket create_socket_perms;
+allow pads_t self:socket create_socket_perms;
 
 allow pads_t pads_config_t:file manage_file_perms;
 files_etc_filetrans(pads_t, pads_config_t, file)
@@ -37,6 +35,7 @@ allow pads_t pads_var_run_t:file manage_file_perms;
 files_pid_filetrans(pads_t, pads_var_run_t, file)
 
 kernel_read_sysctl(pads_t)
+kernel_read_network_state(pads_t)
 
 corecmd_search_bin(pads_t)
 
@@ -44,10 +43,14 @@ corenet_all_recvfrom_unlabeled(pads_t)
 corenet_all_recvfrom_netlabel(pads_t)
 corenet_tcp_sendrecv_generic_if(pads_t)
 corenet_tcp_sendrecv_generic_node(pads_t)
+
+corenet_sendrecv_prelude_client_packets(pads_t)
 corenet_tcp_connect_prelude_port(pads_t)
+corenet_tcp_sendrecv_prelude_port(pads_t)
 
 dev_read_rand(pads_t)
 dev_read_urand(pads_t)
+dev_read_sysfs(pads_t)
 
 files_read_etc_files(pads_t)
 files_search_spool(pads_t)
