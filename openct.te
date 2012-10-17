@@ -1,4 +1,4 @@
-policy_module(openct, 1.5.0)
+policy_module(openct, 1.5.1)
 
 ########################################
 #
@@ -8,6 +8,9 @@ policy_module(openct, 1.5.0)
 type openct_t;
 type openct_exec_t;
 init_daemon_domain(openct_t, openct_exec_t)
+
+type openct_initrc_exec_t;
+init_script_file(openct_initrc_exec_t)
 
 type openct_var_run_t;
 files_pid_file(openct_var_run_t)
@@ -25,19 +28,19 @@ manage_files_pattern(openct_t, openct_var_run_t, openct_var_run_t)
 manage_sock_files_pattern(openct_t, openct_var_run_t, openct_var_run_t)
 files_pid_filetrans(openct_t, openct_var_run_t, { dir file sock_file })
 
+can_exec(openct_t, openct_exec_t)
+
 kernel_read_kernel_sysctls(openct_t)
 kernel_list_proc(openct_t)
 kernel_read_proc_symlinks(openct_t)
 
 dev_read_sysfs(openct_t)
-# openct asks for this
 dev_rw_usbfs(openct_t)
 dev_rw_smartcard(openct_t)
 dev_rw_generic_usb_dev(openct_t)
 
 domain_use_interactive_fds(openct_t)
 
-# openct asks for this
 files_read_etc_files(openct_t)
 
 fs_getattr_all_fs(openct_t)
@@ -50,7 +53,9 @@ miscfiles_read_localization(openct_t)
 userdom_dontaudit_use_unpriv_user_fds(openct_t)
 userdom_dontaudit_search_user_home_dirs(openct_t)
 
-openct_exec(openct_t)
+optional_policy(`
+	pcscd_stream_connect(openct_t)
+')
 
 optional_policy(`
 	seutil_sigchld_newrole(openct_t)
