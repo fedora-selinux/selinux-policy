@@ -1,7 +1,4 @@
-## <summary>
-##	Portage Package Management System. The primary package management and
-##	distribution system for Gentoo.
-## </summary>
+## <summary>Package Management System.</summary>
 
 ########################################
 ## <summary>
@@ -18,16 +15,15 @@ interface(`portage_domtrans',`
 		type portage_t, portage_exec_t;
 	')
 
-	files_search_usr($1)
 	corecmd_search_bin($1)
-
 	domtrans_pattern($1, portage_exec_t, portage_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute emerge in the portage domain, and
-##	allow the specified role the portage domain.
+##	Execute emerge in the portage domain,
+##	and allow the specified role the
+##	portage domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -36,7 +32,7 @@ interface(`portage_domtrans',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the portage domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -67,7 +63,6 @@ interface(`portage_run',`
 ## </param>
 #
 interface(`portage_compile_domain',`
-
 	gen_require(`
 		class dbus send_msg;
 		type portage_devpts_t, portage_log_t, portage_srcrepo_t, portage_tmp_t;
@@ -97,12 +92,12 @@ interface(`portage_compile_domain',`
 	allow $1 self:netlink_selinux_socket { bind create read };
 	allow $1 self:dbus send_msg;
 
-	allow $1 portage_devpts_t:chr_file { rw_chr_file_perms setattr };
+	allow $1 portage_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms };
 	term_create_pty($1, portage_devpts_t)
 
 	# write compile logs
-	allow $1 portage_log_t:dir setattr;
-	allow $1 portage_log_t:file { write_file_perms setattr };
+	allow $1 portage_log_t:dir setattr_dir_perms;
+	allow $1 portage_log_t:file { write_file_perms setattr_file_perms };
 
 	# Support live ebuilds (-9999)
 	manage_dirs_pattern($1, portage_srcrepo_t, portage_srcrepo_t)
@@ -203,16 +198,17 @@ interface(`portage_compile_domain',`
 	ifdef(`TODO',`
 	# some gui ebuilds want to interact with X server, like xawtv
 	optional_policy(`
-		allow $1 xdm_xserver_tmp_t:dir { add_name remove_name write };
-		allow $1 xdm_xserver_tmp_t:sock_file { create getattr unlink write };
+		allow $1 xdm_xserver_tmp_t:dir { add_entry_dir_perms del_entry_dir_perms };
+		allow $1 xdm_xserver_tmp_t:sock_file { create_file_perms delete_file_perms write_file_perms };
 	')
 	') dnl end TODO
 ')
 
 ########################################
 ## <summary>
-##	Execute tree management functions (fetching, layman, ...)
-##      in the portage_fetch_t domain.
+##	Execute tree management functions
+##	(fetching, layman, ...) in the
+##	portage fetch domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -225,17 +221,17 @@ interface(`portage_domtrans_fetch',`
 		type portage_fetch_t, portage_fetch_exec_t;
 	')
 
-	files_search_usr($1)
 	corecmd_search_bin($1)
-
 	domtrans_pattern($1, portage_fetch_exec_t, portage_fetch_t)
 ')
 
 ########################################
 ## <summary>
-##   Execute tree management functions (fetching, layman, ...)
-##   in the portage_fetch_t domain, and allow the specified role
-##   the portage_fetch_t domain.
+##	Execute tree management functions
+##	(fetching, layman, ...) in the
+##	portage fetch domain, and allow
+##	the specified role the portage
+##	fetch domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -244,24 +240,23 @@ interface(`portage_domtrans_fetch',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the portage_fetch domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`portage_run_fetch',`
 	gen_require(`
-		type portage_fetch_t;
+		attribute_role portage_fetch_roles;
 	')
 
 	portage_domtrans_fetch($1)
-	role $2 types portage_fetch_t;
+	roleattribute $2 portage_fetch_roles;
 ')
-
 
 ########################################
 ## <summary>
-##	Execute gcc-config in the gcc_config domain.
+##	Execute gcc-config in the gcc config domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -274,16 +269,15 @@ interface(`portage_domtrans_gcc_config',`
 		type gcc_config_t, gcc_config_exec_t;
 	')
 
-	files_search_usr($1)
 	corecmd_search_bin($1)
-
 	domtrans_pattern($1, gcc_config_exec_t, gcc_config_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute gcc-config in the gcc_config domain, and
-##	allow the specified role the gcc_config domain.
+##	Execute gcc-config in the gcc config
+##	domain, and allow the specified role
+##	the gcc_config domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -292,18 +286,18 @@ interface(`portage_domtrans_gcc_config',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the gcc_config domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`portage_run_gcc_config',`
 	gen_require(`
-		type gcc_config_t;
+		attribute_role gcc_config_roles;
 	')
 
 	portage_domtrans_gcc_config($1)
-	role $2 types gcc_config_t;
+	roleattribute $2 gcc_config_roles;
 ')
 
 ########################################
