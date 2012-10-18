@@ -1,4 +1,4 @@
-## <summary>Postfix email server</summary>
+## <summary>Postfix email server.</summary>
 
 ########################################
 ## <summary>
@@ -16,138 +16,88 @@ interface(`postfix_stub',`
 	')
 ')
 
-########################################
+#######################################
 ## <summary>
-##	Creates types and rules for a basic
-##	postfix process domain.
+##	The template to define a postfix domain.
 ## </summary>
-## <param name="prefix">
+## <param name="domain_prefix">
 ##	<summary>
-##	Prefix for the domain.
+##	Domain prefix to be used.
 ##	</summary>
 ## </param>
 #
 template(`postfix_domain_template',`
-	type postfix_$1_t;
+	gen_require(`
+		attribute postfix_domain;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	type postfix_$1_t, postfix_domain;
 	type postfix_$1_exec_t;
 	domain_type(postfix_$1_t)
 	domain_entry_file(postfix_$1_t, postfix_$1_exec_t)
 	role system_r types postfix_$1_t;
 
-	dontaudit postfix_$1_t self:capability sys_tty_config;
-	allow postfix_$1_t self:process { signal_perms setpgid };
-	allow postfix_$1_t self:unix_dgram_socket create_socket_perms;
-	allow postfix_$1_t self:unix_stream_socket create_stream_socket_perms;
-	allow postfix_$1_t self:unix_stream_socket connectto;
-
-	allow postfix_master_t postfix_$1_t:process signal;
-	#https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=244456
-	allow postfix_$1_t postfix_master_t:file read;
-
-	allow postfix_$1_t postfix_etc_t:dir list_dir_perms;
-	read_files_pattern(postfix_$1_t, postfix_etc_t, postfix_etc_t)
-	read_lnk_files_pattern(postfix_$1_t, postfix_etc_t, postfix_etc_t)
+	########################################
+	#
+	# Policy
+	#
 
 	can_exec(postfix_$1_t, postfix_$1_exec_t)
 
-	allow postfix_$1_t postfix_exec_t:file { mmap_file_perms lock ioctl };
-
-	allow postfix_$1_t postfix_master_t:process sigchld;
-
-	allow postfix_$1_t postfix_spool_t:dir list_dir_perms;
-
-	manage_files_pattern(postfix_$1_t, postfix_var_run_t, postfix_var_run_t)
-	files_pid_filetrans(postfix_$1_t, postfix_var_run_t, file)
-
-	kernel_read_system_state(postfix_$1_t)
-	kernel_read_network_state(postfix_$1_t)
-	kernel_read_all_sysctls(postfix_$1_t)
-
-	dev_read_sysfs(postfix_$1_t)
-	dev_read_rand(postfix_$1_t)
-	dev_read_urand(postfix_$1_t)
-
-	fs_search_auto_mountpoints(postfix_$1_t)
-	fs_getattr_xattr_fs(postfix_$1_t)
-	fs_rw_anon_inodefs_files(postfix_$1_t)
-
-	term_dontaudit_use_console(postfix_$1_t)
-
-	corecmd_exec_shell(postfix_$1_t)
-
-	files_read_etc_files(postfix_$1_t)
-	files_read_etc_runtime_files(postfix_$1_t)
-	files_read_usr_symlinks(postfix_$1_t)
-	files_search_spool(postfix_$1_t)
-	files_getattr_tmp_dirs(postfix_$1_t)
-	files_search_all_mountpoints(postfix_$1_t)
-
-	init_dontaudit_use_fds(postfix_$1_t)
-	init_sigchld(postfix_$1_t)
-
 	auth_use_nsswitch(postfix_$1_t)
-
-	logging_send_syslog_msg(postfix_$1_t)
-
-	miscfiles_read_localization(postfix_$1_t)
-	miscfiles_read_generic_certs(postfix_$1_t)
-
-	userdom_dontaudit_use_unpriv_user_fds(postfix_$1_t)
-
-	optional_policy(`
-		udev_read_db(postfix_$1_t)
-	')
 ')
 
-########################################
+#######################################
 ## <summary>
-##	Creates a postfix server process domain.
+##	The template to define a postfix server domain.
 ## </summary>
-## <param name="prefix">
+## <param name="domain_prefix">
 ##	<summary>
-##	Prefix of the domain.
+##	Domain prefix to be used.
 ##	</summary>
 ## </param>
 #
 template(`postfix_server_domain_template',`
+	gen_require(`
+		attribute postfix_server_domain, postfix_server_tmp_content;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
 	postfix_domain_template($1)
 
-	type postfix_$1_tmp_t;
+	typeattribute postfix_$1_t postfix_server_domain;
+
+	type postfix_$1_tmp_t, postfix_server_tmp_content;
 	files_tmp_file(postfix_$1_tmp_t)
 
-	allow postfix_$1_t self:capability { setuid setgid dac_override };
-	allow postfix_$1_t postfix_master_t:unix_stream_socket { connectto rw_stream_socket_perms };
-	allow postfix_$1_t self:tcp_socket create_socket_perms;
-	allow postfix_$1_t self:udp_socket create_socket_perms;
+	########################################
+	#
+	# Declarations
+	#
 
 	manage_dirs_pattern(postfix_$1_t, postfix_$1_tmp_t, postfix_$1_tmp_t)
 	manage_files_pattern(postfix_$1_t, postfix_$1_tmp_t, postfix_$1_tmp_t)
 	files_tmp_filetrans(postfix_$1_t, postfix_$1_tmp_t, { file dir })
 
 	domtrans_pattern(postfix_master_t, postfix_$1_exec_t, postfix_$1_t)
-
-	corenet_all_recvfrom_unlabeled(postfix_$1_t)
-	corenet_all_recvfrom_netlabel(postfix_$1_t)
-	corenet_tcp_sendrecv_generic_if(postfix_$1_t)
-	corenet_udp_sendrecv_generic_if(postfix_$1_t)
-	corenet_tcp_sendrecv_generic_node(postfix_$1_t)
-	corenet_udp_sendrecv_generic_node(postfix_$1_t)
-	corenet_tcp_sendrecv_all_ports(postfix_$1_t)
-	corenet_udp_sendrecv_all_ports(postfix_$1_t)
-	corenet_tcp_bind_generic_node(postfix_$1_t)
-	corenet_udp_bind_generic_node(postfix_$1_t)
-	corenet_tcp_connect_all_ports(postfix_$1_t)
-	corenet_sendrecv_all_client_packets(postfix_$1_t)
 ')
 
-########################################
+#######################################
 ## <summary>
-##	Creates a process domain for programs
-##	that are ran by users.
+##	The template to define a postfix user domain.
 ## </summary>
-## <param name="prefix">
+## <param name="domain_prefix">
 ##	<summary>
-##	Prefix of the domain.
+##	Domain prefix to be used.
 ##	</summary>
 ## </param>
 #
@@ -156,9 +106,19 @@ template(`postfix_user_domain_template',`
 		attribute postfix_user_domains, postfix_user_domtrans;
 	')
 
+	########################################
+	#
+	# Declarations
+	#
+
 	postfix_domain_template($1)
 
 	typeattribute postfix_$1_t postfix_user_domains;
+
+	########################################
+	#
+	# Policy
+	#
 
 	allow postfix_$1_t self:capability dac_override;
 
@@ -169,7 +129,7 @@ template(`postfix_user_domain_template',`
 
 ########################################
 ## <summary>
-##	Read postfix configuration files.
+##	Read postfix configuration content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -183,15 +143,16 @@ interface(`postfix_read_config',`
 		type postfix_etc_t;
 	')
 
-	read_files_pattern($1, postfix_etc_t, postfix_etc_t)
-	read_lnk_files_pattern($1, postfix_etc_t, postfix_etc_t)
 	files_search_etc($1)
+	allow $1 postfix_etc_t:dir list_dir_perms;
+	allow $1 postfix_etc_t:file read_file_perms;
+	allow $1 postfix_etc_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Create files with the specified type in
-##	the postfix configuration directories.
+##	Create specified object in postfix
+##	etc directories with a type transition.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -208,14 +169,18 @@ interface(`postfix_read_config',`
 ##	The object class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`postfix_config_filetrans',`
 	gen_require(`
 		type postfix_etc_t;
 	')
 
-	files_search_etc($1)
-	filetrans_pattern($1, postfix_etc_t, $2, $3)
+	filetrans_pattern($1, postfix_etc_t, $2, $3, $4)
 ')
 
 ########################################
@@ -240,8 +205,7 @@ interface(`postfix_dontaudit_rw_local_tcp_sockets',`
 
 ########################################
 ## <summary>
-##	Allow read/write postfix local pipes
-##	TCP sockets.
+##	Read and write postfix local pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -259,7 +223,7 @@ interface(`postfix_rw_local_pipes',`
 
 ########################################
 ## <summary>
-##	Allow domain to read postfix local process state
+##	Read postfix local process state files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -272,7 +236,10 @@ interface(`postfix_read_local_state',`
 		type postfix_local_t;
 	')
 
-	read_files_pattern($1, postfix_local_t, postfix_local_t)
+	kernel_search_proc($1)
+	allow $1 postfix_local_t:dir list_dir_perms;
+	allow $1 postfix_local_t:file read_file_perms;
+	allow $1 postfix_local_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
@@ -296,7 +263,7 @@ interface(`postfix_rw_inherited_master_pipes',`
 
 ########################################
 ## <summary>
-##	Allow domain to read postfix master process state
+##	Read postfix master process state files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -309,7 +276,10 @@ interface(`postfix_read_master_state',`
 		type postfix_master_t;
 	')
 
-	read_files_pattern($1, postfix_master_t, postfix_master_t)
+	kernel_search_proc($1)
+	allow $1 postfix_master_t:dir list_dir_perms;
+	allow $1 postfix_master_t:file read_file_perms;
+	allow $1 postfix_master_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
@@ -365,13 +335,15 @@ interface(`postfix_domtrans_map',`
 		type postfix_map_t, postfix_map_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, postfix_map_exec_t, postfix_map_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute postfix_map in the postfix_map domain, and
-##	allow the specified role the postfix_map domain.
+##	Execute postfix map in the postfix
+##	map domain, and allow the specified
+##	role the postfix_map domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -387,17 +359,17 @@ interface(`postfix_domtrans_map',`
 #
 interface(`postfix_run_map',`
 	gen_require(`
-		type postfix_map_t;
+		attribute_role postfix_map_roles;
 	')
 
 	postfix_domtrans_map($1)
-	role $2 types postfix_map_t;
+	roleattribute $2 postfix_map_roles;
 ')
 
 ########################################
 ## <summary>
-##	Execute the master postfix program in the
-##	postfix_master domain.
+##	Execute the master postfix program
+##	in the postfix_master domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -410,13 +382,14 @@ interface(`postfix_domtrans_master',`
 		type postfix_master_t, postfix_master_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, postfix_master_exec_t, postfix_master_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute the master postfix program in the
-##	caller domain.
+##	Execute the master postfix program
+##	in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -429,12 +402,14 @@ interface(`postfix_exec_master',`
 		type postfix_master_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	can_exec($1, postfix_master_exec_t)
 ')
 
 #######################################
 ## <summary>
-##	Connect to postfix master process using a unix domain stream socket.
+##	Connect to postfix master process
+##	using a unix domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -454,7 +429,7 @@ interface(`postfix_stream_connect_master',`
 ########################################
 ## <summary>
 ##	Read and write postfix master
-##	unnamed pipes,
+##	unnamed pipes.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -470,7 +445,7 @@ interface(`postfix_rw_master_pipes',`
 ########################################
 ## <summary>
 ##	Execute the master postdrop in the
-##	postfix_postdrop domain.
+##	postfix postdrop domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -483,13 +458,14 @@ interface(`postfix_domtrans_postdrop',`
 		type postfix_postdrop_t, postfix_postdrop_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, postfix_postdrop_exec_t, postfix_postdrop_t)
 ')
 
 ########################################
 ## <summary>
 ##	Execute the master postqueue in the
-##	postfix_postqueue domain.
+##	postfix postqueue domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -502,13 +478,14 @@ interface(`postfix_domtrans_postqueue',`
 		type postfix_postqueue_t, postfix_postqueue_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, postfix_postqueue_exec_t, postfix_postqueue_t)
 ')
 
 #######################################
 ## <summary>
-##	Execute the master postqueue in the caller domain. (Deprecated)
-##	Please use postfix_exec_postqueue instead
+##	Execute the master postqueue in
+##	the caller domain.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -523,7 +500,8 @@ interface(`posftix_exec_postqueue',`
 
 #######################################
 ## <summary>
-##	Execute the master postqueue in the caller domain.
+##	Execute postfix postqueue in
+##	the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -536,12 +514,13 @@ interface(`postfix_exec_postqueue',`
 		type postfix_postqueue_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	can_exec($1, postfix_postqueue_exec_t)
 ')
 
 ########################################
 ## <summary>
-##	Create a named socket in a postfix private directory.
+##	Create postfix private sock files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -554,13 +533,13 @@ interface(`postfix_create_private_sockets',`
 		type postfix_private_t;
 	')
 
-	allow $1 postfix_private_t:dir list_dir_perms;
 	create_sock_files_pattern($1, postfix_private_t, postfix_private_t)
 ')
 
 ########################################
 ## <summary>
-##	manage named socket in a postfix private directory.
+##	Create, read, write, and delete
+##	postfix private sock files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -573,14 +552,13 @@ interface(`postfix_manage_private_sockets',`
 		type postfix_private_t;
 	')
 
-	allow $1 postfix_private_t:dir list_dir_perms;
 	manage_sock_files_pattern($1, postfix_private_t, postfix_private_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute the master postfix program in the
-##	postfix_master domain.
+##	Execute the smtp postfix program
+##	in the postfix smtp domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -593,12 +571,13 @@ interface(`postfix_domtrans_smtp',`
 		type postfix_smtp_t, postfix_smtp_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, postfix_smtp_exec_t, postfix_smtp_t)
 ')
 
 ########################################
 ## <summary>
-##	Get attributes of postfix all mail
+##	Get attributes of all postfix mail
 ##	spool files.
 ## </summary>
 ## <param name="domain">
@@ -631,8 +610,8 @@ interface(`postfix_search_spool',`
 		type postfix_spool_t;
 	')
 
-	allow $1 postfix_spool_t:dir search_dir_perms;
 	files_search_spool($1)
+	allow $1 postfix_spool_t:dir search_dir_perms;
 ')
 
 ########################################
@@ -650,8 +629,8 @@ interface(`postfix_list_spool',`
 		type postfix_spool_t;
 	')
 
-	allow $1 postfix_spool_t:dir list_dir_perms;
 	files_search_spool($1)
+	allow $1 postfix_spool_t:dir list_dir_perms;
 ')
 
 ########################################
@@ -675,7 +654,8 @@ interface(`postfix_read_spool_files',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete postfix mail spool files.
+##	Create, read, write, and delete
+##	postfix mail spool files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -709,4 +689,55 @@ interface(`postfix_domtrans_user_mail_handler',`
 	')
 
 	typeattribute $1 postfix_user_domtrans;
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an postfix environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`postfix_admin',`
+	gen_require(`
+		attribute postfix_domain, postfix_spool_type, postfix_server_tmp_content;
+		type postfix_initrc_exec_t, postfix_prng_t, postfix_etc_t;
+		type postfix_data_t, postfix_var_run_t, postfix_public_t;
+		type postfix_private_t, postfix_map_tmp_t, postfix_exec_t;
+	')
+
+	allow $1 postfix_domain:process { ptrace signal_perms };
+	ps_process_pattern($1, postfix_domain)
+
+	init_labeled_script_domtrans($1, postfix_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 postfix_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, { postfix_prng_t postfix_etc_t postfix_exec_t })
+
+	files_search_spool($1)
+	admin_pattern($1, { postfix_public_t postfix_private_t postfix_spool_type })
+
+	files_search_var_lib($1)
+	admin_pattern($1, postfix_data_t)
+
+	files_search_pids($1)
+	admin_pattern($1, postfix_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, { postfix_server_tmp_content postfix_map_tmp_t })
+
+	postfix_run_map($1, $2)
 ')
