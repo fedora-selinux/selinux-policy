@@ -1,9 +1,11 @@
-policy_module(portmap, 1.10.0)
+policy_module(portmap, 1.10.1)
 
 ########################################
 #
 # Declarations
 #
+
+attribute_role portmap_helper_roles;
 
 type portmap_t;
 type portmap_exec_t;
@@ -12,7 +14,10 @@ init_daemon_domain(portmap_t, portmap_exec_t)
 type portmap_helper_t;
 type portmap_helper_exec_t;
 init_system_domain(portmap_helper_t, portmap_helper_exec_t)
-role system_r types portmap_helper_t;
+role portmap_helper_roles types portmap_helper_t;
+
+type portmap_initrc_exec_t;
+init_script_file(portmap_initrc_exec_t)
 
 type portmap_tmp_t;
 files_tmp_file(portmap_tmp_t)
@@ -22,16 +27,13 @@ files_pid_file(portmap_var_run_t)
 
 ########################################
 #
-# Portmap local policy
+# Local policy
 #
 
 allow portmap_t self:capability { setuid setgid };
 dontaudit portmap_t self:capability sys_tty_config;
-allow portmap_t self:netlink_route_socket r_netlink_socket_perms;
-allow portmap_t self:unix_dgram_socket create_socket_perms;
-allow portmap_t self:unix_stream_socket create_stream_socket_perms;
-allow portmap_t self:tcp_socket create_stream_socket_perms;
-allow portmap_t self:udp_socket create_socket_perms;
+allow portmap_t self:unix_stream_socket { accept listen };
+allow portmap_t self:tcp_socket { accept listen };
 
 manage_dirs_pattern(portmap_t, portmap_tmp_t, portmap_tmp_t)
 manage_files_pattern(portmap_t, portmap_tmp_t, portmap_tmp_t)
@@ -53,16 +55,21 @@ corenet_tcp_sendrecv_all_ports(portmap_t)
 corenet_udp_sendrecv_all_ports(portmap_t)
 corenet_tcp_bind_generic_node(portmap_t)
 corenet_udp_bind_generic_node(portmap_t)
+
+corenet_sendrecv_all_client_packets(portmap_t)
+corenet_sendrecv_all_server_packets(portmap_t)
+
 corenet_tcp_bind_portmap_port(portmap_t)
 corenet_udp_bind_portmap_port(portmap_t)
+
 corenet_tcp_connect_all_ports(portmap_t)
-corenet_sendrecv_portmap_client_packets(portmap_t)
-corenet_sendrecv_portmap_server_packets(portmap_t)
-# portmap binds to arbitary ports
+
 corenet_tcp_bind_generic_port(portmap_t)
 corenet_udp_bind_generic_port(portmap_t)
+
 corenet_tcp_bind_reserved_port(portmap_t)
 corenet_udp_bind_reserved_port(portmap_t)
+
 corenet_dontaudit_tcp_bind_all_reserved_ports(portmap_t)
 corenet_dontaudit_udp_bind_all_ports(portmap_t)
 
@@ -73,24 +80,12 @@ fs_search_auto_mountpoints(portmap_t)
 
 domain_use_interactive_fds(portmap_t)
 
-files_read_etc_files(portmap_t)
-
 logging_send_syslog_msg(portmap_t)
 
 miscfiles_read_localization(portmap_t)
 
-sysnet_read_config(portmap_t)
-
 userdom_dontaudit_use_unpriv_user_fds(portmap_t)
 userdom_dontaudit_search_user_home_dirs(portmap_t)
-
-optional_policy(`
-	nis_use_ypbind(portmap_t)
-')
-
-optional_policy(`
-	nscd_socket_use(portmap_t)
-')
 
 optional_policy(`
 	seutil_sigchld_newrole(portmap_t)
@@ -102,13 +97,11 @@ optional_policy(`
 
 ########################################
 #
-# Portmap helper local policy
+# Helper local policy
 #
 
 dontaudit portmap_helper_t self:capability net_admin;
-allow portmap_helper_t self:netlink_route_socket r_netlink_socket_perms;
-allow portmap_helper_t self:tcp_socket create_stream_socket_perms;
-allow portmap_helper_t self:udp_socket create_socket_perms;
+allow portmap_helper_t self:tcp_socket { accept listen };
 
 allow portmap_helper_t portmap_var_run_t:file manage_file_perms;
 files_pid_filetrans(portmap_helper_t, portmap_var_run_t, file)
@@ -117,34 +110,33 @@ corenet_all_recvfrom_unlabeled(portmap_helper_t)
 corenet_all_recvfrom_netlabel(portmap_helper_t)
 corenet_tcp_sendrecv_generic_if(portmap_helper_t)
 corenet_udp_sendrecv_generic_if(portmap_helper_t)
-corenet_raw_sendrecv_generic_if(portmap_helper_t)
 corenet_tcp_sendrecv_generic_node(portmap_helper_t)
 corenet_udp_sendrecv_generic_node(portmap_helper_t)
-corenet_raw_sendrecv_generic_node(portmap_helper_t)
 corenet_tcp_sendrecv_all_ports(portmap_helper_t)
 corenet_udp_sendrecv_all_ports(portmap_helper_t)
 corenet_tcp_bind_generic_node(portmap_helper_t)
 corenet_udp_bind_generic_node(portmap_helper_t)
+
+corenet_sendrecv_all_client_packets(portmap_helper_t)
+corenet_sendrecv_all_server_packets(portmap_helper_t)
+
 corenet_tcp_bind_reserved_port(portmap_helper_t)
 corenet_udp_bind_reserved_port(portmap_helper_t)
+
+corenet_tcp_connect_all_ports(portmap_helper_t)
+
 corenet_dontaudit_tcp_bind_all_reserved_ports(portmap_helper_t)
 corenet_dontaudit_udp_bind_all_reserved_ports(portmap_helper_t)
-corenet_tcp_connect_all_ports(portmap_helper_t)
 
 domain_dontaudit_use_interactive_fds(portmap_helper_t)
 
-files_read_etc_files(portmap_helper_t)
 files_rw_generic_pids(portmap_helper_t)
+
+auth_use_nsswitch(portmap_helper_t)
 
 init_rw_utmp(portmap_helper_t)
 
 logging_send_syslog_msg(portmap_helper_t)
 
-sysnet_read_config(portmap_helper_t)
-
 userdom_use_user_terminals(portmap_helper_t)
 userdom_dontaudit_use_all_users_fds(portmap_helper_t)
-
-optional_policy(`
-	nis_use_ypbind(portmap_helper_t)
-')
