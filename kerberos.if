@@ -16,12 +16,7 @@
 ## </param>
 #
 template(`kerberos_role',`
-	gen_require(`
-		type krb5_home_t;
-	')
-
-	allow $2 krb5_home_t:file { manage_file_perms relabel_file_perms };
-	userdom_user_home_dir_filetrans($2, krb5_home_t, file, ".k5login")
+	refpolicywarn(`$0($*) has been deprecated')
 ')
 
 ########################################
@@ -185,6 +180,74 @@ interface(`kerberos_rw_config',`
 
 	files_search_etc($1)
 	allow $1 krb5_conf_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	kerberos home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kerberos_manage_krb5_home_files',`
+	gen_require(`
+		type krb5_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 krb5_home_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Relabel kerberos home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kerberos_relabel_krb5_home_files',`
+	gen_require(`
+		type krb5_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 krb5_home_t:file relabel_file_perms;
+')
+
+########################################
+## <summary>
+##	Create objects in user home
+##	directories with the krb5 home type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`kerberos_home_filetrans_krb5_home',`
+	gen_require(`
+		type krb5_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, krb5_home_t, $2, $3)
 ')
 
 ########################################
