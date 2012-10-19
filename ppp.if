@@ -1,4 +1,4 @@
-## <summary>Point to Point Protocol daemon creates links in ppp networks</summary>
+## <summary>Point to Point Protocol daemon creates links in ppp networks.</summary>
 
 ########################################
 ## <summary>
@@ -109,7 +109,7 @@ interface(`ppp_home_filetrans_ppp_home',`
 
 ########################################
 ## <summary>
-##	Use PPP file discriptors.
+##	Inherit and use ppp file discriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -128,7 +128,7 @@ interface(`ppp_use_fds',`
 ########################################
 ## <summary>
 ##	Do not audit attempts to inherit
-##	and use PPP file discriptors.
+##	and use ppp file discriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -146,7 +146,7 @@ interface(`ppp_dontaudit_use_fds',`
 
 ########################################
 ## <summary>
-##	Send a SIGCHLD signal to PPP.
+##	Send child terminated signals to ppp.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -165,7 +165,7 @@ interface(`ppp_sigchld',`
 
 ########################################
 ## <summary>
-##	Send ppp a kill signal
+##	Send kill signals to ppp.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -184,7 +184,7 @@ interface(`ppp_kill',`
 
 ########################################
 ## <summary>
-##	Send a generic signal to PPP.
+##	Send generic signals to ppp.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -202,7 +202,7 @@ interface(`ppp_signal',`
 
 ########################################
 ## <summary>
-##	Send a generic signull to PPP.
+##	Send null signals to ppp.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -220,7 +220,7 @@ interface(`ppp_signull',`
 
 ########################################
 ## <summary>
-##	 Execute domain in the ppp domain.
+##	 Execute pppd in the pppd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -239,7 +239,8 @@ interface(`ppp_domtrans',`
 
 ########################################
 ## <summary>
-##	 Conditionally execute ppp daemon on behalf of a user or staff type.
+##	Conditionally execute pppd on
+##	behalf of a user or staff type.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -248,17 +249,17 @@ interface(`ppp_domtrans',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the ppp domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`ppp_run_cond',`
 	gen_require(`
-		type pppd_t;
+		attribute_role pppd_roles;
 	')
 
-	role $2 types pppd_t;
+	roleattribute $2 pppd_roles;
 
 	tunable_policy(`pppd_for_user',`
 		ppp_domtrans($1)
@@ -267,7 +268,8 @@ interface(`ppp_run_cond',`
 
 ########################################
 ## <summary>
-##	 Unconditionally execute ppp daemon on behalf of a user or staff type.
+##	Unconditionally execute ppp daemon
+##	on behalf of a user or staff type.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -276,7 +278,7 @@ interface(`ppp_run_cond',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the ppp domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -292,7 +294,7 @@ interface(`ppp_run',`
 
 ########################################
 ## <summary>
-##	 Execute domain in the ppp caller.
+##	 Execute domain in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -324,13 +326,13 @@ interface(`ppp_read_config',`
 		type pppd_etc_t;
 	')
 
-	read_files_pattern($1, pppd_etc_t, pppd_etc_t)
 	files_search_etc($1)
+	read_files_pattern($1, pppd_etc_t, pppd_etc_t)
 ')
 
 ########################################
 ## <summary>
-##	Read PPP-writable configuration files.
+##	Read ppp writable configuration content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -343,14 +345,15 @@ interface(`ppp_read_rw_config',`
 		type pppd_etc_t, pppd_etc_rw_t;
 	')
 
-	allow $1 pppd_etc_t:dir list_dir_perms;
-	allow $1 pppd_etc_rw_t:file read_file_perms;
 	files_search_etc($1)
+	allow $1 { pppd_etc_t pppd_etc_rw_t }:dir list_dir_perms;
+	allow $1 pppd_etc_rw_t:file read_file_perms;
+	allow $1 { pppd_etc_t pppd_etc_rw_t }:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Read PPP secrets.
+##	Read ppp secret files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -363,14 +366,15 @@ interface(`ppp_read_secrets',`
 		type pppd_etc_t, pppd_secret_t;
 	')
 
+	files_search_etc($1)
 	allow $1 pppd_etc_t:dir list_dir_perms;
 	allow $1 pppd_secret_t:file read_file_perms;
-	files_search_etc($1)
+	allow $1 pppd_etc_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Read PPP pid files.
+##	Read ppp pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -383,12 +387,14 @@ interface(`ppp_read_pid_files',`
 		type pppd_var_run_t;
 	')
 
+	files_search_pids($1)
 	allow $1 pppd_var_run_t:file read_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete PPP pid files.
+##	Create, read, write, and delete
+##	ppp pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -401,16 +407,28 @@ interface(`ppp_manage_pid_files',`
 		type pppd_var_run_t;
 	')
 
+	files_search_pids($1)
 	allow $1 pppd_var_run_t:file manage_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete PPP pid files.
+##	Create specified pppd pid objects
+##	with a type transition.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
 ##	</summary>
 ## </param>
 #
@@ -419,12 +437,13 @@ interface(`ppp_pid_filetrans',`
 		type pppd_var_run_t;
 	')
 
-	files_pid_filetrans($1, pppd_var_run_t, file)
+	files_pid_filetrans($1, pppd_var_run_t, $2, $3)
 ')
 
 ########################################
 ## <summary>
-##	Execute ppp server in the ntpd domain.
+##	Execute pppd init script in
+##	the initrc domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -442,12 +461,17 @@ interface(`ppp_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an ppp environment
+##	All of the rules required to
+##	administrate an ppp environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -455,15 +479,13 @@ interface(`ppp_initrc_domtrans',`
 interface(`ppp_admin',`
 	gen_require(`
 		type pppd_t, pppd_tmp_t, pppd_log_t, pppd_lock_t;
-		type pppd_etc_t, pppd_secret_t;
-		type pppd_etc_rw_t, pppd_var_run_t;
-
+		type pppd_etc_t, pppd_secret_t, pppd_etc_rw_t;
+		type pppd_var_run_t, pppd_initrc_exec_t;
 		type pptp_t, pptp_log_t, pptp_var_run_t;
- 		type pppd_initrc_exec_t;
 	')
 
-	allow $1 pppd_t:process { ptrace signal_perms getattr };
-	ps_process_pattern($1, pppd_t)
+	allow $1 { pptp_t pppd_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { pptp_t pppd_t })
 
 	ppp_initrc_domtrans($1)
 	domain_system_change_exemption($1)
@@ -474,24 +496,14 @@ interface(`ppp_admin',`
 	admin_pattern($1, pppd_tmp_t)
 
 	logging_list_logs($1)
-	admin_pattern($1, pppd_log_t)
+	admin_pattern($1, { pptp_log_t pppd_log_t })
 
+	files_list_locks($1)
 	admin_pattern($1, pppd_lock_t)
 
 	files_list_etc($1)
-	admin_pattern($1, pppd_etc_t)
-
-	admin_pattern($1, pppd_etc_rw_t)
-
-	admin_pattern($1, pppd_secret_t)
+	admin_pattern($1, { pppd_etc_rw_t pppd_secret_t pppd_etc_t })
 
 	files_list_pids($1)
-	admin_pattern($1, pppd_var_run_t)
-
-	allow $1 pptp_t:process { ptrace signal_perms getattr };
-	ps_process_pattern($1, pptp_t)
-
-	admin_pattern($1, pptp_log_t)
-
-	admin_pattern($1, pptp_var_run_t)
+	admin_pattern($1, { pptp_var_run_t pppd_var_run_t })
 ')
