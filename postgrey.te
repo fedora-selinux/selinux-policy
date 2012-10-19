@@ -1,4 +1,4 @@
-policy_module(postgrey, 1.8.0)
+policy_module(postgrey, 1.8.1)
 
 ########################################
 #
@@ -32,12 +32,12 @@ files_pid_file(postgrey_var_run_t)
 allow postgrey_t self:capability { chown dac_override setgid setuid };
 dontaudit postgrey_t self:capability sys_tty_config;
 allow postgrey_t self:process signal_perms;
-allow postgrey_t self:tcp_socket create_stream_socket_perms;
 allow postgrey_t self:fifo_file create_fifo_file_perms;
+allow postgrey_t self:tcp_socket create_stream_socket_perms;
 
 allow postgrey_t postgrey_etc_t:dir list_dir_perms;
-read_files_pattern(postgrey_t, postgrey_etc_t, postgrey_etc_t)
-read_lnk_files_pattern(postgrey_t, postgrey_etc_t, postgrey_etc_t)
+allow postgrey_t postgrey_etc_t:file read_file_perms;
+allow postgrey_t postgrey_etc_t:lnk_file read_lnk_file_perms;
 
 manage_dirs_pattern(postgrey_t, postgrey_spool_t, postgrey_spool_t)
 manage_files_pattern(postgrey_t, postgrey_spool_t, postgrey_spool_t)
@@ -55,17 +55,17 @@ files_pid_filetrans(postgrey_t, postgrey_var_run_t, { dir file sock_file })
 kernel_read_system_state(postgrey_t)
 kernel_read_kernel_sysctls(postgrey_t)
 
-# for perl
 corecmd_search_bin(postgrey_t)
 
 corenet_all_recvfrom_unlabeled(postgrey_t)
 corenet_all_recvfrom_netlabel(postgrey_t)
 corenet_tcp_sendrecv_generic_if(postgrey_t)
 corenet_tcp_sendrecv_generic_node(postgrey_t)
-corenet_tcp_sendrecv_all_ports(postgrey_t)
 corenet_tcp_bind_generic_node(postgrey_t)
-corenet_tcp_bind_postgrey_port(postgrey_t)
+
 corenet_sendrecv_postgrey_server_packets(postgrey_t)
+corenet_tcp_bind_postgrey_port(postgrey_t)
+corenet_tcp_sendrecv_postgrey_port(postgrey_t)
 
 dev_read_urand(postgrey_t)
 dev_read_sysfs(postgrey_t)
