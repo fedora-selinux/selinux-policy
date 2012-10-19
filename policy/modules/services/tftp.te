@@ -13,6 +13,13 @@ policy_module(tftp, 1.12.0)
 ## </desc>
 gen_tunable(tftp_anon_write, false)
 
+## <desc>
+## <p>
+## Allow tftp to read and write files in the user home directories
+## </p>
+## </desc>
+gen_tunable(tftp_home_dir, false)
+
 type tftpd_t;
 type tftpd_exec_t;
 init_daemon_domain(tftpd_t, tftpd_exec_t)
@@ -96,6 +103,31 @@ userdom_dontaudit_search_user_home_dirs(tftpd_t)
 
 tunable_policy(`tftp_anon_write',`
 	miscfiles_manage_public_files(tftpd_t)
+')
+
+tunable_policy(`tftp_home_dir',`
+    allow ftpd_t self:capability { dac_override dac_read_search };
+
+	# allow access to /home
+	files_list_home(ftpd_t)
+    userdom_read_user_home_content_files(ftpd_t)
+    userdom_manage_user_home_content(ftpd_t)
+
+    auth_read_all_dirs_except_shadow(ftpd_t)
+    auth_read_all_files_except_shadow(ftpd_t)
+    auth_read_all_symlinks_except_shadow(ftpd_t)
+',`
+	# Needed for permissive mode, to make sure everything gets labeled correctly
+	userdom_user_home_dir_filetrans_pattern(ftpd_t, { dir file lnk_file })
+
+tunable_policy(`tftp_home_dir && use_nfs_home_dirs',`
+    fs_manage_nfs_files(ftpd_t)
+    fs_read_nfs_symlinks(ftpd_t)
+')
+
+tunable_policy(`tftp_home_dir && use_samba_home_dirs',`
+    fs_manage_cifs_files(ftpd_t)
+    fs_read_cifs_symlinks(ftpd_t)
 ')
 
 optional_policy(`
