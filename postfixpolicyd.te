@@ -1,4 +1,4 @@
-policy_module(postfixpolicyd, 1.2.0)
+policy_module(postfixpolicyd, 1.2.1)
 
 ########################################
 #
@@ -20,17 +20,16 @@ files_pid_file(postfix_policyd_var_run_t)
 
 ########################################
 #
-# Local Policy
+# Local policy
 #
 
-allow postfix_policyd_t self:tcp_socket create_stream_socket_perms;
 allow postfix_policyd_t self:capability { sys_resource sys_chroot setgid setuid };
 allow postfix_policyd_t self:process setrlimit;
-allow postfix_policyd_t self:unix_dgram_socket { connect create write};
+allow postfix_policyd_t self:tcp_socket { accept listen };
 
 allow postfix_policyd_t postfix_policyd_conf_t:dir list_dir_perms;
 allow postfix_policyd_t postfix_policyd_conf_t:file read_file_perms;
-allow postfix_policyd_t postfix_policyd_conf_t:lnk_file { getattr read };
+allow postfix_policyd_t postfix_policyd_conf_t:lnk_file read_lnk_file_perms;
 
 manage_files_pattern(postfix_policyd_t, postfix_policyd_var_run_t, postfix_policyd_var_run_t)
 files_pid_filetrans(postfix_policyd_t, postfix_policyd_var_run_t, file)
@@ -38,10 +37,15 @@ files_pid_filetrans(postfix_policyd_t, postfix_policyd_var_run_t, file)
 corenet_all_recvfrom_unlabeled(postfix_policyd_t)
 corenet_tcp_sendrecv_generic_if(postfix_policyd_t)
 corenet_tcp_sendrecv_generic_node(postfix_policyd_t)
-corenet_tcp_sendrecv_all_ports(postfix_policyd_t)
 corenet_tcp_bind_generic_node(postfix_policyd_t)
+
+corenet_sendrecv_postfix_policyd_server_packets(postfix_policyd_t)
 corenet_tcp_bind_postfix_policyd_port(postfix_policyd_t)
+corenet_tcp_sendrecv_postfix_policyd_port(postfix_policyd_t)
+
+corenet_sendrecv_mysqld_server_packets(postfix_policyd_t)
 corenet_tcp_bind_mysqld_port(postfix_policyd_t)
+corenet_tcp_sendrecv_mysqld_port(postfix_policyd_t)
 
 files_read_etc_files(postfix_policyd_t)
 files_read_usr_files(postfix_policyd_t)
