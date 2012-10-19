@@ -2,7 +2,7 @@
 
 ########################################
 ## <summary>
-##	Execute the prelink program in the prelink domain.
+##	Execute prelink in the prelink domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -18,15 +18,15 @@ interface(`prelink_domtrans',`
 	corecmd_search_bin($1)
 	domtrans_pattern($1, prelink_exec_t, prelink_t)
 
-	ifdef(`hide_broken_symptoms', `
+	ifdef(`hide_broken_symptoms',`
 		dontaudit prelink_t $1:socket_class_set { read write };
-		dontaudit prelink_t $1:fifo_file setattr;
+		dontaudit prelink_t $1:fifo_file setattr_fifo_file_perms;
 	')
 ')
 
 ########################################
 ## <summary>
-##	Execute the prelink program in the current domain.
+##	Execute prelink in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -45,7 +45,9 @@ interface(`prelink_exec',`
 
 ########################################
 ## <summary>
-##	Execute the prelink program in the prelink domain.
+##	Execute prelink in the prelink
+##	domain, and allow the specified role
+##	the prelink domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -54,18 +56,18 @@ interface(`prelink_exec',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the prelink domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`prelink_run',`
 	gen_require(`
-		type prelink_t;
+		attribute_role prelink_roles;
 	')
 
 	prelink_domtrans($1)
-	role $2 types prelink_t;
+	roleattribute $2 prelink_roles;
 ')
 
 ########################################
@@ -78,7 +80,6 @@ interface(`prelink_run',`
 ##	</summary>
 ## </param>
 #
-# cjp: added for misc non-entrypoint objects
 interface(`prelink_object_file',`
 	gen_require(`
 		attribute prelink_object;
@@ -89,7 +90,7 @@ interface(`prelink_object_file',`
 
 ########################################
 ## <summary>
-##	Read the prelink cache.
+##	Read prelink cache files.
 ## </summary>
 ## <param name="file_type">
 ##	<summary>
@@ -108,7 +109,7 @@ interface(`prelink_read_cache',`
 
 ########################################
 ## <summary>
-##	Delete the prelink cache.
+##	Delete prelink cache files.
 ## </summary>
 ## <param name="file_type">
 ##	<summary>
@@ -121,8 +122,8 @@ interface(`prelink_delete_cache',`
 		type prelink_cache_t;
 	')
 
-	allow $1 prelink_cache_t:file unlink;
 	files_rw_etc_dirs($1)
+	allow $1 prelink_cache_t:file delete_file_perms;
 ')
 
 ########################################
@@ -167,7 +168,7 @@ interface(`prelink_manage_lib',`
 
 ########################################
 ## <summary>
-##	Relabel from files in the /boot directory.
+##	Relabel from prelink lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -186,7 +187,7 @@ interface(`prelink_relabelfrom_lib',`
 
 ########################################
 ## <summary>
-##	Relabel from files in the /boot directory.
+##	Relabel prelink lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
