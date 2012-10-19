@@ -36,6 +36,29 @@ interface(`sssd_initrc_domtrans',`
 	init_labeled_script_domtrans($1, sssd_initrc_exec_t)
 ')
 
+########################################
+## <summary>
+##     Execute sssd server in the sssd domain.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed to transition.
+##     </summary>
+## </param>
+#
+interface(`sssd_systemctl',`
+       gen_require(`
+               type sssd_t;
+               type sssd_unit_file_t;
+       ')
+
+       systemd_exec_systemctl($1)
+       allow $1 sssd_unit_file_t:file read_file_perms;
+       allow $1 sssd_unit_file_t:service manage_service_perms;
+
+       ps_process_pattern($1, sssd_t)
+')
+
 #######################################
 ## <summary>
 ##  Read sssd configuration.
@@ -309,6 +332,7 @@ interface(`sssd_stream_connect',`
 interface(`sssd_admin',`
 	gen_require(`
 		type sssd_t, sssd_public_t, sssd_initrc_exec_t;
+		type sssd_unit_file_t;
 	')
 
 	allow $1 sssd_t:process signal_perms;
@@ -328,4 +352,9 @@ interface(`sssd_admin',`
 	sssd_manage_lib_files($1)
 
 	admin_pattern($1, sssd_public_t)
+
+	sssd_systemctl($1)
+	admin_pattern($1, sssd_unit_file_t)
+	allow $1 sssd_unit_file_t:service all_service_perms;
+
 ')
