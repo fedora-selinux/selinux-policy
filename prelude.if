@@ -1,13 +1,13 @@
-## <summary>Prelude hybrid intrusion detection system</summary>
+## <summary>Prelude hybrid intrusion detection system.</summary>
 
 ########################################
 ## <summary>
 ##	Execute a domain transition to run prelude.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`prelude_domtrans',`
@@ -15,17 +15,19 @@ interface(`prelude_domtrans',`
 		type prelude_t, prelude_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, prelude_exec_t, prelude_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute a domain transition to run prelude_audisp.
+##	Execute a domain transition to
+##	run prelude audisp.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`prelude_domtrans_audisp',`
@@ -33,17 +35,18 @@ interface(`prelude_domtrans_audisp',`
 		type prelude_audisp_t, prelude_audisp_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, prelude_audisp_exec_t, prelude_audisp_t)
 ')
 
 ########################################
 ## <summary>
-##	Signal the prelude_audisp domain.
+##	Send generic signals to prelude audisp.
 ## </summary>
 ## <param name="domain">
-## <summary>
-##	Domain allowed acccess.
-## </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`prelude_signal_audisp',`
@@ -56,7 +59,7 @@ interface(`prelude_signal_audisp',`
 
 ########################################
 ## <summary>
-##	Read the prelude spool files
+##	Read prelude spool files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -75,12 +78,13 @@ interface(`prelude_read_spool',`
 
 ########################################
 ## <summary>
-##	Manage to prelude-manager spool files.
+##	Create, read, write, and delete
+##	prelude manager spool files.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed access.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`prelude_manage_spool',`
@@ -95,8 +99,8 @@ interface(`prelude_manage_spool',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an prelude environment
+##	All of the rules required to
+##	administrate an prelude environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -112,33 +116,32 @@ interface(`prelude_manage_spool',`
 #
 interface(`prelude_admin',`
 	gen_require(`
-		type prelude_t, prelude_spool_t;
-		type prelude_var_run_t, prelude_var_lib_t;
+		type prelude_t, prelude_spool_t, prelude_lml_var_run_t;
+		type prelude_var_run_t, prelude_var_lib_t, prelude_log_t;
 		type prelude_audisp_t, prelude_audisp_var_run_t;
-		type prelude_initrc_exec_t;
-
-		type prelude_lml_t, prelude_lml_tmp_t;
-		type prelude_lml_var_run_t;
+		type prelude_initrc_exec_t, prelude_lml_t, prelude_lml_tmp_t;
 	')
 
-	allow $1 prelude_t:process { ptrace signal_perms };
-	ps_process_pattern($1, prelude_t)
-
-	allow $1 prelude_audisp_t:process { ptrace signal_perms };
-	ps_process_pattern($1, prelude_audisp_t)
-
-	allow $1 prelude_lml_t:process { ptrace signal_perms };
-	ps_process_pattern($1, prelude_lml_t)
+	allow $1 { prelude_t prelude_audisp_t prelude_lml_t prelude_correlator_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { prelude_t prelude_audisp_t prelude_lml_t prelude_correlator_t })
 
 	init_labeled_script_domtrans($1, prelude_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 prelude_initrc_exec_t system_r;
 	allow $2 system_r;
 
+	files_search_spool($1)
 	admin_pattern($1, prelude_spool_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, prelude_log_t)
+
+	files_search_var_lib($1)
 	admin_pattern($1, prelude_var_lib_t)
-	admin_pattern($1, prelude_var_run_t)
-	admin_pattern($1, prelude_audisp_var_run_t)
+
+	files_search_pids($1)
+	admin_pattern($1, { prelude_audisp_var_run_t prelude_var_run_t prelude_lml_var_run_t })
+
+	files_search_tmp($1)
 	admin_pattern($1, prelude_lml_tmp_t)
-	admin_pattern($1, prelude_lml_var_run_t)
 ')
