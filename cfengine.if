@@ -18,7 +18,7 @@ template(`cfengine_domain_template',`
 
 	########################################
 	#
-	# Shared declarations
+	# Declarations
 	#
 
 	type cfengine_$1_t, cfengine_domain;
@@ -27,40 +27,29 @@ template(`cfengine_domain_template',`
 
 	########################################
 	#
-	# Shared policy
+	# Policy
 	#
 
-	allow cfengine_$1_t self:capability { chown kill setgid setuid sys_chroot };
-	allow cfengine_$1_t self:process { setfscreate signal };
-	allow cfengine_$1_t self:fifo_file rw_fifo_file_perms;
-	allow cfengine_$1_t self:unix_stream_socket { accept listen };
-
-	manage_dirs_pattern(cfengine_$1_t, cfengine_var_lib_t, cfengine_var_lib_t)
-	manage_files_pattern(cfengine_$1_t, cfengine_var_lib_t, cfengine_var_lib_t)
-	manage_lnk_files_pattern(cfengine_$1_t, cfengine_var_lib_t, cfengine_var_lib_t)
-	files_var_lib_filetrans(cfengine_$1_t, cfengine_var_lib_t, dir)
-
-	manage_dirs_pattern(cfengine_$1_t, cfengine_log_t, cfengine_log_t)
-	append_files_pattern(cfengine_$1_t, cfengine_log_t, cfengine_log_t)
-	create_files_pattern(cfengine_$1_t, cfengine_log_t, cfengine_log_t)
-	setattr_files_pattern(cfengine_$1_t, cfengine_log_t, cfengine_log_t)
-	logging_log_filetrans(cfengine_$1_t, cfengine_log_t, dir)
-
-	kernel_read_system_state(cfengine_$1_t)
-
-	corecmd_exec_bin(cfengine_$1_t)
-	corecmd_exec_shell(cfengine_$1_t)
-
-	dev_read_urand(cfengine_$1_t)
-	dev_read_sysfs(cfengine_$1_t)
-
 	auth_use_nsswitch(cfengine_$1_t)
+')
 
-	logging_send_syslog_msg(cfengine_$1_t)
+########################################
+## <summary>
+##	Read cfengine lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cfengine_read_lib_files',`
+	gen_require(`
+		type cfengine_var_lib_t;
+	')
 
-	miscfiles_read_localization(cfengine_$1_t)
-
-	sysnet_domtrans_ifconfig(cfengine_$1_t)
+	files_search_var_lib($1)
+	read_files_pattern($1, cfengine_var_lib_t, cfengine_var_lib_t)
 ')
 
 ########################################
