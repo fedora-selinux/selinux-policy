@@ -6,57 +6,62 @@ policy_module(qemu, 1.7.1)
 #
 
 ## <desc>
-## <p>
-## Allow qemu to connect fully to the network
-## </p>
+##	<p>
+##	Determine whether qemy has full
+##	access to the network.
+##	</p>
 ## </desc>
 gen_tunable(qemu_full_network, false)
 
 ## <desc>
-## <p>
-## Allow qemu to use cifs/Samba file systems
-## </p>
+##	<p>
+##	Determine whether qemu can
+##	use cifs file systems.
+##	</p>
 ## </desc>
 gen_tunable(qemu_use_cifs, false)
 
 ## <desc>
-## <p>
-## Allow qemu to use serial/parallel communication ports
-## </p>
+##	<p>
+##	Determine whether gemu can use
+##	serial/parallel communication ports.
+##	</p>
 ## </desc>
 gen_tunable(qemu_use_comm, false)
 
 ## <desc>
-## <p>
-## Allow qemu to use nfs file systems
-## </p>
+##	<p>
+##	Determine whether qemu can
+##	use nfs file systems.
+##	</p>
 ## </desc>
 gen_tunable(qemu_use_nfs, false)
 
 ## <desc>
-## <p>
-## Allow qemu to use usb devices
-## </p>
+##	<p>
+##	Determine whether qemu can
+##	use usb devices.
+##	</p>
 ## </desc>
 gen_tunable(qemu_use_usb, false)
 
+attribute_role qemu_roles;
+roleattribute system_r qemu_roles;
+
 type qemu_exec_t;
+
 virt_domain_template(qemu)
-application_domain(qemu_t, qemu_exec_t)
-role system_r types qemu_t;
+role qemu_roles types qemu_t;
 
 ########################################
 #
-# qemu local policy
+# Local policy
 #
-
-can_exec(qemu_t, qemu_exec_t)
 
 storage_raw_write_removable_device(qemu_t)
 storage_raw_read_removable_device(qemu_t)
 
-userdom_search_user_home_content(qemu_t)
-userdom_read_user_tmpfs_files(qemu_t)
+userdom_search_user_home_dirs(qemu_t)
 
 tunable_policy(`qemu_full_network',`
 	allow qemu_t self:udp_socket create_socket_perms;
@@ -101,6 +106,14 @@ optional_policy(`
 ')
 
 optional_policy(`
+	tunable_policy(`qemu_use_cifs',`
+		samba_domtrans_smbd(qemu_t)
+	')
+')
+
+optional_policy(`
+	virt_domtrans_bridgehelper(qemu_t)
+	virt_manage_home_files(qemu_t)
 	virt_manage_images(qemu_t)
 	virt_append_log(qemu_t)
 ')
@@ -116,7 +129,7 @@ optional_policy(`
 
 ########################################
 #
-# Unconfined qemu local policy
+# Unconfined local policy
 #
 
 optional_policy(`

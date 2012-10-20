@@ -1,21 +1,19 @@
-## <summary>QEMU machine emulator and virtualizer</summary>
+## <summary>QEMU machine emulator and virtualizer.</summary>
 
-########################################
+#######################################
 ## <summary>
-##	Creates types and rules for a basic
-##	qemu process domain.
+##	The template to define a qemu domain.
 ## </summary>
-## <param name="prefix">
+## <param name="domain_prefix">
 ##	<summary>
-##	Prefix for the domain.
+##	Domain prefix to be used.
 ##	</summary>
 ## </param>
 #
 template(`qemu_domain_template',`
-
 	##############################
 	#
-	# Local Policy
+	# Declarations
 	#
 
 	type $1_t;
@@ -26,7 +24,7 @@ template(`qemu_domain_template',`
 
 	##############################
 	#
-	# Local Policy
+	# Policy
 	#
 
 	allow $1_t self:capability { dac_read_search dac_override };
@@ -98,43 +96,30 @@ template(`qemu_domain_template',`
 	')
 ')
 
-#######################################
+########################################
 ## <summary>
-##	The per role template for the qemu module.
+##	Role access for qemu.
 ## </summary>
-## <desc>
-##	<p>
-##	This template creates a derived domains which are used
-##	for qemu web browser.
-##	</p>
-##	<p>
-##	This template is invoked automatically for each user, and
-##	generally does not need to be invoked directly
-##	by policy writers.
-##	</p>
-## </desc>
-## <param name="user_role">
+## <param name="role">
 ##	<summary>
-##	The role associated with the user domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
-## <param name="user_domain">
+## <param name="domain">
 ##	<summary>
-##	The type of the user domain.
+##	User domain for the role.
 ##	</summary>
 ## </param>
 #
 template(`qemu_role',`
 	gen_require(`
-		type qemu_t, qemu_exec_t;
-		type qemu_config_t, qemu_config_exec_t;
+		type qemu_t;
 	')
 
-	role $1 types { qemu_t qemu_config_t };
+	qemu_run($2, $1)
 
-	domtrans_pattern($2, qemu_exec_t, qemu_t)
- 	domtrans_pattern($2, qemu_config_exec_t, qemu_config_t)
-	allow qemu_t $2:process signull;
+	allow $2 qemu_t:process { ptrace signal_perms };
+	ps_process_pattern($2, qemu_t)
 ')
 
 ########################################
@@ -142,9 +127,9 @@ template(`qemu_role',`
 ##	Execute a domain transition to run qemu.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`qemu_domtrans',`
@@ -152,12 +137,34 @@ interface(`qemu_domtrans',`
 		type qemu_t, qemu_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, qemu_exec_t, qemu_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute qemu in the qemu domain.
+##	Execute a qemu in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qemu_exec',`
+	gen_require(`
+		type qemu_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, qemu_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute qemu in the qemu domain,
+##	and allow the specified role the
+##	qemu domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -166,25 +173,23 @@ interface(`qemu_domtrans',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the qemu domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`qemu_run',`
 	gen_require(`
-		type qemu_t;
+		attribute_role qemu_roles;
 	')
 
 	qemu_domtrans($1)
-	role $2 types qemu_t;
-	allow qemu_t $1:process signull;
-	allow $1 qemu_t:process signull;
+	roleattribute $2 qemu_roles;
 ')
 
 ########################################
 ## <summary>
-##	Allow the domain to read state files in /proc.
+##	Read qemu process state files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -197,12 +202,15 @@ interface(`qemu_read_state',`
 		type qemu_t;
 	')
 
-	read_files_pattern($1, qemu_t, qemu_t)
+	kernel_search_proc($1)
+	allow $1 qemu_t:dir list_dir_perms;
+	allow $1 qemu_t:file read_file_perms;
+	allow $1 qemu_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Set the schedule on qemu.
+##	Set qemu scheduler.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -220,7 +228,7 @@ interface(`qemu_setsched',`
 
 ########################################
 ## <summary>
-##	Send a signal to qemu.
+##	Send generic signals to qemu.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -238,7 +246,7 @@ interface(`qemu_signal',`
 
 ########################################
 ## <summary>
-##	Send a sigill to qemu
+##	Send kill signals to qemu.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -256,12 +264,13 @@ interface(`qemu_kill',`
 
 ########################################
 ## <summary>
-##	Execute a domain transition to run qemu unconfined.
+##	Execute a domain transition to
+##	run qemu unconfined.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`qemu_domtrans_unconfined',`
@@ -269,12 +278,14 @@ interface(`qemu_domtrans_unconfined',`
 		type unconfined_qemu_t, qemu_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, qemu_exec_t, unconfined_qemu_t)
 ')
 
 ########################################
 ## <summary>
-##	Manage qemu temporary dirs.
+##	Create, read, write, and delete
+##	qemu temporary directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -287,12 +298,14 @@ interface(`qemu_manage_tmp_dirs',`
 		type qemu_tmp_t;
 	')
 
+	files_search_tmp($1)
 	manage_dirs_pattern($1, qemu_tmp_t, qemu_tmp_t)
 ')
 
 ########################################
 ## <summary>
-##	Manage qemu temporary files.
+##	Create, read, write, and delete
+##	qemu temporary files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -305,5 +318,59 @@ interface(`qemu_manage_tmp_files',`
 		type qemu_tmp_t;
 	')
 
+	files_search_tmp($1)
 	manage_files_pattern($1, qemu_tmp_t, qemu_tmp_t)
+')
+
+########################################
+## <summary>
+##	Execute qemu in a specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute qemu in a specified domain.
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="source_domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	Domain to transition to.
+##	</summary>
+## </param>
+#
+interface(`qemu_spec_domtrans',`
+	gen_require(`
+		type qemu_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domain_auto_trans($1, qemu_exec_t, $2)
+')
+
+######################################
+## <summary>
+##	Make qemu executable files an
+##	entrypoint for the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which qemu_exec_t is an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`qemu_entry_type',`
+	gen_require(`
+		type qemu_exec_t;
+	')
+
+	domain_entry_file($1, qemu_exec_t)
 ')
