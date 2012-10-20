@@ -1,51 +1,64 @@
-## <summary>Libvirt virtualization API</summary>
+## <summary>Libvirt virtualization API.</summary>
 
-########################################
+#######################################
 ## <summary>
-##	Creates types and rules for a basic
-##	qemu process domain.
+##	The template to define a virt domain.
 ## </summary>
-## <param name="prefix">
+## <param name="domain_prefix">
 ##	<summary>
-##	Prefix for the domain.
+##	Domain prefix to be used.
 ##	</summary>
 ## </param>
 #
 template(`virt_domain_template',`
 	gen_require(`
-		type virtd_t;
-		attribute virt_image_type;
-		attribute virt_domain;
+		attribute virt_image_type, virt_domain, virt_tmpfs_type;
+		attribute virt_ptynode;
+		type qemu_exec_t;
 	')
 
+	########################################
+	#
+	# Declarations
+	#
+
 	type $1_t, virt_domain;
-	domain_type($1_t)
+	application_domain($1_t, qemu_exec_t)
 	domain_user_exemption_target($1_t)
+	mls_rangetrans_target($1_t)
+	# FIXME
+	# mcs_untrusted_proc($1_t)
 	role system_r types $1_t;
 
-	type $1_devpts_t;
+	type $1_devpts_t, virt_ptynode;
 	term_pty($1_devpts_t)
 
 	type $1_tmp_t;
 	files_tmp_file($1_tmp_t)
 
-	type $1_tmpfs_t;
+	type $1_tmpfs_t, virt_tmpfs_type;
 	files_tmpfs_file($1_tmpfs_t)
 
 	type $1_image_t, virt_image_type;
 	files_type($1_image_t)
 	dev_node($1_image_t)
+	dev_associate_sysfs($1_image_t)
 
-	type $1_var_run_t;
-	files_pid_file($1_var_run_t)
+	########################################
+	#
+	# Policy
+	#
 
-	allow $1_t $1_devpts_t:chr_file { rw_chr_file_perms setattr };
+	allow $1_t $1_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms };
 	term_create_pty($1_t, $1_devpts_t)
 
 	manage_dirs_pattern($1_t, $1_image_t, $1_image_t)
 	manage_files_pattern($1_t, $1_image_t, $1_image_t)
+	manage_fifo_files_pattern($1_t, $1_image_t, $1_image_t)
 	read_lnk_files_pattern($1_t, $1_image_t, $1_image_t)
+	rw_chr_files_pattern($1_t, $1_image_t, $1_image_t)
 	rw_blk_files_pattern($1_t, $1_image_t, $1_image_t)
+	fs_hugetlbfs_filetrans($1_t, $1_image_t, file)
 
 	manage_dirs_pattern($1_t, $1_tmp_t, $1_tmp_t)
 	manage_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
@@ -57,18 +70,6 @@ template(`virt_domain_template',`
 	manage_lnk_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
 	fs_tmpfs_filetrans($1_t, $1_tmpfs_t, { dir file lnk_file })
 
-	stream_connect_pattern(virtd_t, $1_var_run_t, $1_var_run_t, virt_domain)
-	manage_dirs_pattern(virtd_t, $1_var_run_t, $1_var_run_t)
-	manage_files_pattern(virtd_t, $1_var_run_t, $1_var_run_t)
-	manage_sock_files_pattern(virtd_t, $1_var_run_t, $1_var_run_t)
-
-	manage_dirs_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	manage_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	manage_sock_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	manage_lnk_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	files_pid_filetrans($1_t, $1_var_run_t, { dir file })
-	stream_connect_pattern($1_t, $1_var_run_t, $1_var_run_t, virtd_t)
-
 	auth_use_nsswitch($1_t)
 
 	optional_policy(`
@@ -76,13 +77,37 @@ template(`virt_domain_template',`
 	')
 ')
 
+#######################################
+## <summary>
+##	The template to define a virt lxc domain.
+## </summary>
+## <param name="domain_prefix">
+##	<summary>
+##	Domain prefix to be used.
+##	</summary>
+## </param>
+#
+template(`virt_lxc_domain_template',`
+	gen_require(`
+		attribute svirt_lxc_domain;
+	')
+
+	type $1_t, svirt_lxc_domain;
+	domain_type($1_t)
+	domain_user_exemption_target($1_t)
+	mls_rangetrans_target($1_t)
+	# FIXME
+	#mcs_untrusted_proc($1_t)
+	role system_r types $1_t;
+')
+
 ########################################
 ## <summary>
-##	Make the specified type usable as a virt image
+##	Make the specified type virt image type.
 ## </summary>
 ## <param name="type">
 ##	<summary>
-##	Type to be used as a virtual image
+##	Type to be used as a virtual image.
 ##	</summary>
 ## </param>
 #
@@ -93,19 +118,17 @@ interface(`virt_image',`
 
 	typeattribute $1 virt_image_type;
 	files_type($1)
-
-	# virt images can be assigned to blk devices
 	dev_node($1)
 ')
 
 ########################################
 ## <summary>
-##	Execute a domain transition to run virt.
+##	Execute a domain transition to run virtd.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`virt_domtrans',`
@@ -113,7 +136,47 @@ interface(`virt_domtrans',`
 		type virtd_t, virtd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, virtd_exec_t, virtd_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run virt qmf.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`virt_domtrans_qmf',`
+	gen_require(`
+		type virt_qmf_t, virt_qmf_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, virt_qmf_exec_t, virt_qmf_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to
+##	run virt bridgehelper.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`virt_domtrans_bridgehelper',`
+	gen_require(`
+		type virt_bridgehelper_t, virt_bridgehelper_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, virt_bridgehelper_exec_t, virt_bridgehelper_t)
 ')
 
 #######################################
@@ -136,7 +199,8 @@ interface(`virt_getattr_virtd_exec_files',`
 
 #######################################
 ## <summary>
-##	Connect to virt over an unix domain stream socket.
+##	Connect to virt with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -155,7 +219,7 @@ interface(`virt_stream_connect',`
 
 ########################################
 ## <summary>
-##	Allow domain to attach to virt TUN devices
+##	Attach to virt tun devices.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -174,7 +238,7 @@ interface(`virt_attach_tun_iface',`
 
 ########################################
 ## <summary>
-##	Read virt config files.
+##	Read virt configuration content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -184,18 +248,20 @@ interface(`virt_attach_tun_iface',`
 #
 interface(`virt_read_config',`
 	gen_require(`
-		type virt_etc_t;
-		type virt_etc_rw_t;
+		type virt_etc_t, virt_etc_rw_t;
 	')
 
 	files_search_etc($1)
+	allow $1 { virt_etc_t virt_etc_rw_t }:dir list_dir_perms;
 	read_files_pattern($1, virt_etc_t, virt_etc_t)
 	read_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
+	read_lnk_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
 ')
 
 ########################################
 ## <summary>
-##	manage virt config files.
+##	Create, read, write, and delete
+##	virt configuration content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -205,18 +271,20 @@ interface(`virt_read_config',`
 #
 interface(`virt_manage_config',`
 	gen_require(`
-		type virt_etc_t;
-		type virt_etc_rw_t;
+		type virt_etc_t, virt_etc_rw_t;
 	')
 
 	files_search_etc($1)
+	allow $1 { virt_etc_t virt_etc_rw_t }:dir manage_dir_perms;
 	manage_files_pattern($1, virt_etc_t, virt_etc_t)
 	manage_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
+	manage_lnk_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
 ')
 
 ########################################
 ## <summary>
-##	Allow domain to manage virt image files
+##	Create, read, write, and delete
+##	virt image files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -251,7 +319,330 @@ interface(`virt_read_content',`
 
 ########################################
 ## <summary>
-##	Read virt PID files.
+##	Create, read, write, and delete
+##	virt content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_virt_content',`
+	gen_require(`
+		type virt_content_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 virt_content_t:dir manage_dir_perms;
+	allow $1 virt_content_t:file manage_file_perms;
+	allow $1 virt_content_t:fifo_file manage_fifo_file_perms;
+	allow $1 virt_content_t:lnk_file manage_lnk_file_perms;
+	allow $1 virt_content_t:sock_file manage_sock_file_perms;
+	allow $1 virt_content_t:blk_file manage_blk_file_perms;
+
+	tunable_policy(`virt_use_nfs',`
+		fs_manage_nfs_dirs($1)
+		fs_manage_nfs_files($1)
+		fs_manage_nfs_symlinks($1)
+	')
+
+	tunable_policy(`virt_use_samba',`
+		fs_manage_cifs_dirs($1)
+		fs_manage_cifs_files($1)
+		fs_manage_cifs_symlinks($1)
+	')
+')
+
+########################################
+## <summary>
+##	Relabel virt content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_relabel_virt_content',`
+	gen_require(`
+		type virt_content_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 virt_content_t:dir relabel_dir_perms;
+	allow $1 virt_content_t:file relabel_file_perms;
+	allow $1 virt_content_t:fifo_file relabel_fifo_file_perms;
+	allow $1 virt_content_t:lnk_file relabel_lnk_file_perms;
+	allow $1 virt_content_t:sock_file relabel_sock_file_perms;
+	allow $1 virt_content_t:blk_file relabel_blk_file_perms;
+')
+
+########################################
+## <summary>
+##	Create specified objects in user home
+##	directories with the virt content type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`virt_home_filetrans_virt_content',`
+	gen_require(`
+		type virt_content_t;
+	')
+
+	virt_home_filetrans($1, virt_content_t, $2, $3)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	svirt home content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_svirt_home_content',`
+	gen_require(`
+		type svirt_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 svirt_home_t:dir manage_dir_perms;
+	allow $1 svirt_home_t:file manage_file_perms;
+	allow $1 svirt_home_t:fifo_file manage_fifo_file_perms;
+	allow $1 svirt_home_t:lnk_file manage_lnk_file_perms;
+	allow $1 svirt_home_t:sock_file manage_sock_file_perms;
+
+	tunable_policy(`virt_use_nfs',`
+		fs_manage_nfs_dirs($1)
+		fs_manage_nfs_files($1)
+		fs_manage_nfs_symlinks($1)
+	')
+
+	tunable_policy(`virt_use_samba',`
+		fs_manage_cifs_dirs($1)
+		fs_manage_cifs_files($1)
+		fs_manage_cifs_symlinks($1)
+	')
+')
+
+########################################
+## <summary>
+##	Relabel svirt home content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_relabel_svirt_home_content',`
+	gen_require(`
+		type svirt_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 svirt_home_t:dir relabel_dir_perms;
+	allow $1 svirt_home_t:file relabel_file_perms;
+	allow $1 svirt_home_t:fifo_file relabel_fifo_file_perms;
+	allow $1 svirt_home_t:lnk_file relabel_lnk_file_perms;
+	allow $1 svirt_home_t:sock_file relabel_sock_file_perms;
+')
+
+########################################
+## <summary>
+##	Create specified objects in user home
+##	directories with the svirt home type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`virt_home_filetrans_svirt_home',`
+	gen_require(`
+		type svirt_home_t;
+	')
+
+	virt_home_filetrans($1, svirt_home_t, $2, $3)
+')
+
+########################################
+## <summary>
+##	Create specified objects in generic
+##	virt home directories with private
+##	home type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="private_type">
+##	<summary>
+##	Private file type.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`virt_home_filetrans',`
+	gen_require(`
+		type virt_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	filetrans_pattern($1, virt_home_t, $2, $3, $4)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	virt home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_home_files',`
+	gen_require(`
+		type virt_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	manage_files_pattern($1, virt_home_t, virt_home_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	virt home content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_generic_virt_home_content',`
+	gen_require(`
+		type virt_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 virt_home_t:dir manage_dir_perms;
+	allow $1 virt_home_t:file manage_file_perms;
+	allow $1 virt_home_t:fifo_file manage_fifo_file_perms;
+	allow $1 virt_home_t:lnk_file manage_lnk_file_perms;
+	allow $1 virt_home_t:sock_file manage_sock_file_perms;
+
+	tunable_policy(`virt_use_nfs',`
+		fs_manage_nfs_dirs($1)
+		fs_manage_nfs_files($1)
+		fs_manage_nfs_symlinks($1)
+	')
+
+	tunable_policy(`virt_use_samba',`
+		fs_manage_cifs_dirs($1)
+		fs_manage_cifs_files($1)
+		fs_manage_cifs_symlinks($1)
+	')
+')
+
+########################################
+## <summary>
+##	Relabel virt home content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_relabel_generic_virt_home_content',`
+	gen_require(`
+		type virt_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 virt_home_t:dir relabel_dir_perms;
+	allow $1 virt_home_t:file relabel_file_perms;
+	allow $1 virt_home_t:fifo_file relabel_fifo_file_perms;
+	allow $1 virt_home_t:lnk_file relabel_lnk_file_perms;
+	allow $1 virt_home_t:sock_file relabel_sock_file_perms;
+')
+
+########################################
+## <summary>
+##	Create specified objects in user home
+##	directories with the generic virt
+##	home type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`virt_home_filetrans_virt_home',`
+	gen_require(`
+		type virt_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, virt_home_t, $2, $3)
+')
+
+########################################
+## <summary>
+##	Read virt pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -270,7 +661,8 @@ interface(`virt_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Manage virt pid files.
+##	Create, read, write, and delete
+##	virt pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -302,8 +694,8 @@ interface(`virt_search_lib',`
 		type virt_var_lib_t;
 	')
 
-	allow $1 virt_var_lib_t:dir search_dir_perms;
 	files_search_var_lib($1)
+	allow $1 virt_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
@@ -384,7 +776,7 @@ interface(`virt_pid_filetrans',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read virt's log files.
+##	Read virt log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -404,13 +796,12 @@ interface(`virt_read_log',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to append
-##	virt log files.
+##	Append virt log files.
 ## </summary>
 ## <param name="domain">
-## 	<summary>
+##	<summary>
 ##	Domain allowed access.
-## 	</summary>
+##	</summary>
 ## </param>
 #
 interface(`virt_append_log',`
@@ -424,7 +815,8 @@ interface(`virt_append_log',`
 
 ########################################
 ## <summary>
-##	Allow domain to manage virt log files
+##	Create, read, write, and delete
+##	virt log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -437,6 +829,7 @@ interface(`virt_manage_log',`
 		type virt_log_t;
 	')
 
+	logging_search_logs($1)
 	manage_dirs_pattern($1, virt_log_t, virt_log_t)
 	manage_files_pattern($1, virt_log_t, virt_log_t)
 	manage_lnk_files_pattern($1, virt_log_t, virt_log_t)
@@ -444,7 +837,7 @@ interface(`virt_manage_log',`
 
 ########################################
 ## <summary>
-##	Allow domain to read virt image files
+##	Read virt image files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -502,7 +895,8 @@ interface(`virt_manage_svirt_cache',`
 
 ########################################
 ## <summary>
-##	Allow domain to manage virt image files
+##	Create, read, write, and delete
+##	virt image files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -538,8 +932,8 @@ interface(`virt_manage_images',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an virt environment
+##	All of the rules required to
+##	administrate an virt environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
