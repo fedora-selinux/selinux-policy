@@ -1,4 +1,4 @@
-policy_module(cron, 2.5.3)
+policy_module(cron, 2.5.4)
 
 gen_require(`
 	class passwd rootok;
@@ -112,10 +112,6 @@ files_type(system_cronjob_var_lib_t)
 
 type system_cronjob_var_run_t;
 files_pid_file(system_cronjob_var_run_t)
-
-type unconfined_cronjob_t;
-domain_type(unconfined_cronjob_t)
-domain_cron_exemption_target(unconfined_cronjob_t)
 
 type user_cron_spool_t, cron_spool_type;
 typealias user_cron_spool_t alias { staff_cron_spool_t sysadm_cron_spool_t unconfined_cron_spool_t };
@@ -249,7 +245,7 @@ allow crond_t system_cronjob_t:process transition;
 allow crond_t system_cronjob_t:fd use;
 allow crond_t system_cronjob_t:key manage_key_perms;
 
-dontaudit crond_t { cronjob_t system_cronjob_t unconfined_cronjob_t }:process { noatsecure siginh rlimitinh };
+dontaudit crond_t { cronjob_t system_cronjob_t }:process { noatsecure siginh rlimitinh };
 
 domtrans_pattern(crond_t, anacron_exec_t, system_cronjob_t)
 
@@ -316,13 +312,13 @@ userdom_list_user_home_dirs(crond_t)
 mta_send_mail(crond_t)
 
 tunable_policy(`cron_userdomain_transition',`
-	dontaudit crond_t { cronjob_t unconfined_cronjob_t }:process transition;
-	dontaudit crond_t { cronjob_t unconfined_cronjob_t }:fd use;
-	dontaudit crond_t { cronjob_t unconfined_cronjob_t }:key manage_key_perms;
+	dontaudit crond_t cronjob_t:process transition;
+	dontaudit crond_t cronjob_t:fd use;
+	dontaudit crond_t cronjob_t:key manage_key_perms;
 ',`
-	allow crond_t { cronjob_t unconfined_cronjob_t }:process transition;
-	allow crond_t { cronjob_t unconfined_cronjob_t }:fd use;
-	allow crond_t { cronjob_t unconfined_cronjob_t }:key manage_key_perms;
+	allow crond_t cronjob_t:process transition;
+	allow crond_t cronjob_t:fd use;
+	allow crond_t cronjob_t:key manage_key_perms;
 ')
 
 ifdef(`distro_debian',`
@@ -706,5 +702,21 @@ optional_policy(`
 #
 
 optional_policy(`
+	type unconfined_cronjob_t;
+	domain_type(unconfined_cronjob_t)
+	domain_cron_exemption_target(unconfined_cronjob_t)
+
+	dontaudit crond_t unconfined_cronjob_t:process { noatsecure siginh rlimitinh };
+
 	unconfined_domain(unconfined_cronjob_t)
+
+	tunable_policy(`cron_userdomain_transition',`
+		dontaudit crond_t unconfined_cronjob_t:process transition;
+		dontaudit crond_t unconfined_cronjob_t:fd use;
+		dontaudit crond_t unconfined_cronjob_t:key manage_key_perms;
+	',`
+		allow crond_t unconfined_cronjob_t:process transition;
+		allow crond_t unconfined_cronjob_t:fd use;
+		allow crond_t unconfined_cronjob_t:key manage_key_perms;
+	')
 ')
