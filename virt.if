@@ -12,9 +12,9 @@
 #
 template(`virt_domain_template',`
 	gen_require(`
+		attribute_role virt_domain_roles, virt_bridgehelper_roles;
 		attribute virt_image_type, virt_domain, virt_tmpfs_type;
-		attribute virt_ptynode;
-		type qemu_exec_t;
+		attribute virt_ptynode, virt_tmp_type;
 	')
 
 	########################################
@@ -23,17 +23,19 @@ template(`virt_domain_template',`
 	#
 
 	type $1_t, virt_domain;
-	application_domain($1_t, qemu_exec_t)
+	application_type($1_t)
+	qemu_entry_type($1_t)
 	domain_user_exemption_target($1_t)
 	mls_rangetrans_target($1_t)
 	# FIXME
 	# mcs_untrusted_proc($1_t)
-	role system_r types $1_t;
+	role virt_domain_roles types $1_t;
+	role virt_bridgehelper_roles types $1_t;
 
 	type $1_devpts_t, virt_ptynode;
 	term_pty($1_devpts_t)
 
-	type $1_tmp_t;
+	type $1_tmp_t, virt_tmp_type;
 	files_tmp_file($1_tmp_t)
 
 	type $1_tmpfs_t, virt_tmpfs_type;
@@ -89,6 +91,7 @@ template(`virt_domain_template',`
 #
 template(`virt_lxc_domain_template',`
 	gen_require(`
+		attribute_role svirt_lxc_domain_roles;
 		attribute svirt_lxc_domain;
 	')
 
@@ -98,7 +101,7 @@ template(`virt_lxc_domain_template',`
 	mls_rangetrans_target($1_t)
 	# FIXME
 	#mcs_untrusted_proc($1_t)
-	role system_r types $1_t;
+	role svirt_lxc_domain_roles types $1_t;
 ')
 
 ########################################
@@ -177,6 +180,60 @@ interface(`virt_domtrans_bridgehelper',`
 
 	corecmd_search_bin($1)
 	domtrans_pattern($1, virt_bridgehelper_exec_t, virt_bridgehelper_t)
+')
+
+########################################
+## <summary>
+##	Execute virt domain in the their
+##	domain, and allow the specified
+##	role that virt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_run_virt_domain',`
+	gen_require(`
+		attribute virt_domain;
+		attribute_role virt_domain_roles;
+	')
+
+	allow $1 virt_domain:process { signal transition };
+	roleattribute $2 virt_domain_roles;
+')
+
+########################################
+## <summary>
+##	Execute svirt lxc domains in their
+##	domain, and allow the specified
+##	role that svirt lxc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_run_svirt_lxc_domain',`
+	gen_require(`
+		attribute svirt_lxc_domain;
+		attribute_role svirt_lxc_domain_roles;
+	')
+
+	allow $1 svirt_lxc_domain:process transition;
+	roleattribute $2 svirt_lxc_domain_roles;
 ')
 
 #######################################
@@ -949,20 +1006,50 @@ interface(`virt_manage_images',`
 #
 interface(`virt_admin',`
 	gen_require(`
-		type virtd_t, virtd_initrc_exec_t;
+		attribute virt_domain, virt_image_type, virt_tmpfs_type;
+		attribute virt_ptynode, svirt_lxc_domain, virt_tmp_type;
+		type virtd_t, virtd_initrc_exec_t, virtd_lxc_t;
+		type virsh_t, virtd_lxc_var_run_t, svirt_lxc_file_t;
+		type virt_bridgehelper_t, virt_qmf_t, virt_var_lib_t;
+		type virt_var_run_t, virt_tmp_t, virt_log_t;
+		type virt_lock_t, svirt_var_run_t, virt_etc_rw_t;
+		type virt_etc_t, svirt_cache_t;
 	')
 
-	allow $1 virtd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, virtd_t)
+	allow $1 { virt_domain svirt_lxc_domain virtd_t }:process { ptrace signal_perms };
+	allow $1 { virtd_lxc_t virsh_t virt_bridgehelper_t virt_qmf_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { virt_domain svirt_lxc_domain virtd_t })
+	ps_process_pattern($1, { virtd_lxc_t virsh_t virt_bridgehelper_t virt_qmf_t })
 
 	init_labeled_script_domtrans($1, virtd_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 virtd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	virt_manage_pid_files($1)
+	fs_search_tmpfs($1)
+	admin_pattern($1, virt_tmpfs_type)
 
-	virt_manage_lib_files($1)
+	files_search_tmp($1)
+	admin_pattern($1, { virt_tmp_type virt_tmp_t })
 
-	virt_manage_log($1)
+	files_search_etc($1)
+	admin_pattern($1, { virt_etc_t virt_etc_rw_t })
+
+	logging_search_logs($1)
+	admin_pattern($1, virt_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, { virt_var_run_t virtd_lxc_var_run_t svirt_var_run_t })
+
+	files_search_var($1)
+	admin_pattern($1, svirt_cache_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, { virt_image_type virt_var_lib_t svirt_lxc_file_t })
+
+	files_search_locks($1)
+	admin_pattern($1, virt_lock_t)
+
+	dev_list_all_dev_nodes($1)
+	allow $1 virt_ptynode:chr_file rw_chr_file_perms;
 ')

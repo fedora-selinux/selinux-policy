@@ -1,4 +1,4 @@
-policy_module(virt, 1.5.4)
+policy_module(virt, 1.5.5)
 
 ########################################
 #
@@ -73,17 +73,24 @@ gen_tunable(virt_use_xserver, false)
 attribute virt_ptynode;
 attribute virt_domain;
 attribute virt_image_type;
+attribute virt_tmp_type;
 attribute virt_tmpfs_type;
 
 attribute virsh_transition_domain;
 
 attribute svirt_lxc_domain;
 
-virt_domain_template(svirt)
-role system_r types svirt_t;
+attribute_role virt_domain_roles;
+roleattribute system_r virt_domain_roles;
 
+attribute_role virt_bridgehelper_roles;
+roleattribute system_r virt_bridgehelper_roles;
+
+attribute_role svirt_lxc_domain_roles;
+roleattribute system_r svirt_lxc_domain_roles;
+
+virt_domain_template(svirt)
 virt_domain_template(svirt_prot_exec)
-role system_r types svirt_prot_exec_t;
 
 type virt_cache_t alias svirt_cache_t;
 files_type(virt_cache_t)
@@ -153,7 +160,7 @@ type virt_bridgehelper_t;
 type virt_bridgehelper_exec_t;
 domain_type(virt_bridgehelper_t)
 domain_entry_file(virt_bridgehelper_t, virt_bridgehelper_exec_t)
-role system_r types virt_bridgehelper_t;
+role virt_bridgehelper_roles types virt_bridgehelper_t;
 
 type virtd_lxc_t;
 type virtd_lxc_exec_t;
@@ -235,6 +242,7 @@ corenet_tcp_sendrecv_virt_migration_port(virt_domain)
 corenet_rw_tun_tap_dev(virt_domain)
 
 dev_getattr_fs(virt_domain)
+dev_list_sysfs(virt_domain)
 dev_read_generic_symlinks(virt_domain)
 dev_read_rand(virt_domain)
 dev_read_sound(virt_domain)
@@ -252,7 +260,7 @@ files_read_usr_files(virt_domain)
 files_read_var_files(virt_domain)
 files_search_all(virt_domain)
 
-fs_getattr_tmpfs(virt_domain)
+fs_getattr_all_fs(virt_domain)
 fs_rw_anon_inodefs_files(virt_domain)
 fs_rw_tmpfs_files(virt_domain)
 fs_getattr_hugetlbfs(virt_domain)
@@ -273,16 +281,64 @@ logging_send_syslog_msg(virt_domain)
 miscfiles_read_localization(virt_domain)
 miscfiles_read_public_files(virt_domain)
 
+userdom_search_user_home_dirs(virt_domain)
+userdom_read_all_users_state(virt_domain)
+
 qemu_exec(virt_domain)
-# Not sure about this
-qemu_entry_type(virt_domain)
 
 tunable_policy(`virt_use_execmem',`
 	allow virt_domain self:process { execmem execstack };
 ')
 
+tunable_policy(`virt_use_comm',`
+	term_use_unallocated_ttys(virt_domain)
+	dev_rw_printer(virt_domain)
+')
+
+tunable_policy(`virt_use_fusefs',`
+	fs_manage_fusefs_dirs(virt_domain)
+	fs_manage_fusefs_files(virt_domain)
+	fs_read_fusefs_symlinks(virt_domain)
+')
+
+tunable_policy(`virt_use_nfs',`
+	fs_manage_nfs_dirs(virt_domain)
+	fs_manage_nfs_files(virt_domain)
+	fs_manage_nfs_named_sockets(virt_domain)
+	fs_read_nfs_symlinks(virt_domain)
+')
+
+tunable_policy(`virt_use_samba',`
+	fs_manage_cifs_dirs(virt_domain)
+	fs_manage_cifs_files(virt_domain)
+	fs_manage_cifs_named_sockets(virt_domain)
+	fs_read_cifs_symlinks(virt_domain)
+	# virt_domain (svirt_t) is an alias of qemu
+	samba_domtrans_smbd(virt_domain)
+')
+
+tunable_policy(`virt_use_sysfs',`
+	dev_rw_sysfs(virt_domain)
+')
+
+tunable_policy(`virt_use_usb',`
+	dev_rw_usbfs(virt_domain)
+	dev_read_sysfs(virt_domain)
+	fs_manage_dos_dirs(virt_domain)
+	fs_manage_dos_files(virt_domain)
+')
+
 optional_policy(`
-	ptchown_domtrans(virt_domain)
+	tunable_policy(`virt_use_xserver',`
+		# virt_domain (svirt_t) is an alias of qemu
+		xserver_read_xdm_pid(virt_domain)
+		xserver_stream_connect(virt_domain)
+	')
+')
+
+optional_policy(`
+	# virt_domain (svirt_t) is an alias of qemu
+	dbus_read_lib_files(virt_domain)
 ')
 
 optional_policy(`
@@ -293,12 +349,20 @@ optional_policy(`
 ')
 
 optional_policy(`
+	ptchown_run(virt_domain, virt_domain_roles)
+')
+
+optional_policy(`
 	# virt_domain (svirt_t) is an alias of qemu
 	virt_domtrans_bridgehelper(virt_domain)
 	virt_read_config(virt_domain)
 	virt_read_lib_files(virt_domain)
 	virt_read_content(virt_domain)
 	virt_stream_connect(virt_domain)
+')
+
+optional_policy(`
+	xen_rw_image_files(virt_domain)
 ')
 
 ########################################
@@ -350,72 +414,6 @@ corenet_tcp_bind_all_ports(svirt_t)
 
 corenet_sendrecv_all_client_packets(svirt_t)
 corenet_tcp_connect_all_ports(svirt_t)
-
-dev_list_sysfs(svirt_t)
-
-fs_getattr_xattr_fs(svirt_t)
-
-# virt_domain (svirt_t) is an alias of qemu
-storage_raw_write_removable_device(svirt_t)
-storage_raw_read_removable_device(svirt_t)
-
-userdom_search_user_home_dirs(svirt_t)
-userdom_read_all_users_state(svirt_t)
-
-tunable_policy(`virt_use_comm',`
-	term_use_unallocated_ttys(svirt_t)
-	dev_rw_printer(svirt_t)
-')
-
-tunable_policy(`virt_use_fusefs',`
-	fs_manage_fusefs_dirs(svirt_t)
-	fs_manage_fusefs_files(svirt_t)
-	fs_read_fusefs_symlinks(svirt_t)
-')
-
-tunable_policy(`virt_use_nfs',`
-	fs_getattr_nfs(svirt_t)
-	fs_manage_nfs_dirs(svirt_t)
-	fs_manage_nfs_files(svirt_t)
-	fs_manage_nfs_named_sockets(svirt_t)
-	fs_read_nfs_symlinks(svirt_t)
-')
-
-tunable_policy(`virt_use_samba',`
-	fs_getattr_cifs(svirt_t)
-	fs_manage_cifs_dirs(svirt_t)
-	fs_manage_cifs_files(svirt_t)
-	fs_manage_cifs_named_sockets(svirt_t)
-	fs_read_cifs_symlinks(svirt_t)
-	# virt_domain (svirt_t) is an alias of qemu
-	samba_domtrans_smbd(svirt_t)
-')
-
-tunable_policy(`virt_use_sysfs',`
-	dev_rw_sysfs(svirt_t)
-')
-
-tunable_policy(`virt_use_usb',`
-	dev_rw_usbfs(svirt_t)
-	dev_read_sysfs(svirt_t)
-	fs_manage_dos_dirs(svirt_t)
-	fs_manage_dos_files(svirt_t)
-')
-
-optional_policy(`
-	tunable_policy(`virt_use_xserver',`
-		xserver_stream_connect(svirt_t)
-	')
-')
-
-optional_policy(`
-	# virt_domain (svirt_t) is an alias of qemu
-	dbus_read_lib_files(svirt_t)
-')
-
-optional_policy(`
-	xen_rw_image_files(svirt_t)
-')
 
 ########################################
 #
