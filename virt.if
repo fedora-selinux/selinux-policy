@@ -12,7 +12,7 @@
 #
 template(`virt_domain_template',`
 	gen_require(`
-		attribute_role virt_domain_roles, virt_bridgehelper_roles;
+		attribute_role virt_domain_roles;
 		attribute virt_image_type, virt_domain, virt_tmpfs_type;
 		attribute virt_ptynode, virt_tmp_type;
 	')
@@ -30,7 +30,6 @@ template(`virt_domain_template',`
 	# FIXME
 	# mcs_untrusted_proc($1_t)
 	role virt_domain_roles types $1_t;
-	role virt_bridgehelper_roles types $1_t;
 
 	type $1_devpts_t, virt_ptynode;
 	term_pty($1_devpts_t)
@@ -100,7 +99,7 @@ template(`virt_lxc_domain_template',`
 	domain_user_exemption_target($1_t)
 	mls_rangetrans_target($1_t)
 	# FIXME
-	#mcs_untrusted_proc($1_t)
+	# mcs_untrusted_proc($1_t)
 	role svirt_lxc_domain_roles types $1_t;
 ')
 
@@ -184,6 +183,32 @@ interface(`virt_domtrans_bridgehelper',`
 
 ########################################
 ## <summary>
+##	Execute bridgehelper in the bridgehelper
+##	domain, and allow the specified role
+##	the bridgehelper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_run_bridgehelper',`
+	gen_require(`
+		attribute_role virt_bridgehelper_roles;
+	')
+
+	virt_domtrans_bridgehelper($1)
+	roleattribute $2 virt_bridgehelper_roles;
+')
+
+########################################
+## <summary>
 ##	Execute virt domain in the their
 ##	domain, and allow the specified
 ##	role that virt domain.
@@ -207,6 +232,8 @@ interface(`virt_run_virt_domain',`
 
 	allow $1 virt_domain:process { signal transition };
 	roleattribute $2 virt_domain_roles;
+
+	allow virt_domain $1:process sigchld;
 ')
 
 ########################################
@@ -232,8 +259,10 @@ interface(`virt_run_svirt_lxc_domain',`
 		attribute_role svirt_lxc_domain_roles;
 	')
 
-	allow $1 svirt_lxc_domain:process transition;
+	allow $1 svirt_lxc_domain:process { signal transition };
 	roleattribute $2 svirt_lxc_domain_roles;
+
+	allow svirt_lxc_domain $1:process sigchld;
 ')
 
 #######################################
@@ -1051,5 +1080,5 @@ interface(`virt_admin',`
 	admin_pattern($1, virt_lock_t)
 
 	dev_list_all_dev_nodes($1)
-	allow $1 virt_ptynode:chr_file rw_chr_file_perms;
+	allow $1 virt_ptynode:chr_file rw_term_perms;
 ')

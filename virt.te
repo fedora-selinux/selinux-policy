@@ -1,4 +1,4 @@
-policy_module(virt, 1.5.5)
+policy_module(virt, 1.5.6)
 
 ########################################
 #
@@ -75,8 +75,6 @@ attribute virt_domain;
 attribute virt_image_type;
 attribute virt_tmp_type;
 attribute virt_tmpfs_type;
-
-attribute virsh_transition_domain;
 
 attribute svirt_lxc_domain;
 
@@ -269,6 +267,7 @@ fs_getattr_hugetlbfs(virt_domain)
 # fs_rw_inherited_cifs_files(virt_domain)
 # fs_rw_inherited_noxattr_fs_files(virt_domain)
 
+storage_raw_write_removable_device(virt_domain)
 storage_raw_read_removable_device(virt_domain)
 
 term_use_all_terms(virt_domain)
@@ -354,7 +353,7 @@ optional_policy(`
 
 optional_policy(`
 	# virt_domain (svirt_t) is an alias of qemu
-	virt_domtrans_bridgehelper(virt_domain)
+	virt_run_bridgehelper(virt_domain, virt_domain_roles)
 	virt_read_config(virt_domain)
 	virt_read_lib_files(virt_domain)
 	virt_read_content(virt_domain)
@@ -435,6 +434,10 @@ allow virtd_t virt_domain:process { getattr getsched setsched transition signal 
 
 allow virtd_t svirt_lxc_domain:unix_stream_socket { create_stream_socket_perms connectto };
 allow virtd_t svirt_lxc_domain:process signal_perms;
+
+allow virtd_t virtd_lxc_t:process { signal signull sigkill };
+
+domtrans_pattern(virtd_t, virtd_lxc_exec_t, virtd_lxc_t)
 
 manage_dirs_pattern(virtd_t, svirt_cache_t, svirt_cache_t)
 manage_files_pattern(virtd_t, svirt_cache_t, svirt_cache_t)
@@ -884,7 +887,6 @@ optional_policy(`
 	kernel_read_xen_state(virsh_ssh_t)
 	kernel_write_xen_state(virsh_ssh_t)
 
-	dontaudit virsh_ssh_t virsh_transition_domain:fifo_file rw_fifo_file_perms;
 	files_search_tmp(virsh_ssh_t)
 
 	fs_manage_xenfs_dirs(virsh_ssh_t)
@@ -907,9 +909,6 @@ allow virtd_lxc_t svirt_lxc_domain:process { getattr getsched setsched transitio
 
 allow virtd_lxc_t virt_image_type:dir mounton;
 manage_files_pattern(virtd_lxc_t, virt_image_t, virt_image_t)
-
-domtrans_pattern(virtd_t, virtd_lxc_exec_t, virtd_lxc_t)
-allow virtd_t virtd_lxc_t:process { signal signull sigkill };
 
 allow virtd_lxc_t virt_var_run_t:dir search_dir_perms;
 manage_dirs_pattern(virtd_lxc_t, virtd_lxc_var_run_t, virtd_lxc_var_run_t)
@@ -1004,11 +1003,14 @@ allow svirt_lxc_domain self:msgq create_msgq_perms;
 allow svirt_lxc_domain self:unix_stream_socket { create_stream_socket_perms connectto };
 allow svirt_lxc_domain self:unix_dgram_socket { sendto create_socket_perms };
 
-allow svirt_lxc_domain virtd_lxc_t:process sigchld;
 allow svirt_lxc_domain virtd_lxc_t:fd use;
+allow svirt_lxc_domain virtd_lxc_t:fifo_file rw_fifo_file_perms;
+allow svirt_lxc_domain virtd_lxc_t:process sigchld;
 
 allow svirt_lxc_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
 
+allow svirt_lxc_domain virsh_t:fd use;
+allow svirt_lxc_domain virsh_t:fifo_file rw_fifo_file_perms;
 allow svirt_lxc_domain virsh_t:process sigchld;
 
 allow svirt_lxc_domain virtd_lxc_var_run_t:dir list_dir_perms;
@@ -1091,7 +1093,7 @@ optional_policy(`
 #
 
 allow svirt_lxc_net_t self:capability { chown dac_read_search dac_override fowner fsetid net_raw net_admin net_bind_service sys_admin sys_nice sys_ptrace sys_resource setpcap };
-dontaudit svirt_lxc_net_t self:capability2 { block_suspend };
+dontaudit svirt_lxc_net_t self:capability2 block_suspend;
 allow svirt_lxc_net_t self:process setrlimit;
 allow svirt_lxc_net_t self:tcp_socket { accept listen };
 allow svirt_lxc_net_t self:netlink_route_socket nlmsg_write;
