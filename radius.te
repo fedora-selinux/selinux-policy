@@ -1,4 +1,4 @@
-policy_module(radius, 1.12.0)
+policy_module(radius, 1.12.1)
 
 ########################################
 #
@@ -32,20 +32,16 @@ files_pid_file(radiusd_var_run_t)
 # Local policy
 #
 
-# fsetid is for gzip which needs it when run from scripts
-# gzip also needs chown access to preserve GID for radwtmp files
 allow radiusd_t self:capability { chown dac_override fsetid kill setgid setuid sys_resource sys_tty_config };
 dontaudit radiusd_t self:capability sys_tty_config;
 allow radiusd_t self:process { getsched setrlimit setsched sigkill signal };
 allow radiusd_t self:fifo_file rw_fifo_file_perms;
-allow radiusd_t self:unix_stream_socket create_stream_socket_perms;
-allow radiusd_t self:tcp_socket create_stream_socket_perms;
-allow radiusd_t self:udp_socket create_socket_perms;
+allow radiusd_t self:unix_stream_socket { accept listen };
+allow radiusd_t self:tcp_socket { accept listen };
 
 allow radiusd_t radiusd_etc_t:dir list_dir_perms;
-read_files_pattern(radiusd_t, radiusd_etc_t, radiusd_etc_t)
-read_lnk_files_pattern(radiusd_t, radiusd_etc_t, radiusd_etc_t)
-files_search_etc(radiusd_t)
+allow radiusd_t radiusd_etc_t:file read_file_perms;
+allow radiusd_t radiusd_etc_t:lnk_file read_lnk_file_perms;
 
 manage_dirs_pattern(radiusd_t, radiusd_etc_rw_t, radiusd_etc_rw_t)
 manage_files_pattern(radiusd_t, radiusd_etc_rw_t, radiusd_etc_rw_t)
@@ -53,7 +49,9 @@ manage_lnk_files_pattern(radiusd_t, radiusd_etc_rw_t, radiusd_etc_rw_t)
 filetrans_pattern(radiusd_t, radiusd_etc_t, radiusd_etc_rw_t, { dir file lnk_file })
 
 manage_dirs_pattern(radiusd_t, radiusd_log_t, radiusd_log_t)
-manage_files_pattern(radiusd_t, radiusd_log_t, radiusd_log_t)
+append_files_pattern(radiusd_t, radiusd_log_t, radiusd_log_t)
+create_files_pattern(radiusd_t, radiusd_log_t, radiusd_log_t)
+setattr_files_pattern(radiusd_t, radiusd_log_t, radiusd_log_t)
 logging_log_filetrans(radiusd_t, radiusd_log_t, { file dir })
 
 manage_files_pattern(radiusd_t, radiusd_var_lib_t, radiusd_var_lib_t)
@@ -75,32 +73,33 @@ corenet_udp_sendrecv_generic_node(radiusd_t)
 corenet_tcp_sendrecv_all_ports(radiusd_t)
 corenet_udp_sendrecv_all_ports(radiusd_t)
 corenet_udp_bind_generic_node(radiusd_t)
-corenet_udp_bind_radacct_port(radiusd_t)
-corenet_udp_bind_radius_port(radiusd_t)
-corenet_tcp_connect_mysqld_port(radiusd_t)
-corenet_tcp_connect_snmp_port(radiusd_t)
-corenet_sendrecv_radius_server_packets(radiusd_t)
+
 corenet_sendrecv_radacct_server_packets(radiusd_t)
-corenet_sendrecv_mysqld_client_packets(radiusd_t)
+corenet_udp_bind_radacct_port(radiusd_t)
+
+corenet_sendrecv_radius_server_packets(radiusd_t)
+corenet_udp_bind_radius_port(radiusd_t)
+
 corenet_sendrecv_snmp_client_packets(radiusd_t)
-# for RADIUS proxy port
+corenet_tcp_connect_snmp_port(radiusd_t)
+
+corenet_sendrecv_generic_server_packets(radiusd_t)
 corenet_udp_bind_generic_port(radiusd_t)
 corenet_dontaudit_udp_bind_all_ports(radiusd_t)
-corenet_sendrecv_generic_server_packets(radiusd_t)
-
-dev_read_sysfs(radiusd_t)
-
-fs_getattr_all_fs(radiusd_t)
-fs_search_auto_mountpoints(radiusd_t)
 
 corecmd_exec_bin(radiusd_t)
 corecmd_exec_shell(radiusd_t)
 
+dev_read_sysfs(radiusd_t)
+
 domain_use_interactive_fds(radiusd_t)
 
+fs_getattr_all_fs(radiusd_t)
+fs_search_auto_mountpoints(radiusd_t)
+
 files_read_usr_files(radiusd_t)
-files_read_etc_files(radiusd_t)
 files_read_etc_runtime_files(radiusd_t)
+files_dontaudit_list_tmp(radiusd_t)
 
 auth_use_nsswitch(radiusd_t)
 auth_read_shadow(radiusd_t)
@@ -112,6 +111,8 @@ logging_send_syslog_msg(radiusd_t)
 
 miscfiles_read_localization(radiusd_t)
 miscfiles_read_generic_certs(radiusd_t)
+
+sysnet_use_ldap(radiusd_t)
 
 userdom_dontaudit_use_unpriv_user_fds(radiusd_t)
 userdom_dontaudit_search_user_home_dirs(radiusd_t)
@@ -127,11 +128,11 @@ optional_policy(`
 optional_policy(`
 	mysql_read_config(radiusd_t)
 	mysql_stream_connect(radiusd_t)
+	mysql_tcp_connect(radiusd_t)
 ')
 
 optional_policy(`
 	samba_domtrans_winbind_helper(radiusd_t)
-	samba_read_var_files(radiusd_t)
 ')
 
 optional_policy(`
