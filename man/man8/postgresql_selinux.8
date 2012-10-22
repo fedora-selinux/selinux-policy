@@ -1,4 +1,4 @@
-.TH  "postgresql_selinux"  "8"  "postgresql" "dwalsh@redhat.com" "postgresql SELinux Policy documentation"
+.TH  "postgresql_selinux"  "8"  "12-10-19" "postgresql" "SELinux Policy documentation for postgresql"
 .SH "NAME"
 postgresql_selinux \- Security Enhanced Linux Policy for the postgresql processes
 .SH "DESCRIPTION"
@@ -16,7 +16,7 @@ For example:
 
 The postgresql_t SELinux type can be entered via the "postgresql_exec_t" file type.  The default entrypoint paths for the postgresql_t domain are the following:"
 
-/usr/bin/(se)?postgres, /usr/lib/postgresql/bin/.*, /usr/lib/pgsql/test/regress/pg_regress, /usr/bin/initdb(\.sepgsql)?
+/usr/bin/(se)?postgres, /usr/bin/initdb(\.sepgsql)?, /usr/lib/postgresql/bin/.*, /usr/lib/pgsql/test/regress/pg_regress
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
 .PP
@@ -40,17 +40,10 @@ SELinux policy is customizable based on least access required.  postgresql polic
 
 
 .PP
-If you want to allow postgresql to use ssh and rsync for point-in-time recovery, you must turn on the postgresql_can_rsync boolean.
+If you want to allow transmit client label to foreign database, you must turn on the postgresql_selinux_transmit_client_label boolean.
 
 .EX
-.B setsebool -P postgresql_can_rsync 1
-.EE
-
-.PP
-If you want to allow unprivileged users to execute DDL statement, you must turn on the postgresql_selinux_users_ddl boolean.
-
-.EX
-.B setsebool -P postgresql_selinux_users_ddl 1
+.B setsebool -P postgresql_selinux_transmit_client_label 1
 .EE
 
 .PP
@@ -61,6 +54,13 @@ If you want to allow database admins to execute DML statement, you must turn on 
 .EE
 
 .PP
+If you want to allow postgresql to use ssh and rsync for point-in-time recovery, you must turn on the postgresql_can_rsync boolean.
+
+.EX
+.B setsebool -P postgresql_can_rsync 1
+.EE
+
+.PP
 If you want to allow users to connect to PostgreSQL, you must turn on the selinuxuser_postgresql_connect_enabled boolean.
 
 .EX
@@ -68,10 +68,45 @@ If you want to allow users to connect to PostgreSQL, you must turn on the selinu
 .EE
 
 .PP
+If you want to allow unprivileged users to execute DDL statement, you must turn on the postgresql_selinux_users_ddl boolean.
+
+.EX
+.B setsebool -P postgresql_selinux_users_ddl 1
+.EE
+
+.PP
 If you want to allow transmit client label to foreign database, you must turn on the postgresql_selinux_transmit_client_label boolean.
 
 .EX
 .B setsebool -P postgresql_selinux_transmit_client_label 1
+.EE
+
+.PP
+If you want to allow database admins to execute DML statement, you must turn on the postgresql_selinux_unconfined_dbadm boolean.
+
+.EX
+.B setsebool -P postgresql_selinux_unconfined_dbadm 1
+.EE
+
+.PP
+If you want to allow postgresql to use ssh and rsync for point-in-time recovery, you must turn on the postgresql_can_rsync boolean.
+
+.EX
+.B setsebool -P postgresql_can_rsync 1
+.EE
+
+.PP
+If you want to allow users to connect to PostgreSQL, you must turn on the selinuxuser_postgresql_connect_enabled boolean.
+
+.EX
+.B setsebool -P selinuxuser_postgresql_connect_enabled 1
+.EE
+
+.PP
+If you want to allow unprivileged users to execute DDL statement, you must turn on the postgresql_selinux_users_ddl boolean.
+
+.EX
+.B setsebool -P postgresql_selinux_users_ddl 1
 .EE
 
 .SH FILE CONTEXTS
@@ -92,10 +127,6 @@ The following file types are defined for postgresql:
 
 - Set files with the postgresql_db_t type, if you want to treat the files as postgresql database content.
 
-.br
-.TP 5
-Paths: 
-/usr/share/jonas/pgsql(/.*)?, /var/lib/postgres(ql)?(/.*)?, /var/lib/sepgsql(/.*)?, /usr/lib/pgsql/test/regress(/.*)?, /var/lib/pgsql(/.*)?
 
 .EX
 .PP
@@ -104,10 +135,6 @@ Paths:
 
 - Set files with the postgresql_etc_t type, if you want to store postgresql files in the /etc directories.
 
-.br
-.TP 5
-Paths: 
-/etc/sysconfig/pgsql(/.*)?, /etc/postgresql(/.*)?
 
 .EX
 .PP
@@ -116,10 +143,6 @@ Paths:
 
 - Set files with the postgresql_exec_t type, if you want to transition an executable to the postgresql_t domain.
 
-.br
-.TP 5
-Paths: 
-/usr/bin/(se)?postgres, /usr/lib/postgresql/bin/.*, /usr/lib/pgsql/test/regress/pg_regress, /usr/bin/initdb(\.sepgsql)?
 
 .EX
 .PP
@@ -144,10 +167,6 @@ Paths:
 
 - Set files with the postgresql_log_t type, if you want to treat the data as postgresql log data, usually stored under the /var/log directory.
 
-.br
-.TP 5
-Paths: 
-/var/lib/pgsql/logfile(/.*)?, /var/log/postgresql(/.*)?, /var/log/postgres\.log.*, /var/lib/sepgsql/pgstartup\.log, /var/log/rhdb/rhdb(/.*)?, /var/lib/pgsql/.*\.log, /var/log/sepostgresql\.log.*
 
 .EX
 .PP
@@ -227,6 +246,8 @@ The SELinux process type postgresql_t can manage files labeled with the followin
 	/var/cache/krb5rcache(/.*)?
 .br
 	/var/tmp/nfs_0
+.br
+	/var/tmp/DNS_25
 .br
 	/var/tmp/host_0
 .br
@@ -352,8 +373,10 @@ can also be used to manipulate the booleans
 is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
-This manual page was auto-generated by genman.py.
+This manual page was auto-generated using 
+.B "sepolicy manpage"
+by Daniel J Walsh.
 
 .SH "SEE ALSO"
-selinux(8), postgresql(8), semanage(8), restorecon(8), chcon(1)
+selinux(8), postgresql(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
 , setsebool(8)

@@ -1,10 +1,39 @@
-.TH  "sandbox_selinux"  "8"  "sandbox" "dwalsh@redhat.com" "sandbox SELinux Policy documentation"
+.TH  "sandbox_selinux"  "8"  "12-10-19" "sandbox" "SELinux Policy documentation for sandbox"
 .SH "NAME"
 sandbox_selinux \- Security Enhanced Linux Policy for the sandbox processes
 .SH "DESCRIPTION"
 
-Security-Enhanced Linux secures the sandbox processes via flexible mandatory access
-control.  
+Security-Enhanced Linux secures the sandbox processes via flexible mandatory access control.
+
+The sandbox processes execute with the sandbox_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier. 
+
+For example:
+
+.B ps -eZ | grep sandbox_t
+
+
+.SH "ENTRYPOINTS"
+
+The sandbox_t SELinux type can be entered via the "file_type" file type.  The default entrypoint paths for the sandbox_t domain are the following:"
+
+all files on the system
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files. 
+SELinux sandbox policy is very flexible allowing users to setup their sandbox processes in as secure a method as possible.
+.PP 
+The following process types are defined for sandbox:
+
+.EX
+.B sandbox_x_client_t, sandbox_net_client_t, sandbox_xserver_t, sandbox_x_t, sandbox_web_client_t, sandbox_min_t, sandbox_net_t, sandbox_web_t, sandbox_min_client_t, sandbox_t 
+.EE
+.PP
+Note: 
+.B semanage permissive -a PROCESS_TYPE 
+can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  sandbox policy is extremely flexible and has several booleans that allow you to manipulate the policy and run sandbox with the tightest access possible.
@@ -17,20 +46,11 @@ If you want to allow unconfined users to transition to the chrome sandbox domain
 .B setsebool -P unconfined_chrome_sandbox_transition 1
 .EE
 
-.SH NSSWITCH DOMAIN
-
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the sandbox_min_t, sandbox_net_t, sandbox_web_client_t, sandbox_xserver_t, sandbox_web_t, sandbox_x_client_t, sandbox_x_t, sandbox_net_client_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+If you want to allow unconfined users to transition to the chrome sandbox domains when running chrome-sandbox, you must turn on the unconfined_chrome_sandbox_transition boolean.
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the sandbox_min_t, sandbox_net_t, sandbox_web_client_t, sandbox_xserver_t, sandbox_web_t, sandbox_x_client_t, sandbox_x_t, sandbox_net_client_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
+.B setsebool -P unconfined_chrome_sandbox_transition 1
 .EE
 
 .SH FILE CONTEXTS
@@ -115,27 +135,9 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH PROCESS TYPES
-SELinux defines process types (domains) for each process running on the system
-.PP
-You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
-.PP
-Policy governs the access confined processes have to files. 
-SELinux sandbox policy is very flexible allowing users to setup their sandbox processes in as secure a method as possible.
-.PP 
-The following process types are defined for sandbox:
-
-.EX
-.B sandbox_x_client_t, sandbox_net_client_t, sandbox_xserver_t, sandbox_x_t, sandbox_web_client_t, sandbox_min_t, sandbox_net_t, sandbox_web_t, sandbox_min_client_t, sandbox_t 
-.EE
-.PP
-Note: 
-.B semanage permissive -a PROCESS_TYPE 
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
-
 .SH "MANAGED FILES"
 
-The SELinux user type sandbox_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+The SELinux process type sandbox_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
 .B sandbox_file_t
@@ -146,6 +148,22 @@ The SELinux user type sandbox_t can manage files labeled with the following file
 
 	all sandbox content in tmpfs file systems
 .br
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the sandbox_min_t, sandbox_net_t, sandbox_web_client_t, sandbox_xserver_t, sandbox_web_t, sandbox_x_client_t, sandbox_x_t, sandbox_net_client_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the sandbox_min_t, sandbox_net_t, sandbox_web_client_t, sandbox_xserver_t, sandbox_web_t, sandbox_x_client_t, sandbox_x_t, sandbox_net_client_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -165,8 +183,10 @@ can also be used to manipulate the booleans
 is a GUI tool available to customize SELinux policy settings.
 
 .SH AUTHOR	
-This manual page was auto-generated by genman.py.
+This manual page was auto-generated using 
+.B "sepolicy manpage"
+by Daniel J Walsh.
 
 .SH "SEE ALSO"
-selinux(8), sandbox(8), semanage(8), restorecon(8), chcon(1)
+selinux(8), sandbox(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
 , setsebool(8)
