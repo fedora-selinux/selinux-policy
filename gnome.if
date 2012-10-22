@@ -16,58 +16,12 @@
 ## </param>
 #
 interface(`gnome_role',`
-	refpolicywarn(`$0($*) has been deprecated, use gnome_role_gconfd() instead.')
-	gnome_role_gconfd($1, $2)
-')
-
-########################################
-## <summary>
-##	Role access for gconfd.
-## </summary>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
-## <param name="domain">
-##	<summary>
-##	User domain for the role.
-##	</summary>
-## </param>
-#
-interface(`gnome_role_gconfd',`
-	gen_require(`
-		attribute_role gconfd_roles;
-		type gconfd_t, gconfd_exec_t, gconf_tmp_t;
-		type gconf_home_t;
-	')
-
-	########################################
-	#
-	# Declarations
-	#
-
-	roleattribute $1 gconfd_roles;
-
-	########################################
-	#
-	# Policy
-	#
-
-	domtrans_pattern($2, gconfd_exec_t, gconfd_t)
-
-	allow $2 { gconf_home_t gconf_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 { gconf_home_t gconf_tmp_t }:file { manage_file_perms relabel_file_perms };
-	userdom_user_home_dir_filetrans($2, gconf_home_t, dir, ".gconf")
-	userdom_user_home_dir_filetrans($2, gconf_home_t, dir, ".gconfd")
-
-	allow $2 gconfd_t:process { ptrace signal_perms };
-	ps_process_pattern($2, gconfd_t)
+	refpolicywarn(`$0($*) has been deprecated')
 ')
 
 #######################################
 ## <summary>
-##	The role template for gnome keyringd.
+##	The role template for gnome.
 ## </summary>
 ## <param name="role_prefix">
 ##	<summary>
@@ -86,15 +40,25 @@ interface(`gnome_role_gconfd',`
 ##	</summary>
 ## </param>
 #
-template(`gnome_role_template_gkeyringd',`
+template(`gnome_role_template',`
 	gen_require(`
 		attribute gnomedomain, gkeyringd_domain;
+		attribute_role gconfd_roles;
 		type gkeyringd_exec_t, gnome_keyring_home_t, gnome_keyring_tmp_t;
+		type gconfd_t, gconfd_exec_t, gconf_tmp_t;
+		type gconf_home_t;
 	')
 
 	########################################
 	#
-	# Declarations
+	# Gconf declarations
+	#
+
+	roleattribute $2 gconfd_roles;
+
+	########################################
+	#
+	# Gkeyringd declarations
 	#
 
 	type $1_gkeyringd_t, gnomedomain, gkeyringd_domain;
@@ -105,7 +69,22 @@ template(`gnome_role_template_gkeyringd',`
 
 	########################################
 	#
-	# Policy
+	# Gconf policy
+	#
+
+	domtrans_pattern($3, gconfd_exec_t, gconfd_t)
+
+	allow $3 { gconf_home_t gconf_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $3 { gconf_home_t gconf_tmp_t }:file { manage_file_perms relabel_file_perms };
+	userdom_user_home_dir_filetrans($3, gconf_home_t, dir, ".gconf")
+	userdom_user_home_dir_filetrans($3, gconf_home_t, dir, ".gconfd")
+
+	allow $3 gconfd_t:process { ptrace signal_perms };
+	ps_process_pattern($3, gconfd_t)
+
+	########################################
+	#
+	# Gkeyringd policy
 	#
 
 	domtrans_pattern($3, gkeyringd_exec_t, $1_gkeyringd_t)
