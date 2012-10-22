@@ -1,12 +1,12 @@
-## <summary>Qmail Mail Server</summary>
+## <summary>Qmail Mail Server.</summary>
 
 ########################################
 ## <summary>
-##	Template for qmail parent/sub-domain pairs
+##	Template for qmail parent/sub-domain pairs.
 ## </summary>
 ## <param name="child_prefix">
 ##	<summary>
-##	The prefix of the child domain
+##	The prefix of the child domain.
 ##	</summary>
 ## </param>
 ## <param name="parent_domain">
@@ -16,40 +16,35 @@
 ## </param>
 #
 template(`qmail_child_domain_template',`
-	type $1_t;
-	domain_type($1_t)
+	gen_require(`
+		attribute qmail_child_domain;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	type $1_t, qmail_child_domain;
 	type $1_exec_t;
+	domain_type($1_t)
 	domain_entry_file($1_t, $1_exec_t)
-	domain_auto_trans($2, $1_exec_t, $1_t)
+
 	role system_r types $1_t;
 
-	allow $1_t self:process signal_perms;
+	########################################
+	#
+	# Policy
+	#
 
-	allow $1_t $2:fd use;
-	allow $1_t $2:fifo_file rw_file_perms;
-	allow $1_t $2:process sigchld;
+	domtrans_pattern($2, $1_exec_t, $1_t)
 
-	allow $1_t qmail_etc_t:dir list_dir_perms;
-	allow $1_t qmail_etc_t:file read_file_perms;
-	allow $1_t qmail_etc_t:lnk_file read_lnk_file_perms;
-
-	allow $1_t qmail_start_t:fd use;
-
-	kernel_list_proc($2)
-	kernel_read_proc_symlinks($2)
-
-	corecmd_search_bin($1_t)
-
-	files_search_var($1_t)
-
-	fs_getattr_xattr_fs($1_t)
-
-	miscfiles_read_localization($1_t)
+	kernel_read_system_state($2)
 ')
 
 ########################################
 ## <summary>
-##	Transition to qmail_inject_t
+##	Transition to qmail_inject_t.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -69,13 +64,12 @@ interface(`qmail_domtrans_inject',`
 		corecmd_search_bin($1)
 	',`
 		files_search_var($1)
-		corecmd_search_bin($1)
 	')
 ')
 
 ########################################
 ## <summary>
-##	Transition to qmail_queue_t
+##	Transition to qmail_queue_t.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -95,7 +89,6 @@ interface(`qmail_domtrans_queue',`
 		corecmd_search_bin($1)
 	',`
 		files_search_var($1)
-		corecmd_search_bin($1)
 	')
 ')
 
@@ -115,21 +108,20 @@ interface(`qmail_read_config',`
 		type qmail_etc_t;
 	')
 
+	files_search_var($1)
 	allow $1 qmail_etc_t:dir list_dir_perms;
 	allow $1 qmail_etc_t:file read_file_perms;
 	allow $1 qmail_etc_t:lnk_file read_lnk_file_perms;
-	files_search_var($1)
 
 	ifdef(`distro_debian',`
-		# handle /etc/qmail
 		files_search_etc($1)
 	')
 ')
 
 ########################################
 ## <summary>
-##	Define the specified domain as a qmail-smtp service. 
-##	Needed by antivirus/antispam filters.
+##	Define the specified domain as a
+##	qmail-smtp service.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
