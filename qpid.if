@@ -15,12 +15,13 @@ interface(`qpidd_domtrans',`
 		type qpidd_t, qpidd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, qpidd_exec_t, qpidd_t)
 ')
 
 #####################################
 ## <summary>
-##	Allow read and write access to qpidd semaphores.
+##	Read and write access qpidd semaphores.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -38,7 +39,7 @@ interface(`qpidd_rw_semaphores',`
 
 ########################################
 ## <summary>
-##	Read and write to qpidd shared memory.
+##	Read and write qpidd shared memory.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -56,11 +57,12 @@ interface(`qpidd_rw_shm',`
 
 ########################################
 ## <summary>
-##	Execute qpidd server in the qpidd domain.
+##	Execute qpidd init script in
+##	the initrc domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
+##	Domain allowed to transition.
 ##	</summary>
 ## </param>
 #
@@ -74,7 +76,7 @@ interface(`qpidd_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	Read qpidd PID files.
+##	Read qpidd pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -106,8 +108,8 @@ interface(`qpidd_search_lib',`
 		type qpidd_var_lib_t;
 	')
 
-	allow $1 qpidd_var_lib_t:dir search_dir_perms;
 	files_search_var_lib($1)
+	allow $1 qpidd_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
@@ -151,8 +153,8 @@ interface(`qpidd_manage_lib_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an qpidd environment
+##	All of the rules required to
+##	administrate an qpidd environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -168,19 +170,21 @@ interface(`qpidd_manage_lib_files',`
 #
 interface(`qpidd_admin',`
 	gen_require(`
-		type qpidd_t, qpidd_initrc_exec_t;
+		type qpidd_t, qpidd_initrc_exec_t, qpidd_var_lib_t;
+		type qpidd_var_run_t;
 	')
 
 	allow $1 qpidd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, qpidd_t)
 
-	# Allow qpidd_t to restart the apache service
 	qpidd_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 qpidd_initrc_exec_t system_r;
 	allow $2 system_r;
 
+	files_search_var_lib($1(
 	admin_pattern($1, qpidd_var_lib_t)
 
+	files_search_pids($1)
 	admin_pattern($1, qpidd_var_run_t)
 ')
