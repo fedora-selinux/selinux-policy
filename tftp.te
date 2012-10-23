@@ -1,4 +1,4 @@
-policy_module(tftp, 1.12.2)
+policy_module(tftp, 1.12.3)
 
 ########################################
 #
@@ -12,6 +12,14 @@ policy_module(tftp, 1.12.2)
 ## </p>
 ## </desc>
 gen_tunable(tftp_anon_write, false)
+
+## <desc>
+##	<p>
+##	Determine whether tftp can manage
+##	generic user home content.
+##	</p>
+## </desc>
+gen_tunable(tftp_enable_homedir, false)
 
 type tftpd_t;
 type tftpd_exec_t;
@@ -90,10 +98,35 @@ miscfiles_read_public_files(tftpd_t)
 
 userdom_dontaudit_use_unpriv_user_fds(tftpd_t)
 userdom_dontaudit_use_user_terminals(tftpd_t)
-userdom_dontaudit_search_user_home_dirs(tftpd_t)
+userdom_user_home_dir_filetrans_user_home_content(tftpd_t, { dir file lnk_file })
 
 tunable_policy(`tftp_anon_write',`
 	miscfiles_manage_public_files(tftpd_t)
+')
+
+tunable_policy(`tftp_enable_homedir',`
+	allow tftpd_t self:capability { dac_override dac_read_search };
+
+	files_list_home(tftpd_t)
+	userdom_manage_user_home_content_dirs(tftpd_t)
+	userdom_manage_user_home_content_files(tftpd_t)
+	userdom_manage_user_home_content_symlinks(tftpd_t)
+')
+
+tunable_policy(`tftp_enable_homedir && use_nfs_home_dirs',`
+	fs_manage_nfs_dirs(tftpd_t)
+	fs_manage_nfs_files(tftpd_t)
+	fs_read_nfs_symlinks(tftpd_t)
+')
+
+tunable_policy(`tftp_enable_homedir && use_samba_home_dirs',`
+	fs_manage_cifs_dirs(tftpd_t)
+	fs_manage_cifs_files(tftpd_t)
+	fs_read_cifs_symlinks(tftpd_t)
+')
+
+optional_policy(`
+	cobbler_read_lib_files(tftpd_t)
 ')
 
 optional_policy(`
