@@ -1,4 +1,4 @@
-policy_module(readahead, 1.12.1)
+policy_module(readahead, 1.12.2)
 
 ########################################
 #
@@ -7,8 +7,7 @@ policy_module(readahead, 1.12.1)
 
 type readahead_t;
 type readahead_exec_t;
-init_daemon_domain(readahead_t, readahead_exec_t)
-application_domain(readahead_t, readahead_exec_t)
+init_system_domain(readahead_t, readahead_exec_t)
 
 type readahead_var_lib_t;
 files_type(readahead_var_lib_t)
@@ -16,22 +15,23 @@ typealias readahead_var_lib_t alias readahead_etc_rw_t;
 
 type readahead_var_run_t;
 files_pid_file(readahead_var_run_t)
+init_daemon_run_dir(readahead_var_run_t, "readahead")
 
 ########################################
 #
 # Local policy
 #
 
-allow readahead_t self:capability { fowner dac_override dac_read_search };
+allow readahead_t self:capability { sys_admin fowner dac_override dac_read_search };
 dontaudit readahead_t self:capability { net_admin sys_tty_config };
 allow readahead_t self:process { setsched signal_perms };
 
 manage_dirs_pattern(readahead_t, readahead_var_lib_t, readahead_var_lib_t)
 manage_files_pattern(readahead_t, readahead_var_lib_t, readahead_var_lib_t)
-files_search_var_lib(readahead_t)
 
+manage_dirs_pattern(readahead_t, readahead_var_run_t, readahead_var_run_t)
 manage_files_pattern(readahead_t, readahead_var_run_t, readahead_var_run_t)
-files_pid_filetrans(readahead_t, readahead_var_run_t, file)
+files_pid_filetrans(readahead_t, readahead_var_run_t, { dir file })
 
 kernel_read_all_sysctls(readahead_t)
 kernel_read_system_state(readahead_t)
@@ -45,16 +45,16 @@ dev_getattr_all_blk_files(readahead_t)
 dev_dontaudit_read_all_blk_files(readahead_t)
 dev_dontaudit_getattr_memory_dev(readahead_t)
 dev_dontaudit_getattr_nvram_dev(readahead_t)
-# Early devtmpfs, before udev relabel
 dev_dontaudit_rw_generic_chr_files(readahead_t)
 
 domain_use_interactive_fds(readahead_t)
 domain_read_all_domains_state(readahead_t)
 
-files_list_non_security(readahead_t)
-files_read_non_security_files(readahead_t)
 files_create_boot_flag(readahead_t)
 files_getattr_all_pipes(readahead_t)
+files_list_non_security(readahead_t)
+files_read_non_security_files(readahead_t)
+files_search_var_lib(readahead_t)
 files_dontaudit_getattr_all_sockets(readahead_t)
 files_dontaudit_getattr_non_security_blk_files(readahead_t)
 
@@ -70,6 +70,8 @@ fs_dontaudit_search_ramfs(readahead_t)
 fs_dontaudit_read_ramfs_pipes(readahead_t)
 fs_dontaudit_read_ramfs_files(readahead_t)
 fs_dontaudit_use_tmpfs_chr_dev(readahead_t)
+
+mcs_file_read_all(readahead_t)
 
 mls_file_read_all_levels(readahead_t)
 
