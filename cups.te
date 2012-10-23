@@ -1,4 +1,4 @@
-policy_module(cups, 1.15.2)
+policy_module(cups, 1.15.3)
 
 ########################################
 #
@@ -342,9 +342,9 @@ optional_policy(`
 # Configuration daemon local policy
 #
 
-allow cupsd_config_t self:capability { chown dac_override sys_tty_config };
+allow cupsd_config_t self:capability { chown dac_override sys_tty_config sys_nice };
 dontaudit cupsd_config_t self:capability sys_tty_config;
-allow cupsd_config_t self:process { getsched signal_perms };
+allow cupsd_config_t self:process { getsched setsched signal_perms };
 allow cupsd_config_t self:fifo_file rw_fifo_file_perms;
 allow cupsd_config_t self:tcp_socket { accept listen };
 
@@ -595,14 +595,11 @@ optional_policy(`
 # HPLIP local policy
 #
 
-# Needed for USB Scanneer and xsane
-allow hplip_t self:capability { dac_override dac_read_search net_raw };
+allow hplip_t self:capability { dac_override dac_read_search net_raw sys_nice };
 dontaudit hplip_t self:capability sys_tty_config;
 allow hplip_t self:fifo_file rw_fifo_file_perms;
-allow hplip_t self:process signal_perms;
-allow hplip_t self:netlink_route_socket r_netlink_socket_perms;
-allow hplip_t self:tcp_socket create_stream_socket_perms;
-allow hplip_t self:udp_socket create_socket_perms;
+allow hplip_t self:process { setsched signal_perms };
+allow hplip_t self:tcp_socket { accept listen };
 allow hplip_t self:rawip_socket create_socket_perms;
 
 allow hplip_t cupsd_etc_t:dir search_dir_perms;
@@ -612,8 +609,8 @@ manage_files_pattern(hplip_t, cupsd_tmp_t, cupsd_tmp_t)
 files_tmp_filetrans(hplip_t, cupsd_tmp_t, { dir file })
 
 allow hplip_t hplip_etc_t:dir list_dir_perms;
-read_files_pattern(hplip_t, hplip_etc_t, hplip_etc_t)
-read_lnk_files_pattern(hplip_t, hplip_etc_t, hplip_etc_t)
+allow hplip_t hplip_etc_t:file read_file_perms;
+allow hplip_t hplip_etc_t:lnk_file read_lnk_file_perms;
 
 manage_files_pattern(hplip_t, hplip_var_lib_t, hplip_var_lib_t)
 manage_lnk_files_pattern(hplip_t, hplip_var_lib_t, hplip_var_lib_t)
@@ -676,7 +673,7 @@ logging_send_syslog_msg(hplip_t)
 
 miscfiles_read_localization(hplip_t)
 
-sysnet_read_config(hplip_t)
+sysnet_dns_name_resolve(hplip_t)
 
 userdom_dontaudit_use_unpriv_user_fds(hplip_t)
 userdom_dontaudit_search_user_home_dirs(hplip_t)
