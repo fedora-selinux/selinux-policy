@@ -1,4 +1,4 @@
-policy_module(ricci, 1.7.0)
+policy_module(ricci, 1.7.1)
 
 ########################################
 #
@@ -7,8 +7,10 @@ policy_module(ricci, 1.7.0)
 
 type ricci_t;
 type ricci_exec_t;
-domain_type(ricci_t)
 init_daemon_domain(ricci_t, ricci_exec_t)
+
+type ricci_initrc_exec_t;
+init_script_file(ricci_initrc_exec_t)
 
 type ricci_tmp_t;
 files_tmp_file(ricci_tmp_t)
@@ -39,8 +41,10 @@ files_pid_file(ricci_modcluster_var_run_t)
 
 type ricci_modclusterd_t;
 type ricci_modclusterd_exec_t;
-domain_type(ricci_modclusterd_t)
 init_daemon_domain(ricci_modclusterd_t, ricci_modclusterd_exec_t)
+
+type ricci_modclusterd_tmpfs_t;
+files_tmpfs_file(ricci_modclusterd_tmpfs_t)
 
 type ricci_modlog_t;
 type ricci_modlog_exec_t;
@@ -71,20 +75,20 @@ files_lock_file(ricci_modstorage_lock_t)
 
 ########################################
 #
-# ricci local policy
+# Local policy
 #
 
 allow ricci_t self:capability { setuid sys_nice sys_boot };
 allow ricci_t self:process setsched;
 allow ricci_t self:fifo_file rw_fifo_file_perms;
-allow ricci_t self:unix_stream_socket { create_stream_socket_perms connectto };
-allow ricci_t self:tcp_socket create_stream_socket_perms;
+allow ricci_t self:unix_stream_socket { accept connectto listen };
+allow ricci_t self:tcp_socket { accept listen };
 
-domain_auto_trans(ricci_t, ricci_modcluster_exec_t, ricci_modcluster_t)
-domain_auto_trans(ricci_t, ricci_modlog_exec_t, ricci_modlog_t)
-domain_auto_trans(ricci_t, ricci_modrpm_exec_t, ricci_modrpm_t)
-domain_auto_trans(ricci_t, ricci_modservice_exec_t, ricci_modservice_t)
-domain_auto_trans(ricci_t, ricci_modstorage_exec_t, ricci_modstorage_t)
+domtrans_pattern(ricci_t, ricci_modcluster_exec_t, ricci_modcluster_t)
+domtrans_pattern(ricci_t, ricci_modlog_exec_t, ricci_modlog_t)
+domtrans_pattern(ricci_t, ricci_modrpm_exec_t, ricci_modrpm_t)
+domtrans_pattern(ricci_t, ricci_modservice_exec_t, ricci_modservice_t)
+domtrans_pattern(ricci_t, ricci_modstorage_exec_t, ricci_modstorage_t)
 
 manage_dirs_pattern(ricci_t, ricci_tmp_t, ricci_tmp_t)
 manage_files_pattern(ricci_t, ricci_tmp_t, ricci_tmp_t)
@@ -95,8 +99,10 @@ manage_files_pattern(ricci_t, ricci_var_lib_t, ricci_var_lib_t)
 manage_sock_files_pattern(ricci_t, ricci_var_lib_t, ricci_var_lib_t)
 files_var_lib_filetrans(ricci_t, ricci_var_lib_t, { file dir sock_file })
 
-allow ricci_t ricci_var_log_t:dir setattr;
-manage_files_pattern(ricci_t, ricci_var_log_t, ricci_var_log_t)
+allow ricci_t ricci_var_log_t:dir setattr_dir_perms;
+append_files_pattern(ricci_t, ricci_var_log_t, ricci_var_log_t)
+create_files_pattern(ricci_t, ricci_var_log_t, ricci_var_log_t)
+setattr_files_pattern(ricci_t, ricci_var_log_t, ricci_var_log_t)
 manage_sock_files_pattern(ricci_t, ricci_var_log_t, ricci_var_log_t)
 logging_log_filetrans(ricci_t, ricci_var_log_t, { sock_file file dir })
 
@@ -105,6 +111,7 @@ manage_sock_files_pattern(ricci_t, ricci_var_run_t, ricci_var_run_t)
 files_pid_filetrans(ricci_t, ricci_var_run_t, { file sock_file })
 
 kernel_read_kernel_sysctls(ricci_t)
+kernel_read_system_state(ricci_t)
 
 corecmd_exec_bin(ricci_t)
 
@@ -112,12 +119,18 @@ corenet_all_recvfrom_unlabeled(ricci_t)
 corenet_all_recvfrom_netlabel(ricci_t)
 corenet_tcp_sendrecv_generic_if(ricci_t)
 corenet_tcp_sendrecv_generic_node(ricci_t)
-corenet_tcp_sendrecv_all_ports(ricci_t)
 corenet_tcp_bind_generic_node(ricci_t)
 corenet_udp_bind_generic_node(ricci_t)
+
+corenet_sendrecv_ricci_server_packets(ricci_t)
 corenet_tcp_bind_ricci_port(ricci_t)
+corenet_tcp_sendrecv_ricci_port(ricci_t)
 corenet_udp_bind_ricci_port(ricci_t)
+corenet_udp_sendrecv_ricci_port(ricci_t)
+
+corenet_sendrecv_http_client_packets(ricci_t)
 corenet_tcp_connect_http_port(ricci_t)
+corenet_tcp_sendrecv_http_port(ricci_t)
 
 dev_read_urand(ricci_t)
 
@@ -147,11 +160,12 @@ optional_policy(`
 optional_policy(`
 	dbus_system_bus_client(ricci_t)
 
-	oddjob_dbus_chat(ricci_t)
+	optional_policy(`
+		oddjob_dbus_chat(ricci_t)
+	')
 ')
 
 optional_policy(`
-	# Needed so oddjob can run halt/reboot on behalf of ricci
 	corecmd_bin_entry_type(ricci_t)
 	term_dontaudit_search_ptys(ricci_t)
 	init_exec(ricci_t)
@@ -170,6 +184,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	shutdown_domtrans(ricci_t)
+')
+
+optional_policy(`
 	unconfined_use_fds(ricci_t)
 ')
 
@@ -179,7 +197,7 @@ optional_policy(`
 
 ########################################
 #
-# ricci_modcluster local policy
+# Modcluster local policy
 #
 
 allow ricci_modcluster_t self:capability { net_bind_service sys_nice };
@@ -189,18 +207,30 @@ allow ricci_modcluster_t self:fifo_file rw_fifo_file_perms;
 kernel_read_kernel_sysctls(ricci_modcluster_t)
 kernel_read_system_state(ricci_modcluster_t)
 
-corecmd_exec_shell(ricci_modcluster_t)
 corecmd_exec_bin(ricci_modcluster_t)
+corecmd_exec_shell(ricci_modcluster_t)
 
-corenet_tcp_bind_cluster_port(ricci_modclusterd_t)
-corenet_tcp_bind_reserved_port(ricci_modclusterd_t)
+corenet_all_recvfrom_unlabeled(ricci_modcluster_t)
+corenet_all_recvfrom_netlabel(ricci_modcluster_t)
+corenet_tcp_sendrecv_generic_if(ricci_modcluster_t)
+corenet_tcp_sendrecv_generic_node(ricci_modcluster_t)
+corenet_tcp_sendrecv_all_ports(ricci_modcluster_t)
+corenet_tcp_bind_generic_node(ricci_modcluster_t)
+
+corenet_sendrecv_all_server_packets(ricci_modcluster_t)
+corenet_tcp_bind_all_rpc_ports(ricci_modcluster_t)
+
+corenet_tcp_bind_cluster_port(ricci_modcluster_t)
+corenet_sendrecv_cluster_client_packets(ricci_modcluster_t)
+corenet_tcp_connect_cluster_port(ricci_modcluster_t)
 
 domain_read_all_domains_state(ricci_modcluster_t)
 
 files_search_locks(ricci_modcluster_t)
 files_read_etc_runtime_files(ricci_modcluster_t)
-files_read_etc_files(ricci_modcluster_t)
 files_search_usr(ricci_modcluster_t)
+
+auth_use_nsswitch(ricci_modcluster_t)
 
 init_exec(ricci_modcluster_t)
 init_domtrans_script(ricci_modcluster_t)
@@ -208,12 +238,6 @@ init_domtrans_script(ricci_modcluster_t)
 logging_send_syslog_msg(ricci_modcluster_t)
 
 miscfiles_read_localization(ricci_modcluster_t)
-
-modutils_domtrans_insmod(ricci_modcluster_t)
-
-mount_domtrans(ricci_modcluster_t)
-
-consoletype_exec(ricci_modcluster_t)
 
 ricci_stream_connect_modclusterd(ricci_modcluster_t)
 
@@ -233,7 +257,15 @@ optional_policy(`
 ')
 
 optional_policy(`
-	nscd_socket_use(ricci_modcluster_t)
+	modutils_domtrans_insmod(ricci_modcluster_t)
+')
+
+optional_policy(`
+	mount_domtrans(ricci_modcluster_t)
+')
+
+optional_policy(`
+	consoletype_exec(ricci_modcluster_t)
 ')
 
 optional_policy(`
@@ -241,13 +273,12 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# XXX This has got to go.
-	unconfined_domain(ricci_modcluster_t)
+	rgmanager_stream_connect(ricci_modcluster_t)
 ')
 
 ########################################
 #
-# ricci_modclusterd local policy
+# Modclusterd local policy
 #
 
 allow ricci_modclusterd_t self:capability { sys_nice sys_tty_config };
@@ -255,14 +286,19 @@ allow ricci_modclusterd_t self:process { signal sigkill setsched };
 allow ricci_modclusterd_t self:fifo_file rw_fifo_file_perms;
 allow ricci_modclusterd_t self:unix_stream_socket create_stream_socket_perms;
 allow ricci_modclusterd_t self:tcp_socket create_stream_socket_perms;
-# cjp: this needs to be fixed for a specific socket type:
 allow ricci_modclusterd_t self:socket create_socket_perms;
 
 allow ricci_modclusterd_t ricci_modcluster_t:unix_stream_socket connectto;
-allow ricci_modclusterd_t ricci_modcluster_t:fifo_file rw_file_perms;
+allow ricci_modclusterd_t ricci_modcluster_t:fifo_file rw_fifo_file_perms;
 
-allow ricci_modclusterd_t ricci_modcluster_var_log_t:dir setattr;
-manage_files_pattern(ricci_modclusterd_t, ricci_modcluster_var_log_t, ricci_modcluster_var_log_t)
+manage_dirs_pattern(ricci_modclusterd_t, ricci_modclusterd_tmpfs_t, ricci_modclusterd_tmpfs_t)
+manage_files_pattern(ricci_modclusterd_t, ricci_modclusterd_tmpfs_t, ricci_modclusterd_tmpfs_t)
+fs_tmpfs_filetrans(ricci_modclusterd_t, ricci_modclusterd_tmpfs_t, { dir file })
+
+allow ricci_modclusterd_t ricci_modcluster_var_log_t:dir setattr_dir_perms;
+append_files_pattern(ricci_modclusterd_t, ricci_modcluster_var_log_t, ricci_modcluster_var_log_t)
+create_files_pattern(ricci_modclusterd_t, ricci_modcluster_var_log_t, ricci_modcluster_var_log_t)
+setattr_files_pattern(ricci_modclusterd_t, ricci_modcluster_var_log_t, ricci_modcluster_var_log_t)
 manage_sock_files_pattern(ricci_modclusterd_t, ricci_modcluster_var_log_t, ricci_modcluster_var_log_t)
 logging_log_filetrans(ricci_modclusterd_t, ricci_modcluster_var_log_t, { sock_file file dir })
 
@@ -272,18 +308,24 @@ files_pid_filetrans(ricci_modclusterd_t, ricci_modcluster_var_run_t, { file sock
 
 kernel_read_kernel_sysctls(ricci_modclusterd_t)
 kernel_read_system_state(ricci_modclusterd_t)
+kernel_request_load_module(ricci_modclusterd_t)
 
 corecmd_exec_bin(ricci_modclusterd_t)
 
+corenet_all_recvfrom_unlabeled(ricci_modclusterd_t)
+corenet_all_recvfrom_netlabel(ricci_modclusterd_t)
 corenet_tcp_sendrecv_generic_if(ricci_modclusterd_t)
-corenet_tcp_sendrecv_all_ports(ricci_modclusterd_t)
+corenet_tcp_sendrecv_generic_node(ricci_modclusterd_t)
 corenet_tcp_bind_generic_node(ricci_modclusterd_t)
+
+corenet_sendrecv_ricci_modcluster_server_packets(ricci_modclusterd_t)
 corenet_tcp_bind_ricci_modcluster_port(ricci_modclusterd_t)
+corenet_sendrecv_ricci_modcluster_client_packets(ricci_modclusterd_t)
 corenet_tcp_connect_ricci_modcluster_port(ricci_modclusterd_t)
+corenet_tcp_sendrecv_ricci_modcluster_port(ricci_modclusterd_t)
 
 domain_read_all_domains_state(ricci_modclusterd_t)
 
-files_read_etc_files(ricci_modclusterd_t)
 files_read_etc_runtime_files(ricci_modclusterd_t)
 
 fs_getattr_xattr_fs(ricci_modclusterd_t)
@@ -321,7 +363,7 @@ optional_policy(`
 
 ########################################
 #
-# ricci_modlog local policy
+# Modlog local policy
 #
 
 allow ricci_modlog_t self:capability sys_nice;
@@ -351,7 +393,7 @@ optional_policy(`
 
 ########################################
 #
-# ricci_modrpm local policy
+# Modrpm local policy
 #
 
 allow ricci_modrpm_t self:fifo_file read_fifo_file_perms;
@@ -375,12 +417,12 @@ optional_policy(`
 
 ########################################
 #
-# ricci_modservice local policy
+# Modservice local policy
 #
 
 allow ricci_modservice_t self:capability { dac_override sys_nice };
-allow ricci_modservice_t self:fifo_file rw_fifo_file_perms;
 allow ricci_modservice_t self:process setsched;
+allow ricci_modservice_t self:fifo_file rw_fifo_file_perms;
 
 kernel_read_kernel_sysctls(ricci_modservice_t)
 kernel_read_system_state(ricci_modservice_t)
@@ -391,10 +433,7 @@ corecmd_exec_shell(ricci_modservice_t)
 files_read_etc_files(ricci_modservice_t)
 files_read_etc_runtime_files(ricci_modservice_t)
 files_search_usr(ricci_modservice_t)
-# Needed for running chkconfig
 files_manage_etc_symlinks(ricci_modservice_t)
-
-consoletype_exec(ricci_modservice_t)
 
 init_domtrans_script(ricci_modservice_t)
 
@@ -402,6 +441,10 @@ miscfiles_read_localization(ricci_modservice_t)
 
 optional_policy(`
 	ccs_read_config(ricci_modservice_t)
+')
+
+optional_policy(`
+	consoletype_exec(ricci_modservice_t)
 ')
 
 optional_policy(`
@@ -414,14 +457,13 @@ optional_policy(`
 
 ########################################
 #
-# ricci_modstorage local policy
+# Modstorage local policy
 #
 
+allow ricci_modstorage_t self:capability { mknod sys_nice };
 allow ricci_modstorage_t self:process { setsched signal };
 dontaudit ricci_modstorage_t self:process ptrace;
-allow ricci_modstorage_t self:capability { mknod sys_nice };
 allow ricci_modstorage_t self:fifo_file rw_fifo_file_perms;
-allow ricci_modstorage_t self:unix_dgram_socket create_socket_perms;
 
 kernel_read_kernel_sysctls(ricci_modstorage_t)
 kernel_read_system_state(ricci_modstorage_t)
@@ -429,8 +471,8 @@ kernel_read_system_state(ricci_modstorage_t)
 create_files_pattern(ricci_modstorage_t, ricci_modstorage_lock_t, ricci_modstorage_lock_t)
 files_lock_filetrans(ricci_modstorage_t, ricci_modstorage_lock_t, file)
 
-corecmd_exec_shell(ricci_modstorage_t)
 corecmd_exec_bin(ricci_modstorage_t)
+corecmd_exec_shell(ricci_modstorage_t)
 
 dev_read_sysfs(ricci_modstorage_t)
 dev_read_urand(ricci_modstorage_t)
@@ -438,7 +480,6 @@ dev_manage_generic_blk_files(ricci_modstorage_t)
 
 domain_read_all_domains_state(ricci_modstorage_t)
 
-#Needed for editing /etc/fstab
 files_manage_etc_files(ricci_modstorage_t)
 files_read_etc_runtime_files(ricci_modstorage_t)
 files_read_usr_files(ricci_modstorage_t)
@@ -448,17 +489,9 @@ storage_raw_read_fixed_disk(ricci_modstorage_t)
 
 term_dontaudit_use_console(ricci_modstorage_t)
 
-fstools_domtrans(ricci_modstorage_t)
-
 logging_send_syslog_msg(ricci_modstorage_t)
 
 miscfiles_read_localization(ricci_modstorage_t)
-
-modutils_read_module_deps(ricci_modstorage_t)
-
-consoletype_exec(ricci_modstorage_t)
-
-mount_domtrans(ricci_modstorage_t)
 
 optional_policy(`
 	aisexec_stream_connect(ricci_modstorage_t)
@@ -471,12 +504,24 @@ optional_policy(`
 ')
 
 optional_policy(`
+	consoletype_exec(ricci_modstorage_t)
+')
+
+optional_policy(`
+	fstools_domtrans(ricci_modstorage_t)
+')
+
+optional_policy(`
 	lvm_domtrans(ricci_modstorage_t)
 	lvm_manage_config(ricci_modstorage_t)
 ')
 
 optional_policy(`
-	nscd_socket_use(ricci_modstorage_t)
+	modutils_read_module_deps(ricci_modstorage_t)
+')
+
+optional_policy(`
+	mount_domtrans(ricci_modstorage_t)
 ')
 
 optional_policy(`
