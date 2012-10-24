@@ -1,4 +1,4 @@
-policy_module(cups, 1.15.3)
+policy_module(cups, 1.15.4)
 
 ########################################
 #
@@ -186,9 +186,6 @@ corenet_tcp_bind_reserved_port(cupsd_t)
 corenet_dontaudit_tcp_bind_all_reserved_ports(cupsd_t)
 corenet_tcp_bind_all_rpc_ports(cupsd_t)
 corenet_tcp_connect_all_ports(cupsd_t)
-corenet_sendrecv_hplip_client_packets(cupsd_t)
-corenet_sendrecv_ipp_client_packets(cupsd_t)
-corenet_sendrecv_ipp_server_packets(cupsd_t)
 
 corecmd_exec_bin(cupsd_t)
 corecmd_exec_shell(cupsd_t)
@@ -342,7 +339,7 @@ optional_policy(`
 # Configuration daemon local policy
 #
 
-allow cupsd_config_t self:capability { chown dac_override sys_tty_config sys_nice };
+allow cupsd_config_t self:capability { chown dac_override sys_tty_config setuid setgid sys_nice };
 dontaudit cupsd_config_t self:capability sys_tty_config;
 allow cupsd_config_t self:process { getsched setsched signal_perms };
 allow cupsd_config_t self:fifo_file rw_fifo_file_perms;
@@ -359,7 +356,7 @@ manage_files_pattern(cupsd_config_t, cupsd_rw_etc_t, cupsd_rw_etc_t)
 manage_lnk_files_pattern(cupsd_config_t, cupsd_rw_etc_t, cupsd_rw_etc_t)
 files_var_filetrans(cupsd_config_t, cupsd_rw_etc_t, file)
 
-allow cupsd_config_t cupsd_log_t:file rw_file_perms;
+allow cupsd_config_t cupsd_log_t:file { append_file_perms read_file_perms };
 
 manage_lnk_files_pattern(cupsd_config_t, cupsd_tmp_t, cupsd_tmp_t)
 manage_files_pattern(cupsd_config_t, cupsd_tmp_t, cupsd_tmp_t)
@@ -372,13 +369,13 @@ manage_dirs_pattern(cupsd_config_t, cupsd_config_var_run_t, cupsd_config_var_run
 manage_files_pattern(cupsd_config_t, cupsd_config_var_run_t, cupsd_config_var_run_t)
 files_pid_filetrans(cupsd_config_t, cupsd_config_var_run_t, { dir file })
 
+read_files_pattern(cupsd_config_t, hplip_etc_t, hplip_etc_t)
+
 stream_connect_pattern(cupsd_config_t, cupsd_var_run_t, cupsd_var_run_t, cupsd_t)
 
 can_exec(cupsd_config_t, cupsd_config_exec_t)
 
 domtrans_pattern(cupsd_config_t, hplip_exec_t, hplip_t)
-
-read_files_pattern(cupsd_config_t, hplip_etc_t, hplip_etc_t)
 
 kernel_read_system_state(cupsd_config_t)
 kernel_read_all_sysctls(cupsd_config_t)
@@ -493,13 +490,9 @@ allow cupsd_lpd_t self:fifo_file rw_fifo_file_perms;
 allow cupsd_lpd_t self:tcp_socket { accept listen };
 allow cupsd_lpd_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
 
-allow cupsd_lpd_t cupsd_etc_t:dir list_dir_perms;
-read_files_pattern(cupsd_lpd_t, cupsd_etc_t, cupsd_etc_t)
-read_lnk_files_pattern(cupsd_lpd_t, cupsd_etc_t, cupsd_etc_t)
-
-allow cupsd_lpd_t cupsd_rw_etc_t:dir list_dir_perms;
-read_files_pattern(cupsd_lpd_t, cupsd_rw_etc_t, cupsd_rw_etc_t)
-read_lnk_files_pattern(cupsd_lpd_t, cupsd_rw_etc_t, cupsd_rw_etc_t)
+allow cupsd_lpd_t { cupsd_etc_t cupsd_rw_etc_t }:dir list_dir_perms;
+allow cupsd_lpd_t { cupsd_etc_t cupsd_rw_etc_t }:file read_file_perms;
+allow cupsd_lpd_t { cupsd_etc_t cupsd_rw_etc_t }:lnk_file read_lnk_file_perms;
 
 manage_dirs_pattern(cupsd_lpd_t, cupsd_lpd_tmp_t, cupsd_lpd_tmp_t)
 manage_files_pattern(cupsd_lpd_t, cupsd_lpd_tmp_t, cupsd_lpd_tmp_t)
@@ -550,13 +543,16 @@ allow cups_pdf_t self:capability { chown fowner fsetid setuid setgid dac_overrid
 allow cups_pdf_t self:fifo_file rw_fifo_file_perms;
 allow cups_pdf_t self:unix_stream_socket create_stream_socket_perms;
 
-manage_files_pattern(cups_pdf_t, cupsd_log_t, cupsd_log_t)
+append_files_pattern(cups_pdf_t, cupsd_log_t, cupsd_log_t)
+create_files_pattern(cups_pdf_t, cupsd_log_t, cupsd_log_t)
+setattr_files_pattern(cups_pdf_t, cupsd_log_t, cupsd_log_t)
 
 manage_files_pattern(cups_pdf_t, cups_pdf_tmp_t, cups_pdf_tmp_t)
 manage_dirs_pattern(cups_pdf_t, cups_pdf_tmp_t, cups_pdf_tmp_t)
 files_tmp_filetrans(cups_pdf_t, cups_pdf_tmp_t, { dir file })
 
 fs_rw_anon_inodefs_files(cups_pdf_t)
+fs_search_auto_mountpoints(cups_pdf_t)
 
 kernel_read_system_state(cups_pdf_t)
 
@@ -576,7 +572,6 @@ userdom_manage_user_home_content_files(cups_pdf_t)
 userdom_home_filetrans_user_home_dir(cups_pdf_t)
 
 tunable_policy(`use_nfs_home_dirs',`
-	fs_search_auto_mountpoints(cups_pdf_t)
 	fs_manage_nfs_dirs(cups_pdf_t)
 	fs_manage_nfs_files(cups_pdf_t)
 ')
