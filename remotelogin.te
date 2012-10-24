@@ -1,4 +1,4 @@
-policy_module(remotelogin, 1.7.1)
+policy_module(remotelogin, 1.7.2)
 
 ########################################
 #
@@ -10,9 +10,12 @@ domain_interactive_fd(remote_login_t)
 auth_login_pgm_domain(remote_login_t)
 auth_login_entry_type(remote_login_t)
 
+type remote_login_tmp_t;
+files_tmp_file(remote_login_tmp_t)
+
 ########################################
 #
-# Remote login remote policy
+# Local policy
 #
 
 allow remote_login_t self:capability { dac_override chown fowner fsetid kill setgid setuid net_bind_service sys_nice sys_resource sys_tty_config };
@@ -22,6 +25,10 @@ allow remote_login_t self:fd use;
 allow remote_login_t self:fifo_file rw_fifo_file_perms;
 allow remote_login_t self:unix_dgram_socket sendto;
 allow remote_login_t self:unix_stream_socket { accept connectto listen };
+
+manage_dirs_pattern(remote_login_t, remote_login_tmp_t, remote_login_tmp_t)
+manage_files_pattern(remote_login_t, remote_login_tmp_t, remote_login_tmp_t)
+files_tmp_filetrans(remote_login_t, remote_login_tmp_t, { file dir })
 
 kernel_read_system_state(remote_login_t)
 kernel_read_kernel_sysctls(remote_login_t)
@@ -62,10 +69,6 @@ userdom_use_unpriv_users_fds(remote_login_t)
 userdom_search_user_home_content(remote_login_t)
 userdom_signal_unpriv_users(remote_login_t)
 userdom_spec_domtrans_unpriv_users(remote_login_t)
-
-userdom_manage_user_tmp_dirs(remote_login_t)
-userdom_manage_user_tmp_files(remote_login_t)
-userdom_tmp_filetrans_user_tmp(remote_login_t, { file dir })
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_read_nfs_files(remote_login_t)
