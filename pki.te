@@ -31,6 +31,9 @@ files_type(pki_tomcat_cert_t)
 
 tomcat_domain_template(pki_tomcat)
 
+type pki_tomcat_unit_file_t;
+systemd_unit_file(pki_tomcat_unit_file_t)
+
 type pki_tomcat_lock_t;
 files_lock_file(pki_tomcat_lock_t)
 
@@ -54,6 +57,15 @@ type pki_ra_tomcat_exec_t;
 files_type(pki_ra_tomcat_exec_t)
 
 pki_apache_template(pki_ra)
+
+# needed for dogtag 9 style instances
+type pki_tomcat_script_t;
+domain_type(pki_tomcat_script_t)
+role system_r types pki_tomcat_script_t;
+
+optional_policy(`
+             unconfined_domain(pki_tomcat_script_t)
+')
 
 ########################################
 #
@@ -79,6 +91,12 @@ manage_dirs_pattern(pki_tomcat_t,  pki_tomcat_lock_t,  pki_tomcat_lock_t)
 manage_files_pattern(pki_tomcat_t,  pki_tomcat_lock_t,  pki_tomcat_lock_t)
 manage_lnk_files_pattern(pki_tomcat_t,  pki_tomcat_lock_t,  pki_tomcat_lock_t)
 files_lock_filetrans(pki_tomcat_t,  pki_tomcat_lock_t, { dir file lnk_file })
+
+read_files_pattern(pki_tomcat_t, pki_tomcat_unit_file_t,pki_tomcat_unit_file_t)
+read_lnk_files_pattern(pki_tomcat_t, pki_tomcat_unit_file_t, pki_tomcat_unit_file_t)
+allow pki_tomcat_t pki_tomcat_unit_file_t:file setattr;
+allow pki_tomcat_t pki_tomcat_unit_file_t:lnk_file setattr;
+systemd_search_unit_dirs(pki_tomcat_t)
 
 # allow java subsystems to talk to the ncipher hsm
 allow pki_tomcat_t pki_common_dev_t:sock_file write;
