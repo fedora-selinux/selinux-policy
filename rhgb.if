@@ -1,4 +1,4 @@
-## <summary> Red Hat Graphical Boot </summary>
+## <summary> Red Hat Graphical Boot.</summary>
 
 ########################################
 ## <summary>
@@ -18,7 +18,7 @@ interface(`rhgb_stub',`
 
 ########################################
 ## <summary>
-##	Use a rhgb file descriptor.
+##	Inherit and use rhgb file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -54,7 +54,7 @@ interface(`rhgb_getpgid',`
 
 ########################################
 ## <summary>
-##	Send a signal to rhgb.
+##	Send generic signals to rhgb.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -72,7 +72,8 @@ interface(`rhgb_signal',`
 
 ########################################
 ## <summary>
-##	Read and write to unix stream sockets.
+##	Read and write inherited rhgb unix
+##	domain stream sockets.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -109,7 +110,8 @@ interface(`rhgb_dontaudit_rw_stream_sockets',`
 
 ########################################
 ## <summary>
-##	Connected to rhgb unix stream socket.
+##	Connected to rhgb with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -119,10 +121,11 @@ interface(`rhgb_dontaudit_rw_stream_sockets',`
 #
 interface(`rhgb_stream_connect',`
 	gen_require(`
-		type rhgb_t;
+		type rhgb_t, rhgb_tmpfs_t;
 	')
 
-	allow $1 rhgb_t:unix_stream_socket connectto;
+	fs_search_tmpfs($1)
+	stream_connect_pattern($1, rhgb_tmpfs_t, rhgb_tmpfs_t, rhgb_t)
 ')
 
 ########################################
@@ -145,7 +148,7 @@ interface(`rhgb_rw_shm',`
 
 ########################################
 ## <summary>
-##	Read from and write to the rhgb devpts.
+##	Read and write rhgb pty devices.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -158,12 +161,14 @@ interface(`rhgb_use_ptys',`
 		type rhgb_devpts_t;
 	')
 
+	dev_list_all_dev_nodes($1)
 	allow $1 rhgb_devpts_t:chr_file rw_term_perms;
 ')
 
 ########################################
 ## <summary>
-##	dontaudit Read from and write to the rhgb devpts.
+##	Do not audit attempts to read and
+##	write rhgb pty devices.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -181,7 +186,7 @@ interface(`rhgb_dontaudit_use_ptys',`
 
 ########################################
 ## <summary>
-##	Read and write to rhgb temporary file system.
+##	Read and write to rhgb tmpfs files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -194,5 +199,7 @@ interface(`rhgb_rw_tmpfs_files',`
 		type rhgb_tmpfs_t;
 	')
 
+
+	fs_search_tmpfs($1)
 	allow $1 rhgb_tmpfs_t:file rw_file_perms;
 ')
