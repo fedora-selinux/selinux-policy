@@ -1,8 +1,8 @@
-## <summary>Subscription Management Certificate Daemon policy</summary>
+## <summary>Subscription Management Certificate Daemon.</summary>
 
 ########################################
 ## <summary>
-##	Transition to rhsmcertd.
+##	Execute rhsmcertd in the rhsmcertd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -21,11 +21,12 @@ interface(`rhsmcertd_domtrans',`
 
 ########################################
 ## <summary>
-##	Execute rhsmcertd server in the rhsmcertd domain.
+##	Execute rhsmcertd init scripts
+##	in the initrc domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
+##	Domain allowed to transition.
 ##	</summary>
 ## </param>
 #
@@ -39,7 +40,7 @@ interface(`rhsmcertd_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	Read rhsmcertd's log files.
+##	Read rhsmcertd log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -59,7 +60,7 @@ interface(`rhsmcertd_read_log',`
 
 ########################################
 ## <summary>
-##	Append to rhsmcertd log files.
+##	Append rhsmcertd log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -78,7 +79,8 @@ interface(`rhsmcertd_append_log',`
 
 ########################################
 ## <summary>
-##	Manage rhsmcertd log files
+##	Create, read, write, and delete
+##	rhsmcertd log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -112,8 +114,8 @@ interface(`rhsmcertd_search_lib',`
 		type rhsmcertd_var_lib_t;
 	')
 
-	allow $1 rhsmcertd_var_lib_t:dir search_dir_perms;
 	files_search_var_lib($1)
+	allow $1 rhsmcertd_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
@@ -137,7 +139,8 @@ interface(`rhsmcertd_read_lib_files',`
 
 ########################################
 ## <summary>
-##	Manage rhsmcertd lib files.
+##	Create, read, write, and delete
+##	rhsmcertd lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -156,7 +159,8 @@ interface(`rhsmcertd_manage_lib_files',`
 
 ########################################
 ## <summary>
-##	Manage rhsmcertd lib directories.
+##	Create, read, write, and delete
+##	rhsmcertd lib directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -175,7 +179,7 @@ interface(`rhsmcertd_manage_lib_dirs',`
 
 ########################################
 ## <summary>
-##	Read rhsmcertd PID files.
+##	Read rhsmcertd pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -194,8 +198,8 @@ interface(`rhsmcertd_read_pid_files',`
 
 ####################################
 ## <summary>
-##	Connect to rhsmcertd over a unix domain
-##	stream socket.
+##	Connect to rhsmcertd with a
+##	unix domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -235,12 +239,13 @@ interface(`rhsmcertd_dbus_chat',`
 
 ######################################
 ## <summary>
-##	Dontaudit Send and receive messages from
+##	Do not audit attempts to send
+##	and receive messages from
 ##	rhsmcertd over dbus.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
+##	Domain to not audit.
 ##	</summary>
 ## </param>
 #
@@ -256,8 +261,8 @@ interface(`rhsmcertd_dontaudit_dbus_chat',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an rhsmcertd environment
+##	All of the rules required to
+##	administrate an rhsmcertd environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -274,10 +279,10 @@ interface(`rhsmcertd_dontaudit_dbus_chat',`
 interface(`rhsmcertd_admin',`
 	gen_require(`
 		type rhsmcertd_t, rhsmcertd_initrc_exec_t, rhsmcertd_log_t;
-		type rhsmcertd_var_lib_t, rhsmcertd_var_run_t;
+		type rhsmcertd_var_lib_t, rhsmcertd_var_run_t, rhsmcertd_lock_t;
 	')
 
-	allow $1 rhsmcertd_t:process signal_perms;
+	allow $1 rhsmcertd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, rhsmcertd_t)
 
 	rhsmcertd_initrc_domtrans($1)
@@ -293,4 +298,7 @@ interface(`rhsmcertd_admin',`
 
 	files_search_pids($1)
 	admin_pattern($1, rhsmcertd_var_run_t)
+
+	files_search_locks($1)
+	admin_pattern($1, rhsmcertd_lock_t)
 ')
