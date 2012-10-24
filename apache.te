@@ -1,4 +1,4 @@
-policy_module(apache, 2.6.0)
+policy_module(apache, 2.6.1)
 
 ########################################
 #
@@ -299,6 +299,9 @@ init_daemon_domain(httpd_rotatelogs_t, httpd_rotatelogs_exec_t)
 type httpd_squirrelmail_t;
 files_type(httpd_squirrelmail_t)
 
+type squirrelmail_spool_t;
+files_tmp_file(squirrelmail_spool_t)
+
 type httpd_suexec_t;
 type httpd_suexec_exec_t;
 domain_type(httpd_suexec_t)
@@ -309,6 +312,7 @@ type httpd_suexec_tmp_t;
 files_tmp_file(httpd_suexec_tmp_t)
 
 apache_content_template(sys)
+corecmd_shell_entry_type(httpd_sys_script_t)
 typealias httpd_sys_content_t alias ntop_http_content_t;
 
 type httpd_tmp_t;
@@ -344,9 +348,6 @@ files_type(httpd_var_lib_t)
 
 type httpd_var_run_t;
 files_pid_file(httpd_var_run_t)
-
-type squirrelmail_spool_t;
-files_tmp_file(squirrelmail_spool_t)
 
 type httpd_passwd_t;
 type httpd_passwd_exec_t;
@@ -414,10 +415,6 @@ manage_lnk_files_pattern(httpd_t, httpd_squirrelmail_t, httpd_squirrelmail_t)
 
 allow httpd_t httpd_suexec_exec_t:file read_file_perms;
 
-allow httpd_t httpd_sys_content_t:dir list_dir_perms;
-read_files_pattern(httpd_t, httpd_sys_content_t, httpd_sys_content_t)
-read_lnk_files_pattern(httpd_t, httpd_sys_content_t, httpd_sys_content_t)
-
 allow httpd_t httpd_sys_script_t:unix_stream_socket connectto;
 
 manage_dirs_pattern(httpd_t, httpd_tmp_t, httpd_tmp_t)
@@ -454,9 +451,6 @@ domtrans_pattern(httpd_t, httpd_helper_exec_t, httpd_helper_t)
 domtrans_pattern(httpd_t, httpd_passwd_exec_t, httpd_passwd_t)
 domtrans_pattern(httpd_t, httpd_rotatelogs_exec_t, httpd_rotatelogs_t)
 domtrans_pattern(httpd_t, httpd_suexec_exec_t, httpd_suexec_t)
-
-allow httpd_t httpd_script_exec_type:dir search_dir_perms;
-read_files_pattern(httpd_t, httpdcontent, { httpd_htaccess_type httpdcontent })
 
 kernel_read_kernel_sysctls(httpd_t)
 kernel_read_network_state(httpd_t)
@@ -575,15 +569,16 @@ tunable_policy(`httpd_can_network_relay',`
 ')
 
 tunable_policy(`httpd_builtin_scripting',`
-	allow httpd_t httpdcontent:dir search_dir_perms;
+	exec_files_pattern(httpd_t, httpd_script_exec_type, httpd_script_exec_type)
 
 	allow httpd_t httpdcontent:dir list_dir_perms;
-	read_files_pattern(httpd_t, httpdcontent, httpdcontent)
-	read_lnk_files_pattern(httpd_t, httpdcontent, httpdcontent)
+	allow httpd_t httpdcontent:file read_file_perms;
+	allow httpd_t httpdcontent:lnk_file read_lnk_file_perms;
+')
 
-	allow httpd_t httpdcontent:dir list_dir_perms;
-	read_files_pattern(httpd_t, httpdcontent, httpdcontent)
-	read_lnk_files_pattern(httpd_t, httpdcontent, httpdcontent)
+tunable_policy(`httpd_enable_cgi',`
+	allow httpd_t httpd_script_domains:process { signal sigkill sigstop };
+	allow httpd_t httpd_script_exec_type:dir list_dir_perms;
 ')
 
 tunable_policy(`httpd_enable_cgi && httpd_use_gpg',`
@@ -604,14 +599,12 @@ tunable_policy(`httpd_enable_cgi && httpd_use_cifs',`
 
 tunable_policy(`httpd_enable_cgi && httpd_unified && httpd_builtin_scripting',`
 	domtrans_pattern(httpd_t, httpdcontent, httpd_sys_script_t)
-	filetrans_pattern(httpd_t, httpd_sys_content_t, httpd_sys_rw_content_t, { file dir lnk_file })
-	manage_dirs_pattern(httpd_t, httpdcontent, httpd_sys_rw_content_t)
-	manage_files_pattern(httpd_t, httpdcontent, httpd_sys_rw_content_t)
-	manage_lnk_files_pattern(httpd_t, httpdcontent, httpd_sys_rw_content_t)
 
 	manage_dirs_pattern(httpd_t, httpdcontent, httpdcontent)
 	manage_files_pattern(httpd_t, httpdcontent, httpdcontent)
+	manage_fifo_files_pattern(httpd_t, httpdcontent, httpdcontent)
 	manage_lnk_files_pattern(httpd_t, httpdcontent, httpdcontent)
+	manage_sock_files_pattern(httpd_t, httpdcontent, httpdcontent)
 ')
 
 tunable_policy(`httpd_enable_ftp_server',`
@@ -628,6 +621,9 @@ tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs',`
 	fs_list_auto_mountpoints(httpd_t)
 	fs_read_nfs_files(httpd_t)
 	fs_read_nfs_symlinks(httpd_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs && httpd_builtin_scripting',`
 	fs_exec_nfs_files(httpd_t)
 ')
 
@@ -635,6 +631,9 @@ tunable_policy(`httpd_enable_homedirs && use_samba_home_dirs',`
 	fs_list_auto_mountpoints(httpd_t)
 	fs_read_cifs_files(httpd_t)
 	fs_read_cifs_symlinks(httpd_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_samba_home_dirs && httpd_builtin_scripting',`
 	fs_exec_cifs_files(httpd_t)
 ')
 
@@ -649,6 +648,7 @@ tunable_policy(`httpd_can_sendmail',`
 	corenet_sendrecv_pop_client_packets(httpd_t)
 	corenet_tcp_connect_pop_port(httpd_t)
 	corenet_tcp_sendrecv_pop_port(httpd_t)
+
 	mta_send_mail(httpd_t)
 	mta_signal_system_mail(httpd_t)
 ')
@@ -705,15 +705,10 @@ tunable_policy(`httpd_use_cifs',`
 	fs_manage_cifs_dirs(httpd_t)
 	fs_manage_cifs_files(httpd_t)
 	fs_manage_cifs_symlinks(httpd_t)
-	fs_exec_cifs_files(httpd_t)
 ')
 
-tunable_policy(`httpd_use_nfs',`
-	fs_list_auto_mountpoints(httpd_t)
-	fs_manage_nfs_dirs(httpd_t)
-	fs_manage_nfs_files(httpd_t)
-	fs_manage_nfs_symlinks(httpd_t)
-	fs_exec_nfs_files(httpd_t)
+tunable_policy(`httpd_use_cifs && httpd_builtin_scripting',`
+	fs_exec_cifs_files(httpd_t)
 ')
 
 tunable_policy(`httpd_use_fusefs',`
@@ -721,7 +716,21 @@ tunable_policy(`httpd_use_fusefs',`
 	fs_manage_fusefs_dirs(httpd_t)
 	fs_manage_fusefs_files(httpd_t)
 	fs_read_fusefs_symlinks(httpd_t)
+')
+
+tunable_policy(`httpd_use_fusefs && httpd_builtin_scripting',`
 	fs_exec_fusefs_files(httpd_t)
+')
+
+tunable_policy(`httpd_use_nfs',`
+	fs_list_auto_mountpoints(httpd_t)
+	fs_manage_nfs_dirs(httpd_t)
+	fs_manage_nfs_files(httpd_t)
+	fs_manage_nfs_symlinks(httpd_t)
+')
+
+tunable_policy(`httpd_use_nfs && httpd_builtin_scripting',`
+	fs_exec_nfs_files(httpd_t)
 ')
 
 optional_policy(`
@@ -899,8 +908,6 @@ manage_dirs_pattern(httpd_suexec_t, httpd_suexec_tmp_t, httpd_suexec_tmp_t)
 manage_files_pattern(httpd_suexec_t, httpd_suexec_tmp_t, httpd_suexec_tmp_t)
 files_tmp_filetrans(httpd_suexec_t, httpd_suexec_tmp_t, { file dir })
 
-allow httpd_suexec_t httpd_t:fifo_file read_fifo_file_perms;
-
 kernel_read_kernel_sysctls(httpd_suexec_t)
 kernel_list_proc(httpd_suexec_t)
 kernel_read_proc_symlinks(httpd_suexec_t)
@@ -931,7 +938,11 @@ miscfiles_read_localization(httpd_suexec_t)
 miscfiles_read_public_files(httpd_suexec_t)
 
 tunable_policy(`httpd_builtin_scripting',`
-	allow httpd_suexec_t { httpdcontent httpd_script_exec_type }:dir search_dir_perms;
+	exec_files_pattern(httpd_suexec_t, httpd_script_exec_type, httpd_script_exec_type)
+
+	allow httpd_suexec_t httpdcontent:dir list_dir_perms;
+	allow httpd_suexec_t httpdcontent:file read_file_perms;
+	allow httpd_suexec_t httpdcontent:lnk_file read_lnk_file_perms;
 ')
 
 tunable_policy(`httpd_can_network_connect',`
@@ -967,18 +978,24 @@ tunable_policy(`httpd_enable_cgi && httpd_unified',`
 	domtrans_pattern(httpd_suexec_t, httpdcontent, httpd_sys_script_t)
 ')
 
-tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs',`
-	fs_list_auto_mountpoints(httpd_suexec_t)
-	fs_read_nfs_files(httpd_suexec_t)
-	fs_read_nfs_symlinks(httpd_suexec_t)
-	fs_exec_nfs_files(httpd_suexec_t)
-')
-
 tunable_policy(`httpd_enable_homedirs && use_samba_home_dirs',`
 	fs_list_auto_mountpoints(httpd_suexec_t)
 	fs_read_cifs_files(httpd_suexec_t)
 	fs_read_cifs_symlinks(httpd_suexec_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_samba_home_dirs && httpd_builtin_scripting',`
 	fs_exec_cifs_files(httpd_suexec_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs',`
+	fs_list_auto_mountpoints(httpd_suexec_t)
+	fs_read_nfs_files(httpd_suexec_t)
+	fs_read_nfs_symlinks(httpd_suexec_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs && httpd_builtin_scripting',`
+	fs_exec_nfs_files(httpd_suexec_t)
 ')
 
 tunable_policy(`httpd_execmem',`
@@ -1000,15 +1017,10 @@ tunable_policy(`httpd_use_cifs',`
 	fs_manage_cifs_dirs(httpd_suexec_t)
 	fs_manage_cifs_files(httpd_suexec_t)
 	fs_manage_cifs_symlinks(httpd_suexec_t)
-	fs_exec_cifs_files(httpd_suexec_t)
 ')
 
-tunable_policy(`httpd_use_nfs',`
-	fs_list_auto_mountpoints(httpd_suexec_t)
-	fs_manage_nfs_dirs(httpd_suexec_t)
-	fs_manage_nfs_files(httpd_suexec_t)
-	fs_manage_nfs_symlinks(httpd_suexec_t)
-	fs_exec_nfs_files(httpd_suexec_t)
+tunable_policy(`httpd_use_cifs && httpd_builtin_scripting',`
+	fs_exec_cifs_files(httpd_suexec_t)
 ')
 
 tunable_policy(`httpd_use_fusefs',`
@@ -1016,7 +1028,21 @@ tunable_policy(`httpd_use_fusefs',`
 	fs_manage_fusefs_dirs(httpd_suexec_t)
 	fs_manage_fusefs_files(httpd_suexec_t)
 	fs_read_fusefs_symlinks(httpd_suexec_t)
+')
+
+tunable_policy(`httpd_use_fusefs && httpd_builtin_scripting',`
 	fs_exec_fusefs_files(httpd_suexec_t)
+')
+
+tunable_policy(`httpd_use_nfs',`
+	fs_list_auto_mountpoints(httpd_suexec_t)
+	fs_manage_nfs_dirs(httpd_suexec_t)
+	fs_manage_nfs_files(httpd_suexec_t)
+	fs_manage_nfs_symlinks(httpd_suexec_t)
+')
+
+tunable_policy(`httpd_use_nfs && httpd_builtin_scripting',`
+	fs_exec_nfs_files(httpd_suexec_t)
 ')
 
 optional_policy(`
@@ -1057,8 +1083,6 @@ tunable_policy(`httpd_enable_homedirs',`
 allow httpd_script_domains self:fifo_file rw_file_perms;
 allow httpd_script_domains self:unix_stream_socket connectto;
 
-allow httpd_script_domains httpd_t:fifo_file write;
-
 allow httpd_script_domains httpd_sys_content_t:dir search_dir_perms;
 
 append_files_pattern(httpd_script_domains, httpd_log_t, httpd_log_t)
@@ -1097,22 +1121,17 @@ tunable_policy(`httpd_enable_cgi && httpd_unified',`
 	manage_dirs_pattern(httpd_script_domains, httpdcontent, httpdcontent)
 	manage_files_pattern(httpd_script_domains, httpdcontent, httpdcontent)
 	manage_lnk_files_pattern(httpd_script_domains, httpdcontent, httpdcontent)
+
 	can_exec(httpd_script_domains, httpdcontent)
 ')
 
 tunable_policy(`httpd_enable_cgi',`
-	allow httpd_t httpd_script_domains:process { signal sigkill sigstop };
-	allow httpd_t httpd_script_exec_type:dir list_dir_perms;
-
 	allow httpd_script_domains self:process { setsched signal_perms };
 	allow httpd_script_domains self:unix_stream_socket create_stream_socket_perms;
 
-	allow httpd_script_domains httpd_t:fd use;
-	allow httpd_script_domains httpd_t:process sigchld;
-
 	kernel_read_system_state(httpd_script_domains)
 
-	fs_getattr_xattr_fs(httpd_script_domains)
+	fs_getattr_all_fs(httpd_script_domains)
 
 	files_read_etc_runtime_files(httpd_script_domains)
 	files_read_usr_files(httpd_script_domains)
@@ -1175,8 +1194,8 @@ dontaudit httpd_sys_script_t httpd_config_t:dir search;
 allow httpd_sys_script_t httpd_squirrelmail_t:file { append_file_perms read_file_perms };
 
 allow httpd_sys_script_t squirrelmail_spool_t:dir list_dir_perms;
-read_files_pattern(httpd_sys_script_t, squirrelmail_spool_t, squirrelmail_spool_t)
-read_lnk_files_pattern(httpd_sys_script_t, squirrelmail_spool_t, squirrelmail_spool_t)
+allow httpd_sys_script_t squirrelmail_spool_t:file read_file_perms;
+allow httpd_sys_script_t squirrelmail_spool_t:lnk_file read_lnk_file_perms;
 
 kernel_read_kernel_sysctls(httpd_sys_script_t)
 
@@ -1197,6 +1216,7 @@ tunable_policy(`httpd_can_sendmail',`
 	corenet_sendrecv_pop_client_packets(httpd_sys_script_t)
 	corenet_tcp_connect_pop_port(httpd_sys_script_t)
 	corenet_tcp_sendrecv_pop_port(httpd_sys_script_t)
+
 	mta_send_mail(httpd_sys_script_t)
 	mta_signal_system_mail(httpd_sys_script_t)
 ')
@@ -1211,20 +1231,6 @@ tunable_policy(`httpd_enable_cgi && httpd_can_network_connect',`
 	corenet_tcp_sendrecv_all_ports(httpd_sys_script_t)
 ')
 
-tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs',`
-	fs_list_auto_mountpoints(httpd_sys_script_t)
-	fs_read_nfs_files(httpd_sys_script_t)
-	fs_read_nfs_symlinks(httpd_sys_script_t)
-	fs_exec_nfs_files(httpd_sys_script_t)
-')
-
-tunable_policy(`httpd_enable_homedirs && use_samba_home_dirs',`
-	fs_list_auto_mountpoints(httpd_sys_script_t)
-	fs_read_cifs_files(httpd_sys_script_t)
-	fs_read_cifs_symlinks(httpd_sys_script_t)
-	fs_exec_cifs_files(httpd_sys_script_t)
-')
-
 tunable_policy(`httpd_execmem',`
 	allow httpd_sys_script_t self:process { execmem execstack };
 ')
@@ -1233,26 +1239,15 @@ tunable_policy(`httpd_read_user_content',`
 	userdom_read_user_home_content_files(httpd_sys_script_t)
 ')
 
-tunable_policy(`httpd_ssi_exec',`
-	allow httpd_sys_script_t httpd_t:fd use;
-	allow httpd_sys_script_t httpd_t:fifo_file rw_fifo_file_perms;
-	allow httpd_sys_script_t httpd_t:process sigchld;
-')
-
 tunable_policy(`httpd_use_cifs',`
 	fs_list_auto_mountpoints(httpd_sys_script_t)
 	fs_manage_cifs_dirs(httpd_sys_script_t)
 	fs_manage_cifs_files(httpd_sys_script_t)
 	fs_manage_cifs_symlinks(httpd_sys_script_t)
-	fs_exec_cifs_files(httpd_sys_script_t)
 ')
 
-tunable_policy(`httpd_use_nfs',`
-	fs_list_auto_mountpoints(httpd_sys_script_t)
-	fs_manage_nfs_dirs(httpd_sys_script_t)
-	fs_manage_nfs_files(httpd_sys_script_t)
-	fs_manage_nfs_symlinks(httpd_sys_script_t)
-	fs_exec_nfs_files(httpd_sys_script_t)
+tunable_policy(`httpd_use_cifs && httpd_builtin_scripting',`
+	fs_exec_cifs_files(httpd_sys_script_t)
 ')
 
 tunable_policy(`httpd_use_fusefs',`
@@ -1260,7 +1255,21 @@ tunable_policy(`httpd_use_fusefs',`
 	fs_manage_fusefs_dirs(httpd_sys_script_t)
 	fs_manage_fusefs_files(httpd_sys_script_t)
 	fs_read_fusefs_symlinks(httpd_sys_script_t)
+')
+
+tunable_policy(`httpd_use_fusefs && httpd_builtin_scripting',`
 	fs_exec_fusefs_files(httpd_sys_script_t)
+')
+
+tunable_policy(`httpd_use_nfs',`
+	fs_list_auto_mountpoints(httpd_sys_script_t)
+	fs_manage_nfs_dirs(httpd_sys_script_t)
+	fs_manage_nfs_files(httpd_sys_script_t)
+	fs_manage_nfs_symlinks(httpd_sys_script_t)
+')
+
+tunable_policy(`httpd_use_nfs && httpd_builtin_scripting',`
+	fs_exec_nfs_files(httpd_sys_script_t)
 ')
 
 optional_policy(`
@@ -1305,16 +1314,28 @@ optional_policy(`
 # User content local policy
 #
 
-tunable_policy(`httpd_enable_cgi && httpd_unified',`
-	allow httpd_user_script_t httpdcontent:file entrypoint;
-	manage_dirs_pattern(httpd_user_script_t, httpd_user_content_t, httpd_user_content_t)
-	manage_files_pattern(httpd_user_script_t, httpd_user_content_t, httpd_user_content_t)
-	manage_dirs_pattern(httpd_user_script_t, httpd_user_ra_content_t, httpd_user_ra_content_t)
-	manage_files_pattern(httpd_user_script_t, httpd_user_ra_content_t, httpd_user_ra_content_t)
-')
-
 tunable_policy(`httpd_enable_homedirs',`
 	userdom_search_user_home_dirs(httpd_user_script_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_samba_home_dirs',`
+	fs_list_auto_mountpoints(httpd_user_script_t)
+	fs_read_cifs_files(httpd_user_script_t)
+	fs_read_cifs_symlinks(httpd_user_script_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_samba_home_dirs && httpd_builtin_scripting',`
+	fs_exec_cifs_files(httpd_user_script_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs',`
+	fs_list_auto_mountpoints(httpd_user_script_t)
+	fs_read_nfs_files(httpd_user_script_t)
+	fs_read_nfs_symlinks(httpd_user_script_t)
+')
+
+tunable_policy(`httpd_enable_homedirs && use_nfs_home_dirs && httpd_builtin_scripting',`
+	fs_exec_nfs_files(httpd_user_script_t)
 ')
 
 tunable_policy(`httpd_read_user_content',`

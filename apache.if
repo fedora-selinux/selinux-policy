@@ -61,21 +61,15 @@ template(`apache_content_template',`
 	# Policy
 	#
 
-	domtrans_pattern(httpd_suexec_t, httpd_$1_script_exec_t, httpd_$1_script_t)
-
-	allow httpd_$1_script_t httpd_$1_content_t:dir search_dir_perms;
-
 	can_exec(httpd_$1_script_t, httpd_$1_script_exec_t)
-	allow httpd_$1_script_t httpd_$1_script_exec_t:dir list_dir_perms;
 
-	allow httpd_$1_script_t httpd_$1_ra_content_t:dir { list_dir_perms add_entry_dir_perms };
-	read_files_pattern(httpd_$1_script_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
-	append_files_pattern(httpd_$1_script_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
-	read_lnk_files_pattern(httpd_$1_script_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
+	allow httpd_$1_script_t httpd_$1_ra_content_t:dir { list_dir_perms add_entry_dir_perms setattr_dir_perms };
+	allow httpd_$1_script_t httpd_$1_ra_content_t:file { append_file_perms read_file_perms create_file_perms setattr_file_perms };
+	allow httpd_$1_script_t httpd_$1_ra_content_t:lnk_file read_lnk_file_perms;
 
-	allow httpd_$1_script_t httpd_$1_content_t:dir list_dir_perms;
-	read_files_pattern(httpd_$1_script_t, httpd_$1_content_t, httpd_$1_content_t)
-	read_lnk_files_pattern(httpd_$1_script_t, httpd_$1_content_t, httpd_$1_content_t)
+	allow httpd_$1_script_t { httpd_$1_content_t httpd_$1_script_exec_t }:dir list_dir_perms;
+	allow httpd_$1_script_t httpd_$1_content_t:file read_file_perms;
+	allow httpd_$1_script_t { httpd_$1_content_t httpd_$1_script_exec_t }:lnk_file read_lnk_file_perms;
 
 	manage_dirs_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 	manage_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
@@ -84,6 +78,10 @@ template(`apache_content_template',`
 	manage_sock_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 	files_tmp_filetrans(httpd_$1_script_t, httpd_$1_rw_content_t, { dir file lnk_file sock_file fifo_file })
 
+	allow { httpd_t httpd_suexec_t } httpd_$1_content_t:dir list_dir_perms;
+	allow { httpd_t httpd_suexec_t } { httpd_$1_content_t httpd_$1_htaccess_t }:file read_file_perms;
+	allow { httpd_t httpd_suexec_t } httpd_$1_content_t:lnk_file read_lnk_file_perms;
+
 	tunable_policy(`allow_httpd_$1_script_anon_write',`
 		miscfiles_manage_public_files(httpd_$1_script_t)
 	')
@@ -91,29 +89,36 @@ template(`apache_content_template',`
 	tunable_policy(`httpd_builtin_scripting',`
 		manage_dirs_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 		manage_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+		manage_fifo_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 		manage_lnk_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
-		rw_sock_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+		manage_sock_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
 
-		allow httpd_t httpd_$1_ra_content_t:dir { list_dir_perms add_entry_dir_perms };
-		read_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
-		append_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
-		read_lnk_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
+		allow httpd_t httpd_$1_ra_content_t:dir { list_dir_perms add_entry_dir_perms setattr_dir_perms };
+		allow httpd_t httpd_$1_ra_content_t:file { append_file_perms read_file_perms create_file_perms setattr_file_perms };
+		allow httpd_t httpd_$1_ra_content_t:lnk_file read_lnk_file_perms;
+	')
 
-		allow httpd_t httpd_$1_content_t:dir list_dir_perms;
-		read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
-		read_lnk_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
-
-		allow httpd_t httpd_$1_content_t:dir list_dir_perms;
-		read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
-		read_lnk_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
+	tunable_policy(`httpd_builtin_scripting && httpd_tmp_exec',`
+		can_exec(httpd_t, httpd_$1_rw_content_t)
 	')
 
 	tunable_policy(`httpd_enable_cgi',`
 		allow httpd_$1_script_t httpd_$1_script_exec_t:file entrypoint;
+		domtrans_pattern({ httpd_t httpd_suexec_t httpd_exec_scripts }, httpd_$1_script_exec_t, httpd_$1_script_t)
+	')
 
-		domtrans_pattern(httpd_exec_scripts, httpd_$1_script_exec_t, httpd_$1_script_t)
+	tunable_policy(`httpd_enable_cgi && httpd_tmp_exec',`
+		can_exec(httpd_$1_script_t, httpd_$1_rw_content_t)
+	')
 
-		domtrans_pattern(httpd_t, httpd_$1_script_exec_t, httpd_$1_script_t)
+	tunable_policy(`httpd_enable_cgi && httpd_unified',`
+		allow httpd_$1_script_t { httpd_$1_content_t httpd_$1_ra_content_t }:file entrypoint;
+		allow httpd_$1_script_t { httpd_$1_content_t httpd_$1_ra_content_t }:dir manage_dir_perms;
+		allow httpd_$1_script_t { httpd_$1_content_t httpd_$1_ra_content_t }:file manage_file_perms;
+	')
+
+	tunable_policy(`httpd_enable_cgi && httpd_unified && httpd_builtin_scripting',`
+		filetrans_pattern(httpd_t, httpd_$1_content_t, httpd_$1_rw_content_t, { file dir fifo_file lnk_file sock_file })
 	')
 ')
 
