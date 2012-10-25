@@ -1,16 +1,16 @@
-## <summary>Fast incremental file transfer for synchronization</summary>
+## <summary>Fast incremental file transfer for synchronization.</summary>
 
 ########################################
 ## <summary>
-##	Make rsync an entry point for
-##	the specified domain.
+##	Make rsync executable file an
+##	entry point for the specified domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	The domain for which init scripts are an entrypoint.
+##	The domain for which rsync_exec_t is an entrypoint.
 ##	</summary>
 ## </param>
-# cjp: added for portage
+#
 interface(`rsync_entry_type',`
 	gen_require(`
 		type rsync_exec_t;
@@ -43,13 +43,14 @@ interface(`rsync_entry_type',`
 ##	Domain to transition to.
 ##	</summary>
 ## </param>
-# cjp: added for portage
+#
 interface(`rsync_entry_spec_domtrans',`
 	gen_require(`
 		type rsync_exec_t;
 	')
 
-	domain_trans($1, rsync_exec_t, $2)
+	corecmd_search_bin($1)
+	auto_trans($1, rsync_exec_t, $2)
 ')
 
 ########################################
@@ -76,31 +77,76 @@ interface(`rsync_entry_spec_domtrans',`
 ##	Domain to transition to.
 ##	</summary>
 ## </param>
-# cjp: added for portage
+#
 interface(`rsync_entry_domtrans',`
 	gen_require(`
 		type rsync_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domain_auto_trans($1, rsync_exec_t, $2)
 ')
 
 ########################################
 ## <summary>
-##	Execute rsync in the caller domain domain.
+##	Execute the rsync program in the rsync domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`rsync_domtrans',`
+	gen_require(`
+		type rsync_t, rsync_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rsync_exec_t, rsync_t)
+')
+
+########################################
+## <summary>
+##	Execute rsync in the rsync domain, and
+##	allow the specified role the rsync domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`rsync_run',`
+	gen_require(`
+		attribute_role rsync_roles;
+	')
+
+	rsync_domtrans($1)
+	roleattribute $2 rsync_roles;
+')
+
+########################################
+## <summary>
+##	Execute rsync in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-## <rolecap/>
 #
 interface(`rsync_exec',`
 	gen_require(`
 		type rsync_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	can_exec($1, rsync_exec_t)
 ')
 
@@ -119,13 +165,13 @@ interface(`rsync_read_config',`
 		type rsync_etc_t;
 	')
 
-	allow $1 rsync_etc_t:file read_file_perms;
 	files_search_etc($1)
+	allow $1 rsync_etc_t:file read_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Write to rsync config files.
+##	Write rsync config files.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -138,8 +184,8 @@ interface(`rsync_write_config',`
 		type rsync_etc_t;
 	')
 
-	allow $1 rsync_etc_t:file read_file_perms;
 	files_search_etc($1)
+	allow $1 rsync_etc_t:file write_file_perms;
 ')
 
 ########################################
@@ -158,13 +204,13 @@ interface(`rsync_manage_config_files',`
 		type rsync_etc_t;
 	')
 
-	manage_files_pattern($1, rsync_etc_t, rsync_etc_t)
 	files_search_etc($1)
+	manage_files_pattern($1, rsync_etc_t, rsync_etc_t)
 ')
 
 ########################################
 ## <summary>
-##	Create objects in etc directories
+##	Create specified objects in etc directories
 ##	with rsync etc type.
 ## </summary>
 ## <param name="domain">
@@ -189,4 +235,47 @@ interface(`rsync_etc_filetrans_config',`
 	')
 
 	files_etc_filetrans($1, rsync_etc_t, $2, $3)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an rsync environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rsync_admin',`
+	gen_require(`
+		type rsync_t, rsync_etc_t, rsync_data_t;
+		type rsync_log_t, rsync_tmp_t. rsync_var_run_t;
+	')
+
+	allow $1 rsync_t:process { ptrace signal_perms };
+	ps_process_pattern($1, rsync_t)
+
+	files_search_etc($1)
+	admin_pattern($1, rsync_etc_t)
+
+	admin_pattern($1, rsync_data_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, rsync_log_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, rsync_tmp_t)
+
+	files_search_pids($1)
+	admin_pattern($1, rsync_var_run_t)
+
+	rsync_run($1, $2)
 ')
