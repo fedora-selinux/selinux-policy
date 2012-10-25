@@ -1,4 +1,4 @@
-## <summary>Universal Addresses to RPC Program Number Mapper</summary>
+## <summary>Universal Addresses to RPC Program Number Mapper.</summary>
 
 ########################################
 ## <summary>
@@ -15,12 +15,14 @@ interface(`rpcbind_domtrans',`
 		type rpcbind_t, rpcbind_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, rpcbind_exec_t, rpcbind_t)
 ')
 
 ########################################
 ## <summary>
-##	Connect to rpcbindd over an unix stream socket.
+##	Connect to rpcbindd with a
+##	unix domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -34,13 +36,12 @@ interface(`rpcbind_stream_connect',`
 	')
 
 	files_search_pids($1)
-	allow $1 rpcbind_var_run_t:sock_file write;
-	allow $1 rpcbind_t:unix_stream_socket connectto;
+	stream_connect_pattern($1, rpcbind_var_run_t, rpcbind_var_run_t, rpcbind_t)
 ')
 
 ########################################
 ## <summary>
-##	Read rpcbind PID files.
+##	Read rpcbind pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -72,8 +73,8 @@ interface(`rpcbind_search_lib',`
 		type rpcbind_var_lib_t;
 	')
 
-	allow $1 rpcbind_var_lib_t:dir search_dir_perms;
 	files_search_var_lib($1)
+	allow $1 rpcbind_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
@@ -91,8 +92,8 @@ interface(`rpcbind_read_lib_files',`
 		type rpcbind_var_lib_t;
 	')
 
-	read_files_pattern($1, rpcbind_var_lib_t, rpcbind_var_lib_t)
 	files_search_var_lib($1)
+	read_files_pattern($1, rpcbind_var_lib_t, rpcbind_var_lib_t)
 ')
 
 ########################################
@@ -111,8 +112,8 @@ interface(`rpcbind_manage_lib_files',`
 		type rpcbind_var_lib_t;
 	')
 
-	manage_files_pattern($1, rpcbind_var_lib_t, rpcbind_var_lib_t)
 	files_search_var_lib($1)
+	manage_files_pattern($1, rpcbind_var_lib_t, rpcbind_var_lib_t)
 ')
 
 ########################################
@@ -135,8 +136,8 @@ interface(`rpcbind_signull',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an rpcbind environment
+##	All of the rules required to
+##	administrate an rpcbind environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -145,7 +146,7 @@ interface(`rpcbind_signull',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the rpcbind domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -163,4 +164,10 @@ interface(`rpcbind_admin',`
 	domain_system_change_exemption($1)
 	role_transition $2 rpcbind_initrc_exec_t system_r;
 	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, rpcbind_var_run_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, rpcbind_var_lib_t)
 ')
