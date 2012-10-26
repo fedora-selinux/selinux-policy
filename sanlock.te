@@ -6,16 +6,18 @@ policy_module(sanlock, 1.0.1)
 #
 
 ## <desc>
-## <p>
-## Allow confined virtual guests to manage nfs files
-## </p>
+##	<p>
+##	Determine whether sanlock can use
+##	nfs file systems.
+##	</p>
 ## </desc>
 gen_tunable(sanlock_use_nfs, false)
 
 ## <desc>
-## <p>
-## Allow confined virtual guests to manage cifs files
-## </p>
+##	<p>
+##	Determine whether sanlock can use
+##	cifs file systems.
+##	</p>
 ## </desc>
 gen_tunable(sanlock_use_samba, false)
 
@@ -42,14 +44,17 @@ ifdef(`enable_mls',`
 
 ########################################
 #
-# sanlock local policy
+# Local policy
 #
-allow sanlock_t self:capability { chown dac_override ipc_lock kill setgid setuid sys_nice sys_resource };
-allow sanlock_t self:process { setsched signull };
-allow sanlock_t self:fifo_file rw_fifo_file_perms;
-allow sanlock_t self:unix_stream_socket create_stream_socket_perms;
 
-manage_files_pattern(sanlock_t, sanlock_log_t, sanlock_log_t)
+allow sanlock_t self:capability { chown dac_override ipc_lock kill setgid setuid sys_nice sys_resource };
+allow sanlock_t self:process { setrlimit setsched signull signal sigkill };
+allow sanlock_t self:fifo_file rw_fifo_file_perms;
+allow sanlock_t self:unix_stream_socket { accept listen };
+
+append_files_pattern(sanlock_t, sanlock_log_t, sanlock_log_t)
+create_files_pattern(sanlock_t, sanlock_log_t, sanlock_log_t)
+setattr_files_pattern(sanlock_t, sanlock_log_t, sanlock_log_t)
 logging_log_filetrans(sanlock_t, sanlock_log_t, file)
 
 manage_dirs_pattern(sanlock_t, sanlock_var_run_t, sanlock_var_run_t)
@@ -58,14 +63,15 @@ manage_sock_files_pattern(sanlock_t, sanlock_var_run_t, sanlock_var_run_t)
 files_pid_filetrans(sanlock_t, sanlock_var_run_t, { file dir sock_file })
 
 kernel_read_system_state(sanlock_t)
+kernel_read_kernel_sysctls(sanlock_t)
+
+dev_read_urand(sanlock_t)
 
 domain_use_interactive_fds(sanlock_t)
 
-files_read_etc_files(sanlock_t)
-
 storage_raw_rw_fixed_disk(sanlock_t)
 
-dev_read_urand(sanlock_t)
+auth_use_nsswitch(sanlock_t)
 
 init_read_utmp(sanlock_t)
 init_dontaudit_write_utmp(sanlock_t)
@@ -89,5 +95,11 @@ tunable_policy(`sanlock_use_samba',`
 ')
 
 optional_policy(`
+	wdmd_stream_connect(sanlock_t)
+')
+
+optional_policy(`
+	virt_kill_all_virt_domains(sanlock_t)
 	virt_manage_lib_files(sanlock_t)
+	virt_signal_all_virt_domains(sanlock_t)
 ')

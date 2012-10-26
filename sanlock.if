@@ -1,4 +1,4 @@
-## <summary>policy for sanlock</summary>
+## <summary>shared storage lock manager.</summary>
 
 ########################################
 ## <summary>
@@ -15,16 +15,18 @@ interface(`sanlock_domtrans',`
 		type sanlock_t, sanlock_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, sanlock_exec_t, sanlock_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute sanlock server in the sanlock domain.
+##	Execute sanlock init scripts in
+##	the initrc domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	The type of the process performing this action.
+##	Domain allowed to transition.
 ##	</summary>
 ## </param>
 #
@@ -38,7 +40,8 @@ interface(`sanlock_initrc_domtrans',`
 
 ######################################
 ## <summary>
-##	Create, read, write, and delete sanlock PID files.
+##	Create, read, write, and delete
+##	sanlock pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -57,7 +60,8 @@ interface(`sanlock_manage_pid_files',`
 
 ########################################
 ## <summary>
-##	Connect to sanlock over an unix stream socket.
+##	Connect to sanlock with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -76,8 +80,8 @@ interface(`sanlock_stream_connect',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an sanlock environment
+##	All of the rules required to
+##	administrate an sanlock environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -93,15 +97,21 @@ interface(`sanlock_stream_connect',`
 #
 interface(`sanlock_admin',`
 	gen_require(`
-		type sanlock_t;
-		type sanlock_initrc_exec_t;
+		type sanlock_t, sanlock_initrc_exec_t, sanlock_var_run_t;
+		type sanlock_log_t;
 	')
 
-	allow $1 sanlock_t:process signal_perms;
+	allow $1 sanlock_t:process { ptrace signal_perms };
 	ps_process_pattern($1, sanlock_t)
 
 	sanlock_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 sanlock_initrc_exec_t system_r;
 	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, sanlock_var_run_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, sanlock_log_t)
 ')
