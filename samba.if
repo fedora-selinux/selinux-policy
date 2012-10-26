@@ -1,12 +1,8 @@
-## <summary>
-##	SMB and CIFS client/server programs for UNIX and
-##	name  Service  Switch  daemon for resolving names
-##	from Windows NT servers.
-## </summary>
+## <summary>SMB and CIFS client/server programs.</summary>
 
 ########################################
 ## <summary>
-##	Execute nmbd net in the nmbd_t domain.
+##	Execute nmbd in the nmbd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -25,7 +21,7 @@ interface(`samba_domtrans_nmbd',`
 
 #######################################
 ## <summary>
-##	Allow domain to signal samba
+##	Send generic signals to nmbd.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -53,17 +49,17 @@ interface(`samba_signal_nmbd',`
 #
 interface(`samba_stream_connect_nmbd',`
 	gen_require(`
-		type samba_var_t, nmbd_t, nmbd_var_run_t;
+		type samba_var_t, nmbd_t, nmbd_var_run_t, smbd_var_run_t;
 	')
 
 	files_search_pids($1)
-	allow $1 samba_var_t:dir search_dir_perms;
-	stream_connect_pattern($1, nmbd_var_run_t, nmbd_var_run_t, nmbd_t)
+	stream_connect_pattern($1, { smbd_var_run_t samba_var_t nmbd_var_run_t }, nmbd_var_run_t, nmbd_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute samba server in the samba domain.
+##	Execute samba init scripts in
+##	the init script domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -81,7 +77,7 @@ interface(`samba_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	Execute samba net in the samba_net domain.
+##	Execute samba net in the samba net domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -100,8 +96,9 @@ interface(`samba_domtrans_net',`
 
 ########################################
 ## <summary>
-##	Execute samba net in the samba_net domain, and
-##	allow the specified role the samba_net domain.
+##	Execute samba net in the samba net
+##	domain, and allow the specified
+##	role the samba net domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -117,11 +114,11 @@ interface(`samba_domtrans_net',`
 #
 interface(`samba_run_net',`
 	gen_require(`
-		type samba_net_t;
+		attribute_role samba_net_roles;
 	')
 
 	samba_domtrans_net($1)
-	role $2 types samba_net_t;
+	roleattribute $2 samba_net_roles;
 ')
 
 ########################################
@@ -145,8 +142,9 @@ interface(`samba_domtrans_smbmount',`
 
 ########################################
 ## <summary>
-##	Execute smbmount interactively and do
-##	a domain transition to the smbmount domain.
+##	Execute smbmount in the smbmount
+##	domain, and allow the specified
+##	role the smbmount domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -162,17 +160,16 @@ interface(`samba_domtrans_smbmount',`
 #
 interface(`samba_run_smbmount',`
 	gen_require(`
-		type smbmount_t;
+		attribute_role smbmount_roles;
 	')
 
 	samba_domtrans_smbmount($1)
-	role $2 types smbmount_t;
+	roleattribute $2 smbmount_roles;
 ')
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read
-##	samba configuration files.
+##	Read samba configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -192,8 +189,7 @@ interface(`samba_read_config',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read
-##	and write samba configuration files.
+##	Read and write samba configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -213,8 +209,8 @@ interface(`samba_rw_config',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read
-##	and write samba configuration files.
+##	Create, read, write, and delete
+##	samba configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -235,7 +231,7 @@ interface(`samba_manage_config',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read samba's log files.
+##	Read samba log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -256,7 +252,7 @@ interface(`samba_read_log',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to append to samba's log files.
+##	Append to samba log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -277,7 +273,7 @@ interface(`samba_append_log',`
 
 ########################################
 ## <summary>
-##	Execute samba log in the caller domain.
+##	Execute samba log files in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -296,7 +292,7 @@ interface(`samba_exec_log',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read samba's secrets.
+##	Read samba secret files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -315,7 +311,7 @@ interface(`samba_read_secrets',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read samba's shares
+##	Read samba share files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -334,8 +330,7 @@ interface(`samba_read_share_files',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to search
-##	samba /var directories.
+##	Search samba var directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -348,15 +343,13 @@ interface(`samba_search_var',`
 		type samba_var_t;
 	')
 
-	files_search_var($1)
 	files_search_var_lib($1)
 	allow $1 samba_var_t:dir search_dir_perms;
 ')
 
 ########################################
 ## <summary>
-##	Allow the specified domain to
-##	read samba /var files.
+##	Read samba var files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -369,15 +362,14 @@ interface(`samba_read_var_files',`
 		type samba_var_t;
 	')
 
-	files_search_var($1)
 	files_search_var_lib($1)
 	read_files_pattern($1, samba_var_t, samba_var_t)
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to write samba
-##	/var files.
+##	Do not audit attempts to write
+##	samba var files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -395,8 +387,7 @@ interface(`samba_dontaudit_write_var_files',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to
-##	read and write samba /var files.
+##	Read and write samba var files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -409,15 +400,14 @@ interface(`samba_rw_var_files',`
 		type samba_var_t;
 	')
 
-	files_search_var($1)
 	files_search_var_lib($1)
 	rw_files_pattern($1, samba_var_t, samba_var_t)
 ')
 
 ########################################
 ## <summary>
-##	Allow the specified domain to
-##	read and write samba /var files.
+##	Create, read, write, and delete
+##	samba var files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -430,34 +420,34 @@ interface(`samba_manage_var_files',`
 		type samba_var_t;
 	')
 
-	files_search_var($1)
 	files_search_var_lib($1)
 	manage_files_pattern($1, samba_var_t, samba_var_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute a domain transition to run smbcontrol.
+##	Execute smbcontrol in the smbcontrol domain.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`samba_domtrans_smbcontrol',`
 	gen_require(`
-		type smbcontrol_t;
-		type smbcontrol_exec_t;
+		type smbcontrol_t, smbcontrol_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, smbcontrol_exec_t, smbcontrol_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute smbcontrol in the smbcontrol domain, and
-##	allow the specified role the smbcontrol domain.
+##	Execute smbcontrol in the smbcontrol
+##	domain, and allow the specified
+##	role the smbcontrol domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -472,16 +462,16 @@ interface(`samba_domtrans_smbcontrol',`
 #
 interface(`samba_run_smbcontrol',`
 	gen_require(`
-		type smbcontrol_t;
+		attribute_role smbcontrol_roles;
 	')
 
 	samba_domtrans_smbcontrol($1)
-	role $2 types smbcontrol_t;
+	roleattribute $2 smbcontrol_roles;
 ')
 
 ########################################
 ## <summary>
-##	Execute smbd in the smbd_t domain.
+##	Execute smbd in the smbd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -500,7 +490,7 @@ interface(`samba_domtrans_smbd',`
 
 ######################################
 ## <summary>
-##	Allow domain to signal samba
+##	Send generic signals to smbd.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -517,7 +507,8 @@ interface(`samba_signal_smbd',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to use file descriptors from samba.
+##	Do not audit attempts to inherit
+##	and use smbd file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -535,7 +526,7 @@ interface(`samba_dontaudit_use_fds',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to write to smbmount tcp sockets.
+##	Write smbmount tcp sockets.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -553,7 +544,7 @@ interface(`samba_write_smbmount_tcp_sockets',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read and write to smbmount tcp sockets.
+##	Read and write smbmount tcp sockets.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -571,7 +562,8 @@ interface(`samba_rw_smbmount_tcp_sockets',`
 
 ########################################
 ## <summary>
-##	Execute winbind_helper in the winbind_helper domain.
+##	Execute winbind helper in the
+##	winbind helper domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -584,6 +576,7 @@ interface(`samba_domtrans_winbind_helper',`
 		type winbind_helper_t, winbind_helper_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, winbind_helper_exec_t, winbind_helper_t)
 ')
 
@@ -607,8 +600,9 @@ interface(`samba_getattr_winbind_exec',`
 
 ########################################
 ## <summary>
-##	Execute winbind_helper in the winbind_helper domain, and
-##	allow the specified role the winbind_helper domain.
+##	Execute winbind helper in the winbind
+##	helper domain, and allow the specified
+##	role the winbind helper domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -624,16 +618,16 @@ interface(`samba_getattr_winbind_exec',`
 #
 interface(`samba_run_winbind_helper',`
 	gen_require(`
-		type winbind_helper_t;
+		attribute_role winbind_helper_roles;
 	')
 
 	samba_domtrans_winbind_helper($1)
-	role $2 types winbind_helper_t;
+	roleattribute $2 winbind_helper_roles;
 ')
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read the winbind pid files.
+##	Read winbind pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -643,16 +637,17 @@ interface(`samba_run_winbind_helper',`
 #
 interface(`samba_read_winbind_pid',`
 	gen_require(`
-		type winbind_var_run_t;
+		type winbind_var_run_t, smbd_var_run_t;
 	')
 
 	files_search_pids($1)
-	allow $1 winbind_var_run_t:file read_file_perms;
+	read_files_pattern($1, { smbd_var_run_t winbind_var_run_t }, winbind_var_run_t)
 ')
 
 ########################################
 ## <summary>
-##	Connect to winbind.
+##	Connect to winbind with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -662,29 +657,17 @@ interface(`samba_read_winbind_pid',`
 #
 interface(`samba_stream_connect_winbind',`
 	gen_require(`
-		type samba_var_t, winbind_t, winbind_var_run_t;
+		type samba_var_t, winbind_t, winbind_var_run_t, smbd_var_run_t;
 	')
 
 	files_search_pids($1)
-	allow $1 samba_var_t:dir search_dir_perms;
-	stream_connect_pattern($1, winbind_var_run_t, winbind_var_run_t, winbind_t)
-
-	ifndef(`distro_redhat',`
-		gen_require(`
-			type winbind_tmp_t;
-		')
-
-		# the default for the socket is (poorly named):
-		# /tmp/.winbindd/pipe
-		files_search_tmp($1)
-		stream_connect_pattern($1, winbind_tmp_t, winbind_tmp_t, winbind_t)
-	')
+	stream_connect_pattern($1, { smbd_var_run_t samba_var_t winbind_var_run_t }, winbind_var_run_t, winbind_t)
 ')
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an samba environment
+##	All of the rules required to
+##	administrate an samba environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -693,77 +676,49 @@ interface(`samba_stream_connect_winbind',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the samba domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`samba_admin',`
 	gen_require(`
-		type nmbd_t, nmbd_var_run_t;
-		type smbd_t, smbd_tmp_t;
-		type smbd_var_run_t;
-		type smbd_spool_t;
-
-		type samba_log_t, samba_var_t;
-		type samba_etc_t, samba_share_t;
-		type samba_secrets_t;
-
-		type swat_var_run_t, swat_tmp_t;
-
+		type nmbd_t, nmbd_var_run_t, smbd_var_run_t;
+		type smbd_t, smbd_tmp_t, smbd_spool_t;
+		type samba_log_t, samba_var_t, samba_secrets_t;
+		type samba_etc_t, samba_share_t, samba_initrc_exec_t;
+		type swat_var_run_t, swat_tmp_t, winbind_log_t;
 		type winbind_var_run_t, winbind_tmp_t;
-		type winbind_log_t;
-
-		type samba_initrc_exec_t;
 	')
 
-	allow $1 smbd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, smbd_t)
-
-	allow $1 nmbd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, nmbd_t)
-
-	samba_run_smbcontrol($1, $2, $3)
-	samba_run_winbind_helper($1, $2, $3)
-	samba_run_smbmount($1, $2, $3)
-	samba_run_net($1, $2, $3)
+	allow $1 { nmbd_t smbd_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { nmbd_t smbd_t })
 
 	init_labeled_script_domtrans($1, samba_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 samba_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	admin_pattern($1, nmbd_var_run_t)
-
-	admin_pattern($1, samba_etc_t)
 	files_list_etc($1)
+	admin_pattern($1, samba_etc_t)
 
-	admin_pattern($1, samba_log_t)
 	logging_list_logs($1)
+	admin_pattern($1, { samba_log_t winbind_log_t })
 
-	admin_pattern($1, samba_secrets_t)
-
-	admin_pattern($1, samba_share_t)
-
-	admin_pattern($1, samba_var_t)
 	files_list_var($1)
+	admin_pattern($1, { samba_share_t samba_var_t samba_secrets_t })
 
-	admin_pattern($1, smbd_spool_t)
 	files_list_spool($1)
+	admin_pattern($1, smbd_spool_t)
 
-	admin_pattern($1, smbd_var_run_t)
 	files_list_pids($1)
+	admin_pattern($1, { winbind_var_run_t smbd_var_run_t swat_var_run_t nmbd_var_run_t })
 
-	admin_pattern($1, smbd_tmp_t)
 	files_list_tmp($1)
+	admin_pattern($1, { swat_tmp_t smbd_tmp_t winbind_tmp_t })
 
-	admin_pattern($1, swat_var_run_t)
-
-	admin_pattern($1, swat_tmp_t)
-
-	admin_pattern($1, winbind_log_t)
-
-	admin_pattern($1, winbind_tmp_t)
-
-	admin_pattern($1, winbind_var_run_t)
+	samba_run_smbcontrol($1, $2)
+	samba_run_winbind_helper($1, $2)
+	samba_run_smbmount($1, $2)
+	samba_run_net($1, $2)
 ')
