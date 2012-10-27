@@ -1,4 +1,30 @@
-## <summary>System shutdown command</summary>
+## <summary>System shutdown command.</summary>
+
+########################################
+## <summary>
+##	Role access for shutdown
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`shutdown_role',`
+	gen_require(`
+		type shutdown_t;
+	')
+
+	shutdown_run($2, $1)
+
+	allow $2 shutdown_t:process { ptrace signal_perms };
+	ps_process_pattern($2, shutdown_t)
+')
 
 ########################################
 ## <summary>
@@ -17,17 +43,13 @@ interface(`shutdown_domtrans',`
 
 	corecmd_search_bin($1)
 	domtrans_pattern($1, shutdown_exec_t, shutdown_t)
-
-	ifdef(`hide_broken_symptoms', `
-		dontaudit shutdown_t $1:socket_class_set { read write };
-		dontaudit shutdown_t $1:fifo_file { read write };
-	')
 ')
 
 ########################################
 ## <summary>
-##	Execute shutdown in the shutdown domain, and
-##	allow the specified role the shutdown domain.
+##	Execute shutdown in the shutdown
+##	domain, and allow the specified role
+##	the shutdown domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -42,16 +64,16 @@ interface(`shutdown_domtrans',`
 #
 interface(`shutdown_run',`
 	gen_require(`
-		type shutdown_t;
+		attribute_role shutdown_roles;
 	')
 
 	shutdown_domtrans($1)
-	role $2 types shutdown_t;
+	roleattribute $2 shutdown_roles;
 ')
 
 ########################################
 ## <summary>
-##	Get attributes of shutdown executable.
+##	Get attributes of shutdown executable files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
