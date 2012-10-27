@@ -1,8 +1,9 @@
-## <summary>SELinux troubleshooting service</summary>
+## <summary>SELinux troubleshooting service.</summary>
 
 ########################################
 ## <summary>
-##	Connect to setroubleshootd over an unix stream socket.
+##	Connect to setroubleshootd with a
+##	unix domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -22,8 +23,9 @@ interface(`setroubleshoot_stream_connect',`
 
 ########################################
 ## <summary>
-##	Dontaudit attempts to connect to setroubleshootd
-##	over an unix stream socket.
+##	Do not audit attempts to connect to
+##	setroubleshootd with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -105,8 +107,8 @@ interface(`setroubleshoot_dbus_chat_fixit',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an setroubleshoot environment
+##	All of the rules required to
+##	administrate an setroubleshoot environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -117,15 +119,15 @@ interface(`setroubleshoot_dbus_chat_fixit',`
 #
 interface(`setroubleshoot_admin',`
 	gen_require(`
-		type setroubleshootd_t, setroubleshoot_log_t;
+		type setroubleshootd_t, setroubleshoot_var_log_t, setroubleshoot_fixit_t;
 		type setroubleshoot_var_lib_t, setroubleshoot_var_run_t;
 	')
 
-	allow $1 setroubleshootd_t:process { ptrace signal_perms };
-	ps_process_pattern($1, setroubleshootd_t)
+	allow $1 { setroubleshoot_fixit_t setroubleshootd_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { setroubleshootd_t setroubleshoot_fixit_t })
 
 	logging_list_logs($1)
-	admin_pattern($1, setroubleshoot_log_t)
+	admin_pattern($1, setroubleshoot_var_log_t)
 
 	files_list_var_lib($1)
 	admin_pattern($1, setroubleshoot_var_lib_t)
