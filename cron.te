@@ -1,4 +1,4 @@
-policy_module(cron, 2.5.4)
+policy_module(cron, 2.5.5)
 
 gen_require(`
 	class passwd rootok;
@@ -100,6 +100,7 @@ mta_system_content(system_cron_spool_t)
 type system_cronjob_t alias system_crond_t;
 init_daemon_domain(system_cronjob_t, anacron_exec_t)
 corecmd_shell_entry_type(system_cronjob_t)
+domain_entry_file(system_cronjob_t, system_cron_spool_t)
 
 type system_cronjob_lock_t alias system_crond_lock_t;
 files_lock_file(system_cronjob_lock_t)
@@ -220,7 +221,7 @@ allow crond_t self:msg { send receive };
 allow crond_t self:key { search write link };
 dontaudit crond_t self:netlink_audit_socket nlmsg_tty_audit;
 
-manage_files_pattern(crond_t, cron_log_t, cron_log_t)
+allow crond_t cron_log_t:file { append_file_perms create_file_perms setattr_file_perms };
 logging_log_filetrans(crond_t, cron_log_t, file)
 
 manage_files_pattern(crond_t, crond_var_run_t, crond_var_run_t)
@@ -235,11 +236,9 @@ files_tmp_filetrans(crond_t, crond_tmp_t, { dir file })
 list_dirs_pattern(crond_t, system_cron_spool_t, system_cron_spool_t)
 read_files_pattern(crond_t, system_cron_spool_t, system_cron_spool_t)
 
-list_dirs_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
 rw_dirs_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
 read_files_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
-read_lnk_files_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
-allow crond_t user_cron_spool_t:file manage_lnk_file_perms;
+manage_lnk_files_pattern(crond_t, user_cron_spool_t, user_cron_spool_t)
 
 allow crond_t system_cronjob_t:process transition;
 allow crond_t system_cronjob_t:fd use;
@@ -309,8 +308,6 @@ miscfiles_read_localization(crond_t)
 
 userdom_list_user_home_dirs(crond_t)
 
-mta_send_mail(crond_t)
-
 tunable_policy(`cron_userdomain_transition',`
 	dontaudit crond_t cronjob_t:process transition;
 	dontaudit crond_t cronjob_t:fd use;
@@ -360,16 +357,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	djbdns_search_tinydns_keys(crond_t)
-	djbdns_link_tinydns_keys(crond_t)
-')
-
-optional_policy(`
-	locallogin_search_keys(crond_t)
-	locallogin_link_keys(crond_t)
-')
-
-optional_policy(`
 	amanda_search_var_lib(crond_t)
 ')
 
@@ -378,11 +365,29 @@ optional_policy(`
 ')
 
 optional_policy(`
+	djbdns_search_tinydns_keys(crond_t)
+	djbdns_link_tinydns_keys(crond_t)
+')
+
+optional_policy(`
 	hal_write_log(crond_t)
 ')
 
 optional_policy(`
+	locallogin_search_keys(crond_t)
+	locallogin_link_keys(crond_t)
+')
+
+optional_policy(`
+	mta_send_mail(crond_t)
+')
+
+optional_policy(`
 	munin_search_lib(crond_t)
+')
+
+optional_policy(`
+	postgresql_search_db(crond_t)
 ')
 
 optional_policy(`
@@ -391,10 +396,6 @@ optional_policy(`
 
 optional_policy(`
 	rpm_read_pipes(crond_t)
-')
-
-optional_policy(`
-	postgresql_search_db(crond_t)
 ')
 
 optional_policy(`
@@ -415,7 +416,7 @@ allow system_cronjob_t self:process { signal_perms getsched setsched };
 allow system_cronjob_t self:fifo_file rw_fifo_file_perms;
 allow system_cronjob_t self:passwd rootok;
 
-allow system_cronjob_t cron_log_t:file manage_file_perms;
+allow system_cronjob_t cron_log_t:file { append_file_perms create_file_perms setattr_file_perms };
 logging_log_filetrans(system_cronjob_t, cron_log_t, file)
 
 allow system_cronjob_t cron_var_lib_t:file { manage_file_perms relabel_file_perms };
@@ -425,7 +426,6 @@ allow system_cronjob_t cron_var_run_t:file manage_file_perms;
 files_pid_filetrans(system_cronjob_t, cron_var_run_t, file)
 
 manage_files_pattern(system_cronjob_t, system_cron_spool_t, system_cron_spool_t)
-allow system_cronjob_t system_cron_spool_t:file entrypoint;
 
 allow system_cronjob_t system_cronjob_lock_t:file manage_file_perms;
 files_lock_filetrans(system_cronjob_t, system_cronjob_lock_t, file)
@@ -435,7 +435,6 @@ manage_lnk_files_pattern(system_cronjob_t, crond_tmp_t, system_cronjob_tmp_t)
 filetrans_pattern(system_cronjob_t, crond_tmp_t, system_cronjob_tmp_t, { file lnk_file })
 files_tmp_filetrans(system_cronjob_t, system_cronjob_tmp_t, file)
 
-files_search_var_lib(system_cronjob_t)
 manage_files_pattern(system_cronjob_t, system_cronjob_var_lib_t, system_cronjob_var_lib_t)
 
 allow system_cronjob_t crond_t:fd use;
@@ -493,8 +492,6 @@ files_create_boot_flag(system_cronjob_t)
 mls_file_read_to_clearance(system_cronjob_t)
 
 init_use_script_fds(system_cronjob_t)
-init_rw_utmp(system_cronjob_t)
-init_telinit(system_cronjob_t)
 init_domtrans_script(system_cronjob_t)
 
 auth_use_nsswitch(system_cronjob_t)
@@ -507,7 +504,6 @@ logging_send_audit_msgs(system_cronjob_t)
 logging_send_syslog_msg(system_cronjob_t)
 
 miscfiles_read_localization(system_cronjob_t)
-miscfiles_manage_man_pages(system_cronjob_t)
 
 seutil_read_config(system_cronjob_t)
 
@@ -598,10 +594,6 @@ optional_policy(`
 optional_policy(`
 	samba_read_config(system_cronjob_t)
 	samba_read_log(system_cronjob_t)
-')
-
-optional_policy(`
-	slocate_create_append_log(system_cronjob_t)
 ')
 
 optional_policy(`
