@@ -1,4 +1,4 @@
-policy_module(sblim, 1.0.1)
+policy_module(sblim, 1.0.2)
 
 ########################################
 #
@@ -21,9 +21,38 @@ init_script_file(sblim_initrc_exec_t)
 type sblim_var_run_t;
 files_pid_file(sblim_var_run_t)
 
+######################################
+#
+# Common sblim domain local policy
+#
+
+allow sblim_domain self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
+manage_files_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
+manage_sock_files_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
+
+kernel_read_network_state(sblim_domain)
+kernel_read_system_state(sblim_domain)
+
+corenet_all_recvfrom_unlabeled(sblim_domain)
+corenet_all_recvfrom_netlabel(sblim_domain)
+corenet_tcp_sendrecv_generic_if(sblim_domain)
+corenet_tcp_sendrecv_generic_node(sblim_domain)
+
+corenet_tcp_sendrecv_repository_port(sblim_domain)
+
+dev_read_sysfs(sblim_domain)
+
+logging_send_syslog_msg(sblim_domain)
+
+files_read_etc_files(sblim_domain)
+
+miscfiles_read_localization(sblim_domain)
+
 ########################################
 #
-# sblim_gatherd local policy
+# Gatherd local policy
 #
 allow sblim_gatherd_t self:capability dac_override;
 allow sblim_gatherd_t self:process signal;
@@ -80,37 +109,9 @@ optional_policy(`
 
 #######################################
 #
-# sblim_reposd local policy
+# Reposd local policy
 #
 
 corenet_sendrecv_repository_server_packets(sblim_reposd_t)
 corenet_tcp_bind_repository_port(sblim_reposd_t)
-
-######################################
-#
-# sblim_domain local policy
-#
-
-allow sblim_domain self:tcp_socket create_stream_socket_perms;
-
-manage_dirs_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
-manage_files_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
-manage_sock_files_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
-
-kernel_read_network_state(sblim_domain)
-kernel_read_system_state(sblim_domain)
-
-corenet_all_recvfrom_unlabeled(sblim_domain)
-corenet_all_recvfrom_netlabel(sblim_domain)
-corenet_tcp_sendrecv_generic_if(sblim_domain)
-corenet_tcp_sendrecv_generic_node(sblim_domain)
 corenet_tcp_bind_generic_node(sblim_domain)
-corenet_tcp_sendrecv_repository_port(sblim_domain)
-
-dev_read_sysfs(sblim_domain)
-
-logging_send_syslog_msg(sblim_domain)
-
-files_read_etc_files(sblim_domain)
-
-miscfiles_read_localization(sblim_domain)
