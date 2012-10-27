@@ -1,4 +1,4 @@
-policy_module(sectoolm, 1.0.0)
+policy_module(sectoolm, 1.0.1)
 
 ########################################
 #
@@ -7,7 +7,7 @@ policy_module(sectoolm, 1.0.0)
 
 type sectoolm_t;
 type sectoolm_exec_t;
-dbus_system_domain(sectoolm_t, sectoolm_exec_t)
+init_system_domain(sectoolm_t, sectoolm_exec_t)
 
 type sectool_var_lib_t;
 files_type(sectool_var_lib_t)
@@ -20,14 +20,14 @@ files_tmp_file(sectool_tmp_t)
 
 ########################################
 #
-# sectool local policy
+# Local policy
 #
 
-allow sectoolm_t self:capability { dac_override net_admin sys_nice sys_ptrace };
+allow sectoolm_t self:capability { dac_override net_admin sys_nice };
 allow sectoolm_t self:process { getcap getsched	signull setsched };
 dontaudit sectoolm_t self:process { execstack execmem };
 allow sectoolm_t self:fifo_file rw_fifo_file_perms;
-allow sectoolm_t self:unix_dgram_socket { create_socket_perms sendto };
+allow sectoolm_t self:unix_dgram_socket sendto;
 
 manage_dirs_pattern(sectoolm_t, sectool_tmp_t, sectool_tmp_t)
 manage_files_pattern(sectoolm_t, sectool_tmp_t, sectool_tmp_t)
@@ -37,7 +37,7 @@ manage_files_pattern(sectoolm_t, sectool_var_lib_t, sectool_var_lib_t)
 manage_dirs_pattern(sectoolm_t, sectool_var_lib_t, sectool_var_lib_t)
 files_var_lib_filetrans(sectoolm_t, sectool_var_lib_t, { file dir })
 
-manage_files_pattern(sectoolm_t, sectool_var_log_t, sectool_var_log_t)
+allow sectoolm_t sectool_var_log_t:file { append_file_perms create_file_perms setattr_file_perms };
 logging_log_filetrans(sectoolm_t, sectool_var_log_t, file)
 
 kernel_read_net_sysctls(sectoolm_t)
@@ -65,36 +65,38 @@ fs_list_noxattr_fs(sectoolm_t)
 
 selinux_validate_context(sectoolm_t)
 
-# tcp_wrappers test
 application_exec_all(sectoolm_t)
 
 auth_use_nsswitch(sectoolm_t)
-
-# tests related to network
-hostname_exec(sectoolm_t)
-
-# tests related to network
-iptables_domtrans(sectoolm_t)
 
 libs_exec_ld_so(sectoolm_t)
 
 logging_send_syslog_msg(sectoolm_t)
 
-# tests related to network
 sysnet_domtrans_ifconfig(sectoolm_t)
 
-userdom_manage_user_tmp_sockets(sectoolm_t)
+userdom_write_user_tmp_sockets(sectoolm_t)
 
 optional_policy(`
 	mount_exec(sectoolm_t)
 ')
 
 optional_policy(`
-	policykit_dbus_chat(sectoolm_t)
+	dbus_system_domain(sectoolm_t, sectoolm_exec_t)
+
+	optional_policy(`
+		policykit_dbus_chat(sectoolm_t)
+	')
 ')
 
-# suid test using
-# rpm -Vf option
+optional_policy(`
+	hostname_exec(sectoolm_t)
+')
+
+optional_policy(`
+	iptables_domtrans(sectoolm_t)
+')
+
 optional_policy(`
 	prelink_domtrans(sectoolm_t)
 ')
