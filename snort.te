@@ -1,4 +1,4 @@
-policy_module(snort, 1.10.0)
+policy_module(snort, 1.10.1)
 
 ########################################
 #
@@ -32,20 +32,20 @@ files_pid_file(snort_var_run_t)
 allow snort_t self:capability { setgid setuid net_admin net_raw dac_override };
 dontaudit snort_t self:capability sys_tty_config;
 allow snort_t self:process signal_perms;
-allow snort_t self:netlink_route_socket { bind create getattr nlmsg_read read write };
-allow snort_t self:tcp_socket create_stream_socket_perms;
-allow snort_t self:udp_socket create_socket_perms;
+allow snort_t self:netlink_socket create_socket_perms;
+allow snort_t self:tcp_socket { accept listen };
 allow snort_t self:packet_socket create_socket_perms;
 allow snort_t self:socket create_socket_perms;
-# Snort IPS node. unverified.
-allow snort_t self:netlink_firewall_socket { bind create getattr };
+allow snort_t self:netlink_firewall_socket create_socket_perms;
 
 allow snort_t snort_etc_t:dir list_dir_perms;
 allow snort_t snort_etc_t:file read_file_perms;
-allow snort_t snort_etc_t:lnk_file { getattr read };
+allow snort_t snort_etc_t:lnk_file read_lnk_file_perms;
 
-manage_files_pattern(snort_t, snort_log_t, snort_log_t)
-create_dirs_pattern(snort_t, snort_log_t, snort_log_t)
+manage_dirs_pattern(snort_t, snort_log_t, snort_log_t)
+append_files_pattern(snort_t, snort_log_t, snort_log_t)
+create_files_pattern(snort_t, snort_log_t, snort_log_t)
+setattr_files_pattern(snort_t, snort_log_t, snort_log_t)
 logging_log_filetrans(snort_t, snort_log_t, { file dir })
 
 manage_dirs_pattern(snort_t, snort_tmp_t, snort_tmp_t)
@@ -73,14 +73,15 @@ corenet_udp_sendrecv_generic_node(snort_t)
 corenet_raw_sendrecv_generic_node(snort_t)
 corenet_tcp_sendrecv_all_ports(snort_t)
 corenet_udp_sendrecv_all_ports(snort_t)
+
+corenet_sendrecv_prelude_client_packets(snort_t)
 corenet_tcp_connect_prelude_port(snort_t)
+corenet_tcp_sendrecv_prelude_port(snort_t)
 
 dev_read_sysfs(snort_t)
 dev_read_rand(snort_t)
 dev_read_urand(snort_t)
 dev_read_usbmon_dev(snort_t)
-# Red Hat bug 559861: Snort wants read, write, and ioctl on /dev/usbmon
-# Snort uses libpcap, which can also monitor USB traffic. Maybe this is a side effect?
 dev_rw_generic_usb_dev(snort_t)
 
 domain_use_interactive_fds(snort_t)
@@ -97,8 +98,6 @@ logging_send_syslog_msg(snort_t)
 
 miscfiles_read_localization(snort_t)
 
-sysnet_read_config(snort_t)
-# snorts must be able to resolve dns in case it wants to relay to a remote prelude-manager
 sysnet_dns_name_resolve(snort_t)
 
 userdom_dontaudit_use_unpriv_user_fds(snort_t)
