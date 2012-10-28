@@ -1,4 +1,4 @@
-policy_module(smokeping, 1.1.1)
+policy_module(smokeping, 1.1.2)
 
 ########################################
 #
@@ -20,13 +20,12 @@ files_type(smokeping_var_lib_t)
 
 ########################################
 #
-# smokeping local policy
+# Local policy
 #
 
 dontaudit smokeping_t self:capability { dac_read_search dac_override };
 allow smokeping_t self:fifo_file rw_fifo_file_perms;
-allow smokeping_t self:udp_socket create_socket_perms;
-allow smokeping_t self:unix_stream_socket create_stream_socket_perms;
+allow smokeping_t self:unix_stream_socket { accept listen };
 
 manage_dirs_pattern(smokeping_t, smokeping_var_run_t, smokeping_var_run_t)
 manage_files_pattern(smokeping_t, smokeping_var_run_t, smokeping_var_run_t)
@@ -34,13 +33,12 @@ files_pid_filetrans(smokeping_t, smokeping_var_run_t, { file dir })
 
 manage_dirs_pattern(smokeping_t, smokeping_var_lib_t, smokeping_var_lib_t)
 manage_files_pattern(smokeping_t, smokeping_var_lib_t, smokeping_var_lib_t)
-files_var_lib_filetrans(smokeping_t, smokeping_var_lib_t, { file dir } )
+files_var_lib_filetrans(smokeping_t, smokeping_var_lib_t, { file dir })
 
-corecmd_read_bin_symlinks(smokeping_t)
+corecmd_exec_bin(smokeping_t)
 
 dev_read_urand(smokeping_t)
 
-files_read_etc_files(smokeping_t)
 files_read_usr_files(smokeping_t)
 files_search_tmp(smokeping_t)
 
@@ -57,7 +55,7 @@ netutils_domtrans_ping(smokeping_t)
 
 #######################################
 #
-# local policy for smokeping cgi scripts
+# Cgi local policy
 #
 
 optional_policy(`
@@ -68,6 +66,7 @@ optional_policy(`
 
 	getattr_files_pattern(httpd_smokeping_cgi_script_t, smokeping_var_run_t, smokeping_var_run_t)
 
+	files_read_etc_files(httpd_smokeping_cgi_script_t)
 	files_search_tmp(httpd_smokeping_cgi_script_t)
 	files_search_var_lib(httpd_smokeping_cgi_script_t)
 

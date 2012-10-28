@@ -15,12 +15,14 @@ interface(`smokeping_domtrans',`
 		type smokeping_t, smokeping_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, smokeping_exec_t, smokeping_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute smokeping server in the smokeping domain.
+##	Execute smokeping init scripts in
+##	the initrc domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -38,7 +40,7 @@ interface(`smokeping_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	Read smokeping PID files.
+##	Read smokeping pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -57,7 +59,8 @@ interface(`smokeping_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Manage smokeping PID files.
+##	Create, read, write, and delete
+##	smokeping pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -89,8 +92,8 @@ interface(`smokeping_getattr_lib_files',`
 		type smokeping_var_lib_t;
 	')
 
-	getattr_files_pattern($1, smokeping_var_lib_t, smokeping_var_lib_t)
 	files_search_var_lib($1)
+	getattr_files_pattern($1, smokeping_var_lib_t, smokeping_var_lib_t)
 ')
 
 ########################################
@@ -114,7 +117,8 @@ interface(`smokeping_read_lib_files',`
 
 ########################################
 ## <summary>
-##	Manage smokeping lib files.
+##	Create, read, write, and delete
+##	smokeping lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -133,8 +137,8 @@ interface(`smokeping_manage_lib_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	a smokeping environment
+##	All of the rules required to
+##	administrate a smokeping environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -150,7 +154,8 @@ interface(`smokeping_manage_lib_files',`
 #
 interface(`smokeping_admin',`
 	gen_require(`
-		type smokeping_t, smokeping_initrc_exec_t;
+		type smokeping_t, smokeping_initrc_exec_t, smokeping_var_lib_t;
+		type smokeping_var_run_t;
 	')
 
 	allow $1 smokeping_t:process { ptrace signal_perms };
@@ -161,7 +166,9 @@ interface(`smokeping_admin',`
 	role_transition $2 smokeping_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	smokeping_manage_pid_files($1)
+	files_search_var_lib($1)
+	admin_pattern($1, smokeping_var_lib_t)
 
-	smokeping_manage_lib_files($1)
+	files_search_pids($1)
+	admin_pattern($1, smokeping_var_run_t)
 ')
