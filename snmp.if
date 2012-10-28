@@ -1,8 +1,9 @@
-## <summary>Simple network management protocol services</summary>
+## <summary>Simple network management protocol services.</summary>
 
 ########################################
 ## <summary>
-##	Connect to snmpd using a unix domain stream socket.
+##	Connect to snmpd with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -11,12 +12,12 @@
 ## </param>
 #
 interface(`snmp_stream_connect',`
-	 gen_require(`
+	gen_require(`
 		type snmpd_t, snmpd_var_lib_t;
-	 ')
+	')
 
-	 files_search_var_lib($1)
-	 stream_connect_pattern($1, snmpd_var_lib_t, snmpd_var_lib_t, snmpd_t)
+	files_search_var_lib($1)
+	stream_connect_pattern($1, snmpd_var_lib_t, snmpd_var_lib_t, snmpd_t)
 ')
 
 ########################################
@@ -97,7 +98,7 @@ interface(`snmp_manage_var_lib_files',`
 
 ########################################
 ## <summary>
-##	Read snmpd libraries.
+##	Read snmpd lib content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -117,7 +118,8 @@ interface(`snmp_read_snmp_var_lib_files',`
 
 ########################################
 ## <summary>
-##	dontaudit Read snmpd libraries.
+##	Do not audit attempts to read
+##	snmpd lib content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -129,14 +131,16 @@ interface(`snmp_dontaudit_read_snmp_var_lib_files',`
 	gen_require(`
 		type snmpd_var_lib_t;
 	')
+
 	dontaudit $1 snmpd_var_lib_t:dir list_dir_perms;
 	dontaudit $1 snmpd_var_lib_t:file read_file_perms;
-	dontaudit $1 snmpd_var_lib_t:lnk_file { getattr read };
+	dontaudit $1 snmpd_var_lib_t:lnk_file read_lnk_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	dontaudit write snmpd libraries files.
+##	Do not audit attempts to write
+##	snmpd lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -154,8 +158,8 @@ interface(`snmp_dontaudit_write_snmp_var_lib_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an snmp environment
+##	All of the rules required to
+##	administrate an snmp environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -164,19 +168,18 @@ interface(`snmp_dontaudit_write_snmp_var_lib_files',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the snmp domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`snmp_admin',`
 	gen_require(`
-		type snmpd_t, snmpd_log_t;
+		type snmpd_t, snmpd_log_t, snmpd_initrc_exec_t;
 		type snmpd_var_lib_t, snmpd_var_run_t;
-		type snmpd_initrc_exec_t;
 	')
 
-	allow $1 snmpd_t:process { ptrace signal_perms getattr };
+	allow $1 snmpd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, snmpd_t)
 
 	init_labeled_script_domtrans($1, snmpd_initrc_exec_t)
