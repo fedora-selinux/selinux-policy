@@ -1,4 +1,4 @@
-policy_module(smartmon, 1.11.1)
+policy_module(smartmon, 1.11.2)
 
 ########################################
 #
@@ -6,10 +6,10 @@ policy_module(smartmon, 1.11.1)
 #
 
 ## <desc>
-## <p>
-## Enable additional permissions needed to support
-## devices on 3ware controllers.
-## </p>
+##	<p>
+##	Determine whether smartmon can support
+##	devices on 3ware controllers.
+##	</p>
 ## </desc>
 gen_tunable(smartmon_3ware, false)
 
@@ -38,14 +38,11 @@ ifdef(`enable_mls',`
 # Local policy
 #
 
-allow fsdaemon_t self:capability { setpcap setgid sys_rawio sys_admin };
+allow fsdaemon_t self:capability { dac_override kill setpcap setgid sys_rawio sys_admin };
 dontaudit fsdaemon_t self:capability sys_tty_config;
 allow fsdaemon_t self:process { getcap setcap signal_perms };
 allow fsdaemon_t self:fifo_file rw_fifo_file_perms;
-allow fsdaemon_t self:unix_dgram_socket create_socket_perms;
-allow fsdaemon_t self:unix_stream_socket create_stream_socket_perms;
-allow fsdaemon_t self:udp_socket create_socket_perms;
-allow fsdaemon_t self:netlink_route_socket r_netlink_socket_perms;
+allow fsdaemon_t self:unix_stream_socket { accept listen };
 
 manage_dirs_pattern(fsdaemon_t, fsdaemon_tmp_t, fsdaemon_tmp_t)
 manage_files_pattern(fsdaemon_t, fsdaemon_tmp_t, fsdaemon_tmp_t)
@@ -57,16 +54,11 @@ files_pid_filetrans(fsdaemon_t, fsdaemon_var_run_t, file)
 manage_files_pattern(fsdaemon_t, fsdaemon_var_lib_t, fsdaemon_var_lib_t)
 
 kernel_read_kernel_sysctls(fsdaemon_t)
+kernel_read_network_state(fsdaemon_t)
 kernel_read_software_raid_state(fsdaemon_t)
 kernel_read_system_state(fsdaemon_t)
 
 corecmd_exec_all_executables(fsdaemon_t)
-
-corenet_all_recvfrom_unlabeled(fsdaemon_t)
-corenet_all_recvfrom_netlabel(fsdaemon_t)
-corenet_udp_sendrecv_generic_if(fsdaemon_t)
-corenet_udp_sendrecv_generic_node(fsdaemon_t)
-corenet_udp_sendrecv_all_ports(fsdaemon_t)
 
 dev_read_sysfs(fsdaemon_t)
 dev_read_urand(fsdaemon_t)
@@ -74,22 +66,26 @@ dev_read_urand(fsdaemon_t)
 domain_use_interactive_fds(fsdaemon_t)
 
 files_exec_etc_files(fsdaemon_t)
+files_read_etc_files(fsdaemon_t)
 files_read_etc_runtime_files(fsdaemon_t)
 files_read_usr_files(fsdaemon_t)
-# for config
-files_read_etc_files(fsdaemon_t)
 
 fs_getattr_all_fs(fsdaemon_t)
 fs_search_auto_mountpoints(fsdaemon_t)
 
 mls_file_read_all_levels(fsdaemon_t)
-#mls_rangetrans_target(fsdaemon_t)
 
 storage_raw_read_fixed_disk(fsdaemon_t)
 storage_raw_write_fixed_disk(fsdaemon_t)
 storage_raw_read_removable_device(fsdaemon_t)
+storage_read_scsi_generic(fsdaemon_t)
+storage_write_scsi_generic(fsdaemon_t)
 
 term_dontaudit_search_ptys(fsdaemon_t)
+
+application_signull(fsdaemon_t)
+
+init_read_utmp(fsdaemon_t)
 
 libs_exec_ld_so(fsdaemon_t)
 libs_exec_lib_files(fsdaemon_t)
@@ -97,8 +93,6 @@ libs_exec_lib_files(fsdaemon_t)
 logging_send_syslog_msg(fsdaemon_t)
 
 miscfiles_read_localization(fsdaemon_t)
-
-seutil_sigchld_newrole(fsdaemon_t)
 
 sysnet_dns_name_resolve(fsdaemon_t)
 
@@ -119,6 +113,10 @@ tunable_policy(`smartmon_3ware',`
 
 optional_policy(`
 	mta_send_mail(fsdaemon_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(fsdaemon_t)
 ')
 
 optional_policy(`
