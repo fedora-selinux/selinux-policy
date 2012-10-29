@@ -6,10 +6,12 @@ policy_module(tftp, 1.12.3)
 #
 
 ## <desc>
-## <p>
-## Allow tftp to modify public files
-## used for public file transfer services.
-## </p>
+##	<p>
+##	Determine whether tftp can modify
+##	public files used for public file
+##	transfer services. Directories/Files must
+##	be labeled public_content_rw_t.
+##	</p>
 ## </desc>
 gen_tunable(tftp_anon_write, false)
 
@@ -43,15 +45,15 @@ files_type(tftpdir_rw_t)
 #
 
 allow tftpd_t self:capability { setgid setuid sys_chroot };
-allow tftpd_t self:tcp_socket create_stream_socket_perms;
-allow tftpd_t self:udp_socket create_socket_perms;
-allow tftpd_t self:unix_dgram_socket create_socket_perms;
-allow tftpd_t self:unix_stream_socket create_stream_socket_perms;
 dontaudit tftpd_t self:capability sys_tty_config;
+allow tftpd_t self:tcp_socket { accept listen };
+allow tftpd_t self:unix_stream_socket { accept listen };
+
+allow tftpd_t tftpd_conf_t:file read_file_perms;
 
 allow tftpd_t tftpdir_t:dir list_dir_perms;
 allow tftpd_t tftpdir_t:file read_file_perms;
-allow tftpd_t tftpdir_t:lnk_file { getattr read };
+allow tftpd_t tftpdir_t:lnk_file read_lnk_file_perms;
 
 manage_dirs_pattern(tftpd_t, tftpdir_rw_t, tftpdir_rw_t)
 manage_files_pattern(tftpd_t, tftpdir_rw_t, tftpdir_rw_t)
@@ -65,29 +67,25 @@ kernel_read_kernel_sysctls(tftpd_t)
 
 corenet_all_recvfrom_unlabeled(tftpd_t)
 corenet_all_recvfrom_netlabel(tftpd_t)
-corenet_tcp_sendrecv_generic_if(tftpd_t)
 corenet_udp_sendrecv_generic_if(tftpd_t)
-corenet_tcp_sendrecv_generic_node(tftpd_t)
 corenet_udp_sendrecv_generic_node(tftpd_t)
-corenet_tcp_sendrecv_all_ports(tftpd_t)
-corenet_udp_sendrecv_all_ports(tftpd_t)
-corenet_tcp_bind_generic_node(tftpd_t)
 corenet_udp_bind_generic_node(tftpd_t)
-corenet_udp_bind_tftp_port(tftpd_t)
+
 corenet_sendrecv_tftp_server_packets(tftpd_t)
+corenet_udp_bind_tftp_port(tftpd_t)
+corenet_udp_sendrecv_tftp_port(tftpd_t)
 
 dev_read_sysfs(tftpd_t)
 
-fs_getattr_all_fs(tftpd_t)
-fs_search_auto_mountpoints(tftpd_t)
-
 domain_use_interactive_fds(tftpd_t)
 
-files_read_etc_files(tftpd_t)
 files_read_etc_runtime_files(tftpd_t)
 files_read_var_files(tftpd_t)
 files_read_var_symlinks(tftpd_t)
 files_search_var(tftpd_t)
+
+fs_getattr_all_fs(tftpd_t)
+fs_search_auto_mountpoints(tftpd_t)
 
 auth_use_nsswitch(tftpd_t)
 
