@@ -1,36 +1,43 @@
-policy_module(telepathy, 1.3.4)
+policy_module(telepathy, 1.3.5)
 
 ########################################
 #
-# Declarations.
+# Declarations
 #
 
 ## <desc>
-## <p>
-##	Allow the Telepathy connection managers
-##	to connect to any generic TCP port.
-## </p>
+##	<p>
+##	Determine whether telepathy connection
+##	managers can connect to generic tcp ports.
+##	</p>
 ## </desc>
 gen_tunable(telepathy_tcp_connect_generic_network_ports, false)
 
 ## <desc>
-## <p>
-##	Allow the Telepathy connection managers
-##	to connect to any network port.
-## </p>
+##	<p>
+##	Determine whether telepathy connection
+##	managers can connect to any port.
+##	</p>
 ## </desc>
 gen_tunable(telepathy_connect_all_ports, false)
 
 attribute telepathy_domain;
 attribute telepathy_executable;
+attribute telepathy_tmp_content;
 
 telepathy_domain_template(gabble)
+
+type telepathy_cache_home_t;
+userdom_user_home_content(telepathy_cache_home_t)
 
 type telepathy_gabble_cache_home_t;
 userdom_user_home_content(telepathy_gabble_cache_home_t)
 
 telepathy_domain_template(idle)
 telepathy_domain_template(logger)
+
+type telepathy_data_home_t;
+userdom_user_home_content(telepathy_data_home_t)
 
 type telepathy_logger_cache_home_t;
 userdom_user_home_content(telepathy_logger_cache_home_t)
@@ -42,6 +49,9 @@ telepathy_domain_template(mission_control)
 
 type telepathy_mission_control_home_t;
 userdom_user_home_content(telepathy_mission_control_home_t)
+
+type telepathy_mission_control_data_home_t;
+userdom_user_home_content(telepathy_mission_control_data_home_t)
 
 type telepathy_mission_control_cache_home_t;
 userdom_user_home_content(telepathy_mission_control_cache_home_t)
@@ -57,45 +67,56 @@ userdom_user_home_content(telepathy_sunshine_home_t)
 
 #######################################
 #
-# Telepathy Gabble local policy.
+# Gabble local policy
 #
 
-allow telepathy_gabble_t self:tcp_socket create_stream_socket_perms;
+allow telepathy_gabble_t self:tcp_socket { accept listen };
 allow telepathy_gabble_t self:unix_dgram_socket { create_socket_perms sendto };
+
+# ~/.cache/telepathy/gabble/caps-cache.db-journal
+manage_dirs_pattern(telepathy_gabble_t, telepathy_gabble_cache_home_t, telepathy_gabble_cache_home_t)
+manage_files_pattern(telepathy_gabble_t, telepathy_gabble_cache_home_t, telepathy_gabble_cache_home_t)
+filetrans_pattern(telepathy_gabble_t, telepathy_cache_home_t, telepathy_gabble_cache_home_t, dir, "gabble")
+# gnome_cache_filetrans(telepathy_gabble_t, telepathy_gabble_cache_home_t, dir, "wocky")
 
 manage_dirs_pattern(telepathy_gabble_t, telepathy_gabble_tmp_t, telepathy_gabble_tmp_t)
 manage_sock_files_pattern(telepathy_gabble_t, telepathy_gabble_tmp_t, telepathy_gabble_tmp_t)
 files_tmp_filetrans(telepathy_gabble_t, telepathy_gabble_tmp_t, { dir sock_file })
 
-corenet_all_recvfrom_netlabel(telepathy_gabble_t)
 corenet_all_recvfrom_unlabeled(telepathy_gabble_t)
+corenet_all_recvfrom_netlabel(telepathy_gabble_t)
 corenet_tcp_sendrecv_generic_if(telepathy_gabble_t)
 corenet_tcp_sendrecv_generic_node(telepathy_gabble_t)
-corenet_tcp_connect_http_port(telepathy_gabble_t)
-corenet_tcp_connect_jabber_client_port(telepathy_gabble_t)
-corenet_tcp_connect_vnc_port(telepathy_gabble_t)
+
 corenet_sendrecv_http_client_packets(telepathy_gabble_t)
+corenet_tcp_connect_http_port(telepathy_gabble_t)
+corenet_tcp_sendrecv_http_port(telepathy_gabble_t)
+
 corenet_sendrecv_jabber_client_client_packets(telepathy_gabble_t)
+corenet_tcp_connect_jabber_client_port(telepathy_gabble_t)
+corenet_tcp_sendrecv_jabber_client_port(telepathy_gabble_t)
+
 corenet_sendrecv_vnc_client_packets(telepathy_gabble_t)
+corenet_tcp_connect_vnc_port(telepathy_gabble_t)
+corenet_tcp_sendrecv_vnc_port(telepathy_gabble_t)
 
 dev_read_rand(telepathy_gabble_t)
 
 files_read_config_files(telepathy_gabble_t)
 files_read_usr_files(telepathy_gabble_t)
 
-fs_getattr_all_fs(telepathy_gabble_t)
-
 miscfiles_read_all_certs(telepathy_gabble_t)
 
 tunable_policy(`telepathy_connect_all_ports',`
+	corenet_sendrecv_all_client_packets(telepathy_gabble_t)
 	corenet_tcp_connect_all_ports(telepathy_gabble_t)
 	corenet_tcp_sendrecv_all_ports(telepathy_gabble_t)
-	corenet_udp_sendrecv_all_ports(telepathy_gabble_t)
 ')
 
 tunable_policy(`telepathy_tcp_connect_generic_network_ports',`
-	corenet_tcp_connect_generic_port(telepathy_gabble_t)
 	corenet_sendrecv_generic_client_packets(telepathy_gabble_t)
+	corenet_tcp_connect_generic_port(telepathy_gabble_t)
+	corenet_tcp_sendrecv_generic_port(telepathy_gabble_t)
 ')
 
 tunable_policy(`use_nfs_home_dirs',`
@@ -112,52 +133,62 @@ optional_policy(`
 	dbus_system_bus_client(telepathy_gabble_t)
 ')
 
+# optional_policy(`
+	# ~/.config/dconf/user
+	# gnome_manage_generic_home_content(telepathy_gabble_t)
+# ')
+
 #######################################
 #
-# Telepathy Idle local policy.
+# Idle local policy
 #
 
 corenet_all_recvfrom_netlabel(telepathy_idle_t)
 corenet_all_recvfrom_unlabeled(telepathy_idle_t)
 corenet_tcp_sendrecv_generic_if(telepathy_idle_t)
 corenet_tcp_sendrecv_generic_node(telepathy_idle_t)
+
+corenet_sendrecv_gatekeeper_client_packets(telepathy_idle_t)
 corenet_tcp_connect_gatekeeper_port(telepathy_idle_t)
-corenet_tcp_connect_ircd_port(telepathy_idle_t)
+corenet_tcp_sendrecv_gatekeeper_port(telepathy_idle_t)
+
 corenet_sendrecv_ircd_client_packets(telepathy_idle_t)
+corenet_tcp_connect_ircd_port(telepathy_idle_t)
+corenet_tcp_sendrecv_ircd_port(telepathy_idle_t)
 
 dev_read_rand(telepathy_idle_t)
 
-files_read_etc_files(telepathy_idle_t)
 files_read_usr_files(telepathy_idle_t)
 
 tunable_policy(`telepathy_connect_all_ports',`
+	corenet_sendrecv_all_client_packets(telepathy_idle_t)
 	corenet_tcp_connect_all_ports(telepathy_idle_t)
 	corenet_tcp_sendrecv_all_ports(telepathy_idle_t)
-	corenet_udp_sendrecv_all_ports(telepathy_idle_t)
 ')
 
 tunable_policy(`telepathy_tcp_connect_generic_network_ports',`
-	corenet_tcp_connect_generic_port(telepathy_idle_t)
 	corenet_sendrecv_generic_client_packets(telepathy_idle_t)
+	corenet_tcp_connect_generic_port(telepathy_idle_t)
+	corenet_tcp_sendrecv_generic_port(telepathy_idle_t)
 ')
 
 #######################################
 #
-# Telepathy Logger local policy.
+# Logger local policy
 #
 
 allow telepathy_logger_t self:unix_stream_socket create_socket_perms;
 
+manage_dirs_pattern(telepathy_logger_t, telepathy_logger_cache_home_t, telepathy_logger_cache_home_t)
 manage_files_pattern(telepathy_logger_t, telepathy_logger_cache_home_t, telepathy_logger_cache_home_t)
+filetrans_pattern(telepathy_logger_t, telepathy_cache_home_t, telepathy_logger_cache_home_t, dir, "logger")
 
 manage_dirs_pattern(telepathy_logger_t, telepathy_logger_data_home_t, telepathy_logger_data_home_t)
 manage_files_pattern(telepathy_logger_t, telepathy_logger_data_home_t, telepathy_logger_data_home_t)
+# gnome_data_filetrans(telepathy_logger_t, telepathy_logger_data_home_t, dir, "TpLogger")
 
-files_read_etc_files(telepathy_logger_t)
 files_read_usr_files(telepathy_logger_t)
 files_search_pids(telepathy_logger_t)
-
-fs_getattr_all_fs(telepathy_logger_t)
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_dirs(telepathy_logger_t)
@@ -169,20 +200,32 @@ tunable_policy(`use_samba_home_dirs',`
 	fs_manage_cifs_files(telepathy_logger_t)
 ')
 
+# optional_policy(`
+	# ~/.config/dconf/user
+	# gnome_manage_generic_home_content(telepathy_logger_t)
+# ')
+
 #######################################
 #
-# Telepathy Mission-Control local policy.
+# Mission-Control local policy
 #
+
+allow telepathy_mission_control_t self:process setsched;
 
 manage_dirs_pattern(telepathy_mission_control_t, telepathy_mission_control_home_t, telepathy_mission_control_home_t)
 manage_files_pattern(telepathy_mission_control_t, telepathy_mission_control_home_t, telepathy_mission_control_home_t)
-userdom_user_home_dir_filetrans(telepathy_mission_control_t, telepathy_mission_control_home_t, { dir file })
+userdom_user_home_dir_filetrans(telepathy_mission_control_t, telepathy_mission_control_home_t, dir, ".mission-control")
+
+manage_dirs_pattern(telepathy_mission_control_t, telepathy_mission_control_data_home_t, telepathy_mission_control_data_home_t)
+manage_files_pattern(telepathy_mission_control_t, telepathy_mission_control_data_home_t, telepathy_mission_control_data_home_t)
+filetrans_pattern(telepathy_mission_control_t, telepathy_data_home_t, telepathy_mission_control_data_home_t, dir, "mission-control")
+
+manage_files_pattern(telepathy_mission_control_t, telepathy_mission_control_cache_home_t, telepathy_mission_control_cache_home_t)
+# gnome_cache_filetrans(telepathy_mission_control_t, telepathy_mission_control_cache_home_t, file, ".mc_connections")
 
 dev_read_rand(telepathy_mission_control_t)
 
-fs_getattr_all_fs(telepathy_mission_control_t)
-
-files_read_etc_files(telepathy_mission_control_t)
+files_list_tmp(telepathy_mission_control_t)
 files_read_usr_files(telepathy_mission_control_t)
 
 tunable_policy(`use_nfs_home_dirs',`
@@ -195,39 +238,68 @@ tunable_policy(`use_samba_home_dirs',`
 	fs_manage_cifs_files(telepathy_mission_control_t)
 ')
 
+optional_policy(`
+	dbus_system_bus_client(telepathy_mission_control_t)
+
+	optional_policy(`
+		devicekit_dbus_chat_power(telepathy_mission_control_t)
+	')
+	optional_policy(`
+		gnome_dbus_chat_all_gkeyringd(telepathy_mission_control_t)
+	')
+	optional_policy(`
+		networkmanager_dbus_chat(telepathy_mission_control_t)
+	')
+')
+
+# optional_policy(`
+	# ~/.config/dconf/user
+	# gnome_manage_generic_home_content(telepathy_mission_control_t)
+# ')
+
 #######################################
 #
-# Telepathy Butterfly and Haze local policy.
+# Butterfly and Haze local policy
 #
 
 allow telepathy_msn_t self:process setsched;
-allow telepathy_msn_t self:unix_dgram_socket { write create connect };
 
 manage_dirs_pattern(telepathy_msn_t, telepathy_msn_tmp_t, telepathy_msn_tmp_t)
 manage_files_pattern(telepathy_msn_t, telepathy_msn_tmp_t, telepathy_msn_tmp_t)
 manage_sock_files_pattern(telepathy_msn_t, telepathy_msn_tmp_t, telepathy_msn_tmp_t)
 files_tmp_filetrans(telepathy_msn_t, telepathy_msn_tmp_t, { dir file sock_file })
+
 userdom_user_tmp_filetrans(telepathy_msn_t, telepathy_msn_tmp_t, { dir file sock_file })
+
+can_exec(telepathy_msn_t, telepathy_msn_tmp_t)
 
 corenet_all_recvfrom_netlabel(telepathy_msn_t)
 corenet_all_recvfrom_unlabeled(telepathy_msn_t)
 corenet_tcp_sendrecv_generic_if(telepathy_msn_t)
 corenet_tcp_sendrecv_generic_node(telepathy_msn_t)
-corenet_tcp_bind_generic_node(telepathy_msn_t)
-corenet_tcp_connect_http_port(telepathy_msn_t)
-corenet_tcp_connect_mmcc_port(telepathy_msn_t)
-corenet_tcp_connect_msnp_port(telepathy_msn_t)
-corenet_tcp_connect_sip_port(telepathy_msn_t)
+
 corenet_sendrecv_http_client_packets(telepathy_msn_t)
+corenet_tcp_connect_http_port(telepathy_msn_t)
+corenet_tcp_sendrecv_http_port(telepathy_msn_t)
+
 corenet_sendrecv_mmcc_client_packets(telepathy_msn_t)
+corenet_tcp_connect_mmcc_port(telepathy_msn_t)
+corenet_tcp_sendrecv_mmcc_port(telepathy_msn_t)
+
 corenet_sendrecv_msnp_client_packets(telepathy_msn_t)
+corenet_tcp_connect_msnp_port(telepathy_msn_t)
+corenet_tcp_sendrecv_msnp_port(telepathy_msn_t)
+
+corenet_sendrecv_sip_client_packets(telepathy_msn_t)
+corenet_tcp_connect_sip_port(telepathy_msn_t)
+corenet_tcp_sendrecv_sip_port(telepathy_msn_t)
 
 corecmd_exec_bin(telepathy_msn_t)
 corecmd_exec_shell(telepathy_msn_t)
-corecmd_read_bin_symlinks(telepathy_msn_t)
 
-files_read_etc_files(telepathy_msn_t)
 files_read_usr_files(telepathy_msn_t)
+
+init_read_state(telepathy_msn_t)
 
 libs_exec_ldconfig(telepathy_msn_t)
 
@@ -235,15 +307,18 @@ logging_send_syslog_msg(telepathy_msn_t)
 
 miscfiles_read_all_certs(telepathy_msn_t)
 
+# userdom_dontaudit_setattr_user_tmp(telepathy_msn_t)
+
 tunable_policy(`telepathy_connect_all_ports',`
+	corenet_sendrecv_all_client_packets(telepathy_msn_t)
 	corenet_tcp_connect_all_ports(telepathy_msn_t)
 	corenet_tcp_sendrecv_all_ports(telepathy_msn_t)
-	corenet_udp_sendrecv_all_ports(telepathy_msn_t)
 ')
 
 tunable_policy(`telepathy_tcp_connect_generic_network_ports',`
-	corenet_tcp_connect_generic_port(telepathy_msn_t)
 	corenet_sendrecv_generic_client_packets(telepathy_msn_t)
+	corenet_tcp_connect_generic_port(telepathy_msn_t)
+	corenet_tcp_sendrecv_generic_port(telepathy_msn_t)
 ')
 
 optional_policy(`
@@ -254,12 +329,17 @@ optional_policy(`
 	')
 ')
 
+# optional_policy(`
+	# ~/.config/dconf/user
+	# gnome_manage_generic_home_content(telepathy_msn_t)
+# ')
+
 #######################################
 #
-# Telepathy Salut local policy.
+# Salut local policy
 #
 
-allow telepathy_salut_t self:tcp_socket create_stream_socket_perms;
+allow telepathy_salut_t self:tcp_socket { accept listen };
 
 manage_sock_files_pattern(telepathy_salut_t, telepathy_salut_tmp_t, telepathy_salut_tmp_t)
 files_tmp_filetrans(telepathy_salut_t, telepathy_salut_tmp_t, sock_file)
@@ -269,21 +349,23 @@ corenet_all_recvfrom_unlabeled(telepathy_salut_t)
 corenet_tcp_sendrecv_generic_if(telepathy_salut_t)
 corenet_tcp_sendrecv_generic_node(telepathy_salut_t)
 corenet_tcp_bind_generic_node(telepathy_salut_t)
-corenet_tcp_bind_presence_port(telepathy_salut_t)
-corenet_tcp_connect_presence_port(telepathy_salut_t)
-corenet_sendrecv_presence_server_packets(telepathy_salut_t)
 
-files_read_etc_files(telepathy_salut_t)
+corenet_sendrecv_presence_server_packets(telepathy_salut_t)
+corenet_tcp_bind_presence_port(telepathy_salut_t)
+corenet_sendrecv_presence_client_packets(telepathy_salut_t)
+corenet_tcp_connect_presence_port(telepathy_salut_t)
+corenet_tcp_sendrecv_presence_port(telepathy_salut_t)
 
 tunable_policy(`telepathy_connect_all_ports',`
+	corenet_sendrecv_all_client_packets(telepathy_salut_t)
 	corenet_tcp_connect_all_ports(telepathy_salut_t)
 	corenet_tcp_sendrecv_all_ports(telepathy_salut_t)
-	corenet_udp_sendrecv_all_ports(telepathy_salut_t)
 ')
 
 tunable_policy(`telepathy_tcp_connect_generic_network_ports',`
-	corenet_tcp_connect_generic_port(telepathy_salut_t)
 	corenet_sendrecv_generic_client_packets(telepathy_salut_t)
+	corenet_tcp_connect_generic_port(telepathy_salut_t)
+	corenet_tcp_sendrecv_generic_port(telepathy_salut_t)
 ')
 
 optional_policy(`
@@ -296,11 +378,11 @@ optional_policy(`
 
 #######################################
 #
-# Telepathy Sofiasip local policy.
+# Sofiasip local policy
 #
 
-allow telepathy_sofiasip_t self:rawip_socket { create_socket_perms listen };
-allow telepathy_sofiasip_t self:tcp_socket create_stream_socket_perms;
+allow telepathy_sofiasip_t self:rawip_socket create_stream_socket_perms;
+allow telepathy_sofiasip_t self:tcp_socket { accept listen };
 
 corenet_all_recvfrom_netlabel(telepathy_sofiasip_t)
 corenet_all_recvfrom_unlabeled(telepathy_sofiasip_t)
@@ -310,42 +392,58 @@ corenet_raw_sendrecv_generic_node(telepathy_sofiasip_t)
 corenet_tcp_sendrecv_generic_node(telepathy_sofiasip_t)
 corenet_tcp_bind_generic_node(telepathy_sofiasip_t)
 corenet_raw_bind_generic_node(telepathy_sofiasip_t)
+
+corenet_sendrecv_all_server_packets(telepathy_sofiasip_t)
 corenet_tcp_bind_all_unreserved_ports(telepathy_sofiasip_t)
+corenet_tcp_sendrecv_all_ports(telepathy_sofiasip_t)
+
 corenet_dontaudit_tcp_bind_all_ports(telepathy_sofiasip_t)
-corenet_tcp_connect_sip_port(telepathy_sofiasip_t)
+
 corenet_sendrecv_sip_client_packets(telepathy_sofiasip_t)
+corenet_tcp_connect_sip_port(telepathy_sofiasip_t)
+corenet_tcp_sendrecv_sip_port(telepathy_sofiasip_t)
 
 kernel_request_load_module(telepathy_sofiasip_t)
 
 tunable_policy(`telepathy_connect_all_ports',`
+	corenet_sendrecv_all_client_packets(telepathy_sofiasip_t)
 	corenet_tcp_connect_all_ports(telepathy_sofiasip_t)
 	corenet_tcp_sendrecv_all_ports(telepathy_sofiasip_t)
-	corenet_udp_sendrecv_all_ports(telepathy_sofiasip_t)
 ')
 
 tunable_policy(`telepathy_tcp_connect_generic_network_ports',`
-	corenet_tcp_connect_generic_port(telepathy_sofiasip_t)
 	corenet_sendrecv_generic_client_packets(telepathy_sofiasip_t)
+	corenet_tcp_connect_generic_port(telepathy_sofiasip_t)
+	corenet_tcp_sendrecv_generic_port(telepathy_sofiasip_t)
 ')
 
 #######################################
 #
-# Telepathy Sunshine local policy.
+# Sunshine local policy
 #
 
 manage_dirs_pattern(telepathy_sunshine_t, telepathy_sunshine_home_t, telepathy_sunshine_home_t)
 manage_files_pattern(telepathy_sunshine_t, telepathy_sunshine_home_t, telepathy_sunshine_home_t)
-userdom_user_home_dir_filetrans(telepathy_sunshine_t, telepathy_sunshine_home_t, { dir file })
-userdom_search_user_home_dirs(telepathy_sunshine_t)
+userdom_user_home_dir_filetrans(telepathy_sunshine_t, telepathy_sunshine_home_t, dir, ".telepathy-sunshine")
 
 manage_files_pattern(telepathy_sunshine_t, telepathy_sunshine_tmp_t, telepathy_sunshine_tmp_t)
-exec_files_pattern(telepathy_sunshine_t, telepathy_sunshine_tmp_t, telepathy_sunshine_tmp_t)
 files_tmp_filetrans(telepathy_sunshine_t, telepathy_sunshine_tmp_t, file)
+
+can_exec(telepathy_sunshine_t, telepathy_sunshine_tmp_t)
 
 corecmd_exec_bin(telepathy_sunshine_t)
 
-files_read_etc_files(telepathy_sunshine_t)
 files_read_usr_files(telepathy_sunshine_t)
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_manage_nfs_dirs(telepathy_sunshine_t)
+	fs_manage_nfs_files(telepathy_sunshine_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_manage_cifs_dirs(telepathy_sunshine_t)
+	fs_manage_cifs_files(telepathy_sunshine_t)
+')
 
 optional_policy(`
 	xserver_read_xdm_pid(telepathy_sunshine_t)
@@ -354,18 +452,23 @@ optional_policy(`
 
 #######################################
 #
-# telepathy domains common policy
+# Common telepathy domain local policy
 #
 
 allow telepathy_domain self:process { getsched signal sigkill };
 allow telepathy_domain self:fifo_file rw_fifo_file_perms;
-allow telepathy_domain self:tcp_socket create_socket_perms;
-allow telepathy_domain self:udp_socket create_socket_perms;
+
+manage_dirs_pattern(telepathy_domain, telepathy_cache_home_t, telepathy_cache_home_t)
+# gnome_cache_filetrans(telepathy_domain, telepathy_cache_home_t, dir, "telepathy")
+
+manage_dirs_pattern(telepathy_domain, telepathy_data_home_t, telepathy_data_home_t)
+# gnome_data_filetrans(telepathy_domain, telepathy_data_home_t, dir, "telepathy")
 
 dev_read_urand(telepathy_domain)
 
 kernel_read_system_state(telepathy_domain)
 
+fs_getattr_all_fs(telepathy_domain)
 fs_search_auto_mountpoints(telepathy_domain)
 
 miscfiles_read_localization(telepathy_domain)
