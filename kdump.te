@@ -15,16 +15,13 @@ files_config_file(kdump_etc_t)
 type kdump_initrc_exec_t;
 init_script_file(kdump_initrc_exec_t)
 
-type kdump_unit_file_t;
+type kdump_unit_file_t alias kdumpctl_unit_file_t;
 systemd_unit_file(kdump_unit_file_t)
 
 type kdumpctl_t;
 type kdumpctl_exec_t;
 init_daemon_domain(kdumpctl_t, kdumpctl_exec_t)
 init_initrc_domain(kdumpctl_t)
-
-type kdumpctl_unit_file_t;
-systemd_unit_file(kdumpctl_unit_file_t)
 
 type kdumpctl_tmp_t;
 files_tmp_file(kdumpctl_tmp_t)
@@ -35,6 +32,7 @@ files_tmp_file(kdumpctl_tmp_t)
 #
 
 allow kdump_t self:capability { sys_boot dac_override };
+allow kdump_t self:capability2 compromise_kernel;
 
 read_files_pattern(kdump_t, kdump_etc_t, kdump_etc_t)
 
@@ -61,7 +59,7 @@ term_use_console(kdump_t)
 
 kdump_domtrans(kdumpctl_t)
 
-allow kdumpctl_t self:capability dac_override;
+allow kdumpctl_t self:capability { dac_override sys_chroot };
 allow kdumpctl_t self:process setfscreate;
 
 allow kdumpctl_t self:fifo_file rw_fifo_file_perms;
@@ -100,10 +98,13 @@ auth_read_passwd(kdumpctl_t)
 
 init_exec(kdumpctl_t)
 systemd_exec_systemctl(kdumpctl_t)
+systemd_read_unit_files(kdumpctl_t)
 
 libs_exec_ld_so(kdumpctl_t)
 
 logging_send_syslog_msg(kdumpctl_t)
+# Need log file from /var/log/dracut.log
+logging_write_generic_logs(kdumpctl_t)
 
 optional_policy(`
         gpg_exec(kdumpctl_t)
