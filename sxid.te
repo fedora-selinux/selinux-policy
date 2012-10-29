@@ -1,4 +1,4 @@
-policy_module(sxid, 1.7.0)
+policy_module(sxid, 1.7.1)
 
 ########################################
 #
@@ -27,7 +27,7 @@ allow sxid_t self:fifo_file rw_fifo_file_perms;
 allow sxid_t self:tcp_socket create_stream_socket_perms;
 allow sxid_t self:udp_socket create_socket_perms;
 
-allow sxid_t sxid_log_t:file manage_file_perms;
+allow sxid_t sxid_log_t:file { append_file_perms create_file_perms setattr_file_perms };
 logging_log_filetrans(sxid_t, sxid_log_t, file)
 
 manage_dirs_pattern(sxid_t, sxid_tmp_t, sxid_tmp_t)
@@ -76,13 +76,17 @@ logging_send_syslog_msg(sxid_t)
 
 miscfiles_read_localization(sxid_t)
 
-mount_exec(sxid_t)
-
 sysnet_read_config(sxid_t)
 
 userdom_dontaudit_use_unpriv_user_fds(sxid_t)
 
-cron_system_entry(sxid_t, sxid_exec_t)
+optional_policy(`
+	cron_system_entry(sxid_t, sxid_exec_t)
+')
+
+optional_policy(`
+	mount_exec(sxid_t)
+')
 
 optional_policy(`
 	mta_send_mail(sxid_t)
