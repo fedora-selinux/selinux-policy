@@ -1,13 +1,13 @@
-## <summary>Dynamic adaptive system tuning daemon</summary>
+## <summary>Dynamic adaptive system tuning daemon.</summary>
 
 ########################################
 ## <summary>
 ##	Execute a domain transition to run tuned.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`tuned_domtrans',`
@@ -15,6 +15,7 @@ interface(`tuned_domtrans',`
 		type tuned_t, tuned_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, tuned_exec_t, tuned_t)
 ')
 
@@ -39,7 +40,7 @@ interface(`tuned_exec',`
 
 ######################################
 ## <summary>
-##	Read tuned PID files.
+##	Read tuned pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -58,7 +59,8 @@ interface(`tuned_read_pid_files',`
 
 #######################################
 ## <summary>
-##	Manage tuned PID files.
+##	Create, read, write, and delete
+##	tuned pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -77,11 +79,12 @@ interface(`tuned_manage_pid_files',`
 
 ########################################
 ## <summary>
-##	Execute tuned server in the tuned domain.
+##	Execute tuned init scripts in
+##	the initrc domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
+##	Domain allowed to transition.
 ##	</summary>
 ## </param>
 #
@@ -95,8 +98,8 @@ interface(`tuned_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an tuned environment
+##	All of the rules required to
+##	administrate an tuned environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -112,8 +115,8 @@ interface(`tuned_initrc_domtrans',`
 #
 interface(`tuned_admin',`
 	gen_require(`
-		type tuned_t, tuned_var_run_t;
-		type tuned_initrc_exec_t;
+		type tuned_t, tuned_var_run_t, tuned_initrc_exec_t;
+		type tuned_etc_t, tuned_rw_etc_t, tuned_log_t;
 	')
 
 	allow $1 tuned_t:process { ptrace signal_perms };
@@ -123,6 +126,12 @@ interface(`tuned_admin',`
 	domain_system_change_exemption($1)
 	role_transition $2 tuned_initrc_exec_t system_r;
 	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, { tuned_etc_t tuned_rw_etc_t })
+
+	logging_search_logs($1)
+	admin_pattern($1, tuned_log_t)
 
 	files_search_pids($1)
 	admin_pattern($1, tuned_var_run_t)
