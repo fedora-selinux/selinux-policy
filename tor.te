@@ -1,4 +1,4 @@
-policy_module(tor, 1.8.2)
+policy_module(tor, 1.8.3)
 
 ########################################
 #
@@ -6,10 +6,10 @@ policy_module(tor, 1.8.2)
 #
 
 ## <desc>
-## <p>
-## Allow tor daemon to bind
-## tcp sockets to all unreserved ports.
-## </p>
+##	<p>
+##	Determine whether tor can bind
+##	tcp sockets to all unreserved ports.
+##	</p>
 ## </desc>
 gen_tunable(tor_bind_all_unreserved_ports, false)
 
@@ -17,57 +17,49 @@ type tor_t;
 type tor_exec_t;
 init_daemon_domain(tor_t, tor_exec_t)
 
-# etc/tor
 type tor_etc_t;
 files_config_file(tor_etc_t)
 
 type tor_initrc_exec_t;
 init_script_file(tor_initrc_exec_t)
 
-# var/lib/tor
 type tor_var_lib_t;
 files_type(tor_var_lib_t)
 
-# log files
 type tor_var_log_t;
 logging_log_file(tor_var_log_t)
 
-# pid files
 type tor_var_run_t;
 files_pid_file(tor_var_run_t)
 init_daemon_run_dir(tor_var_run_t, "tor")
 
 ########################################
 #
-# tor local policy
+# Local policy
 #
 
 allow tor_t self:capability { setgid setuid sys_tty_config };
+allow tor_t self:process signal;
 allow tor_t self:fifo_file rw_fifo_file_perms;
-allow tor_t self:unix_stream_socket create_stream_socket_perms;
-allow tor_t self:netlink_route_socket r_netlink_socket_perms;
-allow tor_t self:tcp_socket create_stream_socket_perms;
+allow tor_t self:unix_stream_socket { accept listen };
+allow tor_t self:tcp_socket { accept listen };
 
-# configuration files
 allow tor_t tor_etc_t:dir list_dir_perms;
-read_files_pattern(tor_t, tor_etc_t, tor_etc_t)
-read_lnk_files_pattern(tor_t, tor_etc_t, tor_etc_t)
+allow tor_t tor_etc_t:file read_file_perms;
+allow tor_t tor_etc_t:lnk_file read_lnk_file_perms;
 
-# var/lib/tor files
 manage_dirs_pattern(tor_t, tor_var_lib_t, tor_var_lib_t)
 manage_files_pattern(tor_t, tor_var_lib_t, tor_var_lib_t)
 manage_sock_files_pattern(tor_t, tor_var_lib_t, tor_var_lib_t)
-files_usr_filetrans(tor_t, tor_var_lib_t, file)
-files_var_filetrans(tor_t, tor_var_lib_t, { file dir sock_file })
-files_var_lib_filetrans(tor_t, tor_var_lib_t, file)
+files_var_lib_filetrans(tor_t, tor_var_lib_t, dir)
 
-# log files
-allow tor_t tor_var_log_t:dir setattr;
-manage_files_pattern(tor_t, tor_var_log_t, tor_var_log_t)
+allow tor_t tor_var_log_t:dir setattr_dir_perms;
+append_files_pattern(tor_t, tor_var_log_t, tor_var_log_t)
+create_files_pattern(tor_t, tor_var_log_t, tor_var_log_t)
+setattr_files_pattern(tor_t, tor_var_log_t, tor_var_log_t)
 manage_sock_files_pattern(tor_t, tor_var_log_t, tor_var_log_t)
 logging_log_filetrans(tor_t, tor_var_log_t, { sock_file file dir })
 
-# pid file
 manage_dirs_pattern(tor_t, tor_var_run_t, tor_var_run_t)
 manage_files_pattern(tor_t, tor_var_run_t, tor_var_run_t)
 manage_sock_files_pattern(tor_t, tor_var_run_t, tor_var_run_t)
@@ -76,34 +68,34 @@ files_pid_filetrans(tor_t, tor_var_run_t, { dir file sock_file })
 kernel_read_net_sysctls(tor_t)
 kernel_read_system_state(tor_t)
 
-# networking basics
 corenet_all_recvfrom_unlabeled(tor_t)
 corenet_all_recvfrom_netlabel(tor_t)
 corenet_tcp_sendrecv_generic_if(tor_t)
 corenet_udp_sendrecv_generic_if(tor_t)
 corenet_tcp_sendrecv_generic_node(tor_t)
 corenet_udp_sendrecv_generic_node(tor_t)
-corenet_tcp_sendrecv_all_ports(tor_t)
-corenet_udp_sendrecv_dns_port(tor_t)
-corenet_tcp_sendrecv_all_reserved_ports(tor_t)
 corenet_tcp_bind_generic_node(tor_t)
 corenet_udp_bind_generic_node(tor_t)
-corenet_tcp_bind_tor_port(tor_t)
-corenet_udp_bind_dns_port(tor_t)
-corenet_sendrecv_tor_server_packets(tor_t)
-corenet_sendrecv_dns_server_packets(tor_t)
-# TOR will need to connect to various ports
-corenet_tcp_connect_all_ports(tor_t)
-corenet_sendrecv_all_client_packets(tor_t)
-# ... especially including port 80 and other privileged ports
-corenet_tcp_connect_all_reserved_ports(tor_t)
 
-# tor uses crypto and needs random
+corenet_sendrecv_dns_server_packets(tor_t)
+corenet_udp_bind_dns_port(tor_t)
+corenet_udp_sendrecv_dns_port(tor_t)
+
+corenet_sendrecv_tor_server_packets(tor_t)
+corenet_tcp_bind_tor_port(tor_t)
+corenet_tcp_sendrecv_tor_port(tor_t)
+
+corenet_sendrecv_all_client_packets(tor_t)
+corenet_tcp_connect_all_ports(tor_t)
+corenet_tcp_connect_all_reserved_ports(tor_t)
+corenet_tcp_sendrecv_all_ports(tor_t)
+corenet_tcp_sendrecv_all_reserved_ports(tor_t)
+
+dev_read_sysfs(tor_t)
 dev_read_urand(tor_t)
 
 domain_use_interactive_fds(tor_t)
 
-files_read_etc_files(tor_t)
 files_read_etc_runtime_files(tor_t)
 files_read_usr_files(tor_t)
 
@@ -113,7 +105,8 @@ logging_send_syslog_msg(tor_t)
 
 miscfiles_read_localization(tor_t)
 
-tunable_policy(`tor_bind_all_unreserved_ports', `
+tunable_policy(`tor_bind_all_unreserved_ports',`
+	corenet_sendrecv_all_server_packets(tor_t)
 	corenet_tcp_bind_all_unreserved_ports(tor_t)
 ')
 
