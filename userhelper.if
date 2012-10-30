@@ -1,4 +1,4 @@
-## <summary>SELinux utility to run a shell with a new role</summary>
+## <summary>A wrapper that helps users run system programs.</summary>
 
 #######################################
 ## <summary>
@@ -23,8 +23,9 @@
 #
 template(`userhelper_role_template',`
 	gen_require(`
-		attribute userhelper_type;
-		type userhelper_exec_t, userhelper_conf_t;
+		attribute userhelper_type, consolehelper_type;
+		attribute_role userhelper_roles, consolehelper_roles;
+		type userhelper_exec_t, consolehelper_exec_t, userhelper_conf_t;
 	')
 
 	########################################
@@ -32,133 +33,62 @@ template(`userhelper_role_template',`
 	# Declarations
 	#
 
+	type $1_consolehelper_t, consolehelper_type;
+	userdom_user_application_domain($1_consolehelper_t, consolehelper_exec_t)
+	
+	role consolehelper_roles types $1_consolehelper_t;
+	roleattribute $2 consolehelper_roles;
+
 	type $1_userhelper_t, userhelper_type;
 	userdom_user_application_domain($1_userhelper_t, userhelper_exec_t)
+
 	domain_role_change_exemption($1_userhelper_t)
 	domain_obj_id_change_exemption($1_userhelper_t)
 	domain_interactive_fd($1_userhelper_t)
 	domain_subj_id_change_exemption($1_userhelper_t)
-	role $2 types $1_userhelper_t;
+	
+	role userhelper_roles types $1_userhelper_t;
+	roleattribute $2 userhelper_roles;
 
 	########################################
 	#
-	# Local policy
+	# Consolehelper local policy
 	#
-	allow $1_userhelper_t self:capability { setuid setgid net_bind_service dac_override chown sys_tty_config };
-	allow $1_userhelper_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
-	allow $1_userhelper_t self:process setexec;
-	allow $1_userhelper_t self:fd use;
-	allow $1_userhelper_t self:fifo_file rw_fifo_file_perms;
-	allow $1_userhelper_t self:shm create_shm_perms;
-	allow $1_userhelper_t self:sem create_sem_perms;
-	allow $1_userhelper_t self:msgq create_msgq_perms;
-	allow $1_userhelper_t self:msg { send receive };
-	allow $1_userhelper_t self:unix_dgram_socket create_socket_perms;
-	allow $1_userhelper_t self:unix_stream_socket create_stream_socket_perms;
-	allow $1_userhelper_t self:unix_dgram_socket sendto;
-	allow $1_userhelper_t self:unix_stream_socket connectto;
-	allow $1_userhelper_t self:sock_file read_sock_file_perms;
 
-	#Transition to the derived domain.
-	domtrans_pattern($3, userhelper_exec_t, $1_userhelper_t)
+	domtrans_pattern($3, consolehelper_exec_t, $1_consolehelper_t)
 
-	allow $1_userhelper_t userhelper_conf_t:dir rw_dir_perms;
-	rw_files_pattern($1_userhelper_t, userhelper_conf_t, userhelper_conf_t)
+	allow $3 $1_consolehelper_t:process { ptrace signal_perms };
+	ps_process_pattern($3, $1_consolehelper_t)
 
-	can_exec($1_userhelper_t, userhelper_exec_t)
+	auth_use_pam($1_consolehelper_t)
 
-	dontaudit $3 $1_userhelper_t:process signal;
+	optional_policy(`
+		dbus_connect_all_session_bus($1_consolehelper_t)
 
-	kernel_read_all_sysctls($1_userhelper_t)
-	kernel_getattr_debugfs($1_userhelper_t)
-	kernel_read_system_state($1_userhelper_t)
-
-	# Execute shells
-	corecmd_exec_shell($1_userhelper_t)
-	# By default, revert to the calling domain when a program is executed
-	corecmd_bin_domtrans($1_userhelper_t, $3)
-
-	# Inherit descriptors from the current session.
-	domain_use_interactive_fds($1_userhelper_t)
-	# for when the user types "exec userhelper" at the command line
-	domain_sigchld_interactive_fds($1_userhelper_t)
-
-	dev_read_urand($1_userhelper_t)
-	# Read /dev directories and any symbolic links.
-	dev_list_all_dev_nodes($1_userhelper_t)
-
-	files_list_var_lib($1_userhelper_t)
-	# Read the /etc/security/default_type file
-	files_read_etc_files($1_userhelper_t)
-	# Read /var.
-	files_read_var_files($1_userhelper_t)
-	files_read_var_symlinks($1_userhelper_t)
-	# for some PAM modules and for cwd
-	files_search_home($1_userhelper_t)
-
-	fs_search_auto_mountpoints($1_userhelper_t)
-	fs_read_nfs_files($1_userhelper_t)
-	fs_read_nfs_symlinks($1_userhelper_t)
-
-	# Allow $1_userhelper to obtain contexts to relabel TTYs
-	selinux_get_fs_mount($1_userhelper_t)
-	selinux_validate_context($1_userhelper_t)
-	selinux_compute_access_vector($1_userhelper_t)
-	selinux_compute_create_context($1_userhelper_t)
-	selinux_compute_relabel_context($1_userhelper_t)
-	selinux_compute_user_contexts($1_userhelper_t)
-
-	# Read the devpts root directory.
-	term_list_ptys($1_userhelper_t)
-	# Relabel terminals.
-	term_relabel_all_ttys($1_userhelper_t)
-	term_relabel_all_ptys($1_userhelper_t)
-	# Access terminals.
-	term_use_all_ttys($1_userhelper_t)
-	term_use_all_ptys($1_userhelper_t)
-
-	auth_domtrans_chk_passwd($1_userhelper_t)
-	auth_manage_pam_pid($1_userhelper_t)
-	auth_manage_var_auth($1_userhelper_t)
-	auth_search_pam_console_data($1_userhelper_t)
-
-	# Inherit descriptors from the current session.
-	init_use_fds($1_userhelper_t)
-	# Write to utmp.
-	init_manage_utmp($1_userhelper_t)
-	init_pid_filetrans_utmp($1_userhelper_t)
-
-	miscfiles_read_localization($1_userhelper_t)
-
-	seutil_read_config($1_userhelper_t)
-	seutil_read_default_contexts($1_userhelper_t)
-
-	# Allow $1_userhelper_t to transition to user domains.
-	userdom_bin_spec_domtrans_unpriv_users($1_userhelper_t)
-	userdom_entry_spec_domtrans_unpriv_users($1_userhelper_t)
-
-	ifdef(`distro_redhat',`
 		optional_policy(`
-			# Allow transitioning to rpm_t, for up2date
-			rpm_domtrans($1_userhelper_t)
+			userhelper_dbus_chat_all_consolehelper($3)
 		')
 	')
 
-	optional_policy(`
-		logging_send_syslog_msg($1_userhelper_t)
-	')
+	########################################
+	#
+	# Userhelper local policy
+	#
 
-	optional_policy(`
-		nis_use_ypbind($1_userhelper_t)
-	')
+	domtrans_pattern($3, userhelper_exec_t, $1_userhelper_t)
 
-	optional_policy(`
-		nscd_socket_use($1_userhelper_t)
-	')
+	dontaudit $3 $1_userhelper_t:process signal;
+
+	corecmd_bin_domtrans($1_userhelper_t, $3)
+
+	auth_domtrans_chk_passwd($1_userhelper_t)
+	auth_use_nsswitch($1_userhelper_t)
+
+	userdom_bin_spec_domtrans_unpriv_users($1_userhelper_t)
+	userdom_entry_spec_domtrans_unpriv_users($1_userhelper_t)
 
 	optional_policy(`
 		tunable_policy(`! secure_mode',`
-			#if we are not in secure mode then we can transition to sysadm_t
 			sysadm_bin_spec_domtrans($1_userhelper_t)
 			sysadm_entry_spec_domtrans($1_userhelper_t)
 		')
@@ -167,7 +97,7 @@ template(`userhelper_role_template',`
 
 ########################################
 ## <summary>
-##	Search the userhelper configuration directory.
+##	Search userhelper configuration directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -186,7 +116,7 @@ interface(`userhelper_search_config',`
 ########################################
 ## <summary>
 ##	Do not audit attempts to search
-##	the userhelper configuration directory.
+##	userhelper configuration directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -204,7 +134,28 @@ interface(`userhelper_dontaudit_search_config',`
 
 ########################################
 ## <summary>
-##	Allow domain to use userhelper file descriptor.
+##	Send and receive messages from
+##	consolehelper over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userhelper_dbus_chat_all_consolehelper',`
+	gen_require(`
+		attribute consolehelper_type;
+		class dbus send_msg;
+	')
+
+	allow $1 consolehelper_type:dbus send_msg;
+	allow consolehelper_type $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Use userhelper all userhelper file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -222,7 +173,7 @@ interface(`userhelper_use_fd',`
 
 ########################################
 ## <summary>
-##	Allow domain to send sigchld to userhelper.
+##	Send child terminated signals to all userhelper.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -253,5 +204,6 @@ interface(`userhelper_exec',`
 		type userhelper_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	can_exec($1, userhelper_exec_t)
 ')
