@@ -1,18 +1,24 @@
-policy_module(tripwire, 1.2.0)
+policy_module(tripwire, 1.2.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role siggen_roles;
+attribute_role tripwire_roles;
+attribute_role twadmin_roles;
+attribute_role twprint_roles;
+
 type siggen_t;
 type siggen_exec_t;
 application_domain(siggen_t, siggen_exec_t)
+role siggen_roles types siggen_t;
 
 type tripwire_t;
 type tripwire_exec_t;
 application_domain(tripwire_t, tripwire_exec_t)
-role system_r types tripwire_t;
+role tripwire_roles types tripwire_t;
 
 type tripwire_etc_t;
 files_config_file(tripwire_etc_t)
@@ -29,24 +35,24 @@ files_type(tripwire_var_lib_t)
 type twadmin_t;
 type twadmin_exec_t;
 application_domain(twadmin_t, twadmin_exec_t)
+role twadmin_roles types twadmin_t;
 
 type twprint_t;
 type twprint_exec_t;
 application_domain(twprint_t, twprint_exec_t)
+role twprint_roles types twprint_t;
 
 ########################################
 #
-# Tripwire local policy
+# Local policy
 #
 
 allow tripwire_t self:capability { setgid setuid dac_override };
 
 allow tripwire_t tripwire_etc_t:dir list_dir_perms;
-read_files_pattern(tripwire_t, tripwire_etc_t, tripwire_etc_t)
-read_lnk_files_pattern(tripwire_t, tripwire_etc_t, tripwire_etc_t)
-files_search_etc(tripwire_t)
+allow tripwire_t tripwire_etc_t:file read_file_perms;
+allow tripwire_t tripwire_etc_t:lnk_file read_lnk_file_perms;
 
-# Tripwire report files
 manage_dirs_pattern(tripwire_t, tripwire_report_t, tripwire_report_t)
 manage_files_pattern(tripwire_t, tripwire_report_t, tripwire_report_t)
 manage_lnk_files_pattern(tripwire_t, tripwire_report_t, tripwire_report_t)
@@ -68,8 +74,8 @@ kernel_getattr_core_if(tripwire_t)
 kernel_getattr_message_if(tripwire_t)
 kernel_read_kernel_sysctls(tripwire_t)
 
-corecmd_exec_shell(tripwire_t)
 corecmd_exec_bin(tripwire_t)
+corecmd_exec_shell(tripwire_t)
 
 domain_use_interactive_fds(tripwire_t)
 
@@ -91,11 +97,13 @@ optional_policy(`
 # Twadmin local policy
 #
 
-manage_dirs_pattern(twadmin_t, tripwire_etc_t, tripwire_etc_t)
-manage_files_pattern(twadmin_t, tripwire_etc_t, tripwire_etc_t)
-manage_lnk_files_pattern(twadmin_t, tripwire_etc_t, tripwire_etc_t)
+allow twadmin_t tripwire_etc_t:dir list_dir_perms;
+allow twadmin_t tripwire_etc_t:file read_file_perms;
+allow twadmin_t tripwire_etc_t:lnk_file read_lnk_file_perms;
 
 domain_use_interactive_fds(twadmin_t)
+
+files_search_etc(twadmin_t)
 
 logging_send_syslog_msg(twadmin_t)
 
@@ -109,19 +117,21 @@ userdom_use_user_terminals(twadmin_t)
 #
 
 allow twprint_t tripwire_etc_t:dir list_dir_perms;
-read_files_pattern(twprint_t, tripwire_etc_t, tripwire_etc_t)
-read_lnk_files_pattern(twprint_t, tripwire_etc_t, tripwire_etc_t)
+allow twprint_t tripwire_etc_t:file read_file_perms;
+allow twprint_t tripwire_etc_t:lnk_file read_lnk_file_perms;
 
 allow twprint_t tripwire_report_t:dir list_dir_perms;
-read_files_pattern(twprint_t, tripwire_report_t, tripwire_report_t)
-read_lnk_files_pattern(twprint_t, tripwire_report_t, tripwire_report_t)
+allow twprint_t tripwire_report_t:file read_file_perms;
+allow twprint_t tripwire_report_t:lnk_file read_lnk_file_perms;
 
 allow twprint_t tripwire_var_lib_t:dir list_dir_perms;
-read_files_pattern(twprint_t, tripwire_var_lib_t, tripwire_var_lib_t)
-read_lnk_files_pattern(twprint_t, tripwire_var_lib_t, tripwire_var_lib_t)
-files_search_var_lib(twprint_t)
+allow twprint_t tripwire_var_lib_t:file read_file_perms;
+allow twprint_t tripwire_var_lib_t:lnk_file read_lnk_file_perms;
 
 domain_use_interactive_fds(twprint_t)
+
+files_search_etc(twprint_t)
+files_search_var_lib(twprint_t)
 
 logging_send_syslog_msg(twprint_t)
 
@@ -136,7 +146,6 @@ userdom_use_user_terminals(twprint_t)
 
 domain_use_interactive_fds(siggen_t)
 
-# Need permission to read files
 files_read_all_files(siggen_t)
 
 logging_send_syslog_msg(siggen_t)
