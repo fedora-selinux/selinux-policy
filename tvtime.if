@@ -1,4 +1,4 @@
-## <summary> tvtime - a high quality television application </summary>
+## <summary>High quality television application.</summary>
 
 ########################################
 ## <summary>
@@ -17,24 +17,22 @@
 #
 interface(`tvtime_role',`
 	gen_require(`
-		type tvtime_t, tvtime_exec_t;
+		attribute_role tvtime_roles;
+		type tvtime_t, tvtime_exec_t, tvtime_tmp_t;
 		type tvtime_home_t, tvtime_tmpfs_t;
 	')
 
-	role $1 types tvtime_t;
+	roleattribute $1 tvtime_roles;
 
-	# Type transition
 	domtrans_pattern($2, tvtime_exec_t, tvtime_t)
 
-	# X access, Home files
-	manage_dirs_pattern($2, tvtime_home_t, tvtime_home_t)
-	manage_files_pattern($2, tvtime_home_t, tvtime_home_t)
-	manage_lnk_files_pattern($2, tvtime_home_t, tvtime_home_t)
-	relabel_dirs_pattern($2, tvtime_home_t, tvtime_home_t)
-	relabel_files_pattern($2, tvtime_home_t, tvtime_home_t)
-	relabel_lnk_files_pattern($2, tvtime_home_t, tvtime_home_t)
-
-	# Allow the user domain to signal/ps.
 	ps_process_pattern($2, tvtime_t)
-	allow $2 tvtime_t:process signal_perms;
+	allow $2 tvtime_t:process { ptrace signal_perms };
+
+	allow $2 { tvtime_home_t tvtime_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { tvtime_home_t tvtime_tmpfs_t tvtime_tmp_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 { tvtime_home_t tvtime_tmpfs_t }:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	allow $2 tvtime_tmpfs_t:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
+	allow $2 tvtime_tmpfs_t:sock_file { manage_sock_file_perms relabel_sock_file_perms };
+	userdom_user_home_dir_filetrans($2, tvtime_home_t, dir, ".tvtime")
 ')

@@ -1,15 +1,18 @@
-policy_module(tvtime, 2.2.0)
+policy_module(tvtime, 2.2.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role tvtime_roles;
+
 type tvtime_t;
 type tvtime_exec_t;
 typealias tvtime_t alias { user_tvtime_t staff_tvtime_t sysadm_tvtime_t };
 typealias tvtime_t alias { auditadm_tvtime_t secadm_tvtime_t };
 userdom_user_application_domain(tvtime_t, tvtime_exec_t)
+role tvtime_roles types tvtime_t;
 
 type tvtime_home_t alias tvtime_rw_t;
 typealias tvtime_home_t alias { user_tvtime_home_t staff_tvtime_home_t sysadm_tvtime_home_t };
@@ -36,7 +39,6 @@ allow tvtime_t self:process setsched;
 allow tvtime_t self:unix_dgram_socket rw_socket_perms;
 allow tvtime_t self:unix_stream_socket rw_stream_socket_perms;
 
-# X access, Home files
 manage_dirs_pattern(tvtime_t, tvtime_home_t, tvtime_home_t)
 manage_files_pattern(tvtime_t, tvtime_home_t, tvtime_home_t)
 manage_lnk_files_pattern(tvtime_t, tvtime_home_t, tvtime_home_t)
@@ -55,30 +57,28 @@ fs_tmpfs_filetrans(tvtime_t, tvtime_tmpfs_t,{ file lnk_file sock_file fifo_file 
 kernel_read_all_sysctls(tvtime_t)
 kernel_get_sysvipc_info(tvtime_t)
 
-dev_read_urand(tvtime_t)
 dev_read_realtime_clock(tvtime_t)
 dev_read_sound(tvtime_t)
+dev_read_urand(tvtime_t)
 
 files_read_usr_files(tvtime_t)
-files_search_pids(tvtime_t)
-# Read /etc/tvtime
-files_read_etc_files(tvtime_t)
 
-# X access, Home files
+fs_getattr_all_fs(tvtime_t)
 fs_search_auto_mountpoints(tvtime_t)
 
-miscfiles_read_localization(tvtime_t)
+auth_use_nsswitch(tvtime_t)
+
 miscfiles_read_fonts(tvtime_t)
+miscfiles_read_localization(tvtime_t)
 
 userdom_use_user_terminals(tvtime_t)
-userdom_read_user_home_content_files(tvtime_t)
 
-# X access, Home files
 tunable_policy(`use_nfs_home_dirs',`
 	fs_manage_nfs_dirs(tvtime_t)
 	fs_manage_nfs_files(tvtime_t)
 	fs_manage_nfs_symlinks(tvtime_t)
 ')
+
 tunable_policy(`use_samba_home_dirs',`
 	fs_manage_cifs_dirs(tvtime_t)
 	fs_manage_cifs_files(tvtime_t)
