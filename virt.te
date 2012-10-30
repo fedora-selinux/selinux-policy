@@ -298,6 +298,7 @@ optional_policy(`
 #
 
 allow virtd_t self:capability { chown dac_override fowner ipc_lock kill mknod net_admin net_raw setpcap setuid setgid sys_admin sys_nice };
+allow virtd_t self:capability2 compromise_kernel;
 allow virtd_t self:process { getcap getsched setcap sigkill signal signull execmem setexec setfscreate setsockcreate setsched };
 ifdef(`hide_broken_symptoms',`
 	# caused by some bogus kernel code
@@ -385,6 +386,7 @@ kernel_rw_net_sysctls(virtd_t)
 kernel_read_kernel_sysctls(virtd_t)
 kernel_request_load_module(virtd_t)
 kernel_search_debugfs(virtd_t)
+kernel_setsched(virtd_t)
 
 corecmd_exec_bin(virtd_t)
 corecmd_exec_shell(virtd_t)
@@ -792,6 +794,9 @@ storage_raw_read_fixed_disk(virsh_t)
 
 term_use_all_inherited_terms(virsh_t)
 
+userdom_search_admin_dir(virsh_t)
+userdom_read_home_certs(virsh_t)
+
 init_stream_connect_script(virsh_t)
 init_rw_script_stream_sockets(virsh_t)
 init_use_fds(virsh_t)
@@ -1061,7 +1066,7 @@ optional_policy(`
 virt_lxc_domain_template(svirt_lxc_net)
 
 allow svirt_lxc_net_t self:capability { chown dac_read_search dac_override fowner fsetid net_raw net_admin net_bind_service sys_admin sys_nice sys_ptrace sys_resource setpcap };
-dontaudit svirt_lxc_net_t self:capability2 { block_suspend };
+dontaudit svirt_lxc_net_t self:capability2 block_suspend;
 
 allow svirt_lxc_net_t self:process setrlimit;
 
@@ -1185,8 +1190,6 @@ files_read_etc_files(virt_qemu_ga_t)
 term_use_virtio_console(virt_qemu_ga_t)
 
 logging_send_syslog_msg(virt_qemu_ga_t)
-
-miscfiles_read_localization(virt_qemu_ga_t)
 
 sysnet_dns_name_resolve(virt_qemu_ga_t)
 
