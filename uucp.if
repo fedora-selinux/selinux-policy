@@ -1,9 +1,8 @@
-## <summary>Unix to Unix Copy</summary>
+## <summary>Unix to Unix Copy.</summary>
 
 ########################################
 ## <summary>
-##	Execute the uucico program in the
-##	uucpd_t domain.
+##	Execute uucico in the uucpd_t domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -16,13 +15,13 @@ interface(`uucp_domtrans',`
 		type uucpd_t, uucpd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, uucpd_exec_t, uucpd_t)
 ')
 
 ########################################
 ## <summary>
-##	Allow the specified domain to append
-##	to uucp log files.
+##	Append uucp log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -42,7 +41,8 @@ interface(`uucp_append_log',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete uucp spool files.
+##	Create, read, write, and delete
+##	uucp spool files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -63,8 +63,7 @@ interface(`uucp_manage_spool',`
 
 ########################################
 ## <summary>
-##	Execute the master uux program in the
-##	uux_t domain.
+##	Execute uux in the uux_t domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -77,17 +76,23 @@ interface(`uucp_domtrans_uux',`
 		type uux_t, uux_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, uux_exec_t, uux_t)
 ')
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an uucp environment
+##	All of the rules required to
+##	administrate an uucp environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -96,8 +101,13 @@ interface(`uucp_admin',`
 	gen_require(`
 		type uucpd_t, uucpd_tmp_t, uucpd_log_t;
 		type uucpd_spool_t, uucpd_ro_t, uucpd_rw_t;
-		type uucpd_var_run_t;
+		type uucpd_var_run_t, uucpd_initrc_exec_t;
 	')
+
+	init_labeled_script_domtrans($1, uucpd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 uucpd_initrc_exec_t system_r;
+	allow $2 system_r;
 
 	allow $1 uucpd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, uucpd_t)
@@ -108,9 +118,7 @@ interface(`uucp_admin',`
 	files_list_spool($1)
 	admin_pattern($1, uucpd_spool_t)
 
-	admin_pattern($1, uucpd_ro_t)
-
-	admin_pattern($1, uucpd_rw_t)
+	admin_pattern($1, { uucpd_rw_t uucpd_ro_t })
 
 	files_list_tmp($1)
 	admin_pattern($1, uucpd_tmp_t)
