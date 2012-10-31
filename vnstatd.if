@@ -15,7 +15,34 @@ interface(`vnstatd_domtrans_vnstat',`
 		type vnstat_t, vnstat_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, vnstat_exec_t, vnstat_t)
+')
+
+########################################
+## <summary>
+##	Execute vnstat in the vnstat domain,
+##	and allow the specified role
+##	the vnstat domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`vnstatd_run_vnstat',`
+	gen_require(`
+		attribute_role vnstat_roles;
+	')
+
+	vnstatd_domtrans_vnstat($1)
+	roleattribute $2 vnstat_roles;
 ')
 
 ########################################
@@ -33,6 +60,7 @@ interface(`vnstatd_domtrans',`
 		type vnstatd_t, vnstatd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, vnstatd_exec_t, vnstatd_t)
 ')
 
@@ -51,13 +79,14 @@ interface(`vnstatd_search_lib',`
 		type vnstatd_var_lib_t;
 	')
 
-	allow $1 vnstatd_var_lib_t:dir search_dir_perms;
 	files_search_var_lib($1)
+	allow $1 vnstatd_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
 ## <summary>
-##	Manage vnstatd lib dirs.
+##	Create, read, write, and delete
+##	vnstatd lib directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -115,8 +144,8 @@ interface(`vnstatd_manage_lib_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an vnstatd environment
+##	All of the rules required to
+##	administrate an vnstatd environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -132,12 +161,23 @@ interface(`vnstatd_manage_lib_files',`
 #
 interface(`vnstatd_admin',`
 	gen_require(`
-		type vnstatd_t, vnstatd_var_lib_t;
+		type vnstatd_t, vnstatd_var_lib_t, vnstatd_initrc_exec_t;
+		type vnstatd_var_run_t;
 	')
 
 	allow $1 vnstatd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, vnstatd_t)
 
+	init_labeled_script_domtrans($1, vnstatd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 vnstatd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, vnstatd_var_run_t)
+
 	files_list_var_lib($1)
 	admin_pattern($1, vnstatd_var_lib_t)
+
+	vnstatd_run_vnstat($1, $2)
 ')

@@ -1,17 +1,23 @@
-policy_module(vnstatd, 1.0.0)
+policy_module(vnstatd, 1.0.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role vnstat_roles;
+
 type vnstat_t;
 type vnstat_exec_t;
 application_domain(vnstat_t, vnstat_exec_t)
+role vnstat_roles types vnstat_t;
 
 type vnstatd_t;
 type vnstatd_exec_t;
 init_daemon_domain(vnstatd_t, vnstatd_exec_t)
+
+type vnstatd_initrc_exec_t;
+init_script_file(vnstatd_initrc_exec_t)
 
 type vnstatd_var_lib_t;
 files_type(vnstatd_var_lib_t)
@@ -21,12 +27,12 @@ files_pid_file(vnstatd_var_run_t)
 
 ########################################
 #
-# vnstatd local policy
+# Daemon local policy
 #
 
 allow vnstatd_t self:process signal;
 allow vnstatd_t self:fifo_file rw_fifo_file_perms;
-allow vnstatd_t self:unix_stream_socket create_stream_socket_perms;
+allow vnstatd_t self:unix_stream_socket { accept listen };
 
 manage_dirs_pattern(vnstatd_t, vnstatd_var_lib_t, vnstatd_var_lib_t)
 manage_files_pattern(vnstatd_t, vnstatd_var_lib_t, vnstatd_var_lib_t)
@@ -49,18 +55,14 @@ logging_send_syslog_msg(vnstatd_t)
 
 miscfiles_read_localization(vnstatd_t)
 
-optional_policy(`
-	cron_system_entry(vnstat_t, vnstat_exec_t)
-')
-
 ########################################
 #
-# vnstat local policy
+# Client local policy
 #
 
 allow vnstat_t self:process signal;
 allow vnstat_t self:fifo_file rw_fifo_file_perms;
-allow vnstat_t self:unix_stream_socket create_stream_socket_perms;
+allow vnstat_t self:unix_stream_socket { accept listen };
 
 manage_dirs_pattern(vnstat_t, vnstatd_var_lib_t, vnstatd_var_lib_t)
 manage_files_pattern(vnstat_t, vnstatd_var_lib_t, vnstatd_var_lib_t)
@@ -78,3 +80,7 @@ fs_getattr_xattr_fs(vnstat_t)
 logging_send_syslog_msg(vnstat_t)
 
 miscfiles_read_localization(vnstat_t)
+
+optional_policy(`
+	cron_system_entry(vnstat_t, vnstat_exec_t)
+')
