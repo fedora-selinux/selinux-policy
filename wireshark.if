@@ -2,43 +2,44 @@
 
 ############################################################
 ## <summary>
-##	Role access for wireshark
+##	Role access for wireshark.
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role
+##	User domain for the role.
 ##	</summary>
 ## </param>
 #
 interface(`wireshark_role',`
 	gen_require(`
-		type wireshark_t, wireshark_exec_t;
-		type wireshark_home_t, wireshark_tmp_t;
-		type wireshark_tmpfs_t;
+		attribute_role wireshark_roles;
+		type wireshark_t, wireshark_exec_t, wireshark_home_t;
+		type wireshark_tmp_t, wireshark_tmpfs_t;
 	')
 
-	role $1 types wireshark_t;
+	roleattribute $1 wireshark_roles;
 
-	domain_auto_trans($2, wireshark_exec_t, wireshark_t)
-	allow wireshark_t $2:fd use;
-	allow wireshark_t $2:process sigchld;
+	domtrans_pattern($2, wireshark_exec_t, wireshark_t)
 
-	manage_dirs_pattern($2, wireshark_home_t, wireshark_home_t)
-	manage_files_pattern($2, wireshark_home_t, wireshark_home_t)
-	manage_lnk_files_pattern($2, wireshark_home_t, wireshark_home_t)
-	relabel_dirs_pattern($2, wireshark_home_t, wireshark_home_t)
-	relabel_files_pattern($2, wireshark_home_t, wireshark_home_t)
-	relabel_lnk_files_pattern($2, wireshark_home_t, wireshark_home_t)
+	allow $2 wireshark_t:process { ptrace signal_perms };
+	ps_process_pattern($2, wireshark_t)
+
+	allow $2 { wireshark_tmp_t wireshark_home_t wireshark_tmpfs_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { wireshark_tmp_t wireshark_home_t wireshark_tmpfs_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 { wireshark_home_t wireshark_tmpfs_t }:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	allow $2 wireshark_tmpfs_t:sock_file { manage_sock_file_perms relabel_sock_file_perms };
+	allow $2 wireshark_tmpfs_t:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
+	userdom_user_home_dir_filetrans($2, wireshark_home_t, dir, ".wireshark")
 ')
 
 ########################################
 ## <summary>
-##	Run wireshark in wireshark domain.
+##	Execute wireshark in wireshark domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -51,5 +52,6 @@ interface(`wireshark_domtrans',`
 		type wireshark_t, wireshark_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, wireshark_exec_t, wireshark_t)
 ')
