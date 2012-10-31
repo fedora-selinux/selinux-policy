@@ -1,9 +1,40 @@
-policy_module(wm, 1.2.2)
+policy_module(wm, 1.2.3)
 
 ########################################
 #
 # Declarations
 #
 
+attribute wm_domain;
+
 type wm_exec_t;
-corecmd_executable_file(wm_exec_t)
+application_executable_file(wm_exec_t)
+
+########################################
+#
+# Common wm domain local policy
+#
+
+allow wm_domain self:fifo_file rw_fifo_file_perms;
+allow wm_domain self:process getsched;
+allow wm_domain self:shm create_shm_perms;
+
+kernel_read_system_state(wm_domain)
+
+dev_read_urand(wm_domain)
+
+files_read_usr_files(wm_domain)
+
+miscfiles_read_fonts(wm_domain)
+miscfiles_read_localization(wm_domain)
+
+userdom_manage_user_tmp_sockets(wm_domain)
+userdom_tmp_filetrans_user_tmp(wm_domain, sock_file)
+
+userdom_manage_user_home_content_dirs(wm_domain)
+userdom_manage_user_home_content_files(wm_domain)
+userdom_user_home_dir_filetrans_user_home_content(wm_domain, { dir file })
+
+optional_policy(`
+	pulseaudio_stream_connect(wm_domain)
+')

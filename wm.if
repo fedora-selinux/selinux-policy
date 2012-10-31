@@ -1,4 +1,4 @@
-## <summary>X Window Managers</summary>
+## <summary>X Window Managers.</summary>
 
 #######################################
 ## <summary>
@@ -29,40 +29,36 @@
 #
 template(`wm_role_template',`
 	gen_require(`
+		attribute wm_domain;
 		type wm_exec_t;
-		class dbus send_msg;
 	')
 
-	type $1_wm_t;
-	domain_type($1_wm_t)
-	domain_entry_file($1_wm_t, wm_exec_t)
+	########################################
+	#
+	# Declarations
+	#
+
+	type $1_wm_t, wm_domain;
+	userdom_user_application_domain($1_wm_t, wm_exec_t)
 	role $2 types $1_wm_t;
 
-	allow $1_wm_t self:fifo_file rw_fifo_file_perms;
-	allow $1_wm_t self:process getsched;
-	allow $1_wm_t self:shm create_shm_perms;
+	########################################
+	#
+	# Policy
+	#
 
 	allow $1_wm_t $3:unix_stream_socket connectto;
 	allow $3 $1_wm_t:unix_stream_socket connectto;
-	allow $3 $1_wm_t:process { signal sigchld signull };
-	allow $1_wm_t $3:process { signull sigkill };
 
-	allow $1_wm_t $3:dbus send_msg;
-	allow $3 $1_wm_t:dbus send_msg;
+	allow $3 $1_wm_t:process { ptrace signal_perms };
+	ps_process_pattern($3, $1_wm_t)
+
+	allow $1_wm_t $3:process { signull sigkill };
 
 	domtrans_pattern($3, wm_exec_t, $1_wm_t)
 
-	kernel_read_system_state($1_wm_t)
-
 	corecmd_bin_domtrans($1_wm_t, $3)
 	corecmd_shell_domtrans($1_wm_t, $3)
-
-	dev_read_urand($1_wm_t)
-
-	files_read_etc_files($1_wm_t)
-	files_read_usr_files($1_wm_t)
-
-	fs_getattr_tmpfs($1_wm_t)
 
 	mls_file_read_all_levels($1_wm_t)
 	mls_file_write_all_levels($1_wm_t)
@@ -72,18 +68,13 @@ template(`wm_role_template',`
 
 	auth_use_nsswitch($1_wm_t)
 
-	application_signull($1_wm_t)
-
-	miscfiles_read_fonts($1_wm_t)
-	miscfiles_read_localization($1_wm_t)
-
 	optional_policy(`
 		dbus_system_bus_client($1_wm_t)
 		dbus_spec_session_bus_client($1, $1_wm_t)
-	')
 
-	optional_policy(`
-		pulseaudio_stream_connect($1_wm_t)
+		optional_policy(`
+			wm_dbus_chat($1, $3)
+		')
 	')
 
 	optional_policy(`
@@ -94,7 +85,7 @@ template(`wm_role_template',`
 
 ########################################
 ## <summary>
-##	Execute the wm program in the wm domain.
+##	Execute wm in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -107,5 +98,33 @@ interface(`wm_exec',`
 		type wm_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	can_exec($1, wm_exec_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	specified wm over dbus.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`wm_dbus_chat',`
+	gen_require(`
+		type $1_wm_t;
+		class dbus send_msg;
+	')
+
+	allow $2 $1_wm_t:dbus send_msg;
+	allow $1_wm_t $2:dbus send_msg;
 ')
