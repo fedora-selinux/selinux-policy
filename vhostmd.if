@@ -1,13 +1,13 @@
-## <summary>Virtual host metrics daemon</summary>
+## <summary>Virtual host metrics daemon.</summary>
 
 ########################################
 ## <summary>
 ##	Execute a domain transition to run vhostmd.
 ## </summary>
 ## <param name="domain">
-## <summary>
+##	<summary>
 ##	Domain allowed to transition.
-## </summary>
+##	</summary>
 ## </param>
 #
 interface(`vhostmd_domtrans',`
@@ -15,12 +15,14 @@ interface(`vhostmd_domtrans',`
 		type vhostmd_t, vhostmd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, vhostmd_exec_t, vhostmd_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute vhostmd server in the vhostmd domain.
+##	Execute vhostmd init scripts in
+##	the initrc domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -38,7 +40,7 @@ interface(`vhostmd_initrc_domtrans',`
 
 ########################################
 ## <summary>
-##	Allow domain to read, vhostmd tmpfs files
+##	Read vhostmd tmpfs files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -51,13 +53,13 @@ interface(`vhostmd_read_tmpfs_files',`
 		type vhostmd_tmpfs_t;
 	')
 
+	fs_search_tmpfs($1)
 	allow $1 vhostmd_tmpfs_t:file read_file_perms;
-	files_search_tmp($1)
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to read,
+##	Do not audit attempts to read
 ##	vhostmd tmpfs files
 ## </summary>
 ## <param name="domain">
@@ -76,7 +78,7 @@ interface(`vhostmd_dontaudit_read_tmpfs_files',`
 
 #######################################
 ## <summary>
-##	Allow domain to read and write vhostmd tmpfs files
+##	Read and write vhostmd tmpfs files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -89,13 +91,14 @@ interface(`vhostmd_rw_tmpfs_files',`
 		type vhostmd_tmpfs_t;
 	')
 
+	fs_search_tmpfs($1)
 	rw_files_pattern($1, vhostmd_tmpfs_t, vhostmd_tmpfs_t)
-	files_search_tmp($1)
 ')
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete vhostmd tmpfs files.
+##	Create, read, write, and delete
+##	vhostmd tmpfs files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -108,13 +111,13 @@ interface(`vhostmd_manage_tmpfs_files',`
 		type vhostmd_tmpfs_t;
 	')
 
+	fs_search_tmpfs($1)
 	manage_files_pattern($1, vhostmd_tmpfs_t, vhostmd_tmpfs_t)
-	files_search_tmp($1)
 ')
 
 ########################################
 ## <summary>
-##	Read vhostmd PID files.
+##	Read vhostmd pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -133,7 +136,8 @@ interface(`vhostmd_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Manage vhostmd var_run files.
+##	Create, read, write, and delete
+##	vhostmd pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -146,12 +150,14 @@ interface(`vhostmd_manage_pid_files',`
 		type vhostmd_var_run_t;
 	')
 
-	 manage_files_pattern($1, vhostmd_var_run_t, vhostmd_var_run_t)
+	files_search_pids($1)
+	manage_files_pattern($1, vhostmd_var_run_t, vhostmd_var_run_t)
 ')
 
 ########################################
 ## <summary>
-##	Connect to vhostmd over an unix domain stream socket.
+##	Connect to vhostmd with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -170,8 +176,8 @@ interface(`vhostmd_stream_connect',`
 
 #######################################
 ## <summary>
-##	Dontaudit read and write to vhostmd
-##	over an unix domain stream socket.
+##	Do not audit attempts to read and
+##	write vhostmd unix domain stream sockets.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -189,8 +195,8 @@ interface(`vhostmd_dontaudit_rw_stream_connect',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an vhostmd environment
+##	All of the rules required to
+##	administrate an vhostmd environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -206,10 +212,11 @@ interface(`vhostmd_dontaudit_rw_stream_connect',`
 #
 interface(`vhostmd_admin',`
 	gen_require(`
-		type vhostmd_t, vhostmd_initrc_exec_t;
+		type vhostmd_t, vhostmd_initrc_exec_t, vhostmd_var_run_t;
+		type vhostmd_tmpfs_t;
 	')
 
-	allow $1 vhostmd_t:process { ptrace signal_perms getattr };
+	allow $1 vhostmd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, vhostmd_t)
 
 	vhostmd_initrc_domtrans($1)
@@ -217,8 +224,9 @@ interface(`vhostmd_admin',`
 	role_transition $2 vhostmd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	vhostmd_manage_tmpfs_files($1)
+	fs_search_tmpfs($1)
+	admin_pattern($1, vhostmd_tmpfs_t)
 
-	vhostmd_manage_pid_files($1)
-
+	files_search_pids($1)
+	admin_pattern($1, vhostmd_var_run_t)
 ')

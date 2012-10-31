@@ -1,4 +1,4 @@
-policy_module(vhostmd, 1.0.0)
+policy_module(vhostmd, 1.0.1)
 
 ########################################
 #
@@ -20,12 +20,12 @@ files_pid_file(vhostmd_var_run_t)
 
 ########################################
 #
-# vhostmd local policy
+# Local policy
 #
 
-allow vhostmd_t self:capability { dac_override ipc_lock	setuid setgid };
-allow vhostmd_t self:process { setsched getsched };
-allow vhostmd_t self:fifo_file rw_file_perms;
+allow vhostmd_t self:capability { dac_override ipc_lock setuid setgid };
+allow vhostmd_t self:process { setsched getsched signal };
+allow vhostmd_t self:fifo_file rw_fifo_file_perms;
 
 manage_dirs_pattern(vhostmd_t, vhostmd_tmpfs_t, vhostmd_tmpfs_t)
 manage_files_pattern(vhostmd_t, vhostmd_tmpfs_t, vhostmd_tmpfs_t)
@@ -33,8 +33,10 @@ fs_tmpfs_filetrans(vhostmd_t, vhostmd_tmpfs_t, { file dir })
 
 manage_dirs_pattern(vhostmd_t, vhostmd_var_run_t, vhostmd_var_run_t)
 manage_files_pattern(vhostmd_t, vhostmd_var_run_t, vhostmd_var_run_t)
-files_pid_filetrans(vhostmd_t, vhostmd_var_run_t, { file dir })
+manage_sock_files_pattern(vhostmd_t, vhostmd_var_run_t, vhostmd_var_run_t)
+files_pid_filetrans(vhostmd_t, vhostmd_var_run_t, { file dir sock_file })
 
+kernel_read_kernel_sysctls(vhostmd_t)
 kernel_read_system_state(vhostmd_t)
 kernel_read_network_state(vhostmd_t)
 kernel_write_xen_state(vhostmd_t)
@@ -42,12 +44,21 @@ kernel_write_xen_state(vhostmd_t)
 corecmd_exec_bin(vhostmd_t)
 corecmd_exec_shell(vhostmd_t)
 
+corenet_all_recvfrom_unlabeled(vhostmd_t)
+corenet_all_recvfrom_netlabel(vhostmd_t)
+corenet_tcp_sendrecv_generic_if(vhostmd_t)
+corenet_tcp_sendrecv_generic_node(vhostmd_t)
+
+corenet_sendrecv_soundd_client_packets(vhostmd_t)
 corenet_tcp_connect_soundd_port(vhostmd_t)
+corenet_tcp_sendrecv_soundd_port(vhostmd_t)
 
-files_read_etc_files(vhostmd_t)
-files_read_usr_files(vhostmd_t)
-
+dev_read_rand(vhostmd_t)
+dev_read_urand(vhostmd_t)
 dev_read_sysfs(vhostmd_t)
+
+files_list_tmp(vhostmd_t)
+files_read_usr_files(vhostmd_t)
 
 auth_use_nsswitch(vhostmd_t)
 
