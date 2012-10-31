@@ -1,60 +1,46 @@
-## <summary>Wine Is Not an Emulator.  Run Windows programs in Linux.</summary>
+## <summary>Run Windows programs in Linux.</summary>
 
-#######################################
+########################################
 ## <summary>
-##	The per role template for the wine module.
+##	Role access for wine.
 ## </summary>
-## <desc>
-##	<p>
-##	This template creates a derived domains which are used
-##	for wine applications.
-##	</p>
-## </desc>
-## <param name="userdomain_prefix">
+## <param name="role">
 ##	<summary>
-##	The prefix of the user domain (e.g., user
-##	is the prefix for user_t).
+##	Role allowed access.
 ##	</summary>
 ## </param>
-## <param name="user_domain">
+## <param name="domain">
 ##	<summary>
-##	The type of the user domain.
-##	</summary>
-## </param>
-## <param name="user_role">
-##	<summary>
-##	The role associated with the user domain.
+##	User domain for the role.
 ##	</summary>
 ## </param>
 #
-template(`wine_role',`
+interface(`wine_role',`
 	gen_require(`
-		type wine_exec_t;
+		attribute_role wine_roles;
+		type wine_exec_t, wine_t, wine_tmp_t;
+		type wine_home_t;
 	')
 
-	role $1 types wine_t;
+	roleattribute $1 wine_roles;
 
-	domain_auto_trans($2, wine_exec_t, wine_t)
-	allow wine_t $2:fd use;
-	allow wine_t $2:process { sigchld signull };
+	domtrans_pattern($2, wine_exec_t, wine_t)
+
 	allow wine_t $2:unix_stream_socket connectto;
+	allow wine_t $2:process signull;
 
-	# Allow the user domain to signal/ps.
 	ps_process_pattern($2, wine_t)
-	allow $2 wine_t:process signal_perms;
+	allow $2 wine_t:process { ptrace signal_perms };
 
 	allow $2 wine_t:fd use;
 	allow $2 wine_t:shm { associate getattr };
-	allow $2 wine_t:shm { unix_read unix_write };
+	allow $2 wine_t:shm rw_shm_perms;
 	allow $2 wine_t:unix_stream_socket connectto;
 
-	# X access, Home files
-	manage_dirs_pattern($2, wine_home_t, wine_home_t)
-	manage_files_pattern($2, wine_home_t, wine_home_t)
-	manage_lnk_files_pattern($2, wine_home_t, wine_home_t)
-	relabel_dirs_pattern($2, wine_home_t, wine_home_t)
-	relabel_files_pattern($2, wine_home_t, wine_home_t)
-	relabel_lnk_files_pattern($2, wine_home_t, wine_home_t)
+	allow $2 { wine_tmp_t wine_home_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { wine_tmp_t wine_home_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 wine_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	userdom_user_home_dir_filetrans($2, wine_home_t, dir, ".wine")
 ')
 
 #######################################
@@ -90,15 +76,17 @@ template(`wine_role_template',`
 	')
 
 	type $1_wine_t;
-	domain_type($1_wine_t)
-	domain_entry_file($1_wine_t, wine_exec_t)
-	ubac_constrained($1_wine_t)
+	userdom_user_application_domain($1_wine_t, wine_exec_t)
 	role $2 types $1_wine_t;
 
 	allow $1_wine_t self:process { execmem execstack };
-	allow $3 $1_wine_t:process { getattr ptrace noatsecure signal_perms };
+
+	allow $3 $1_wine_t:process { ptrace noatsecure signal_perms };
+	ps_process_pattern($3, $1_wine_t)
+
 	domtrans_pattern($3, wine_exec_t, $1_wine_t)
-	corecmd_bin_domtrans($1_wine_t, $1_t)
+
+	corecmd_bin_domtrans($1_wine_t, $3)
 
 	userdom_unpriv_usertype($1, $1_wine_t)
 	userdom_manage_user_tmpfs_files($1_wine_t)
@@ -135,8 +123,9 @@ interface(`wine_domtrans',`
 
 ########################################
 ## <summary>
-##	Execute wine in the wine domain, and
-##	allow the specified role the wine domain.
+##	Execute wine in the wine domain,
+##	and allow the specified role
+##	the wine domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -151,11 +140,11 @@ interface(`wine_domtrans',`
 #
 interface(`wine_run',`
 	gen_require(`
-		type wine_t;
+		attribute_role wine_roles;
 	')
 
 	wine_domtrans($1)
-	role $2 types wine_t;
+	roleattribute $2 wine_roles;
 ')
 
 ########################################

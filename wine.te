@@ -1,4 +1,4 @@
-policy_module(wine, 1.10.0)
+policy_module(wine, 1.10.1)
 
 ########################################
 #
@@ -6,16 +6,24 @@ policy_module(wine, 1.10.0)
 #
 
 ## <desc>
-## <p>
-##	Ignore wine mmap_zero errors.
-## </p>
+##	<p>
+##	Determine whether attempts by
+##	wine to mmap low regions should
+##	be silently blocked.
+##	</p>
 ## </desc>
 gen_tunable(wine_mmap_zero_ignore, false)
+
+attribute_role wine_roles;
+roleattribute system_r wine_roles;
 
 type wine_t;
 type wine_exec_t;
 userdom_user_application_domain(wine_t, wine_exec_t)
-role system_r types wine_t;
+role wine_roles types wine_t;
+
+type wine_home_t;
+userdom_user_home_content(wine_home_t)
 
 type wine_tmp_t;
 userdom_user_tmp_file(wine_tmp_t)
@@ -29,6 +37,8 @@ allow wine_t self:process { execstack execmem execheap };
 allow wine_t self:fifo_file manage_fifo_file_perms;
 
 can_exec(wine_t, wine_exec_t)
+
+userdom_user_home_dir_filetrans(wine_t, wine_home_t, dir, ".wine")
 
 manage_dirs_pattern(wine_t, wine_tmp_t, wine_tmp_t)
 manage_files_pattern(wine_t, wine_tmp_t, wine_tmp_t)
@@ -45,11 +55,19 @@ tunable_policy(`wine_mmap_zero_ignore',`
 ')
 
 optional_policy(`
-	hal_dbus_chat(wine_t)
+	dbus_system_bus_client(wine_t)
+
+	optional_policy(`
+		hal_dbus_chat(wine_t)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(wine_t)
+	')
 ')
 
 optional_policy(`
-	policykit_dbus_chat(wine_t)
+	rtkit_scheduled(wine_t)
 ')
 
 optional_policy(`
