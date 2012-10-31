@@ -1,4 +1,4 @@
-## <summary>policy for vdagent</summary>
+## <summary>Spice agent for Linux.</summary>
 
 ########################################
 ## <summary>
@@ -15,12 +15,13 @@ interface(`vdagent_domtrans',`
 		type vdagent_t, vdagent_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, vdagent_exec_t, vdagent_t)
 ')
 
 #####################################
 ## <summary>
-##	Getattr on vdagent executable.
+##	Get attributes of vdagent executable files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -33,12 +34,12 @@ interface(`vdagent_getattr_exec_files',`
 		type vdagent_exec_t;
 	')
 
-	allow $1 vdagent_exec_t:file getattr;
+	allow $1 vdagent_exec_t:file getattr_file_perms;
 ')
 
 #######################################
 ## <summary>
-##	Get the attributes of vdagent logs.
+##	Get attributes of vdagent log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -57,7 +58,7 @@ interface(`vdagent_getattr_log',`
 
 ########################################
 ## <summary>
-##	Read vdagent PID files.
+##	Read vdagent pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -76,8 +77,8 @@ interface(`vdagent_read_pid_files',`
 
 #####################################
 ## <summary>
-##	Connect to vdagent over a unix domain
-##	stream socket.
+##	Connect to vdagent with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -96,8 +97,8 @@ interface(`vdagent_stream_connect',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an vdagent environment
+##	All of the rules required to
+##	administrate an vdagent environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -113,11 +114,20 @@ interface(`vdagent_stream_connect',`
 #
 interface(`vdagent_admin',`
 	gen_require(`
-		type vdagent_t, vdagent_var_run_t;
+		type vdagent_t, vdagent_var_run_t, vdagentd_initrc_exec_t;
+		type vdagent_log_t;
 	')
 
 	allow $1 vdagent_t:process signal_perms;
 	ps_process_pattern($1, vdagent_t)
+
+	init_labeled_script_domtrans($1, vdagentd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 vdagentd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, vdagent_log_t)
 
 	files_search_pids($1)
 	admin_pattern($1, vdagent_var_run_t)
