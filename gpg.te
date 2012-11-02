@@ -1,4 +1,4 @@
-policy_module(gpg, 2.7.2)
+policy_module(gpg, 2.7.3)
 
 ########################################
 #
@@ -67,6 +67,10 @@ userdom_user_tmp_file(gpg_pinentry_tmp_t)
 
 type gpg_pinentry_tmpfs_t;
 userdom_user_tmpfs_file(gpg_pinentry_tmpfs_t)
+
+optional_policy(`
+	pulseaudio_tmpfs_content(gpg_pinentry_tmpfs_t)
+')
 
 ########################################
 #
@@ -275,7 +279,6 @@ allow gpg_pinentry_t self:process { getcap getsched setsched signal };
 allow gpg_pinentry_t self:fifo_file rw_fifo_file_perms;
 allow gpg_pinentry_t self:shm create_shm_perms;
 allow gpg_pinentry_t self:tcp_socket { accept listen };
-allow gpg_pinentry_t self:unix_dgram_socket sendto;
 
 manage_sock_files_pattern(gpg_pinentry_t, gpg_pinentry_tmp_t, gpg_pinentry_tmp_t)
 userdom_user_tmp_filetrans(gpg_pinentry_t, gpg_pinentry_tmp_t, sock_file)
@@ -296,10 +299,6 @@ corenet_all_recvfrom_unlabeled(gpg_pinentry_t)
 corenet_tcp_sendrecv_generic_if(gpg_pinentry_t)
 corenet_tcp_sendrecv_generic_node(gpg_pinentry_t)
 
-corenet_sendrecv_pulseaudio_client_packets(gpg_pinentry_t)
-corenet_tcp_connect_pulseaudio_port(gpg_pinentry_t)
-corenet_tcp_sendrecv_pulseaudio_port(gpg_pinentry_t)
-
 dev_read_urand(gpg_pinentry_t)
 dev_read_rand(gpg_pinentry_t)
 
@@ -308,7 +307,6 @@ domain_use_interactive_fds(gpg_pinentry_t)
 files_read_usr_files(gpg_pinentry_t)
 
 fs_dontaudit_list_inotifyfs(gpg_pinentry_t)
-fs_getattr_tmpfs(gpg_pinentry_t)
 
 auth_use_nsswitch(gpg_pinentry_t)
 
@@ -317,7 +315,6 @@ logging_send_syslog_msg(gpg_pinentry_t)
 miscfiles_read_fonts(gpg_pinentry_t)
 miscfiles_read_localization(gpg_pinentry_t)
 
-userdom_read_user_home_content_files(gpg_pinentry_t)
 userdom_use_user_terminals(gpg_pinentry_t)
 
 tunable_policy(`use_nfs_home_dirs',`
@@ -334,11 +331,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	pulseaudio_exec(gpg_pinentry_t)
-	pulseaudio_rw_home_files(gpg_pinentry_t)
-	pulseaudio_setattr_home_dir(gpg_pinentry_t)
-	pulseaudio_stream_connect(gpg_pinentry_t)
-	pulseaudio_signull(gpg_pinentry_t)
+	pulseaudio_run(gpg_pinentry_t, gpg_pinentry_roles)
 ')
 
 optional_policy(`

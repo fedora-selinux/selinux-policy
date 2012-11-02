@@ -1,4 +1,4 @@
-policy_module(mozilla, 2.7.1)
+policy_module(mozilla, 2.7.2)
 
 ########################################
 #
@@ -43,6 +43,10 @@ userdom_user_tmp_file(mozilla_plugin_tmp_t)
 type mozilla_plugin_tmpfs_t;
 userdom_user_tmpfs_file(mozilla_plugin_tmpfs_t)
 
+optional_policy(`
+	pulseaudio_tmpfs_content(mozilla_plugin_tmpfs_t)
+')
+
 type mozilla_plugin_rw_t;
 files_type(mozilla_plugin_rw_t)
 
@@ -58,6 +62,10 @@ type mozilla_tmpfs_t;
 typealias mozilla_tmpfs_t alias { user_mozilla_tmpfs_t staff_mozilla_tmpfs_t sysadm_mozilla_tmpfs_t };
 typealias mozilla_tmpfs_t alias { auditadm_mozilla_tmpfs_t secadm_mozilla_tmpfs_t };
 userdom_user_tmpfs_file(mozilla_tmpfs_t)
+
+optional_policy(`
+	pulseaudio_tmpfs_content(mozilla_tmpfs_t)
+')
 
 ########################################
 #
@@ -283,7 +291,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	pulseaudio_role(mozilla_roles, mozilla_t)
+	pulseaudio_run(mozilla_t, mozilla_roles)
 ')
 
 optional_policy(`
@@ -302,10 +310,8 @@ allow mozilla_plugin_t self:netlink_kobject_uevent_socket create_socket_perms;
 allow mozilla_plugin_t self:sem create_sem_perms;
 allow mozilla_plugin_t self:shm create_shm_perms;
 allow mozilla_plugin_t self:tcp_socket { accept listen };
-allow mozilla_plugin_t self:unix_dgram_socket sendto;
 allow mozilla_plugin_t self:unix_stream_socket { accept connectto listen };
 
-allow mozilla_plugin_t mozilla_t:process signull;
 allow mozilla_plugin_t mozilla_t:unix_stream_socket rw_socket_perms;
 allow mozilla_plugin_t mozilla_t:unix_dgram_socket rw_socket_perms;
 allow mozilla_plugin_t mozilla_t:shm { rw_shm_perms destroy };
@@ -453,7 +459,6 @@ term_getattr_all_ttys(mozilla_plugin_t)
 term_getattr_all_ptys(mozilla_plugin_t)
 
 application_exec(mozilla_plugin_t)
-application_dontaudit_signull(mozilla_plugin_t)
 
 auth_use_nsswitch(mozilla_plugin_t)
 
@@ -553,7 +558,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	pulseaudio_role(mozilla_plugin_roles, mozilla_plugin_t)
+	pulseaudio_run(mozilla_plugin_t, mozilla_plugin_roles)
 ')
 
 optional_policy(`

@@ -1,4 +1,4 @@
-policy_module(mpd, 1.0.2)
+policy_module(mpd, 1.0.3)
 
 ########################################
 #
@@ -52,6 +52,10 @@ files_tmp_file(mpd_tmp_t)
 type mpd_tmpfs_t;
 files_tmpfs_file(mpd_tmpfs_t)
 
+optional_policy(`
+	pulseaudio_tmpfs_content(mpd_tmpfs_t)
+')
+
 type mpd_var_lib_t;
 files_type(mpd_var_lib_t)
 
@@ -89,7 +93,7 @@ manage_sock_files_pattern(mpd_t, mpd_tmp_t, mpd_tmp_t)
 files_tmp_filetrans(mpd_t, mpd_tmp_t, { dir file sock_file })
 
 allow mpd_t mpd_tmpfs_t:file manage_file_perms;
-fs_tmpfs_filetrans(mpd_t, mpd_tmpfs_t, file )
+fs_tmpfs_filetrans(mpd_t, mpd_tmpfs_t, file)
 
 allow mpd_t mpd_user_data_t:dir list_dir_perms;
 allow mpd_t mpd_user_data_t:file read_file_perms;
@@ -130,17 +134,13 @@ corenet_sendrecv_http_cache_client_packets(mpd_t)
 corenet_tcp_connect_http_cache_port(mpd_t)
 corenet_tcp_sendrecv_http_cache_port(mpd_t)
 
-corenet_sendrecv_pulseaudio_client_packets(mpd_t)
-corenet_tcp_connect_pulseaudio_port(mpd_t)
-corenet_tcp_sendrecv_pulseaudio_port(mpd_t)
-
 dev_read_sound(mpd_t)
 dev_write_sound(mpd_t)
 dev_read_sysfs(mpd_t)
 
 files_read_usr_files(mpd_t)
 
-fs_getattr_tmpfs(mpd_t)
+fs_getattr_all_fs(mpd_t)
 fs_list_inotifyfs(mpd_t)
 fs_rw_anon_inodefs_files(mpd_t)
 fs_search_auto_mountpoints(mpd_t)
@@ -156,26 +156,22 @@ tunable_policy(`mpd_enable_homedirs',`
 ')
 
 tunable_policy(`mpd_enable_homedirs && use_nfs_home_dirs',`
-	fs_getattr_nfs(mpd_t)
 	fs_read_nfs_files(mpd_t)
 	fs_read_nfs_symlinks(mpd_t)
 ')
 
 tunable_policy(`mpd_enable_homedirs && use_samba_home_dirs',`
-	fs_getattr_cifs(mpd_t)
 	fs_read_cifs_files(mpd_t)
 	fs_read_cifs_symlinks(mpd_t)
 ')
 
 tunable_policy(`mpd_use_cifs',`
-	fs_getattr_cifs(mpd_t)
 	fs_manage_cifs_dirs(mpd_t)
 	fs_manage_cifs_files(mpd_t)
 	fs_manage_cifs_symlinks(mpd_t)
 ')
 
 tunable_policy(`mpd_use_nfs',`
-	fs_getattr_nfs(mpd_t)
 	fs_manage_nfs_dirs(mpd_t)
 	fs_manage_nfs_files(mpd_t)
 	fs_manage_nfs_symlinks(mpd_t)
@@ -194,17 +190,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-	pulseaudio_exec(mpd_t)
-	pulseaudio_stream_connect(mpd_t)
-	pulseaudio_signull(mpd_t)
+	pulseaudio_domtrans(mpd_t)
 ')
 
 optional_policy(`
 	rpc_search_nfs_state_data(mpd_t)
-')
-
-optional_policy(`
-	rtkit_daemon_dbus_chat(mpd_t)
 ')
 
 optional_policy(`

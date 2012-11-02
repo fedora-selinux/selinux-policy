@@ -1,4 +1,4 @@
-policy_module(mplayer, 2.4.2)
+policy_module(mplayer, 2.4.3)
 
 ########################################
 #
@@ -42,6 +42,10 @@ type mplayer_tmpfs_t;
 typealias mplayer_tmpfs_t alias { user_mplayer_tmpfs_t staff_mplayer_tmpfs_t sysadm_mplayer_tmpfs_t };
 typealias mplayer_tmpfs_t alias { auditadm_mplayer_tmpfs_t secadm_mplayer_tmpfs_t };
 userdom_user_tmpfs_file(mplayer_tmpfs_t)
+
+optional_policy(`
+	pulseaudio_tmpfs_content(mplayer_tmpfs_t)
+')
 
 ########################################
 #
@@ -126,7 +130,6 @@ tunable_policy(`use_samba_home_dirs',`
 allow mplayer_t self:process { signal_perms getsched };
 allow mplayer_t self:fifo_file rw_fifo_file_perms;
 allow mplayer_t self:sem create_sem_perms;
-allow mplayer_t self:unix_dgram_socket sendto;
 
 allow mplayer_t mplayer_etc_t:dir list_dir_perms;
 allow mplayer_t mplayer_etc_t:file read_file_perms;
@@ -148,15 +151,6 @@ kernel_dontaudit_getattr_unlabeled_files(mplayer_t)
 kernel_dontaudit_read_unlabeled_files(mplayer_t)
 kernel_read_system_state(mplayer_t)
 kernel_read_kernel_sysctls(mplayer_t)
-
-corenet_all_recvfrom_netlabel(mplayer_t)
-corenet_all_recvfrom_unlabeled(mplayer_t)
-corenet_tcp_sendrecv_generic_if(mplayer_t)
-corenet_tcp_sendrecv_generic_node(mplayer_t)
-
-corenet_sendrecv_pulseaudio_client_packets(mplayer_t)
-corenet_tcp_connect_pulseaudio_port(mplayer_t)
-corenet_tcp_sendrecv_pulseaudio_port(mplayer_t)
 
 corecmd_exec_bin(mplayer_t)
 corecmd_exec_shell(mplayer_t)
@@ -250,7 +244,5 @@ optional_policy(`
 ')
 
 optional_policy(`
-	pulseaudio_exec(mplayer_t)
-	pulseaudio_stream_connect(mplayer_t)
-	pulseaudio_signull(mplayer_t)
+	pulseaudio_run(mplayer_t, mplayer_roles)
 ')
