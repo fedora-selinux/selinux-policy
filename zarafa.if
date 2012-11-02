@@ -1,53 +1,55 @@
 ## <summary>Zarafa collaboration platform.</summary>
 
-######################################
+#######################################
 ## <summary>
-##	Creates types and rules for a basic
-##	zararfa init daemon domain.
+##	The template to define a zarafa domain.
 ## </summary>
-## <param name="prefix">
+## <param name="domain_prefix">
 ##	<summary>
-##	Prefix for the domain.
+##	Domain prefix to be used.
 ##	</summary>
 ## </param>
 #
 template(`zarafa_domain_template',`
 	gen_require(`
-		attribute zarafa_domain;
+		attribute zarafa_domain, zarafa_logfile, zarafa_pidfile;
 	')
 
-	##############################
+	########################################
 	#
-	# $1_t declarations
+	# Declarations
 	#
 
 	type zarafa_$1_t, zarafa_domain;
 	type zarafa_$1_exec_t;
 	init_daemon_domain(zarafa_$1_t, zarafa_$1_exec_t)
 
-	type zarafa_$1_log_t;
+	type zarafa_$1_log_t, zarafa_logfile;
 	logging_log_file(zarafa_$1_log_t)
 
-	type zarafa_$1_var_run_t;
+	type zarafa_$1_var_run_t, zarafa_pidfile;
 	files_pid_file(zarafa_$1_var_run_t)
 
-	##############################
+	########################################
 	#
-	# $1_t local policy
+	# Policy
 	#
 
 	manage_files_pattern(zarafa_$1_t, zarafa_$1_var_run_t, zarafa_$1_var_run_t)
 	manage_sock_files_pattern(zarafa_$1_t, zarafa_$1_var_run_t, zarafa_$1_var_run_t)
 	files_pid_filetrans(zarafa_$1_t, zarafa_$1_var_run_t, { file sock_file })
 
-	manage_files_pattern(zarafa_$1_t, zarafa_$1_log_t, zarafa_$1_log_t)
-	logging_log_filetrans(zarafa_$1_t, zarafa_$1_log_t, { file })
+	append_files_pattern(zarafa_$1_t, zarafa_$1_log_t, zarafa_$1_log_t)
+	create_files_pattern(zarafa_$1_t, zarafa_$1_log_t, zarafa_$1_log_t)
+	setattr_files_pattern(zarafa_$1_t, zarafa_$1_log_t, zarafa_$1_log_t)
+	logging_log_filetrans(zarafa_$1_t, zarafa_$1_log_t, file)
+
+	auth_use_nsswitch(zarafa_$1_t)
 ')
 
 ######################################
 ## <summary>
-##	Allow the specified domain to search
-##	zarafa configuration dirs.
+##	search zarafa configuration directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -66,7 +68,7 @@ interface(`zarafa_search_config',`
 
 ########################################
 ## <summary>
-##	Execute a domain transition to run zarafa_deliver.
+##	Execute a domain transition to run zarafa deliver.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -79,12 +81,13 @@ interface(`zarafa_domtrans_deliver',`
 		type zarafa_deliver_t, zarafa_deliver_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, zarafa_deliver_exec_t, zarafa_deliver_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute a domain transition to run zarafa_server.
+##	Execute a domain transition to run zarafa server.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -97,12 +100,14 @@ interface(`zarafa_domtrans_server',`
 		type zarafa_server_t, zarafa_server_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, zarafa_server_exec_t, zarafa_server_t)
 ')
 
 #######################################
 ## <summary>
-##	Connect to zarafa-server unix domain stream socket.
+##	Connect to zarafa server with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -117,4 +122,53 @@ interface(`zarafa_stream_connect_server',`
 
 	files_search_var_lib($1)
 	stream_connect_pattern($1, zarafa_server_var_run_t, zarafa_server_var_run_t, zarafa_server_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an zarafa environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`zarafa_admin',`
+	gen_require(`
+		attribute zarafa_domain, zarafa_logfile, zarafa_pidfile;
+		type zarafa_etc_t, zarafa_initrc_exec_t, zarafa_deliver_tmp_t;
+		type zarafa_indexer_tmp_t, zarafa_server_tmp_t, zarafa_share_t;
+		type zarafa_var_lib_t;
+	')
+
+	allow $1 zarafa_domain:process { ptrace signal_perms };
+	ps_process_pattern($1, zarafa_domain)
+
+	init_labeled_script_domtrans($1, zarafa_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 zarafa_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, zarafa_etc_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, { zarafa_deliver_tmp_t zarafa_indexer_tmp_t zarafa_server_tmp_t })
+
+	logging_search_log($1)
+	admin_pattern($1, zarafa_logfile)
+
+	files_search_var_lib($1)
+	admin_pattern($1, { zarafa_var_lib_t zarafa_share_t })
+
+	files_search_pids($1)
+	admin_pattern($1, zarafa_pidfile)
 ')
