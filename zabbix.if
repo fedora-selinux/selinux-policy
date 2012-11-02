@@ -1,4 +1,4 @@
-## <summary>Distributed infrastructure monitoring</summary>
+## <summary>Distributed infrastructure monitoring.</summary>
 
 ########################################
 ## <summary>
@@ -15,12 +15,13 @@ interface(`zabbix_domtrans',`
 		type zabbix_t, zabbix_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, zabbix_exec_t, zabbix_t)
 ')
 
 ########################################
 ## <summary>
-## 	Allow connectivity to the zabbix server
+##	Connect to zabbit on the TCP network.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -41,7 +42,7 @@ interface(`zabbix_tcp_connect',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read zabbix's log files.
+##	Read zabbix log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -61,13 +62,12 @@ interface(`zabbix_read_log',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to append
-##	zabbix log files.
+##	Append zabbix log files.
 ## </summary>
 ## <param name="domain">
-## 	<summary>
+##	<summary>
 ##	Domain allowed access.
-## 	</summary>
+##	</summary>
 ## </param>
 #
 interface(`zabbix_append_log',`
@@ -81,7 +81,7 @@ interface(`zabbix_append_log',`
 
 ########################################
 ## <summary>
-##	Read zabbix PID files.
+##	Read zabbix pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -100,7 +100,7 @@ interface(`zabbix_read_pid_files',`
 
 ########################################
 ## <summary>
-## 	Allow connectivity to a zabbix agent
+##	Connect to zabbix agent on the TCP network.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -121,8 +121,8 @@ interface(`zabbix_agent_tcp_connect',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an zabbix environment
+##	All of the rules required to
+##	administrate an zabbix environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -131,7 +131,7 @@ interface(`zabbix_agent_tcp_connect',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the zabbix domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -139,15 +139,16 @@ interface(`zabbix_agent_tcp_connect',`
 interface(`zabbix_admin',`
 	gen_require(`
 		type zabbix_t, zabbix_log_t, zabbix_var_run_t;
-		type zabbix_initrc_exec_t;
+		type zabbix_initrc_exec_t, zabbit_agent_initrc_exec_t, zabbix_tmp_t;
+		type zabbit_tmpfs_t;
 	')
 
-	allow $1 zabbix_t:process { ptrace signal_perms };
-	ps_process_pattern($1, zabbix_t)
+	allow $1 { zabbix_t zabbix_agent_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { zabbix_t zabbix_agent_t })
 
-	init_labeled_script_domtrans($1, zabbix_initrc_exec_t)
+	init_labeled_script_domtrans($1, { zabbix_agent_initrc_exec_t zabbix_initrc_exec_t })
 	domain_system_change_exemption($1)
-	role_transition $2 zabbix_initrc_exec_t system_r;
+	role_transition $2 { zabbix_agent_initrc_exec_t zabbix_initrc_exec_t } system_r;
 	allow $2 system_r;
 
 	logging_list_logs($1)
@@ -155,4 +156,10 @@ interface(`zabbix_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, zabbix_var_run_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, zabbix_tmp_t)
+
+	fs_list_tmpfs($1)
+	admin_pattern($1, zabbix_tmpfs_t)
 ')
