@@ -1,4 +1,4 @@
-policy_module(cgroup, 1.1.2)
+policy_module(cgroup, 1.1.3)
 
 ########################################
 #
@@ -37,7 +37,7 @@ files_config_file(cgconfig_etc_t)
 
 ########################################
 #
-# cgclear personal policy.
+# cgclear local policy
 #
 
 allow cgclear_t self:capability { dac_read_search dac_override sys_admin };
@@ -54,18 +54,16 @@ fs_unmount_cgroup(cgclear_t)
 
 ########################################
 #
-# cgconfig personal policy.
+# cgconfig local policy
 #
 
 allow cgconfig_t self:capability { dac_override fowner fsetid chown sys_admin sys_tty_config };
 
 allow cgconfig_t cgconfig_etc_t:file read_file_perms;
 
-# search will do.
 kernel_list_unlabeled(cgconfig_t)
 kernel_read_system_state(cgconfig_t)
 
-# /etc/nsswitch.conf, /etc/passwd
 files_read_etc_files(cgconfig_t)
 
 fs_manage_cgroup_dirs(cgconfig_t)
@@ -76,7 +74,7 @@ fs_unmount_cgroup(cgconfig_t)
 
 ########################################
 #
-# cgred personal policy.
+# cgred local policy
 #
 
 allow cgred_t self:capability { chown fsetid net_admin sys_admin sys_ptrace dac_override };
@@ -85,14 +83,14 @@ allow cgred_t self:unix_dgram_socket { write create connect };
 
 allow cgred_t cgrules_etc_t:file read_file_perms;
 
-allow cgred_t cgred_log_t:file manage_file_perms;
+allow cgred_t cgred_log_t:file { append_file_perms create_file_perms setattr_file_perms };
 logging_log_filetrans(cgred_t, cgred_log_t, file)
 
-# rc script creates pid file
 manage_files_pattern(cgred_t, cgred_var_run_t, cgred_var_run_t)
 manage_sock_files_pattern(cgred_t, cgred_var_run_t, cgred_var_run_t)
 files_pid_filetrans(cgred_t, cgred_var_run_t, { file sock_file })
 
+kernel_read_all_sysctls(cgred_t)
 kernel_read_system_state(cgred_t)
 
 domain_read_all_domains_state(cgred_t)
@@ -101,7 +99,6 @@ domain_setpriority_all_domains(cgred_t)
 files_getattr_all_files(cgred_t)
 files_getattr_all_sockets(cgred_t)
 files_read_all_symlinks(cgred_t)
-# /etc/group
 files_read_etc_files(cgred_t)
 
 fs_write_cgroup_files(cgred_t)
