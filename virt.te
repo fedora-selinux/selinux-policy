@@ -7,6 +7,20 @@ policy_module(virt, 1.5.0)
 
 attribute virsh_transition_domain;
 attribute virt_ptynode;
+attribute virt_domain;
+attribute virt_image_type;
+attribute virt_tmpfs_type;
+
+type svirt_tmp_t;
+files_tmp_file(svirt_tmp_t)
+
+type svirt_tmpfs_t, virt_tmpfs_type;
+files_tmpfs_file(svirt_tmpfs_t)
+
+type svirt_image_t, virt_image_type;
+files_type(svirt_image_t)
+dev_node(svirt_image_t)
+dev_associate_sysfs(svirt_image_t)
 
 ## <desc>
 ## <p>
@@ -82,12 +96,8 @@ virt_domain_template(svirt)
 role system_r types svirt_t;
 typealias svirt_t alias qemu_t;
 
-virt_domain_template(svirt_prot_exec)
-role system_r types svirt_prot_exec_t;
-
-attribute virt_domain;
-attribute virt_image_type;
-attribute virt_tmpfs_type;
+virt_domain_template(svirt_nokvm)
+role system_r types svirt_nokvm_t;
 
 type qemu_exec_t;
 
@@ -201,23 +211,6 @@ files_mountpoint(svirt_lxc_file_t)
 #
 # svirt local policy
 #
-
-allow svirt_t self:udp_socket create_socket_perms;
-
-read_lnk_files_pattern(svirt_t, virt_image_t, virt_image_t)
-
-allow svirt_t svirt_image_t:dir search_dir_perms;
-manage_dirs_pattern(svirt_t, svirt_image_t, svirt_image_t)
-manage_files_pattern(svirt_t, svirt_image_t, svirt_image_t)
-manage_fifo_files_pattern(svirt_t, svirt_image_t, svirt_image_t)
-manage_sock_files_pattern(svirt_t, svirt_image_t, svirt_image_t)
-fs_hugetlbfs_filetrans(svirt_t, svirt_image_t, file)
-
-list_dirs_pattern(svirt_t, virt_content_t, virt_content_t)
-read_files_pattern(svirt_t, virt_content_t, virt_content_t)
-dontaudit svirt_t virt_content_t:file write_file_perms;
-dontaudit svirt_t virt_content_t:dir write;
-
 corenet_udp_sendrecv_generic_if(svirt_t)
 corenet_udp_sendrecv_generic_node(svirt_t)
 corenet_udp_sendrecv_all_ports(svirt_t)
@@ -226,82 +219,23 @@ corenet_udp_bind_all_ports(svirt_t)
 corenet_tcp_bind_all_ports(svirt_t)
 corenet_tcp_connect_all_ports(svirt_t)
 
-dev_list_sysfs(svirt_t)
-
-fs_getattr_xattr_fs(svirt_t)
-
-userdom_search_user_home_content(svirt_t)
-userdom_read_user_home_content_symlinks(svirt_t)
-userdom_read_all_users_state(svirt_t)
-append_files_pattern(svirt_t, virt_home_t, virt_home_t)
-manage_dirs_pattern(svirt_t, svirt_home_t, svirt_home_t)
-manage_files_pattern(svirt_t, svirt_home_t, svirt_home_t)
-manage_sock_files_pattern(svirt_t, svirt_home_t, svirt_home_t)
-filetrans_pattern(svirt_t, virt_home_t, svirt_home_t, { dir sock_file file })
-stream_connect_pattern(svirt_t, svirt_home_t, svirt_home_t, virtd_t)
-
-tunable_policy(`virt_use_comm',`
-	term_use_unallocated_ttys(svirt_t)
-	dev_rw_printer(svirt_t)
-')
-
-tunable_policy(`virt_use_fusefs',`
-	fs_manage_fusefs_dirs(svirt_t)
-	fs_manage_fusefs_files(svirt_t)
-	fs_read_fusefs_symlinks(svirt_t)
-	fs_getattr_fusefs(svirt_t)
-')
-
-tunable_policy(`virt_use_nfs',`
-	fs_manage_nfs_dirs(svirt_t)
-	fs_manage_nfs_files(svirt_t)
-	fs_manage_nfs_named_sockets(svirt_t)
-	fs_read_nfs_symlinks(svirt_t)
-	fs_getattr_nfs(svirt_t)
-')
-
-tunable_policy(`virt_use_samba',`
-	fs_manage_cifs_dirs(svirt_t)
-	fs_manage_cifs_files(svirt_t)
-	fs_manage_cifs_named_sockets(svirt_t)
-	fs_read_cifs_symlinks(virtd_t)
-	fs_getattr_cifs(svirt_t)
-')
-
-tunable_policy(`virt_use_sysfs',`
-	dev_rw_sysfs(svirt_t)
-')
-
-tunable_policy(`virt_use_usb',`
-	dev_rw_usbfs(svirt_t)
-	dev_read_sysfs(svirt_t)
-	fs_manage_dos_dirs(svirt_t)
-	fs_manage_dos_files(svirt_t)
-')
-
-optional_policy(`
-    tunable_policy(`virt_use_sanlock',`
-        sanlock_stream_connect(svirt_t)
-    ')
-')
-
-tunable_policy(`virt_use_rawip',`
-	allow svirt_t self:rawip_socket create_socket_perms;
-')
-
-optional_policy(`
-	tunable_policy(`virt_use_xserver',`
-		xserver_stream_connect(svirt_t)
-	')
-')
-
-optional_policy(`
-	virt_domtrans_bridgehelper(svirt_t)
-')
-
 optional_policy(`
 	xen_rw_image_files(svirt_t)
 ')
+
+#######################################
+#
+# svirt_prot_exec local policy
+#
+
+allow svirt_nokvm_t self:process { execmem execstack };
+corenet_udp_sendrecv_generic_if(svirt_nokvm_t)
+corenet_udp_sendrecv_generic_node(svirt_nokvm_t)
+corenet_udp_sendrecv_all_ports(svirt_nokvm_t)
+corenet_udp_bind_generic_node(svirt_nokvm_t)
+corenet_udp_bind_all_ports(svirt_nokvm_t)
+corenet_tcp_bind_all_ports(svirt_nokvm_t)
+corenet_tcp_connect_all_ports(svirt_nokvm_t)
 
 ########################################
 #
@@ -633,17 +567,53 @@ optional_policy(`
 #
 # virtual domains common policy
 #
-
 allow virt_domain self:process { signal getsched signull };
 allow virt_domain self:fifo_file rw_fifo_file_perms;
 allow virt_domain self:shm create_shm_perms;
 allow virt_domain self:unix_stream_socket create_stream_socket_perms;
 allow virt_domain self:unix_dgram_socket { create_socket_perms sendto };
 allow virt_domain self:tcp_socket create_stream_socket_perms;
+allow virt_domain self:udp_socket create_socket_perms;
+
+list_dirs_pattern(virt_domain, virt_content_t, virt_content_t)
+read_files_pattern(virt_domain, virt_content_t, virt_content_t)
+dontaudit virt_domain virt_content_t:file write_file_perms;
+dontaudit virt_domain virt_content_t:dir write;
+
+userdom_search_user_home_content(virt_domain)
+userdom_read_user_home_content_symlinks(virt_domain)
+userdom_read_all_users_state(virt_domain)
+append_files_pattern(virt_domain, virt_home_t, virt_home_t)
+manage_dirs_pattern(virt_domain, svirt_home_t, svirt_home_t)
+manage_files_pattern(virt_domain, svirt_home_t, svirt_home_t)
+manage_sock_files_pattern(virt_domain, svirt_home_t, svirt_home_t)
+filetrans_pattern(virt_domain, virt_home_t, svirt_home_t, { dir sock_file file })
+stream_connect_pattern(virt_domain, svirt_home_t, svirt_home_t, virtd_t)
 
 manage_dirs_pattern(virt_domain, virt_cache_t, virt_cache_t)
 manage_files_pattern(virt_domain, virt_cache_t, virt_cache_t)
 files_var_filetrans(virt_domain, virt_cache_t, { file dir })
+
+read_lnk_files_pattern(virt_domain, virt_image_t, virt_image_t)
+
+manage_dirs_pattern(virt_domain, svirt_image_t, svirt_image_t)
+manage_files_pattern(virt_domain, svirt_image_t, svirt_image_t)
+manage_fifo_files_pattern(virt_domain, svirt_image_t, svirt_image_t)
+read_lnk_files_pattern(virt_domain, svirt_image_t, svirt_image_t)
+rw_chr_files_pattern(virt_domain, svirt_image_t, svirt_image_t)
+rw_blk_files_pattern(virt_domain, svirt_image_t, svirt_image_t)
+fs_hugetlbfs_filetrans(virt_domain, svirt_image_t, file)
+
+manage_dirs_pattern(virt_domain, svirt_tmp_t, svirt_tmp_t)
+manage_files_pattern(virt_domain, svirt_tmp_t, svirt_tmp_t)
+manage_lnk_files_pattern(virt_domain, svirt_tmp_t, svirt_tmp_t)
+files_tmp_filetrans(virt_domain, svirt_tmp_t, { file dir lnk_file })
+userdom_user_tmp_filetrans(virt_domain, svirt_tmp_t, { dir file lnk_file })
+
+manage_dirs_pattern(virt_domain, svirt_tmpfs_t, svirt_tmpfs_t)
+manage_files_pattern(virt_domain, svirt_tmpfs_t, svirt_tmpfs_t)
+manage_lnk_files_pattern(virt_domain, svirt_tmpfs_t, svirt_tmpfs_t)
+fs_tmpfs_filetrans(virt_domain, svirt_tmpfs_t, { dir file lnk_file })
 
 manage_dirs_pattern(virt_domain, qemu_var_run_t, qemu_var_run_t)
 manage_files_pattern(virt_domain, qemu_var_run_t, qemu_var_run_t)
@@ -660,8 +630,6 @@ append_files_pattern(virt_domain, virt_log_t, virt_log_t)
 
 append_files_pattern(virt_domain, virt_var_lib_t, virt_var_lib_t)
 
-fs_getattr_xattr_fs(virt_domain)
-
 corecmd_exec_bin(virt_domain)
 corecmd_exec_shell(virt_domain)
 
@@ -674,6 +642,7 @@ corenet_tcp_bind_virt_migration_port(virt_domain)
 corenet_tcp_connect_virt_migration_port(virt_domain)
 corenet_rw_inherited_tun_tap_dev(virt_domain)
 
+dev_list_sysfs(virt_domain)
 dev_getattr_fs(virt_domain)
 dev_read_generic_symlinks(virt_domain)
 dev_read_rand(virt_domain)
@@ -692,6 +661,7 @@ files_read_usr_files(virt_domain)
 files_read_var_files(virt_domain)
 files_search_all(virt_domain)
 
+fs_getattr_xattr_fs(virt_domain)
 fs_getattr_tmpfs(virt_domain)
 fs_rw_anon_inodefs_files(virt_domain)
 fs_rw_tmpfs_files(virt_domain)
@@ -730,6 +700,66 @@ optional_policy(`
 	virt_read_lib_files(virt_domain)
 	virt_read_content(virt_domain)
 	virt_stream_connect(virt_domain)
+	virt_domtrans_bridgehelper(virt_domain)
+')
+
+optional_policy(`
+	xserver_rw_shm(virt_domain)
+')
+
+tunable_policy(`virt_use_comm',`
+	term_use_unallocated_ttys(virt_domain)
+	dev_rw_printer(virt_domain)
+')
+
+tunable_policy(`virt_use_fusefs',`
+	fs_manage_fusefs_dirs(virt_domain)
+	fs_manage_fusefs_files(virt_domain)
+	fs_read_fusefs_symlinks(virt_domain)
+	fs_getattr_fusefs(virt_domain)
+')
+
+tunable_policy(`virt_use_nfs',`
+	fs_manage_nfs_dirs(virt_domain)
+	fs_manage_nfs_files(virt_domain)
+	fs_manage_nfs_named_sockets(virt_domain)
+	fs_read_nfs_symlinks(virt_domain)
+	fs_getattr_nfs(virt_domain)
+')
+
+tunable_policy(`virt_use_samba',`
+	fs_manage_cifs_dirs(virt_domain)
+	fs_manage_cifs_files(virt_domain)
+	fs_manage_cifs_named_sockets(virt_domain)
+	fs_read_cifs_symlinks(virt_domain)
+	fs_getattr_cifs(virt_domain)
+')
+
+tunable_policy(`virt_use_sysfs',`
+	dev_rw_sysfs(virt_domain)
+')
+
+tunable_policy(`virt_use_usb',`
+	dev_rw_usbfs(virt_domain)
+	dev_read_sysfs(virt_domain)
+	fs_manage_dos_dirs(virt_domain)
+	fs_manage_dos_files(virt_domain)
+')
+
+optional_policy(`
+    tunable_policy(`virt_use_sanlock',`
+        sanlock_stream_connect(virt_domain)
+    ')
+')
+
+tunable_policy(`virt_use_rawip',`
+	allow virt_domain self:rawip_socket create_socket_perms;
+')
+
+optional_policy(`
+	tunable_policy(`virt_use_xserver',`
+		xserver_stream_connect(virt_domain)
+	')
 ')
 
 ########################################
@@ -748,7 +778,7 @@ allow virsh_t self:fifo_file rw_fifo_file_perms;
 allow virsh_t self:unix_stream_socket { create_stream_socket_perms connectto };
 allow virsh_t self:tcp_socket create_stream_socket_perms;
 
-ps_process_pattern(virsh_t, virt_lxc_domain)
+ps_process_pattern(virsh_t, svirt_lxc_domain)
 
 can_exec(virsh_t, virsh_exec_t)
 virt_domtrans(virsh_t)
@@ -1126,13 +1156,6 @@ rpm_read_db(svirt_lxc_net_t)
 logging_send_audit_msgs(svirt_lxc_net_t)
 
 userdom_use_inherited_user_ptys(svirt_lxc_net_t)
-
-#######################################
-#
-# svirt_prot_exec local policy
-#
-
-allow svirt_prot_exec_t self:process { execmem execstack };
 
 ########################################
 #
