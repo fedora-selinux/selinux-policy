@@ -169,6 +169,7 @@ interface(`cron_unconfined_role',`
 interface(`cron_admin_role',`
 	gen_require(`
 		type cronjob_t, crontab_exec_t, admin_crontab_t, admin_crontab_tmp_t;
+		type user_cron_spool_t, crond_t;
 		class passwd crontab;
 	')
 
@@ -189,6 +190,14 @@ interface(`cron_admin_role',`
 	tunable_policy(`deny_ptrace',`',`
 		allow $2 admin_crontab_t:process ptrace;
 	')
+
+	allow $2 crond_t:process sigchld;
+	allow crond_t $2:process transition;
+
+	dontaudit crond_t $2:process { noatsecure siginh rlimitinh };
+
+	# needs to be authorized SELinux context for cron
+	allow $2 user_cron_spool_t:file entrypoint;
 
 	# Run helper programs as the user domain
 	#corecmd_bin_domtrans(admin_crontab_t, $2)
