@@ -5,6 +5,13 @@ policy_module(awstats, 1.4.0)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow awstats to purge Apache logs
+## </p>
+## </desc>
+gen_tunable(awstats_purge_apache_log, false)
+
 type awstats_t;
 type awstats_exec_t;
 domain_type(awstats_t)
@@ -53,10 +60,15 @@ libs_read_lib_files(awstats_t)
 
 logging_read_generic_logs(awstats_t)
 
-
 sysnet_dns_name_resolve(awstats_t)
 
-apache_read_log(awstats_t)
+tunable_policy(`awstats_purge_apache_log',`
+    apache_write_log(awstats_t)
+')
+
+optional_policy(`
+	apache_read_log(awstats_t)
+')
 
 optional_policy(`
 	cron_system_entry(awstats_t, awstats_exec_t)
