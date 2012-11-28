@@ -1,9 +1,17 @@
-policy_module(awstats, 1.4.3)
+policy_module(awstats, 1.4.4)
 
 ########################################
 #
 # Declarations
 #
+
+## <desc>
+##	<p>
+##	Determine whether awstats can
+##	purge httpd log files.
+##	</p>
+## </desc>
+gen_tunable(awstats_purge_apache_log_files, false)
 
 type awstats_t;
 type awstats_exec_t;
@@ -57,7 +65,13 @@ miscfiles_read_localization(awstats_t)
 
 sysnet_dns_name_resolve(awstats_t)
 
-apache_read_log(awstats_t)
+tunable_policy(`awstats_purge_apache_log_files',`
+	apache_write_log(awstats_t)
+')
+
+optional_policy(`
+	apache_read_log(awstats_t)
+')
 
 optional_policy(`
 	cron_system_entry(awstats_t, awstats_exec_t)
