@@ -1,4 +1,4 @@
-policy_module(virt, 1.6.4)
+policy_module(virt, 1.6.5)
 
 ########################################
 #
@@ -169,6 +169,8 @@ files_pid_file(virtd_lxc_var_run_t)
 
 type svirt_lxc_file_t;
 files_mountpoint(svirt_lxc_file_t)
+fs_noxattr_type(svirt_lxc_file_t)
+term_pty(svirt_lxc_file_t)
 
 virt_lxc_domain_template(svirt_lxc_net)
 
@@ -1025,7 +1027,6 @@ kernel_dontaudit_search_kernel_sysctl(svirt_lxc_domain)
 
 corecmd_exec_all_executables(svirt_lxc_domain)
 
-files_read_kernel_modules(svirt_lxc_net_t)
 files_dontaudit_getattr_all_dirs(svirt_lxc_domain)
 files_dontaudit_getattr_all_files(svirt_lxc_domain)
 files_dontaudit_getattr_all_symlinks(svirt_lxc_domain)
@@ -1087,6 +1088,7 @@ allow svirt_lxc_net_t self:netlink_route_socket nlmsg_write;
 allow svirt_lxc_net_t self:packet_socket create_socket_perms;
 allow svirt_lxc_net_t self:socket create_socket_perms;
 allow svirt_lxc_net_t self:rawip_socket create_socket_perms;
+allow svirt_lxc_net_t self:netlink_socket create_socket_perms;
 allow svirt_lxc_net_t self:netlink_tcpdiag_socket create_socket_perms;
 allow svirt_lxc_net_t self:netlink_kobject_uevent_socket create_socket_perms;
 
@@ -1111,22 +1113,22 @@ corenet_tcp_bind_all_ports(svirt_lxc_net_t)
 corenet_sendrecv_all_client_packets(svirt_lxc_net_t)
 corenet_tcp_connect_all_ports(svirt_lxc_net_t)
 
-dev_read_sysfs(svirt_lxc_net_t)
 dev_getattr_mtrr_dev(svirt_lxc_net_t)
+dev_read_rand(svirt_lxc_net_t)
+dev_read_sysfs(svirt_lxc_net_t)
+dev_read_urand(svirt_lxc_net_t)
 
-fs_noxattr_type(svirt_lxc_file_t)
+files_read_kernel_modules(svirt_lxc_net_t)
 
-term_pty(svirt_lxc_file_t)
+fs_mount_cgroup(svirt_lxc_net_t)
+fs_manage_cgroup_dirs(svirt_lxc_net_t)
+fs_rw_cgroup_files(svirt_lxc_net_t)
 
 auth_use_nsswitch(svirt_lxc_net_t)
 
 logging_send_audit_msgs(svirt_lxc_net_t)
 
 userdom_use_user_ptys(svirt_lxc_net_t)
-
-fs_mount_cgroup(svirt_lxc_net_t)
-fs_manage_cgroup_dirs(svirt_lxc_net_t)
-fs_rw_cgroup_files(svirt_lxc_net_t)
 
 optional_policy(`
 	rpm_read_db(svirt_lxc_net_t)
