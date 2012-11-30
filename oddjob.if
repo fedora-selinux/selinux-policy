@@ -147,3 +147,41 @@ interface(`oddjob_run_mkhomedir',`
 	oddjob_domtrans_mkhomedir($1)
 	role $2 types oddjob_mkhomedir_t;
 ')
+
+########################################
+## <summary>
+##	Create a domain which can be started by init,
+##	with a range transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Type to be used as a domain.
+##	</summary>
+## </param>
+## <param name="entry_point">
+##	<summary>
+##	Type of the program to be used as an entry point to this domain.
+##	</summary>
+## </param>
+## <param name="range">
+##	<summary>
+##	Range for the domain.
+##	</summary>
+## </param>
+#
+interface(`oddjob_ranged_domain',`
+	gen_require(`
+		type oddjob_t;
+	')
+
+	oddjob_system_entry($1, $2)
+
+	ifdef(`enable_mcs',`
+		range_transition oddjob_t $2:process $3;
+	')
+
+	ifdef(`enable_mls',`
+		range_transition oddjob_t $2:process $3;
+		mls_rangetrans_target($1)
+	')
+')
