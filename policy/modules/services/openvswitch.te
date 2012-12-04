@@ -1,0 +1,83 @@
+policy_module(openvswitch, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type openvswitch_t;
+type openvswitch_exec_t;
+init_daemon_domain(openvswitch_t, openvswitch_exec_t)
+
+type openvswitch_rw_t;
+files_config_file(openvswitch_rw_t)
+
+type openvswitch_var_lib_t;
+files_type(openvswitch_var_lib_t)
+
+type openvswitch_log_t;
+logging_log_file(openvswitch_log_t)
+
+type openvswitch_var_run_t;
+files_pid_file(openvswitch_var_run_t)
+
+type openvswitch_unit_file_t;
+systemd_unit_file(openvswitch_unit_file_t)
+
+########################################
+#
+# openvswitch local policy
+#
+
+allow openvswitch_t self:capability { net_admin ipc_lock sys_nice sys_resource };
+allow openvswitch_t self:process { fork setsched setrlimit signal };
+allow openvswitch_t self:fifo_file rw_fifo_file_perms;
+allow openvswitch_t self:unix_stream_socket { create_stream_socket_perms connectto };
+allow openvswitch_t self:netlink_socket create_socket_perms;
+
+can_exec(openvswitch_t, openvswitch_exec_t)
+
+manage_dirs_pattern(openvswitch_t, openvswitch_rw_t, openvswitch_rw_t)
+manage_files_pattern(openvswitch_t, openvswitch_rw_t, openvswitch_rw_t)
+manage_lnk_files_pattern(openvswitch_t, openvswitch_rw_t, openvswitch_rw_t)
+
+manage_dirs_pattern(openvswitch_t, openvswitch_var_lib_t, openvswitch_var_lib_t)
+manage_files_pattern(openvswitch_t, openvswitch_var_lib_t, openvswitch_var_lib_t)
+manage_lnk_files_pattern(openvswitch_t, openvswitch_var_lib_t, openvswitch_var_lib_t)
+files_var_lib_filetrans(openvswitch_t, openvswitch_var_lib_t, { dir file lnk_file })
+
+manage_dirs_pattern(openvswitch_t, openvswitch_log_t, openvswitch_log_t)
+manage_files_pattern(openvswitch_t, openvswitch_log_t, openvswitch_log_t)
+manage_lnk_files_pattern(openvswitch_t, openvswitch_log_t, openvswitch_log_t)
+logging_log_filetrans(openvswitch_t, openvswitch_log_t, { dir file lnk_file })
+
+manage_dirs_pattern(openvswitch_t, openvswitch_var_run_t, openvswitch_var_run_t)
+manage_files_pattern(openvswitch_t, openvswitch_var_run_t, openvswitch_var_run_t)
+manage_sock_files_pattern(openvswitch_t, openvswitch_var_run_t, openvswitch_var_run_t)
+manage_lnk_files_pattern(openvswitch_t, openvswitch_var_run_t, openvswitch_var_run_t)
+files_pid_filetrans(openvswitch_t, openvswitch_var_run_t, { dir file lnk_file })
+
+kernel_read_network_state(openvswitch_t)
+kernel_read_system_state(openvswitch_t)
+
+corecmd_exec_bin(openvswitch_t)
+
+dev_read_urand(openvswitch_t)
+
+domain_use_interactive_fds(openvswitch_t)
+
+files_read_etc_files(openvswitch_t)
+
+fs_getattr_all_fs(openvswitch_t)
+fs_search_cgroup_dirs(openvswitch_t)
+
+auth_read_passwd(openvswitch_t)
+
+logging_send_syslog_msg(openvswitch_t)
+
+sysnet_dns_name_resolve(openvswitch_t)
+
+optional_policy(`
+	iptables_domtrans(openvswitch_t)
+')
+
