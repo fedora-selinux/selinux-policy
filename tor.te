@@ -13,6 +13,13 @@ policy_module(tor, 1.8.0)
 ## </desc>
 gen_tunable(tor_bind_all_unreserved_ports, false)
 
+## <desc>
+## <p>
+## Allow tor to act as a relay
+## </p>
+## </desc>
+gen_tunable(tor_can_network_relay, false)
+
 type tor_t;
 type tor_exec_t;
 init_daemon_domain(tor_t, tor_exec_t)
@@ -78,6 +85,7 @@ files_pid_filetrans(tor_t, tor_var_run_t, { dir file sock_file })
 
 kernel_read_system_state(tor_t)
 kernel_read_net_sysctls(tor_t)
+kernel_read_kernel_sysctls(tor_t)
 
 # networking basics
 corenet_all_recvfrom_netlabel(tor_t)
@@ -117,6 +125,12 @@ logging_send_syslog_msg(tor_t)
 
 tunable_policy(`tor_bind_all_unreserved_ports', `
 	corenet_tcp_bind_all_unreserved_ports(tor_t)
+')
+
+tunable_policy(`tor_can_network_relay',`
+    # allow httpd to work as a relay
+	corenet_tcp_connect_all_ephemeral_ports(tor_t)
+	corenet_tcp_bind_http_port(tor_t)
 ')
 
 optional_policy(`
