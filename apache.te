@@ -357,7 +357,6 @@ role system_r types httpd_passwd_t;
 
 type httpd_gpg_t;
 domain_type(httpd_gpg_t)
-gpg_entry_type(httpd_gpg_t)
 role system_r types httpd_gpg_t;
 
 optional_policy(`
@@ -581,10 +580,6 @@ tunable_policy(`httpd_enable_cgi',`
 	allow httpd_t httpd_script_exec_type:dir list_dir_perms;
 ')
 
-tunable_policy(`httpd_enable_cgi && httpd_use_gpg',`
-	gpg_spec_domtrans(httpd_t, httpd_gpg_t)
-')
-
 tunable_policy(`httpd_enable_cgi && httpd_use_nfs',`
 	fs_nfs_domtrans(httpd_t, httpd_sys_script_t)
 ')
@@ -669,6 +664,12 @@ tunable_policy(`httpd_graceful_shutdown',`
 	corenet_sendrecv_http_client_packets(httpd_t)
 	corenet_tcp_connect_http_port(httpd_t)
 	corenet_tcp_sendrecv_http_port(httpd_t)
+')
+
+optional_policy(`
+	tunable_policy(`httpd_enable_cgi && httpd_use_gpg',`
+		gpg_spec_domtrans(httpd_t, httpd_gpg_t)
+	')
 ')
 
 optional_policy(`
@@ -1393,12 +1394,15 @@ files_read_usr_files(httpd_gpg_t)
 
 miscfiles_read_localization(httpd_gpg_t)
 
-gpg_exec(httpd_gpg_t)
-
 tunable_policy(`httpd_gpg_anon_write',`
 	miscfiles_manage_public_files(httpd_gpg_t)
 ')
 
 optional_policy(`
 	apache_manage_sys_rw_content(httpd_gpg_t)
+')
+
+optional_policy(`
+	gpg_entry_type(httpd_gpg_t)
+	gpg_exec(httpd_gpg_t)
 ')
