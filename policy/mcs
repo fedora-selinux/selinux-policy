@@ -175,15 +175,17 @@ mlsconstrain { tcp_socket udp_socket rawip_socket } node_bind
 # the node recvfrom/sendto ops, the recvfrom permission is a "write" operation
 # because the subject in this particular case is the remote domain which is
 # writing data out the network node which is acting as the object
-mlsconstrain { node } { recvfrom }
-	((( l1 dom l2 ) and ( l1 domby h2 )) or
-	 ( t1 == mcsnetwrite ) or
-	 ( t1 == unlabeled_t ));
-mlsconstrain { node } { sendto }
-	((( l1 dom l2 ) and ( l1 domby h2 )) or
-	 ( t1 == mcsnetwrite ));
+mlsconstrain { node } { recvfrom sendto }
+	(( l1 dom l2 ) or (t1 != mcsuntrustedproc));
 
-mlsconstrain packet { send recv }
-	(( h1 dom h2 ) or ( t1 == mcsnetwrite ));
+mlsconstrain { packet peer } { recv }
+	(( l1 dom l2 ) or
+	 ((t1 != mcsuntrustedproc) and (t2 != mcsuntrustedproc)));
+
+# the netif ingress/egress ops, the ingress permission is a "write" operation
+# because the subject in this particular case is the remote domain which is
+# writing data out the network interface which is acting as the object
+mlsconstrain { netif } { egress ingress }
+	     	(( l1 dom l2 ) or (t1 != mcsuntrustedproc));
 
 ') dnl end enable_mcs
