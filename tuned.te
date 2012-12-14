@@ -1,4 +1,4 @@
-policy_module(tuned, 1.1.2)
+policy_module(tuned, 1.1.4)
 
 ########################################
 #
@@ -35,8 +35,10 @@ allow tuned_t self:process { setsched signal };
 allow tuned_t self:fifo_file rw_fifo_file_perms;
 
 read_files_pattern(tuned_t, tuned_etc_t, tuned_etc_t)
+exec_files_pattern(tuned_t, tuned_etc_t, tuned_etc_t)
 
 manage_files_pattern(tuned_t, tuned_etc_t, tuned_rw_etc_t)
+files_etc_filetrans(tuned_t, tuned_rw_etc_t, file, "active_profile")
 
 manage_dirs_pattern(tuned_t, tuned_log_t, tuned_log_t)
 append_files_pattern(tuned_t, tuned_log_t, tuned_log_t)
@@ -51,6 +53,7 @@ files_pid_filetrans(tuned_t, tuned_var_run_t, { dir file })
 kernel_read_system_state(tuned_t)
 kernel_read_network_state(tuned_t)
 kernel_read_kernel_sysctls(tuned_t)
+kernel_request_load_module(tuned_t)
 kernel_rw_kernel_sysctl(tuned_t)
 kernel_rw_hotplug_sysctls(tuned_t)
 kernel_rw_vm_sysctls(tuned_t)
@@ -74,6 +77,8 @@ logging_send_syslog_msg(tuned_t)
 
 miscfiles_read_localization(tuned_t)
 
+udev_read_pid_files(tuned_t)
+
 userdom_dontaudit_search_user_home_dirs(tuned_t)
 
 optional_policy(`
@@ -86,4 +91,8 @@ optional_policy(`
 
 optional_policy(`
 	sysnet_domtrans_ifconfig(tuned_t)
+')
+
+optional_policy(`
+	unconfined_dbus_send(tuned_t)
 ')
