@@ -1,4 +1,4 @@
-policy_module(xen, 1.12.4)
+policy_module(xen, 1.12.5)
 
 ########################################
 #
@@ -163,7 +163,7 @@ files_pid_filetrans(evtchnd_t, evtchnd_var_run_t, { file sock_file dir })
 # xend local policy
 #
 
-allow xend_t self:capability { dac_override ipc_lock net_admin setuid sys_admin sys_nice sys_tty_config net_raw sys_resource };
+allow xend_t self:capability { dac_override ipc_lock net_admin setuid sys_admin sys_nice sys_tty_config net_raw sys_resource sys_rawio };
 dontaudit xend_t self:capability { sys_ptrace };
 allow xend_t self:process { setrlimit signal sigkill };
 dontaudit xend_t self:process ptrace;
@@ -175,9 +175,13 @@ allow xend_t self:tun_socket create_socket_perms;
 
 allow xend_t xen_image_t:dir list_dir_perms;
 manage_dirs_pattern(xend_t, xen_image_t, xen_image_t)
+manage_fifo_files_pattern(xend_t, xen_image_t, xen_image_t)
 manage_files_pattern(xend_t, xen_image_t, xen_image_t)
 read_lnk_files_pattern(xend_t, xen_image_t, xen_image_t)
+read_sock_files_pattern(xend_t, xen_image_t, xen_image_t)
+rw_chr_files_pattern(xend_t, xen_image_t, xen_image_t)
 rw_blk_files_pattern(xend_t, xen_image_t, xen_image_t)
+fs_hugetlbfs_filetrans(xend_t, xen_image_t, file)
 
 allow xend_t xenctl_t:fifo_file manage_fifo_file_perms;
 dev_filetrans(xend_t, xenctl_t, fifo_file)
@@ -272,8 +276,11 @@ files_search_mnt(xend_t)
 fs_getattr_all_fs(xend_t)
 fs_list_auto_mountpoints(xend_t)
 fs_read_dos_files(xend_t)
+fs_read_removable_blk_files(xend_t)
 fs_manage_xenfs_dirs(xend_t)
 fs_manage_xenfs_files(xend_t)
+
+storage_read_scsi_generic(xend_t)
 
 term_setattr_generic_ptys(xend_t)
 term_getattr_all_ptys(xend_t)
@@ -314,7 +321,7 @@ tunable_policy(`xen_use_nfs',`
 ')
 
 tunable_policy(`xen_use_samba',`
-	fs_manage_cifs_files(xend_t)
+	fs_manage_cifs_dirs(xend_t)
 	fs_manage_cifs_files(xend_t)
 	fs_read_cifs_symlinks(xend_t)
 ')
@@ -473,9 +480,9 @@ manage_files_pattern(xm_t, xend_var_lib_t, xend_var_lib_t)
 manage_fifo_files_pattern(xm_t, xend_var_lib_t, xend_var_lib_t)
 manage_sock_files_pattern(xm_t, xend_var_lib_t, xend_var_lib_t)
 
-allow xm_t xen_image_t:dir rw_dir_perms;
-allow xm_t xen_image_t:file read_file_perms;
-allow xm_t xen_image_t:blk_file read_blk_file_perms;
+manage_files_pattern(xm_t, xen_image_t, xen_image_t)
+manage_blk_files_pattern(xm_t, xen_image_t, xen_image_t)
+manage_lnk_files_pattern(xm_t, xen_image_t, xen_image_t)
 
 read_files_pattern(xm_t, xenstored_var_run_t, xenstored_var_run_t)
 
@@ -550,7 +557,7 @@ tunable_policy(`xen_use_nfs',`
 ')
 
 tunable_policy(`xen_use_samba',`
-	fs_manage_cifs_files(xm_t)
+	fs_manage_cifs_dirs(xm_t)
 	fs_manage_cifs_files(xm_t)
 	fs_read_cifs_symlinks(xm_t)
 ')
