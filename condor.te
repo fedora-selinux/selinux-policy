@@ -19,6 +19,9 @@ type condor_master_t, condor_domain;
 type condor_master_exec_t;
 init_daemon_domain(condor_master_t, condor_master_exec_t)
 
+type condor_master_tmp_t;
+files_tmp_file(condor_master_tmp_t)
+
 type condor_initrc_exec_t;
 init_script_file(condor_initrc_exec_t)
 
@@ -124,7 +127,11 @@ optional_policy(`
 
 allow condor_master_t self:capability { setuid setgid dac_override sys_ptrace };
 
-allow condor_master_t condor_domain:process signal;
+allow condor_master_t condor_domain:process { sigkill signal };
+
+manage_dirs_pattern(condor_master_t, condor_master_tmp_t, condor_master_tmp_t)
+manage_files_pattern(condor_master_t, condor_master_tmp_t, condor_master_tmp_t)
+files_tmp_filetrans(condor_master_t, condor_master_tmp_t, { file dir })
 
 corenet_udp_sendrecv_generic_if(condor_master_t)
 corenet_udp_sendrecv_generic_node(condor_master_t)
@@ -145,6 +152,11 @@ domain_read_all_domains_state(condor_master_t)
 
 auth_use_nsswitch(condor_master_t)
 
+optional_policy(`
+	mta_send_mail(condor_master_t)
+	mta_read_config(condor_master_t)
+')
+
 ######################################
 #
 # Collector local policy
@@ -161,6 +173,7 @@ kernel_read_network_state(condor_collector_t)
 #
 # Negotiator local policy
 #
+
 allow condor_negotiator_t self:capability { setuid setgid };
 allow condor_negotiator_t condor_master_t:tcp_socket rw_stream_socket_perms;
 allow condor_negotiator_t condor_master_t:udp_socket getattr;
@@ -170,7 +183,9 @@ allow condor_negotiator_t condor_master_t:udp_socket getattr;
 # Procd local policy
 #
 
-allow condor_procd_t self:capability { fowner chown dac_override sys_ptrace };
+allow condor_procd_t self:capability { fowner chown kill dac_override sys_ptrace };
+
+allow condor_procd_t condor_startd_t:process sigkill;
 
 domain_read_all_domains_state(condor_procd_t)
 
