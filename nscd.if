@@ -119,6 +119,8 @@ interface(`nscd_socket_use',`
 	files_search_pids($1)
 	stream_connect_pattern($1, nscd_var_run_t, nscd_var_run_t, nscd_t)
 	dontaudit $1 nscd_var_run_t:file read_file_perms;
+
+	ps_process_pattern(nscd_t, $1)
 ')
 
 ########################################
@@ -142,17 +144,32 @@ interface(`nscd_shm_use',`
 	allow $1 self:unix_stream_socket create_stream_socket_perms;
 
 	allow $1 nscd_t:nscd { getpwd getgrp gethost shmempwd shmemgrp shmemhost };
-
 	allow $1 nscd_t:fd use;
 
 	files_search_pids($1)
 	stream_connect_pattern($1, nscd_var_run_t, nscd_var_run_t, nscd_t)
 	dontaudit $1 nscd_var_run_t:file read_file_perms;
 
-	allow $1 nscd_var_run_t:sock_file read_sock_file_perms;
 	allow $1 nscd_var_run_t:dir list_dir_perms;
+	allow $1 nscd_var_run_t:sock_file read_sock_file_perms;
+')
 
-	dontaudit $1 nscd_var_run_t:file read_file_perms;
+########################################
+## <summary>
+##	Use nscd services.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nscd_use',`
+	tunable_policy(`nscd_use_shm',`
+		nscd_shm_use($1)
+	',`
+		nscd_socket_use($1)
+	')
 ')
 
 ########################################
