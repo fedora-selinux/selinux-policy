@@ -1,16 +1,9 @@
-policy_module(ssh, 2.3.0)
+policy_module(ssh, 2.3.3)
 
 ########################################
 #
 # Declarations
 #
-
-## <desc>
-##	<p>
-##	allow host key based authentication
-##	</p>
-## </desc>
-gen_tunable(ssh_keysign, false)
 
 ## <desc>
 ##	<p>
@@ -224,16 +217,18 @@ optional_policy(`
 # ssh_keysign_t local policy
 #
 
-tunable_policy(`ssh_keysign',`
-	allow ssh_keysign_t self:capability { setgid setuid };
-	allow ssh_keysign_t self:unix_stream_socket create_socket_perms;
+allow ssh_keysign_t self:capability { setgid setuid };
+allow ssh_keysign_t self:unix_stream_socket create_socket_perms;
 
-	allow ssh_keysign_t sshd_key_t:file read_file_perms;
+allow ssh_keysign_t sshd_key_t:file { getattr read };
 
-	dev_read_rand(ssh_keysign_t)
-	dev_read_urand(ssh_keysign_t)
+dev_read_urand(ssh_keysign_t)
+dev_read_rand(ssh_keysign_t)
 
-	files_read_etc_files(ssh_keysign_t)
+files_read_etc_files(ssh_keysign_t)
+
+optional_policy(`
+	nscd_use(ssh_keysign_t)
 ')
 
 #################################

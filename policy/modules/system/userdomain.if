@@ -715,11 +715,18 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		canna_stream_connect($1_usertype)
+		alsa_home_filetrans_alsa_home($1_t, file, ".asoundrc")
+		alsa_manage_home_files($1_t)
+		alsa_read_rw_config($1_t)
+		alsa_relabel_home_files($1_t)
 	')
 
 	optional_policy(`
 		chrome_role($1_r, $1_usertype)
+	')
+
+	optional_policy(`
+		canna_stream_connect($1_usertype)
 	')
 
 	optional_policy(`
@@ -733,10 +740,6 @@ template(`userdom_common_user_template',`
 
 		optional_policy(`
 			avahi_dbus_chat($1_usertype)
-		')
-
-		optional_policy(`
-			policykit_dbus_chat($1_usertype)
 		')
 
 		optional_policy(`
@@ -781,6 +784,10 @@ template(`userdom_common_user_template',`
 		')
 
 		optional_policy(`
+			policykit_dbus_chat($1_usertype)
+		')
+
+		optional_policy(`
 			vpn_dbus_chat($1_usertype)
 		')
 	')
@@ -801,11 +808,21 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
+		kerberos_manage_krb5_home_files($1_t)
+		kerberos_relabel_krb5_home_files($1_t)
+		kerberos_home_filetrans_krb5_home($1_t, file, ".k5login")
+	')
+	optional_policy(`
 		lircd_stream_connect($1_usertype)
 	')
 
 	optional_policy(`
-		locate_read_lib_files($1_usertype)
+		locate_read_lib_files($1_t)
+	')
+
+	optional_policy(`
+		mpd_manage_user_data_content($1_t)
+		mpd_relabel_user_data_content($1_t)
 	')
 
 	# for running depmod as part of the kernel packaging process
@@ -820,6 +837,10 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
+		mysql_manage_mysqld_home_files($1_t)
+		mysql_relabel_mysqld_home_files($1_t)
+		mysql_home_filetrans_mysqld_home($1_t, file, ".my.cnf")
+
 		tunable_policy(`selinuxuser_mysql_connect_enabled',`
 			mysql_stream_connect($1_t)
 		')
@@ -828,6 +849,7 @@ template(`userdom_common_user_template',`
 	optional_policy(`
 		oident_manage_user_content($1_t)
 		oident_relabel_user_content($1_t)
+		oident_home_filetrans_oidentd_home($1_t, file, ".oidentd.conf")
 	')
 
 	optional_policy(`
@@ -836,8 +858,8 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		pcscd_read_pub_files($1_usertype)
-		pcscd_stream_connect($1_usertype)
+		pcscd_read_pid_files($1_t)
+		pcscd_stream_connect($1_t)
 	')
 
 	optional_policy(`
@@ -845,6 +867,12 @@ template(`userdom_common_user_template',`
 			postgresql_stream_connect($1_usertype)
 			postgresql_tcp_connect($1_usertype)
 		')
+	')
+
+	optional_policy(`
+		ppp_manage_home_files($1_t)
+		ppp_relabel_home_files($1_t)
+		ppp_home_filetrans_ppp_home($1_t, file, ".ppprc")
 	')
 
 	optional_policy(`
@@ -878,6 +906,14 @@ template(`userdom_common_user_template',`
 
 	optional_policy(`
 		thumb_role($1_r, $1_usertype)
+	')
+
+	optional_policy(`
+		virt_home_filetrans_virt_home($1_t, dir, ".libvirt")
+		virt_home_filetrans_virt_home($1_t, dir, ".virtinst")
+		virt_home_filetrans_virt_content($1_t, dir, "isos")
+		virt_home_filetrans_svirt_home($1_t, dir, "qemu")
+		virt_home_filetrans_virt_home($1_t, dir, "VirtualMachines")	
 	')
 ')
 
@@ -1193,6 +1229,10 @@ template(`userdom_restricted_xwindows_user_template',`
 		optional_policy(`
 			realmd_dbus_chat($1_t)
 		')
+
+		optional_policy(`
+			wm_role_template($1, $1_r, $1_t)
+		')
 	')
 
 	optional_policy(`
@@ -1211,14 +1251,10 @@ template(`userdom_restricted_xwindows_user_template',`
 
 	optional_policy(`
 		setroubleshoot_dontaudit_stream_connect($1_t)
-        ')
+	')
 
 	optional_policy(`
 		udev_read_db($1_usertype)
-        ')
-
-	optional_policy(`
-		wm_role_template($1, $1_r, $1_t)
 	')
 ')
 
@@ -1692,9 +1728,12 @@ interface(`userdom_user_application_domain',`
 #
 interface(`userdom_user_home_content',`
 	gen_require(`
+		attribute user_home_content_type;
 		type user_home_t;
 		attribute user_home_type;
 	')
+
+	typeattribute $1 user_home_content_type;
 
 	allow $1 user_home_t:filesystem associate;
 	files_type($1)
@@ -2162,6 +2201,25 @@ interface(`userdom_dontaudit_search_user_home_content',`
 
 ########################################
 ## <summary>
+##	List all users home content directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_list_all_user_home_content',`
+	gen_require(`
+		attribute user_home_content_type;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 user_home_content_type:dir list_dir_perms;
+')
+
+########################################
+## <summary>
 ##	List contents of users home directory.
 ## </summary>
 ## <param name="domain">
@@ -2198,6 +2256,26 @@ interface(`userdom_manage_user_home_content_dirs',`
 
 	manage_dirs_pattern($1, { user_home_dir_t user_home_t }, user_home_t)
 	files_search_home($1)
+')
+
+########################################
+## <summary>
+##	Delete all user home content directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_delete_all_user_home_content_dirs',`
+	gen_require(`
+		attribute user_home_content_type;
+		type user_home_dir_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	delete_files_pattern($1, { user_home_dir_t user_home_content_type }, user_home_content_type)
 ')
 
 ########################################
@@ -2409,6 +2487,26 @@ interface(`userdom_dontaudit_write_user_home_content_files',`
 	')
 
 	dontaudit $1 user_home_t:file write_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete all user home content files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_delete_all_user_home_content_files',`
+	gen_require(`
+		attribute user_home_content_type;
+		type user_home_dir_t;
+	')
+
+	userdom_search_user_home_content($1)
+	delete_files_pattern($1 { user_home_dir_t user_home_content_type }, user_home_content_type)
 ')
 
 ########################################
@@ -2636,6 +2734,26 @@ interface(`userdom_manage_user_home_content_symlinks',`
 	manage_lnk_files_pattern($1, user_home_t, user_home_t)
 	allow $1 user_home_dir_t:dir search_dir_perms;
 	files_search_home($1)
+')
+
+########################################
+## <summary>
+##	Delete all user home content symbolic links.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_delete_all_user_home_content_symlinks',`
+	gen_require(`
+		attribute user_home_content_type;
+		type user_home_dir_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	delete_lnk_files_pattern($1, { user_home_dir_t user_home_content_type }, user_home_content_type)
 ')
 
 ########################################

@@ -1,4 +1,4 @@
-policy_module(sysnetwork, 1.14.0)
+policy_module(sysnetwork, 1.14.6)
 
 ########################################
 #
@@ -79,7 +79,8 @@ allow dhcpc_t dhcpc_state_t:file relabel_file_perms;
 
 # create pid file
 manage_files_pattern(dhcpc_t, dhcpc_var_run_t, dhcpc_var_run_t)
-files_pid_filetrans(dhcpc_t, dhcpc_var_run_t, file)
+create_dirs_pattern(dhcpc_t, dhcpc_var_run_t, dhcpc_var_run_t)
+files_pid_filetrans(dhcpc_t, dhcpc_var_run_t, { file dir })
 
 # Allow read/write to /etc/resolv.conf and /etc/ntp.conf. Note that any files
 # in /etc created by dhcpcd will be labelled net_conf_t.
@@ -115,8 +116,9 @@ corenet_raw_sendrecv_generic_node(dhcpc_t)
 corenet_udp_sendrecv_generic_node(dhcpc_t)
 corenet_tcp_sendrecv_all_ports(dhcpc_t)
 corenet_udp_sendrecv_all_ports(dhcpc_t)
-corenet_tcp_bind_generic_node(dhcpc_t)
-corenet_udp_bind_generic_node(dhcpc_t)
+corenet_tcp_bind_all_nodes(dhcpc_t)
+corenet_udp_bind_all_nodes(dhcpc_t)
+corenet_tcp_bind_dhcpc_port(dhcpc_t)
 corenet_udp_bind_dhcpc_port(dhcpc_t)
 corenet_tcp_connect_all_ports(dhcpc_t)
 corenet_sendrecv_dhcpd_client_packets(dhcpc_t)
@@ -196,10 +198,9 @@ optional_policy(`
 ')
 
 optional_policy(`
-	init_dbus_chat_script(dhcpc_t)
+	dbus_system_domain(dhcpc_t, dhcpc_exec_t)
 
-	dbus_system_bus_client(dhcpc_t)
-	dbus_connect_system_bus(dhcpc_t)
+	init_dbus_chat_script(dhcpc_t)
 
 	optional_policy(`
 		networkmanager_dbus_chat(dhcpc_t)
@@ -303,7 +304,7 @@ optional_policy(`
 # Ifconfig local policy
 #
 
-allow ifconfig_t self:capability { net_raw net_admin sys_tty_config };
+allow ifconfig_t self:capability { net_raw net_admin sys_admin sys_tty_config };
 allow ifconfig_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execheap execstack };
 allow ifconfig_t self:fd use;
 allow ifconfig_t self:fifo_file rw_fifo_file_perms;
