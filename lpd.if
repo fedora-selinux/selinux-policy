@@ -1,52 +1,37 @@
-## <summary>Line printer daemon.</summary>
+## <summary>Line printer daemon</summary>
 
 ########################################
 ## <summary>
-##	Role access for lpd.
+##	Role access for lpd
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access.
+##	Role allowed access
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role.
+##	User domain for the role
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`lpd_role',`
 	gen_require(`
-		attribute_role lpr_roles;
-		type lpr_t, lpr_exec_t;
+		type lpr_t, lpr_exec_t, print_spool_t;
 	')
 
-	########################################
-	#
-	# Declarations
-	#
+	role $1 types lpr_t;
 
-	roleattribute $1 lpr_roles;
-
-	########################################
-	#
-	# Policy
-	#
-
+	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2, lpr_exec_t, lpr_t)
+	dontaudit lpr_t $2:unix_stream_socket { read write };
 
-	allow $2 lpr_t:process { ptrace signal_perms };
 	ps_process_pattern($2, lpr_t)
-<<<<<<< HEAD
 	allow $2 lpr_t:process signal_perms;
 	tunable_policy(`deny_ptrace',`',`
 		allow $2 lpr_t:process ptrace;
 	')
-=======
-
-	dontaudit lpr_t $2:unix_stream_socket { read write };
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	optional_policy(`
 		cups_read_config($2)
@@ -68,15 +53,13 @@ interface(`lpd_domtrans_checkpc',`
 		type checkpc_t, checkpc_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, checkpc_exec_t, checkpc_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute amrecover in the lpd
-##	domain, and allow the specified
-##	role the lpd domain.
+##	Execute amrecover in the lpd domain, and
+##	allow the specified role the lpd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -92,16 +75,16 @@ interface(`lpd_domtrans_checkpc',`
 #
 interface(`lpd_run_checkpc',`
 	gen_require(`
-		attribute_role checkpc_roles;
+		type checkpc_t;
 	')
 
 	lpd_domtrans_checkpc($1)
-	roleattribute $2 checkpc_roles;
+	role $2 types checkpc_t;
 ')
 
 ########################################
 ## <summary>
-##	List printer spool directories.
+##	List the contents of the printer spool directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -120,7 +103,7 @@ interface(`lpd_list_spool',`
 
 ########################################
 ## <summary>
-##	Read printer spool files.
+##	Read the printer spool files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -139,8 +122,7 @@ interface(`lpd_read_spool',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete
-##	printer spool content.
+##	Create, read, write, and delete printer spool files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -161,7 +143,7 @@ interface(`lpd_manage_spool',`
 
 ########################################
 ## <summary>
-##	Relabel spool files.
+##	Relabel from and to the spool files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -180,7 +162,7 @@ interface(`lpd_relabel_spool',`
 
 ########################################
 ## <summary>
-##	Read printer configuration files.
+##	List the contents of the printer spool directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -213,7 +195,6 @@ interface(`lpd_domtrans_lpr',`
 		type lpr_t, lpr_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, lpr_exec_t, lpr_t)
 ')
 
@@ -236,29 +217,17 @@ interface(`lpd_domtrans_lpr',`
 #
 interface(`lpd_run_lpr',`
 	gen_require(`
-<<<<<<< HEAD
 		type lpr_t;
 	')
 
 	lpd_domtrans_lpr($1)
 	role $2 types lpr_t;
-=======
-		attribute_role lpr_roles;
-	')
-
-	lpd_domtrans_lpr($1)
-	roleattribute $2 lpr_roles;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Allow the specified domain to execute lpr
 ##	in the caller domain.
-=======
-##	Execute lpr in the caller domain.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -271,6 +240,5 @@ interface(`lpd_exec_lpr',`
 		type lpr_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	can_exec($1, lpr_exec_t)
 ')
