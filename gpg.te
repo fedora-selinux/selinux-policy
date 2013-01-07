@@ -1,4 +1,4 @@
-policy_module(gpg, 2.7.3)
+policy_module(gpg, 2.6.0)
 
 ########################################
 #
@@ -7,15 +7,13 @@ policy_module(gpg, 2.7.3)
 attribute gpgdomain;
 
 ## <desc>
-##	<p>
-##	Determine whether GPG agent can manage
-##	generic user home content files. This is
-##	required by the --write-env-file option.
-##	</p>
+## <p>
+## Allow usage of the gpg-agent --write-env-file option.
+## This also allows gpg-agent to manage user files.
+## </p>
 ## </desc>
 gen_tunable(gpg_agent_env_file, false)
 
-<<<<<<< HEAD
 ## <desc>
 ## <p>
 ## Allow gpg web domain to modify public files
@@ -31,36 +29,13 @@ typealias gpg_t alias { auditadm_gpg_t secadm_gpg_t };
 application_domain(gpg_t, gpg_exec_t)
 ubac_constrained(gpg_t)
 role system_r types gpg_t;
-=======
-attribute_role gpg_roles;
-roleattribute system_r gpg_roles;
-
-attribute_role gpg_agent_roles;
-
-attribute_role gpg_helper_roles;
-roleattribute system_r gpg_helper_roles;
-
-attribute_role gpg_pinentry_roles;
-
-type gpg_t;
-type gpg_exec_t;
-typealias gpg_t alias { user_gpg_t staff_gpg_t sysadm_gpg_t };
-typealias gpg_t alias { auditadm_gpg_t secadm_gpg_t };
-userdom_user_application_domain(gpg_t, gpg_exec_t)
-role gpg_roles types gpg_t;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 type gpg_agent_t;
 type gpg_agent_exec_t;
 typealias gpg_agent_t alias { user_gpg_agent_t staff_gpg_agent_t sysadm_gpg_agent_t };
 typealias gpg_agent_t alias { auditadm_gpg_agent_t secadm_gpg_agent_t };
-<<<<<<< HEAD
 application_domain(gpg_agent_t, gpg_agent_exec_t)
 ubac_constrained(gpg_agent_t)
-=======
-userdom_user_application_domain(gpg_agent_t, gpg_agent_exec_t)
-role gpg_agent_roles types gpg_agent_t;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 type gpg_agent_tmp_t;
 typealias gpg_agent_tmp_t alias { user_gpg_agent_tmp_t staff_gpg_agent_tmp_t sysadm_gpg_agent_tmp_t };
@@ -77,26 +52,16 @@ type gpg_helper_t;
 type gpg_helper_exec_t;
 typealias gpg_helper_t alias { user_gpg_helper_t staff_gpg_helper_t sysadm_gpg_helper_t };
 typealias gpg_helper_t alias { auditadm_gpg_helper_t secadm_gpg_helper_t };
-<<<<<<< HEAD
 application_domain(gpg_helper_t, gpg_helper_exec_t)
 ubac_constrained(gpg_helper_t)
 role system_r types gpg_helper_t;
-=======
-userdom_user_application_domain(gpg_helper_t, gpg_helper_exec_t)
-role gpg_helper_roles types gpg_helper_t;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 type gpg_pinentry_t;
 type pinentry_exec_t;
 typealias gpg_pinentry_t alias { user_gpg_pinentry_t staff_gpg_pinentry_t sysadm_gpg_pinentry_t };
 typealias gpg_pinentry_t alias { auditadm_gpg_pinentry_t secadm_gpg_pinentry_t };
-<<<<<<< HEAD
 application_domain(gpg_pinentry_t, pinentry_exec_t)
 ubac_constrained(gpg_pinentry_t)
-=======
-userdom_user_application_domain(gpg_pinentry_t, pinentry_exec_t)
-role gpg_pinentry_roles types gpg_pinentry_t;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 type gpg_pinentry_tmp_t;
 files_tmp_file(gpg_pinentry_tmp_t)
@@ -111,16 +76,11 @@ domain_type(gpg_web_t)
 gpg_entry_type(gpg_web_t)
 role system_r types gpg_web_t;
 
-optional_policy(`
-	pulseaudio_tmpfs_content(gpg_pinentry_tmpfs_t)
-')
-
 ########################################
 #
-# Local policy
+# GPG local policy
 #
 
-<<<<<<< HEAD
 allow gpgdomain self:capability { ipc_lock setuid };
 allow gpgdomain self:process { getsched setsched };
 #at setrlimit is for ulimit -c 0
@@ -129,37 +89,21 @@ dontaudit gpgdomain self:netlink_audit_socket r_netlink_socket_perms;
 
 allow gpgdomain self:fifo_file rw_fifo_file_perms;
 allow gpgdomain self:tcp_socket create_stream_socket_perms;
-=======
-allow gpg_t self:capability { ipc_lock setuid };
-allow gpg_t self:process { signal signull setrlimit getcap setcap getsched setsched setpgid };
-dontaudit gpg_t self:netlink_audit_socket r_netlink_socket_perms;
-allow gpg_t self:fifo_file rw_fifo_file_perms;
-allow gpg_t self:tcp_socket { accept listen };
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 manage_dirs_pattern(gpg_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
 manage_files_pattern(gpg_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
 files_tmp_filetrans(gpg_t, gpg_agent_tmp_t, { dir file })
 
-<<<<<<< HEAD
 domtrans_pattern(gpg_t, gpg_agent_exec_t, gpg_agent_t)
 
 # transition from the gpg domain to the helper domain
 domtrans_pattern(gpg_t, gpg_helper_exec_t, gpg_helper_t)
 
 allow gpg_t gpg_secret_t:dir create_dir_perms;
-=======
-manage_dirs_pattern(gpg_t, gpg_secret_t, gpg_secret_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 manage_sock_files_pattern(gpg_t, gpg_secret_t, gpg_secret_t)
 manage_files_pattern(gpg_t, gpg_secret_t, gpg_secret_t)
 manage_lnk_files_pattern(gpg_t, gpg_secret_t, gpg_secret_t)
 userdom_user_home_dir_filetrans(gpg_t, gpg_secret_t, dir, ".gnupg")
-
-stream_connect_pattern(gpg_t, gpg_agent_tmp_t, gpg_agent_tmp_t, gpg_agent_t)
-
-domtrans_pattern(gpg_t, gpg_agent_exec_t, gpg_agent_t)
-domtrans_pattern(gpg_t, gpg_helper_exec_t, gpg_helper_t)
 
 kernel_read_sysctl(gpg_t)
 
@@ -168,62 +112,43 @@ corecmd_exec_bin(gpg_t)
 
 corenet_all_recvfrom_netlabel(gpg_t)
 corenet_tcp_sendrecv_generic_if(gpg_t)
+corenet_udp_sendrecv_generic_if(gpg_t)
 corenet_tcp_sendrecv_generic_node(gpg_t)
-
-corenet_sendrecv_all_client_packets(gpg_t)
-corenet_tcp_connect_all_ports(gpg_t)
+corenet_udp_sendrecv_generic_node(gpg_t)
 corenet_tcp_sendrecv_all_ports(gpg_t)
+corenet_udp_sendrecv_all_ports(gpg_t)
+corenet_tcp_connect_all_ports(gpg_t)
+corenet_sendrecv_all_client_packets(gpg_t)
 
-dev_read_generic_usb_dev(gpg_t)
 dev_read_rand(gpg_t)
 dev_read_urand(gpg_t)
-
-files_read_usr_files(gpg_t)
-files_dontaudit_search_var(gpg_t)
+dev_read_generic_usb_dev(gpg_t)
 
 fs_getattr_xattr_fs(gpg_t)
 fs_list_inotifyfs(gpg_t)
 
 domain_use_interactive_fds(gpg_t)
 
-<<<<<<< HEAD
 files_read_usr_files(gpg_t)
 files_dontaudit_search_var(gpg_t)
 
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 auth_use_nsswitch(gpg_t)
 
 logging_send_syslog_msg(gpg_t)
 
-<<<<<<< HEAD
 userdom_use_inherited_user_terminals(gpg_t)
 # sign/encrypt user files
 userdom_manage_all_user_tmp_content(gpg_t)
 #userdom_manage_user_home_content(gpg_t)
-=======
-miscfiles_read_localization(gpg_t)
-
-userdom_use_user_terminals(gpg_t)
-
-userdom_manage_user_tmp_files(gpg_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 userdom_manage_user_home_content_files(gpg_t)
 userdom_manage_user_home_content_dirs(gpg_t)
 userdom_user_home_dir_filetrans_user_home_content(gpg_t, file)
 userdom_stream_connect(gpg_t)
 
-<<<<<<< HEAD
 mta_manage_config(gpg_t)
 mta_read_spool(gpg_t)
 
 userdom_home_manager(gpg_t)
-=======
-tunable_policy(`use_nfs_home_dirs',`
-	fs_manage_nfs_dirs(gpg_t)
-	fs_manage_nfs_files(gpg_t)
-')
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 optional_policy(`
 	gnome_read_config(gpg_t)
@@ -231,23 +156,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-	gnome_read_generic_home_content(gpg_t)
-	gnome_stream_connect_all_gkeyringd(gpg_t)
+	mozilla_read_user_home_files(gpg_t)
+	mozilla_write_user_home_files(gpg_t)
 ')
 
 optional_policy(`
-<<<<<<< HEAD
-=======
-	mozilla_dontaudit_rw_user_home_files(gpg_t)
-')
-
-optional_policy(`
-	mta_read_spool_files(gpg_t)
-	mta_write_config(gpg_t)
-')
-
-optional_policy(`
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	spamassassin_read_spamd_tmp_files(gpg_t)
 ')
 
@@ -256,38 +169,41 @@ optional_policy(`
 	xserver_rw_xdm_pipes(gpg_t)
 ')
 
-<<<<<<< HEAD
 #optional_policy(`
 #	cron_system_entry(gpg_t, gpg_exec_t)
 #	cron_read_system_job_tmp_files(gpg_t)
 #')
-=======
-optional_policy(`
-	xserver_use_xdm_fds(gpg_t)
-	xserver_rw_xdm_pipes(gpg_t)
-')
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 ########################################
 #
-# Helper local policy
+# GPG helper local policy
 #
 
 allow gpg_helper_t self:process { getsched setsched };
-allow gpg_helper_t self:unix_stream_socket create_stream_socket_perms;
 
-dontaudit gpg_helper_t gpg_secret_t:file read_file_perms;
+# for helper programs (which automatically fetch keys)
+# Note: this is only tested with the hkp interface. If you use eg the
+# mail interface you will likely need additional permissions.
+
+allow gpg_helper_t self:unix_stream_socket create_stream_socket_perms;
+allow gpg_helper_t self:tcp_socket { connect connected_socket_perms };
+allow gpg_helper_t self:udp_socket { connect connected_socket_perms };
+
+dontaudit gpg_helper_t gpg_secret_t:file read;
 
 corenet_all_recvfrom_netlabel(gpg_helper_t)
 corenet_tcp_sendrecv_generic_if(gpg_helper_t)
+corenet_raw_sendrecv_generic_if(gpg_helper_t)
+corenet_udp_sendrecv_generic_if(gpg_helper_t)
 corenet_tcp_sendrecv_generic_node(gpg_helper_t)
+corenet_udp_sendrecv_generic_node(gpg_helper_t)
+corenet_raw_sendrecv_generic_node(gpg_helper_t)
 corenet_tcp_sendrecv_all_ports(gpg_helper_t)
-
-<<<<<<< HEAD
-=======
-corenet_sendrecv_all_client_packets(gpg_helper_t)
+corenet_udp_sendrecv_all_ports(gpg_helper_t)
+corenet_tcp_bind_generic_node(gpg_helper_t)
+corenet_udp_bind_generic_node(gpg_helper_t)
 corenet_tcp_connect_all_ports(gpg_helper_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
+
 
 auth_use_nsswitch(gpg_helper_t)
 
@@ -303,35 +219,33 @@ tunable_policy(`use_samba_home_dirs',`
 
 ########################################
 #
-# Agent local policy
+# GPG agent local policy
 #
 domtrans_pattern(gpg_t, gpg_agent_exec_t, gpg_agent_t)
 
+# rlimit: gpg-agent wants to prevent coredumps
 allow gpg_agent_t self:process setrlimit;
-<<<<<<< HEAD
 
 allow gpg_agent_t self:unix_stream_socket { create_stream_socket_perms connectto } ;
-=======
-allow gpg_agent_t self:unix_stream_socket { create_stream_socket_perms connectto };
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 allow gpg_agent_t self:fifo_file rw_fifo_file_perms;
 
+# read and write ~/.gnupg (gpg-agent stores secret keys in ~/.gnupg/private-keys-v1.d )
 manage_dirs_pattern(gpg_agent_t, gpg_secret_t, gpg_secret_t)
 manage_sock_files_pattern(gpg_agent_t, gpg_secret_t, gpg_secret_t)
 manage_files_pattern(gpg_agent_t, gpg_secret_t, gpg_secret_t)
 manage_lnk_files_pattern(gpg_agent_t, gpg_secret_t, gpg_secret_t)
 
+# Allow the gpg-agent to manage its tmp files (socket)
 manage_dirs_pattern(gpg_agent_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
 manage_files_pattern(gpg_agent_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
 manage_sock_files_pattern(gpg_agent_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
 files_tmp_filetrans(gpg_agent_t, gpg_agent_tmp_t, { file sock_file dir })
 
-filetrans_pattern(gpg_agent_t, gpg_secret_t, gpg_agent_tmp_t, sock_file, "log-socket")
+# allow gpg to connect to the gpg agent
+stream_connect_pattern(gpg_t, gpg_agent_tmp_t, gpg_agent_tmp_t, gpg_agent_t)
 
-domtrans_pattern(gpg_agent_t, pinentry_exec_t, gpg_pinentry_t)
-
-kernel_dontaudit_search_sysctl(gpg_agent_t)
-
+corecmd_read_bin_symlinks(gpg_agent_t)
+corecmd_search_bin(gpg_agent_t)
 corecmd_exec_shell(gpg_agent_t)
 
 dev_read_rand(gpg_agent_t)
@@ -342,13 +256,9 @@ domain_use_interactive_fds(gpg_agent_t)
 fs_dontaudit_list_inotifyfs(gpg_agent_t)
 
 
-<<<<<<< HEAD
 # Write to the user domain tty.
 userdom_use_inherited_user_terminals(gpg_agent_t)
 # read and write ~/.gnupg (gpg-agent stores secret keys in ~/.gnupg/private-keys-v1.d )
-=======
-userdom_use_user_terminals(gpg_agent_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 userdom_search_user_home_dirs(gpg_agent_t)
 
 ifdef(`hide_broken_symptoms',`
@@ -357,16 +267,12 @@ ifdef(`hide_broken_symptoms',`
 ')
 
 tunable_policy(`gpg_agent_env_file',`
-<<<<<<< HEAD
 	# write ~/.gpg-agent-info or a similar to the users home dir
 	# or subdir (gpg-agent --write-env-file option)
 	#
 	userdom_user_home_dir_filetrans_user_home_content(gpg_agent_t, { dir file })
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	userdom_manage_user_home_content_dirs(gpg_agent_t)
 	userdom_manage_user_home_content_files(gpg_agent_t)
-	userdom_user_home_dir_filetrans_user_home_content(gpg_agent_t, file)
 ')
 
 userdom_home_manager(gpg_agent_t)
@@ -382,8 +288,17 @@ optional_policy(`
 
 allow gpg_pinentry_t self:process { getcap getsched setsched signal };
 allow gpg_pinentry_t self:fifo_file rw_fifo_file_perms;
+allow gpg_pinentry_t self:netlink_route_socket create_netlink_socket_perms;
 allow gpg_pinentry_t self:shm create_shm_perms;
-allow gpg_pinentry_t self:tcp_socket { accept listen };
+allow gpg_pinentry_t self:tcp_socket create_stream_socket_perms;
+allow gpg_pinentry_t self:unix_dgram_socket sendto;
+allow gpg_pinentry_t self:unix_stream_socket { connect create getattr read shutdown write };
+
+can_exec(gpg_pinentry_t, pinentry_exec_t)
+
+# we need to allow gpg-agent to call pinentry so it can get the passphrase
+# from the user.
+domtrans_pattern(gpg_agent_t, pinentry_exec_t, gpg_pinentry_t)
 
 manage_sock_files_pattern(gpg_pinentry_t, gpg_pinentry_tmp_t, gpg_pinentry_tmp_t)
 userdom_user_tmp_filetrans(gpg_pinentry_t, gpg_pinentry_tmp_t, sock_file)
@@ -392,36 +307,28 @@ manage_dirs_pattern(gpg_pinentry_t, gpg_pinentry_tmpfs_t, gpg_pinentry_tmpfs_t)
 manage_files_pattern(gpg_pinentry_t, gpg_pinentry_tmpfs_t, gpg_pinentry_tmpfs_t)
 fs_tmpfs_filetrans(gpg_pinentry_t, gpg_pinentry_tmpfs_t, { file dir })
 
-can_exec(gpg_pinentry_t, pinentry_exec_t)
-
+# read /proc/meminfo
 kernel_read_system_state(gpg_pinentry_t)
 
 corecmd_exec_shell(gpg_pinentry_t)
 corecmd_exec_bin(gpg_pinentry_t)
 
 corenet_all_recvfrom_netlabel(gpg_pinentry_t)
-<<<<<<< HEAD
 corenet_sendrecv_pulseaudio_client_packets(gpg_pinentry_t)
 corenet_tcp_bind_generic_node(gpg_pinentry_t)
 corenet_tcp_connect_pulseaudio_port(gpg_pinentry_t)
-=======
-corenet_all_recvfrom_unlabeled(gpg_pinentry_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 corenet_tcp_sendrecv_generic_if(gpg_pinentry_t)
 corenet_tcp_sendrecv_generic_node(gpg_pinentry_t)
+corenet_tcp_sendrecv_generic_port(gpg_pinentry_t)
 
 dev_read_urand(gpg_pinentry_t)
 dev_read_rand(gpg_pinentry_t)
 
-domain_use_interactive_fds(gpg_pinentry_t)
-
 files_read_usr_files(gpg_pinentry_t)
-<<<<<<< HEAD
 # read /etc/X11/qtrc
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 fs_dontaudit_list_inotifyfs(gpg_pinentry_t)
+fs_getattr_tmpfs(gpg_pinentry_t)
 
 auth_use_nsswitch(gpg_pinentry_t)
 
@@ -429,15 +336,12 @@ logging_send_syslog_msg(gpg_pinentry_t)
 
 miscfiles_read_fonts(gpg_pinentry_t)
 
-<<<<<<< HEAD
 # for .Xauthority
 userdom_read_user_home_content_files(gpg_pinentry_t)
 userdom_read_user_tmpfs_files(gpg_pinentry_t)
 # Bug: user pulseaudio files need open,read and unlink:
 allow gpg_pinentry_t user_tmpfs_t:file unlink;
 userdom_signull_unpriv_users(gpg_pinentry_t)
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 userdom_use_user_terminals(gpg_pinentry_t)
 
 userdom_home_reader(gpg_pinentry_t)
@@ -447,12 +351,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-	dbus_all_session_bus_client(gpg_pinentry_t)
+	dbus_session_bus_client(gpg_pinentry_t)
 	dbus_system_bus_client(gpg_pinentry_t)
 ')
 
 optional_policy(`
-<<<<<<< HEAD
 	gnome_write_generic_cache_files(gpg_pinentry_t)
 	gnome_read_generic_cache_files(gpg_pinentry_t)
 	gnome_read_gconf_home_files(gpg_pinentry_t)
@@ -464,9 +367,6 @@ optional_policy(`
 	pulseaudio_setattr_home_dir(gpg_pinentry_t)
 	pulseaudio_stream_connect(gpg_pinentry_t)
 	pulseaudio_signull(gpg_pinentry_t)
-=======
-	pulseaudio_run(gpg_pinentry_t, gpg_pinentry_roles)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`

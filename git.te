@@ -34,18 +34,6 @@ gen_tunable(git_cgi_use_nfs, false)
 ##	Determine whether Git session daemon
 ##	can bind TCP sockets to all
 ##	unreserved ports.
-<<<<<<< HEAD
-=======
-##	</p>
-## </desc>
-gen_tunable(git_session_bind_all_unreserved_ports, false)
-
-## <desc>
-##	<p>
-##	Determine whether calling user domains
-##	can execute Git daemon in the
-##	git_session_t domain.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ##	</p>
 ## </desc>
 gen_tunable(git_session_bind_all_unreserved_ports, false)
@@ -58,6 +46,14 @@ gen_tunable(git_session_bind_all_unreserved_ports, false)
 ##	</p>
 ## </desc>
 gen_tunable(git_session_users, false)
+
+## <desc>
+##	<p>
+##	Determine whether Git session daemons
+##	can send syslog messages.
+##	</p>
+## </desc>
+gen_tunable(git_session_send_syslog_msg, false)
 
 ## <desc>
 ##	<p>
@@ -84,14 +80,7 @@ gen_tunable(git_system_use_cifs, false)
 gen_tunable(git_system_use_nfs, false)
 
 attribute git_daemon;
-<<<<<<< HEAD
-attribute git_system_content;
-attribute git_content;
-
-role git_shell_r;
-=======
 attribute_role git_session_roles;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 apache_content_template(git)
 
@@ -100,21 +89,14 @@ type gitd_exec_t;
 inetd_service_domain(git_system_t, gitd_exec_t)
 
 type git_session_t, git_daemon;
-<<<<<<< HEAD
-application_domain(git_session_t, gitd_exec_t)
-ubac_constrained(git_session_t)
-=======
 userdom_user_application_domain(git_session_t, gitd_exec_t)
 role git_session_roles types git_session_t;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
-type git_sys_content_t, git_content, git_system_content;
+type git_sys_content_t;
 files_type(git_sys_content_t)
-typealias git_sys_content_t alias { git_data_t git_system_content_t };
 
-type git_user_content_t, git_content;
+type git_user_content_t;
 userdom_user_home_content(git_user_content_t)
-typealias git_user_content_t alias git_session_content_t;
 
 ########################################
 #
@@ -127,9 +109,8 @@ list_dirs_pattern(git_session_t, git_user_content_t, git_user_content_t)
 read_files_pattern(git_session_t, git_user_content_t, git_user_content_t)
 userdom_search_user_home_dirs(git_session_t)
 
-kernel_read_system_state(git_session_t)
-
 corenet_all_recvfrom_netlabel(git_session_t)
+corenet_all_recvfrom_unlabeled(git_session_t)
 corenet_tcp_bind_generic_node(git_session_t)
 corenet_tcp_sendrecv_generic_if(git_session_t)
 corenet_tcp_sendrecv_generic_node(git_session_t)
@@ -143,10 +124,6 @@ auth_use_nsswitch(git_session_t)
 userdom_use_user_terminals(git_session_t)
 
 tunable_policy(`git_session_bind_all_unreserved_ports',`
-<<<<<<< HEAD
-	corenet_tcp_bind_all_unreserved_ports(git_session_t)
-	corenet_sendrecv_generic_server_packets(git_session_t)
-=======
 	corenet_sendrecv_all_server_packets(git_session_t)
 	corenet_tcp_bind_all_unreserved_ports(git_session_t)
 	corenet_tcp_sendrecv_all_ports(git_session_t)
@@ -154,10 +131,7 @@ tunable_policy(`git_session_bind_all_unreserved_ports',`
 
 tunable_policy(`git_session_send_syslog_msg',`
 	logging_send_syslog_msg(git_session_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
-
-logging_send_syslog_msg(git_session_t)
 
 tunable_policy(`use_nfs_home_dirs',`
 	fs_getattr_nfs(git_session_t)
@@ -180,17 +154,10 @@ tunable_policy(`use_samba_home_dirs',`
 # System policy
 #
 
-<<<<<<< HEAD
-list_dirs_pattern(git_system_t, git_content, git_content)
-read_files_pattern(git_system_t, git_content, git_content)
-=======
 list_dirs_pattern(git_system_t, git_sys_content_t, git_sys_content_t)
 read_files_pattern(git_system_t, git_sys_content_t, git_sys_content_t)
 
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 files_search_var_lib(git_system_t)
-
-kernel_read_system_state(git_system_t)
 
 auth_use_nsswitch(git_system_t)
 
@@ -237,8 +204,8 @@ tunable_policy(`git_system_use_nfs',`
 # CGI policy
 #
 
-list_dirs_pattern(httpd_git_script_t, git_content, git_content)
-read_files_pattern(httpd_git_script_t, git_content, git_content)
+list_dirs_pattern(httpd_git_script_t, { git_sys_content_t git_user_content_t }, { git_sys_content_t git_user_content_t })
+read_files_pattern(httpd_git_script_t, { git_sys_content_t git_user_content_t }, { git_sys_content_t git_user_content_t })
 files_search_var_lib(httpd_git_script_t)
 
 files_dontaudit_getattr_tmp_dirs(httpd_git_script_t)
@@ -288,16 +255,12 @@ tunable_policy(`git_cgi_use_nfs',`
 
 allow git_daemon self:fifo_file rw_fifo_file_perms;
 
+kernel_read_system_state(git_daemon)
+
 corecmd_exec_bin(git_daemon)
 
 files_read_usr_files(git_daemon)
 
 fs_search_auto_mountpoints(git_daemon)
 
-
-########################################
-#
-# Git-shell private policy.
-#
-git_role_template(git_shell)
-gen_user(git_shell_u, user, git_shell_r, s0, s0)
+miscfiles_read_localization(git_daemon)

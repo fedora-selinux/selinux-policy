@@ -1,27 +1,29 @@
-## <summary>MIT Kerberos admin and KDC.</summary>
+## <summary>MIT Kerberos admin and KDC</summary>
+## <desc>
+##	<p>
+##	This policy supports:
+##	</p>
+##	<p>
+##	Servers:
+##	<ul>
+##		<li>kadmind</li>
+##		<li>krb5kdc</li>
+##	</ul>
+##	</p>
+##	<p>
+##	Clients:
+##	<ul>
+##		<li>kinit</li>
+##		<li>kdestroy</li>
+##		<li>klist</li>
+##		<li>ksu (incomplete)</li>
+##	</ul>
+##	</p>
+## </desc>
 
 ########################################
 ## <summary>
-##	Role access for kerberos.
-## </summary>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
-## <param name="domain">
-##	<summary>
-##	User domain for the role.
-##	</summary>
-## </param>
-#
-template(`kerberos_role',`
-	refpolicywarn(`$0($*) has been deprecated')
-')
-
-########################################
-## <summary>
-##	Execute kadmind in the caller domain.
+##	Execute kadmind in the current domain
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -34,7 +36,6 @@ interface(`kerberos_exec_kadmind',`
 		type kadmind_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	can_exec($1, kadmind_exec_t)
 ')
 
@@ -53,13 +54,12 @@ interface(`kerberos_domtrans_kpropd',`
 		type kpropd_t, kpropd_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, kpropd_exec_t, kpropd_t)
 ')
 
 ########################################
 ## <summary>
-##	Support kerberos services.
+##	Use kerberos services
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -69,17 +69,18 @@ interface(`kerberos_domtrans_kpropd',`
 #
 interface(`kerberos_use',`
 	gen_require(`
-		type krb5kdc_conf_t, krb5_host_rcache_t;
+		type krb5_conf_t, krb5kdc_conf_t;
+		type krb5_host_rcache_t;
 	')
 
-	kerberos_read_config($1)
-
-	dontaudit $1 krb5_conf_t:file write_file_perms;
+	files_search_etc($1)
+	read_files_pattern($1, krb5_conf_t, krb5_conf_t)
+	dontaudit $1 krb5_conf_t:file write;
 	dontaudit $1 krb5kdc_conf_t:dir list_dir_perms;
 	dontaudit $1 krb5kdc_conf_t:file rw_file_perms;
 
+	#kerberos libraries are attempting to set the correct file context
 	dontaudit $1 self:process setfscreate;
-
 	selinux_dontaudit_validate_context($1)
 
 	tunable_policy(`kerberos_enabled',`
@@ -90,20 +91,16 @@ interface(`kerberos_use',`
 		corenet_udp_sendrecv_generic_if($1)
 		corenet_tcp_sendrecv_generic_node($1)
 		corenet_udp_sendrecv_generic_node($1)
-
-		corenet_sendrecv_kerberos_client_packets($1)
-		corenet_tcp_connect_kerberos_port($1)
 		corenet_tcp_sendrecv_kerberos_port($1)
 		corenet_udp_sendrecv_kerberos_port($1)
-
-		corenet_sendrecv_ocsp_client_packets($1)
+		corenet_tcp_bind_generic_node($1)
+		corenet_udp_bind_generic_node($1)
+		corenet_tcp_connect_kerberos_port($1)
 		corenet_tcp_connect_ocsp_port($1)
-		corenet_tcp_sendrecv_ocsp_port($1)
+		corenet_sendrecv_kerberos_client_packets($1)
+		corenet_sendrecv_ocsp_client_packets($1)
 
-<<<<<<< HEAD
 		allow $1 krb5_host_rcache_t:dir search_dir_perms;
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 		allow $1 krb5_host_rcache_t:file getattr_file_perms;
 	')
 
@@ -120,7 +117,7 @@ interface(`kerberos_use',`
 
 ########################################
 ## <summary>
-##	Read kerberos configuration files.
+##	Read the kerberos configuration file (/etc/krb5.conf).
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -136,15 +133,13 @@ interface(`kerberos_read_config',`
 
 	files_search_etc($1)
 	allow $1 krb5_conf_t:file read_file_perms;
-
-	userdom_search_user_home_dirs($1)
 	allow $1 krb5_home_t:file read_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to write
-##	kerberos configuration files.
+##	Do not audit attempts to write the kerberos
+##	configuration file (/etc/krb5.conf).
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -157,13 +152,12 @@ interface(`kerberos_dontaudit_write_config',`
 		type krb5_conf_t;
 	')
 
-	dontaudit $1 krb5_conf_t:file write_file_perms;
+	dontaudit $1 krb5_conf_t:file write;
 ')
 
 ########################################
 ## <summary>
-##	Read and write kerberos
-##	configuration files.
+##	Read and write the kerberos configuration file (/etc/krb5.conf).
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -183,75 +177,7 @@ interface(`kerberos_rw_config',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete
-##	kerberos home files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`kerberos_manage_krb5_home_files',`
-	gen_require(`
-		type krb5_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	allow $1 krb5_home_t:file manage_file_perms;
-')
-
-########################################
-## <summary>
-##	Relabel kerberos home files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`kerberos_relabel_krb5_home_files',`
-	gen_require(`
-		type krb5_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	allow $1 krb5_home_t:file relabel_file_perms;
-')
-
-########################################
-## <summary>
-##	Create objects in user home
-##	directories with the krb5 home type.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
-## <param name="name" optional="true">
-##	<summary>
-##	The name of the object being created.
-##	</summary>
-## </param>
-#
-interface(`kerberos_home_filetrans_krb5_home',`
-	gen_require(`
-		type krb5_home_t;
-	')
-
-	userdom_user_home_dir_filetrans($1, krb5_home_t, $2, $3)
-')
-
-########################################
-## <summary>
-##	Read kerberos key table files.
+##	Read the kerberos key table.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -271,7 +197,7 @@ interface(`kerberos_read_keytab',`
 
 ########################################
 ## <summary>
-##	Read and write kerberos key table files.
+##	Read/Write the kerberos key table.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -290,47 +216,13 @@ interface(`kerberos_rw_keytab',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Create keytab file in /etc
-=======
-##	Create, read, write, and delete
-##	kerberos key table files.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-<<<<<<< HEAD
-=======
-#
-interface(`kerberos_manage_keytab_files',`
-	gen_require(`
-		type krb5_keytab_t;
-	')
-
-	files_search_etc($1)
-	allow $1 krb5_keytab_t:file manage_file_perms;
-')
-
-########################################
-## <summary>
-##	Create specified objects in generic
-##	etc directories with the kerberos
-##	keytab file type.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## <param name="name" optional="true">
 ##	<summary>
 ##	The name of the object being created.
@@ -342,22 +234,13 @@ interface(`kerberos_etc_filetrans_keytab',`
 		type krb5_keytab_t;
 	')
 
-<<<<<<< HEAD
 	allow $1 krb5_keytab_t:file manage_file_perms;
 	files_etc_filetrans($1, krb5_keytab_t, file, $2)
-=======
-	files_etc_filetrans($1, krb5_keytab_t, $2, $3)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Create a derived type for kerberos keytab
-=======
-##	Create a derived type for kerberos
-##	keytab files.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="prefix">
 ##	<summary>
@@ -371,26 +254,11 @@ interface(`kerberos_etc_filetrans_keytab',`
 ## </param>
 #
 template(`kerberos_keytab_template',`
-
-	########################################
-	#
-	# Declarations
-	#
-
 	type $1_keytab_t;
 	files_type($1_keytab_t)
 
-<<<<<<< HEAD
 	allow $2 self:process setfscreate;
  	allow $2 $1_keytab_t:file read_file_perms;
-=======
-	########################################
-	#
-	# Policy
-	#
-
-	allow $2 $1_keytab_t:file read_file_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	seutil_read_file_contexts($2)
 	seutil_read_config($2)
@@ -402,7 +270,7 @@ template(`kerberos_keytab_template',`
 
 ########################################
 ## <summary>
-##	Read kerberos kdc configuration files.
+##	Read the kerberos kdc configuration file (/etc/krb5kdc.conf).
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -422,8 +290,7 @@ interface(`kerberos_read_kdc_config',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete
-##	kerberos host rcache files.
+##	Read the kerberos kdc configuration file (/etc/krb5kdc.conf).
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -437,6 +304,9 @@ interface(`kerberos_manage_host_rcache',`
 		type krb5_host_rcache_t;
 	')
 
+	# creates files as system_u no matter what the selinux user
+	# cjp: should be in the below tunable but typeattribute
+	# does not work in conditionals
 	domain_obj_id_change_exemption($1)
 
 	tunable_policy(`kerberos_enabled',`
@@ -446,79 +316,16 @@ interface(`kerberos_manage_host_rcache',`
 
 		seutil_read_file_contexts($1)
 
-<<<<<<< HEAD
 		files_rw_generic_tmp_dir($1)
 		manage_files_pattern($1, krb5_host_rcache_t, krb5_host_rcache_t)
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 		files_search_tmp($1)
-		allow $1 krb5_host_rcache_t:file manage_file_perms;
 	')
 ')
 
 ########################################
 ## <summary>
-##	Create objects in generic temporary
-##	directories with the kerberos host
-##	rcache type.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed to transition.
-##	</summary>
-## </param>
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
-## <param name="name" optional="true">
-##	<summary>
-##	The name of the object being created.
-##	</summary>
-## </param>
-#
-interface(`kerberos_tmp_filetrans_host_rcache',`
-	gen_require(`
-		type krb5_host_rcache_t;
-	')
-
-	files_tmp_filetrans($1, krb5_host_rcache_t, $2, $3)
-')
-
-########################################
-## <summary>
-<<<<<<< HEAD
 ##	All of the rules required to administrate 
 ##	an kerberos environment
-=======
-##	Connect to krb524 service.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`kerberos_connect_524',`
-	tunable_policy(`allow_kerberos',`
-		allow $1 self:udp_socket create_socket_perms;
-
-		corenet_all_recvfrom_unlabeled($1)
-		corenet_all_recvfrom_netlabel($1)
-		corenet_udp_sendrecv_generic_if($1)
-		corenet_udp_sendrecv_generic_node($1)
-
-		corenet_sendrecv_kerberos_master_client_packets($1)
-		corenet_udp_sendrecv_kerberos_master_port($1)
-	')
-')
-
-########################################
-## <summary>
-##	All of the rules required to
-##	administrate an kerberos environment.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -527,7 +334,7 @@ interface(`kerberos_connect_524',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access.
+##	The role to be allowed to manage the kerberos domain.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -541,7 +348,6 @@ interface(`kerberos_admin',`
 		type krb5kdc_var_run_t, krb5_host_rcache_t;
 	')
 
-<<<<<<< HEAD
 	allow $1 kadmind_t:process signal_perms;
 	ps_process_pattern($1, kadmind_t)
 	tunable_policy(`deny_ptrace',`',`
@@ -555,10 +361,6 @@ interface(`kerberos_admin',`
 
 	allow $1 kpropd_t:process signal_perms;
 	ps_process_pattern($1, kpropd_t)
-=======
-	allow $1 { kadmind_t krb5kdc_t kpropd }:process { ptrace signal_perms };
-	ps_process_pattern($1, { kadmind_t krb5kdc_t kpropd })
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	init_labeled_script_domtrans($1, kerberos_initrc_exec_t)
 	domain_system_change_exemption($1)
@@ -569,32 +371,22 @@ interface(`kerberos_admin',`
 	admin_pattern($1, kadmind_log_t)
 
 	files_list_tmp($1)
-	admin_pattern($1, { kadmind_tmp_t krb5_host_rcache_t krb5kdc_tmp_t })
-
-	kerberos_tmp_filetrans_host_rcache($1, file, "host_0")
-	kerberos_tmp_filetrans_host_rcache($1, file, "HTTP_23")
-	kerberos_tmp_filetrans_host_rcache($1, file, "HTTP_48")
-	kerberos_tmp_filetrans_host_rcache($1, file, "imap_0")
-	kerberos_tmp_filetrans_host_rcache($1, file, "nfs_0")
-	kerberos_tmp_filetrans_host_rcache($1, file, "ldapmap1_0")
-	kerberos_tmp_filetrans_host_rcache($1, file, "ldap_487")
-	kerberos_tmp_filetrans_host_rcache($1, file, "ldap_55")
+	admin_pattern($1, kadmind_tmp_t)
 
 	files_list_pids($1)
-	admin_pattern($1, { kadmind_var_run_t krb5kdc_var_run_t })
+	admin_pattern($1, kadmind_var_run_t)
 
-	files_list_etc($1)
 	admin_pattern($1, krb5_conf_t)
 
-	files_etc_filetrans($1, krb5_conf_t, file, "krb5.conf")
+	admin_pattern($1, krb5_host_rcache_t)
 
-	admin_pattern($1, { krb5_keytab_t  krb5kdc_principal_t })
+	admin_pattern($1, krb5_keytab_t)
 
-	filetrans_pattern($1, krb5kdc_conf_t, krb5kdc_principal_t, file, "principal")
-	filetrans_pattern($1, krb5kdc_conf_t, krb5kdc_principal_t, file, "principal0")
-	filetrans_pattern($1, krb5kdc_conf_t, krb5kdc_principal_t, file, "principal1")
+	admin_pattern($1, krb5kdc_principal_t)
 
-	kerberos_etc_filetrans_keytab($1, file, "kadm5.keytab")
+	admin_pattern($1, krb5kdc_tmp_t)
+
+	admin_pattern($1, krb5kdc_var_run_t)
 ')
 
 ########################################

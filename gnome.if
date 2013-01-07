@@ -1,14 +1,8 @@
-## <summary>GNU network object model environment.</summary>
+## <summary>GNU network object model environment (GNOME)</summary>
 
-<<<<<<< HEAD
 ###########################################################
 ## <summary>
 ##  Role access for gnome
-=======
-########################################
-## <summary>
-##	Role access for gnome.  (Deprecated)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="role">
 ##  <summary>
@@ -249,6 +243,25 @@ interface(`gnome_dontaudit_search_config',`
 
 	dontaudit $1 gnome_home_type:dir search_dir_perms;
 ')
+
+########################################
+## <summary>
+##	Dontaudit write gnome homedir content (.config)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`gnome_dontaudit_append_config_files',`
+	gen_require(`
+		attribute gnome_home_type;
+	')
+
+	dontaudit $1 gnome_home_type:file append;
+')
+
 
 ########################################
 ## <summary>
@@ -972,11 +985,7 @@ interface(`gnome_append_gconf_home_files',`
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-<<<<<<< HEAD
 ##	Domain allowed access.
-=======
-##	Role allowed access.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ##	</summary>
 ## </param>
 #
@@ -995,7 +1004,6 @@ interface(`gnome_manage_gconf_home_files',`
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-<<<<<<< HEAD
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
@@ -1049,119 +1057,11 @@ interface(`gnome_setattr_home_config',`
 
 	setattr_dirs_pattern($1, config_home_t, config_home_t)
 	userdom_search_user_home_dirs($1)
-=======
-##	User domain for the role.
-##	</summary>
-## </param>
-#
-interface(`gnome_role',`
-	refpolicywarn(`$0($*) has been deprecated')
-')
-
-#######################################
-## <summary>
-##	The role template for gnome.
-## </summary>
-## <param name="role_prefix">
-##	<summary>
-##	The prefix of the user domain (e.g., user
-##	is the prefix for user_t).
-##	</summary>
-## </param>
-## <param name="user_role">
-##	<summary>
-##	The role associated with the user domain.
-##	</summary>
-## </param>
-## <param name="user_domain">
-##	<summary>
-##	The type of the user domain.
-##	</summary>
-## </param>
-#
-template(`gnome_role_template',`
-	gen_require(`
-		attribute gnomedomain, gkeyringd_domain;
-		attribute_role gconfd_roles;
-		type gkeyringd_exec_t, gnome_keyring_home_t, gnome_keyring_tmp_t;
-		type gconfd_t, gconfd_exec_t, gconf_tmp_t;
-		type gconf_home_t;
-	')
-
-	########################################
-	#
-	# Gconf declarations
-	#
-
-	roleattribute $2 gconfd_roles;
-
-	########################################
-	#
-	# Gkeyringd declarations
-	#
-
-	type $1_gkeyringd_t, gnomedomain, gkeyringd_domain;
-	userdom_user_application_domain($1_gkeyringd_t, gkeyringd_exec_t)
-	domain_user_exemption_target($1_gkeyringd_t)
-
-	role $2 types $1_gkeyringd_t;
-
-	########################################
-	#
-	# Gconf policy
-	#
-
-	domtrans_pattern($3, gconfd_exec_t, gconfd_t)
-
-	allow $3 { gconf_home_t gconf_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 { gconf_home_t gconf_tmp_t }:file { manage_file_perms relabel_file_perms };
-	userdom_user_home_dir_filetrans($3, gconf_home_t, dir, ".gconf")
-	userdom_user_home_dir_filetrans($3, gconf_home_t, dir, ".gconfd")
-
-	allow $3 gconfd_t:process { ptrace signal_perms };
-	ps_process_pattern($3, gconfd_t)
-
-	########################################
-	#
-	# Gkeyringd policy
-	#
-
-	domtrans_pattern($3, gkeyringd_exec_t, $1_gkeyringd_t)
-
-	allow $3 { gnome_home_t gnome_keyring_home_t gnome_keyring_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
-	allow $3 { gnome_home_t gnome_keyring_home_t }:file { relabel_file_perms manage_file_perms };
-
-	userdom_user_home_dir_filetrans($3, gnome_home_t, dir, ".gnome")
-	userdom_user_home_dir_filetrans($3, gnome_home_t, dir, ".gnome2")
-	userdom_user_home_dir_filetrans($3, gnome_home_t, dir, ".gnome2_private")
-	
-	gnome_home_filetrans($3, gnome_keyring_home_t, dir, "keyrings")
-
-	allow $3 gnome_keyring_tmp_t:sock_file { relabel_sock_file_perms manage_sock_file_perms };
-
-	ps_process_pattern($3, $1_gkeyringd_t)
-	allow $3 $1_gkeyringd_t:process { ptrace signal_perms };
-
-	corecmd_bin_domtrans($1_gkeyringd_t, $3)
-	corecmd_shell_domtrans($1_gkeyringd_t, $3)
-
-	gnome_stream_connect_gkeyringd($1, $3)
-
-	optional_policy(`
-		dbus_spec_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
-
-		gnome_dbus_chat_gkeyringd($1, $3)
-	')
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	read gnome homedir content (.config)
-=======
-##	Execute gconf in the caller domain.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1174,7 +1074,6 @@ interface(`gnome_read_home_config',`
 		type config_home_t;
 	')
 
-<<<<<<< HEAD
 	list_dirs_pattern($1, config_home_t, config_home_t)
 	read_files_pattern($1, config_home_t, config_home_t)
 	read_lnk_files_pattern($1, config_home_t, config_home_t)
@@ -1214,19 +1113,11 @@ interface(`gnome_setattr_home_config_dirs',`
     ')
 
     setattr_dirs_pattern($1, config_home_t, config_home_t)
-=======
-	corecmd_search_bin($1)
-	can_exec($1, gconfd_exec_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	manage gnome homedir content (.config)
-=======
-##	Read gconf configuration content.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1234,47 +1125,16 @@ interface(`gnome_setattr_home_config_dirs',`
 ##	</summary>
 ## </param>
 #
-<<<<<<< HEAD
 interface(`gnome_manage_home_config',`
-=======
-interface(`gnome_read_gconf_config',`
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	gen_require(`
 		type config_home_t;
 	')
 
-<<<<<<< HEAD
 	manage_files_pattern($1, config_home_t, config_home_t)
-=======
-	files_search_etc($1)
-	allow $1 gconf_etc_t:dir list_dir_perms;
-	allow $1 gconf_etc_t:file read_file_perms;
-	allow $1 gconf_etc_t:lnk_file read_lnk_file_perms;
-')
-
-########################################
-## <summary>
-##	Do not audit attempts to read
-##	inherited gconf configuration files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain to not audit.
-##	</summary>
-## </param>
-#
-interface(`gnome_dontaudit_read_inherited_gconf_config_files',`
-	gen_require(`
-		type gconf_etc_t;
-	')
-
-	dontaudit $1 gconf_etc_t:file read;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 #######################################
 ## <summary>
-<<<<<<< HEAD
 ##  delete gnome homedir content (.config)
 ## </summary>
 ## <param name="domain">
@@ -1294,10 +1154,6 @@ interface(`gnome_delete_home_config_dirs',`
 ########################################
 ## <summary>
 ##	manage gnome homedir content (.config)
-=======
-##	Create, read, write, and delete
-##	gconf configuration content.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1310,24 +1166,12 @@ interface(`gnome_manage_home_config_dirs',`
 		type config_home_t;
 	')
 
-<<<<<<< HEAD
 	manage_dirs_pattern($1, config_home_t, config_home_t)
-=======
-	files_search_etc($1)
-	allow $1 gconf_etc_t:dir manage_dir_perms;
-	allow $1 gconf_etc_t:file manage_file_perms;
-	allow $1 gconf_etc_t:lnk_file manage_lnk_file_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	manage gstreamer home content files.
-=======
-##	Connect to gconf using a unix
-##	domain stream socket.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1340,7 +1184,6 @@ interface(`gnome_manage_gstreamer_home_files',`
 		type gstreamer_home_t;
 	')
 
-<<<<<<< HEAD
 	manage_dirs_pattern($1, gstreamer_home_t, gstreamer_home_t)
 	manage_files_pattern($1, gstreamer_home_t, gstreamer_home_t)
 	gnome_filetrans_gstreamer_home_content($1)
@@ -1414,10 +1257,6 @@ interface(`gnome_manage_gstreamer_home_dirs',`
     ')
 
     manage_dirs_pattern($1, gstreamer_home_t, gstreamer_home_t)
-=======
-	files_search_tmp($1)
-	stream_connect_pattern($1, gconf_tmp_t, gconf_tmp_t, gconfd_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
@@ -1426,7 +1265,7 @@ interface(`gnome_manage_gstreamer_home_dirs',`
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed to transition.
+##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
@@ -1435,17 +1274,11 @@ interface(`gnome_rw_inherited_config',`
 		attribute gnome_home_type;
 	')
 
-<<<<<<< HEAD
 	allow $1 gnome_home_type:file rw_inherited_file_perms;
-=======
-	corecmd_search_bin($1)
-	domtrans_pattern($1, gconfd_exec_t, gconfd_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Dontaudit Read/Write all inherited gnome home config 
 ## </summary>
 ## <param name="domain">
@@ -1460,33 +1293,12 @@ interface(`gnome_dontaudit_rw_inherited_config',`
 	')
 
 	dontaudit $1 gnome_home_type:file rw_inherited_file_perms;
-=======
-##	Create generic gnome home directories.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_create_generic_home_dirs',`
-	gen_require(`
-		type gnome_home_t;
-	')
-
-	allow $1 gnome_home_t:dir create_dir_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Send and receive messages from
 ##	gconf system service over dbus.
-=======
-##	Set attributes of generic gnome
-##	user home directories.  (Deprecated)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1494,104 +1306,40 @@ interface(`gnome_create_generic_home_dirs',`
 ##	</summary>
 ## </param>
 #
-<<<<<<< HEAD
 interface(`gnome_dbus_chat_gconfdefault',`
-=======
-interface(`gnome_setattr_config_dirs',`
-	refpolicywarn(`$0($*) has been deprecated, use gnome_setattr_generic_home_dirs() instead.')
-	gnome_setattr_generic_home_dirs($1)
-')
-
-########################################
-## <summary>
-##	Set attributes of generic gnome
-##	user home directories.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_setattr_generic_home_dirs',`
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	gen_require(`
 		type gconfdefaultsm_t;
 		class dbus send_msg;
 	')
 
-<<<<<<< HEAD
 	allow $1 gconfdefaultsm_t:dbus send_msg;
 	allow gconfdefaultsm_t $1:dbus send_msg;
-=======
-	userdom_search_user_home_dirs($1)
-	setattr_dirs_pattern($1, gnome_home_t, gnome_home_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Send and receive messages from
 ##	gkeyringd over dbus.
 ## </summary>
 ## <param name="domain">
-=======
-##	Read generic gnome user home content.  (Deprecated)
-## </summary>
-## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
-interface(`gnome_read_config',`
-	refpolicywarn(`$0($*) has been deprecated, use gnome_read_generic_home_content() instead.')
-	gnome_read_generic_home_content($1)
-')
-
-########################################
-## <summary>
-##	Read generic gnome home content.
-## </summary>
-## <param name="domain">
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-<<<<<<< HEAD
 interface(`gnome_dbus_chat_gkeyringd',`
-=======
-interface(`gnome_read_generic_home_content',`
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	gen_require(`
 		attribute gkeyringd_domain;
 		class dbus send_msg;
 	')
 
-<<<<<<< HEAD
 	allow $1 gkeyringd_domain:dbus send_msg;
 	allow gkeyringd_domain $1:dbus send_msg;
-=======
-	userdom_search_user_home_dirs($1)
-	allow $1 gnome_home_t:dir list_dir_perms;
-	allow $1 gnome_home_t:file read_file_perms;
-	allow $1 gnome_home_t:fifo_file read_fifo_file_perms;
-	allow $1 gnome_home_t:lnk_file read_lnk_file_perms;
-	allow $1 gnome_home_t:sock_file read_sock_file_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Send signull signal to gkeyringd processes.
-=======
-##	Create, read, write, and delete
-##	generic gnome user home content.  (Deprecated)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1599,7 +1347,6 @@ interface(`gnome_read_generic_home_content',`
 ##	</summary>
 ## </param>
 #
-<<<<<<< HEAD
 interface(`gnome_signull_gkeyringd',`
 	gen_require(`
 		attribute gkeyringd_domain;
@@ -1624,22 +1371,12 @@ interface(`gnome_read_gkeyringd_state',`
 	')
 
 	ps_process_pattern($1, gkeyringd_domain)
-=======
-interface(`gnome_manage_config',`
-	refpolicywarn(`$0($*) has been deprecated, use gnome_manage_generic_home_content() instead.')
-	gnome_manage_generic_home_content($1)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Create directories in user home directories
 ##	with the gnome home file type.
-=======
-##	Create, read, write, and delete
-##	generic gnome home content.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1647,372 +1384,13 @@ interface(`gnome_manage_config',`
 ##	</summary>
 ## </param>
 #
-<<<<<<< HEAD
 interface(`gnome_home_dir_filetrans',`
-=======
-interface(`gnome_manage_generic_home_content',`
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	gen_require(`
 		type gnome_home_t;
 	')
 
-<<<<<<< HEAD
 	userdom_user_home_dir_filetrans($1, gnome_home_t, dir)
-=======
 	userdom_search_user_home_dirs($1)
-	allow $1 gnome_home_t:dir manage_dir_perms;
-	allow $1 gnome_home_t:file manage_file_perms;
-	allow $1 gnome_home_t:fifo_file manage_fifo_file_perms;
-	allow $1 gnome_home_t:lnk_file manage_lnk_file_perms;
-	allow $1 gnome_home_t:sock_file manage_sock_file_perms;
-')
-
-########################################
-## <summary>
-##	Search generic gnome home directories.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_search_generic_home',`
-	gen_require(`
-		type gnome_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	allow $1 gnome_home_t:dir search_dir_perms;
-')
-
-########################################
-## <summary>
-##	Create objects in gnome user home
-##	directories with a private type.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="private_type">
-##	<summary>
-##	Private file type.
-##	</summary>
-## </param>
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
-## <param name="name" optional="true">
-##	<summary>
-##	The name of the object being created.
-##	</summary>
-## </param>
-#
-interface(`gnome_home_filetrans',`
-	gen_require(`
-		type gnome_home_t;
-	')
-
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
-	userdom_search_user_home_dirs($1)
-	filetrans_pattern($1, gnome_home_t, $2, $3, $4)
-')
-
-########################################
-## <summary>
-##	Create generic gconf home directories.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_create_generic_gconf_home_dirs',`
-	gen_require(`
-		type gconf_home_t;
-	')
-
-	allow $1 gconf_home_t:dir create_dir_perms;
-')
-
-########################################
-## <summary>
-##	Read generic gconf home content.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_read_generic_gconf_home_content',`
-	gen_require(`
-		type gconf_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	allow $1 gconf_home_t:dir list_dir_perms;
-	allow $1 gconf_home_t:file read_file_perms;
-	allow $1 gconf_home_t:fifo_file read_fifo_file_perms;
-	allow $1 gconf_home_t:lnk_file read_lnk_file_perms;
-	allow $1 gconf_home_t:sock_file read_sock_file_perms;
-')
-
-########################################
-## <summary>
-##	Create, read, write, and delete
-##	generic gconf home content.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_manage_generic_gconf_home_content',`
-	gen_require(`
-		type gconf_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	allow $1 gconf_home_t:dir manage_dir_perms;
-	allow $1 gconf_home_t:file manage_file_perms;
-	allow $1 gconf_home_t:fifo_file manage_fifo_file_perms;
-	allow $1 gconf_home_t:lnk_file manage_lnk_file_perms;
-	allow $1 gconf_home_t:sock_file manage_sock_file_perms;
-')
-
-########################################
-## <summary>
-##	Search generic gconf home directories.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_search_generic_gconf_home',`
-	gen_require(`
-		type gconf_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	allow $1 gconf_home_t:dir search_dir_perms;
-')
-
-########################################
-## <summary>
-##	Create objects in user home
-##	directories with the generic gconf
-##	home type.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
-## <param name="name" optional="true">
-##	<summary>
-##	The name of the object being created.
-##	</summary>
-## </param>
-#
-interface(`gnome_home_filetrans_gconf_home',`
-	gen_require(`
-		type gconf_home_t;
-	')
-
-	userdom_user_home_dir_filetrans($1, gconf_home_t, $2, $3)
-')
-
-########################################
-## <summary>
-##	Create objects in user home
-##	directories with the generic gnome
-##	home type.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
-## <param name="name" optional="true">
-##	<summary>
-##	The name of the object being created.
-##	</summary>
-## </param>
-#
-interface(`gnome_home_filetrans_gnome_home',`
-	gen_require(`
-		type gnome_home_t;
-	')
-
-	userdom_user_home_dir_filetrans($1, gnome_home_t, $2, $3)
-')
-
-########################################
-## <summary>
-##	Create objects in gnome gconf home
-##	directories with a private type.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="private_type">
-##	<summary>
-##	Private file type.
-##	</summary>
-## </param>
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
-## <param name="name" optional="true">
-##	<summary>
-##	The name of the object being created.
-##	</summary>
-## </param>
-#
-interface(`gnome_gconf_home_filetrans',`
-	gen_require(`
-		type gconf_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	filetrans_pattern($1, gconf_home_t, $2, $3, $4)
-')
-
-########################################
-## <summary>
-##	Read generic gnome keyring home files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_read_keyring_home_files',`
-	gen_require(`
-		type gnome_home_t, gnome_keyring_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	read_files_pattern($1, { gnome_home_t gnome_keyring_home_t }, gnome_keyring_home_t)
-')
-
-########################################
-## <summary>
-##	Send and receive messages from
-##	gnome keyring daemon over dbus.
-## </summary>
-## <param name="role_prefix">
-##	<summary>
-##	The prefix of the user domain (e.g., user
-##	is the prefix for user_t).
-##	</summary>
-## </param>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_dbus_chat_gkeyringd',`
-	gen_require(`
-		type $1_gkeyringd_t;
-		class dbus send_msg;
-	')
-
-	allow $2 $1_gkeyringd_t:dbus send_msg;
-	allow $1_gkeyringd_t $2:dbus send_msg;
-')
-
-########################################
-## <summary>
-##	Send and receive messages from all
-##	gnome keyring daemon over dbus.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_dbus_chat_all_gkeyringd',`
-	gen_require(`
-		attribute gkeyringd_domain;
-		class dbus send_msg;
-	')
-
-	allow $1 gkeyringd_domain:dbus send_msg;
-	allow gkeyringd_domain $1:dbus send_msg;
-')
-
-########################################
-## <summary>
-##	Connect to gnome keyring daemon
-##	with a unix stream socket.
-## </summary>
-## <param name="role_prefix">
-##	<summary>
-##	The prefix of the user domain (e.g., user
-##	is the prefix for user_t).
-##	</summary>
-## </param>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_stream_connect_gkeyringd',`
-	gen_require(`
-		type $1_gkeyringd_t, gnome_keyring_tmp_t;
-	')
-
-	files_search_tmp($2)
-	stream_connect_pattern($2, gnome_keyring_tmp_t, gnome_keyring_tmp_t, $1_gkeyringd_t)
-')
-
-########################################
-## <summary>
-##	Connect to all gnome keyring daemon
-##	with a unix stream socket.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`gnome_stream_connect_all_gkeyringd',`
-	gen_require(`
-		attribute gkeyringd_domain;
-		type gnome_keyring_tmp_t;
-	')
-
-	files_search_tmp($1)
-	stream_connect_pattern($1, gnome_keyring_tmp_t, gnome_keyring_tmp_t, gkeyringd_domain)
 ')
 
 ######################################
