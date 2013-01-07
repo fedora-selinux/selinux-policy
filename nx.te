@@ -1,4 +1,4 @@
-policy_module(nx, 1.6.0)
+policy_module(nx, 1.6.1)
 
 ########################################
 #
@@ -10,8 +10,7 @@ type nx_server_exec_t;
 domain_type(nx_server_t)
 domain_entry_file(nx_server_t, nx_server_exec_t)
 domain_user_exemption_target(nx_server_t)
-# we need an extra role because nxserver is called from sshd
-# cjp: do we really need this?
+
 role nx_server_r;
 role nx_server_r types nx_server_t;
 allow system_r nx_server_r;
@@ -33,7 +32,7 @@ files_type(nx_server_home_ssh_t)
 
 ########################################
 #
-# NX server local policy
+# Local policy
 #
 
 allow nx_server_t self:fifo_file rw_fifo_file_perms;
@@ -60,17 +59,14 @@ manage_files_pattern(nx_server_t, nx_server_home_ssh_t, nx_server_home_ssh_t)
 kernel_read_system_state(nx_server_t)
 kernel_read_kernel_sysctls(nx_server_t)
 
-# nxserver is a shell script --> call other programs
 corecmd_exec_shell(nx_server_t)
 corecmd_exec_bin(nx_server_t)
 
 corenet_all_recvfrom_netlabel(nx_server_t)
 corenet_tcp_sendrecv_generic_if(nx_server_t)
-corenet_udp_sendrecv_generic_if(nx_server_t)
 corenet_tcp_sendrecv_generic_node(nx_server_t)
-corenet_udp_sendrecv_generic_node(nx_server_t)
 corenet_tcp_sendrecv_all_ports(nx_server_t)
-corenet_udp_sendrecv_all_ports(nx_server_t)
+
 corenet_tcp_connect_all_ports(nx_server_t)
 corenet_sendrecv_all_client_packets(nx_server_t)
 
@@ -78,22 +74,8 @@ dev_read_urand(nx_server_t)
 
 files_read_etc_files(nx_server_t)
 files_read_etc_runtime_files(nx_server_t)
-# for reading the config files; maybe a separate type, 
-# but users need to be able to also read the config
 files_read_usr_files(nx_server_t)
 
 sysnet_read_config(nx_server_t)
-
-ifdef(`TODO',`
-# clients already have create permissions; the nxclient wants to also have unlink rights
-allow userdomain xdm_tmp_t:sock_file unlink;
-# for a lockfile created by the client process
-allow nx_server_t user_tmpfile:file getattr;
-')
-
-########################################
-#
-# SSH component local policy
-#
 
 ssh_basic_client_template(nx_server, nx_server_t, nx_server_r)

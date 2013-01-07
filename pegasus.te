@@ -1,4 +1,4 @@
-policy_module(pegasus, 1.8.0)
+policy_module(pegasus, 1.8.3)
 
 ########################################
 #
@@ -9,6 +9,12 @@ type pegasus_t;
 type pegasus_exec_t;
 init_daemon_domain(pegasus_t, pegasus_exec_t)
 
+<<<<<<< HEAD
+=======
+type pegasus_initrc_exec_t;
+init_script_file(pegasus_initrc_exec_t)
+
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 type pegasus_cache_t;
 files_type(pegasus_cache_t)
 
@@ -36,12 +42,20 @@ allow pegasus_t self:capability { chown kill ipc_lock sys_nice setuid setgid dac
 dontaudit pegasus_t self:capability sys_tty_config;
 allow pegasus_t self:process signal;
 allow pegasus_t self:fifo_file rw_fifo_file_perms;
+<<<<<<< HEAD
 allow pegasus_t self:unix_dgram_socket create_socket_perms;
 allow pegasus_t self:unix_stream_socket { connectto create_stream_socket_perms };
 allow pegasus_t self:tcp_socket create_stream_socket_perms;
 
 allow pegasus_t pegasus_conf_t:dir rw_dir_perms;
 allow pegasus_t pegasus_conf_t:file { read_file_perms link delete_file_perms rename_file_perms };
+=======
+allow pegasus_t self:unix_stream_socket { connectto accept listen };
+allow pegasus_t self:tcp_socket { accept listen };
+
+allow pegasus_t pegasus_conf_t:dir rw_dir_perms;
+allow pegasus_t pegasus_conf_t:file { read_file_perms delete_file_perms rename_file_perms };
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 allow pegasus_t pegasus_conf_t:lnk_file read_lnk_file_perms;
 
 manage_dirs_pattern(pegasus_t, pegasus_cache_t, pegasus_cache_t)
@@ -52,22 +66,29 @@ files_var_filetrans(pegasus_t, pegasus_cache_t, { dir file lnk_file })
 manage_dirs_pattern(pegasus_t, pegasus_data_t, pegasus_data_t)
 manage_files_pattern(pegasus_t, pegasus_data_t, pegasus_data_t)
 manage_lnk_files_pattern(pegasus_t, pegasus_data_t, pegasus_data_t)
-filetrans_pattern(pegasus_t, pegasus_conf_t, pegasus_data_t, { file dir })
-
-can_exec(pegasus_t, pegasus_exec_t)
+filetrans_pattern(pegasus_t, pegasus_conf_t, pegasus_data_t, { dir file })
 
 allow pegasus_t pegasus_mof_t:dir list_dir_perms;
-read_files_pattern(pegasus_t, pegasus_mof_t, pegasus_mof_t)
-read_lnk_files_pattern(pegasus_t, pegasus_mof_t, pegasus_mof_t)
+allow pegasus_t pegasus_mof_t:file read_file_perms;
+allow pegasus_t pegasus_mof_t:lnk_file read_lnk_file_perms;
 
 manage_dirs_pattern(pegasus_t, pegasus_tmp_t, pegasus_tmp_t)
 manage_files_pattern(pegasus_t, pegasus_tmp_t, pegasus_tmp_t)
-files_tmp_filetrans(pegasus_t, pegasus_tmp_t, { file dir })
+files_tmp_filetrans(pegasus_t, pegasus_tmp_t, { dir file })
 
+<<<<<<< HEAD
 manage_sock_files_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
 manage_dirs_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
 manage_files_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
 files_pid_filetrans(pegasus_t, pegasus_var_run_t, { file dir })
+=======
+manage_dirs_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
+manage_files_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
+manage_sock_files_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
+files_pid_filetrans(pegasus_t, pegasus_var_run_t, { dir file sock_file })
+
+can_exec(pegasus_t, pegasus_exec_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 kernel_read_network_state(pegasus_t)
 kernel_read_kernel_sysctls(pegasus_t)
@@ -83,16 +104,21 @@ corenet_tcp_sendrecv_generic_if(pegasus_t)
 corenet_tcp_sendrecv_generic_node(pegasus_t)
 corenet_tcp_sendrecv_all_ports(pegasus_t)
 corenet_tcp_bind_generic_node(pegasus_t)
-corenet_tcp_bind_pegasus_http_port(pegasus_t)
-corenet_tcp_bind_pegasus_https_port(pegasus_t)
-corenet_tcp_connect_pegasus_http_port(pegasus_t)
-corenet_tcp_connect_pegasus_https_port(pegasus_t)
-corenet_tcp_connect_generic_port(pegasus_t)
-corenet_sendrecv_generic_client_packets(pegasus_t)
-corenet_sendrecv_pegasus_http_client_packets(pegasus_t)
+
 corenet_sendrecv_pegasus_http_server_packets(pegasus_t)
-corenet_sendrecv_pegasus_https_client_packets(pegasus_t)
+corenet_tcp_bind_pegasus_http_port(pegasus_t)
+
 corenet_sendrecv_pegasus_https_server_packets(pegasus_t)
+corenet_tcp_bind_pegasus_https_port(pegasus_t)
+
+corenet_sendrecv_pegasus_http_client_packets(pegasus_t)
+corenet_tcp_connect_pegasus_http_port(pegasus_t)
+
+corenet_sendrecv_pegasus_https_client_packets(pegasus_t)
+corenet_tcp_connect_pegasus_https_port(pegasus_t)
+
+corenet_sendrecv_generic_client_packets(pegasus_t)
+corenet_tcp_connect_generic_port(pegasus_t)
 
 corecmd_exec_bin(pegasus_t)
 corecmd_exec_shell(pegasus_t)
@@ -115,21 +141,24 @@ files_list_var_lib(pegasus_t)
 files_read_var_lib_files(pegasus_t)
 files_read_var_lib_symlinks(pegasus_t)
 
-hostname_exec(pegasus_t)
-
 init_rw_utmp(pegasus_t)
 init_stream_connect_script(pegasus_t)
 
 logging_send_audit_msgs(pegasus_t)
 logging_send_syslog_msg(pegasus_t)
 
+<<<<<<< HEAD
 sysnet_read_config(pegasus_t)
 sysnet_domtrans_ifconfig(pegasus_t)
+=======
+miscfiles_read_localization(pegasus_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 userdom_dontaudit_use_unpriv_user_fds(pegasus_t)
 userdom_dontaudit_search_user_home_dirs(pegasus_t)
 
 optional_policy(`
+<<<<<<< HEAD
     dbus_system_bus_client(pegasus_t)
     dbus_connect_system_bus(pegasus_t)
 
@@ -140,6 +169,14 @@ optional_policy(`
 
 optional_policy(`
 	corosync_stream_connect(pegasus_t)
+=======
+	dbus_system_bus_client(pegasus_t)
+	dbus_connect_system_bus(pegasus_t)
+
+	optional_policy(`
+		networkmanager_dbus_chat(pegasus_t)
+	')
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`
@@ -151,10 +188,13 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	ricci_stream_connect_modclusterd(pegasus_t)
 ')
 
 optional_policy(`
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	rpm_exec(pegasus_t)
 ')
 
@@ -163,6 +203,7 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	sysnet_domtrans_ifconfig(pegasus_t)
 ')
 
@@ -171,7 +212,17 @@ optional_policy(`
 ')
 
 optional_policy(`
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	seutil_sigchld_newrole(pegasus_t)
+')
+
+optional_policy(`
+	ssh_exec(pegasus_t)
+')
+
+optional_policy(`
+	sysnet_domtrans_ifconfig(pegasus_t)
 ')
 
 optional_policy(`

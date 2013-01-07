@@ -1,4 +1,4 @@
-## <summary>Network time protocol daemon</summary>
+## <summary>Network time protocol daemon.</summary>
 
 ########################################
 ## <summary>
@@ -73,11 +73,11 @@ interface(`ntp_exec',`
 #
 interface(`ntp_run',`
 	gen_require(`
-		type ntpd_t;
+		attribute_role ntpd_roles;
 	')
 
 	ntp_domtrans($1)
-	role $2 types ntpd_t;
+	roleattribute $2 ntpd_roles;
 ')
 
 ########################################
@@ -183,6 +183,7 @@ interface(`ntp_rw_shm',`
 
 ########################################
 ## <summary>
+<<<<<<< HEAD
 ##	Allow the domain to read ntpd state files in /proc.
 ## </summary>
 ## <param name="domain">
@@ -204,6 +205,10 @@ interface(`ntp_read_state',`
 ## <summary>
 ##	All of the rules required to administrate
 ##	an ntp environment
+=======
+##	All of the rules required to
+##	administrate an ntp environment.
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -212,7 +217,7 @@ interface(`ntp_read_state',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the ntp domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -220,11 +225,19 @@ interface(`ntp_read_state',`
 interface(`ntp_admin',`
 	gen_require(`
 		type ntpd_t, ntpd_tmp_t, ntpd_log_t;
+<<<<<<< HEAD
 		type ntpd_key_t, ntpd_var_run_t, ntpd_initrc_exec_t;
 		type ntpd_unit_file_t;
 	')
 
 	allow $1 ntpd_t:process signal_perms;
+=======
+		type ntpd_key_t, ntpd_var_run_t, ntp_conf_t;
+		type ntpd_initrc_exec_t, ntp_drift_t;
+	')
+
+	allow $1 ntpd_t:process { ptrace signal_perms };
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	ps_process_pattern($1, ntpd_t)
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 ntpd_t:process ptrace;
@@ -235,7 +248,8 @@ interface(`ntp_admin',`
 	role_transition $2 ntpd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	admin_pattern($1, ntpd_key_t)
+	files_list_etc($1)
+	admin_pattern($1, { ntpd_key_t ntp_conf_t ntp_drift_t })
 
 	logging_list_logs($1)
 	admin_pattern($1, ntpd_log_t)
@@ -246,7 +260,11 @@ interface(`ntp_admin',`
 	files_list_pids($1)
 	admin_pattern($1, ntpd_var_run_t)
 
+<<<<<<< HEAD
 	ntp_systemctl($1)
 	admin_pattern($1, ntpd_unit_file_t)
 	allow $1 ntpd_unit_file_t:service all_service_perms;
+=======
+	ntp_run($1, $2)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')

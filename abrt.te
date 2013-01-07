@@ -1,4 +1,4 @@
-policy_module(abrt, 1.2.0)
+policy_module(abrt, 1.3.4)
 
 ########################################
 #
@@ -6,22 +6,27 @@ policy_module(abrt, 1.2.0)
 #
 
 ## <desc>
-## <p>
-## Allow ABRT to modify public files
-## used for public file transfer services.
-## </p>
+##	<p>
+##	Determine whether ABRT can modify
+##	public files used for public file
+##	transfer services.
+##	</p>
 ## </desc>
 gen_tunable(abrt_anon_write, false)
 
 ## <desc>
-##  <p>
-##  Allow ABRT to run in abrt_handle_event_t domain
-##  to handle ABRT event scripts
-##  </p>
+##	<p>
+##	Determine whether ABRT can run in
+##	the abrt_handle_event_t domain to
+##	handle ABRT event scripts.
+##	</p>
 ## </desc>
 gen_tunable(abrt_handle_event, false)
 
 attribute abrt_domain;
+
+attribute_role abrt_helper_roles;
+roleattribute system_r abrt_helper_roles;
 
 abrt_basic_types_template(abrt)
 init_daemon_domain(abrt_t, abrt_exec_t)
@@ -36,19 +41,15 @@ systemd_unit_file(abrt_unit_file_t)
 type abrt_etc_t;
 files_config_file(abrt_etc_t)
 
-# log files
 type abrt_var_log_t;
 logging_log_file(abrt_var_log_t)
 
-# tmp files
 type abrt_tmp_t;
 files_tmp_file(abrt_tmp_t)
 
-# var/cache files
 type abrt_var_cache_t;
 files_type(abrt_var_cache_t)
 
-# pid files
 type abrt_var_run_t;
 files_pid_file(abrt_var_run_t)
 
@@ -67,7 +68,29 @@ role system_r types abrt_handle_event_t;
 # to handle /var/cache/abrt
 abrt_basic_types_template(abrt_helper)
 application_domain(abrt_helper_t, abrt_helper_exec_t)
-role system_r types abrt_helper_t;
+role abrt_helper_roles types abrt_helper_t;
+
+type abrt_retrace_coredump_t, abrt_domain;
+type abrt_retrace_coredump_exec_t;
+domain_type(abrt_retrace_coredump_t)
+domain_entry_file(abrt_retrace_coredump_t, abrt_retrace_coredump_exec_t)
+role system_r types abrt_retrace_coredump_t;
+
+type abrt_retrace_worker_t, abrt_domain;
+type abrt_retrace_worker_exec_t;
+domain_type(abrt_retrace_worker_t)
+domain_entry_file(abrt_retrace_worker_t, abrt_retrace_worker_exec_t)
+role system_r types abrt_retrace_worker_t;
+
+type abrt_retrace_cache_t;
+files_type(abrt_retrace_cache_t)
+
+type abrt_retrace_spool_t;
+files_type(abrt_retrace_spool_t)
+
+type abrt_watch_log_t, abrt_domain;
+type abrt_watch_log_exec_t;
+init_daemon_domain(abrt_watch_log_t, abrt_watch_log_exec_t)
 
 ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(abrt_t, abrt_exec_t, s0 - mcs_systemhigh)
@@ -97,7 +120,7 @@ init_daemon_domain(abrt_watch_log_t, abrt_watch_log_exec_t)
 
 ########################################
 #
-# abrt local policy
+# Local policy
 #
 
 allow abrt_t self:capability { chown dac_override fowner fsetid kill setgid setuid sys_nice };
@@ -105,34 +128,26 @@ dontaudit abrt_t self:capability sys_rawio;
 allow abrt_t self:process { setpgid sigkill signal signull setsched getsched };
 
 allow abrt_t self:fifo_file rw_fifo_file_perms;
-allow abrt_t self:tcp_socket create_stream_socket_perms;
-allow abrt_t self:udp_socket create_socket_perms;
-allow abrt_t self:unix_dgram_socket create_socket_perms;
-allow abrt_t self:netlink_route_socket r_netlink_socket_perms;
+allow abrt_t self:tcp_socket { accept listen };
 
-# abrt etc files
-list_dirs_pattern(abrt_t, abrt_etc_t, abrt_etc_t)
+allow abrt_t abrt_etc_t:dir list_dir_perms;
 rw_files_pattern(abrt_t, abrt_etc_t, abrt_etc_t)
 
-# log file
 manage_files_pattern(abrt_t, abrt_var_log_t, abrt_var_log_t)
 logging_log_filetrans(abrt_t, abrt_var_log_t, file)
 
-# abrt tmp files
 manage_dirs_pattern(abrt_t, abrt_tmp_t, abrt_tmp_t)
 manage_files_pattern(abrt_t, abrt_tmp_t, abrt_tmp_t)
 manage_lnk_files_pattern(abrt_t, abrt_tmp_t, abrt_tmp_t)
 files_tmp_filetrans(abrt_t, abrt_tmp_t, { file dir })
 can_exec(abrt_t, abrt_tmp_t)
 
-# abrt var/cache files
 manage_files_pattern(abrt_t, abrt_var_cache_t, abrt_var_cache_t)
 manage_dirs_pattern(abrt_t, abrt_var_cache_t, abrt_var_cache_t)
 manage_lnk_files_pattern(abrt_t, abrt_var_cache_t, abrt_var_cache_t)
 files_var_filetrans(abrt_t, abrt_var_cache_t, { file dir })
 files_spool_filetrans(abrt_t, abrt_var_cache_t, dir)
 
-# abrt pid files
 manage_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
 manage_dirs_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
 manage_sock_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
@@ -140,9 +155,8 @@ manage_lnk_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
 files_pid_filetrans(abrt_t, abrt_var_run_t, { file dir sock_file })
 
 kernel_read_ring_buffer(abrt_t)
+kernel_read_system_state(abrt_t)
 kernel_request_load_module(abrt_t)
-
-kernel_read_ring_buffer(abrt_t)
 kernel_rw_kernel_sysctl(abrt_t)
 
 corecmd_exec_bin(abrt_t)
@@ -152,12 +166,13 @@ corecmd_read_all_executables(abrt_t)
 corenet_all_recvfrom_netlabel(abrt_t)
 corenet_tcp_sendrecv_generic_if(abrt_t)
 corenet_tcp_sendrecv_generic_node(abrt_t)
-corenet_tcp_sendrecv_generic_port(abrt_t)
+corenet_tcp_sendrecv_all_ports(abrt_t)
 corenet_tcp_bind_generic_node(abrt_t)
+
+corenet_sendrecv_all_client_packets(abrt_t)
 corenet_tcp_connect_http_port(abrt_t)
 corenet_tcp_connect_ftp_port(abrt_t)
 corenet_tcp_connect_all_ports(abrt_t)
-corenet_sendrecv_http_client_packets(abrt_t)
 
 dev_getattr_all_chr_files(abrt_t)
 dev_getattr_all_blk_files(abrt_t)
@@ -174,31 +189,26 @@ files_getattr_all_files(abrt_t)
 files_read_config_files(abrt_t)
 files_read_etc_runtime_files(abrt_t)
 files_read_var_symlinks(abrt_t)
-files_read_var_lib_files(abrt_t)
 files_read_usr_files(abrt_t)
-files_read_generic_tmp_files(abrt_t)
 files_read_kernel_modules(abrt_t)
-files_dontaudit_list_default(abrt_t)
 files_dontaudit_read_default_files(abrt_t)
 files_dontaudit_read_all_symlinks(abrt_t)
 files_dontaudit_getattr_all_sockets(abrt_t)
 files_list_mnt(abrt_t)
 
-fs_list_inotifyfs(abrt_t)
 fs_getattr_all_fs(abrt_t)
 fs_getattr_all_dirs(abrt_t)
+fs_list_inotifyfs(abrt_t)
 fs_read_fusefs_files(abrt_t)
 fs_read_noxattr_fs_files(abrt_t)
 fs_read_nfs_files(abrt_t)
 fs_read_nfs_symlinks(abrt_t)
 fs_search_all(abrt_t)
 
-logging_read_generic_logs(abrt_t)
-logging_send_syslog_msg(abrt_t)
-
 auth_use_nsswitch(abrt_t)
 
-miscfiles_read_generic_certs(abrt_t)
+logging_read_generic_logs(abrt_t)
+
 miscfiles_read_public_files(abrt_t)
 
 userdom_dontaudit_read_user_home_content_files(abrt_t)
@@ -213,8 +223,21 @@ optional_policy(`
 	apache_read_modules(abrt_t)
 ')
 
+tunable_policy(`abrt_anon_write',`
+	miscfiles_manage_public_files(abrt_t)
+')
+
+optional_policy(`
+	apache_list_modules(abrt_t)
+	apache_read_module_files(abrt_t)
+')
+
 optional_policy(`
 	dbus_system_domain(abrt_t, abrt_exec_t)
+
+	optional_policy(`
+		policykit_dbus_chat(abrt_t)
+	')
 ')
 
 optional_policy(`
@@ -227,7 +250,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	policykit_dbus_chat(abrt_t)
 	policykit_domtrans_auth(abrt_t)
 	policykit_read_lib(abrt_t)
 	policykit_read_reload(abrt_t)
@@ -239,7 +261,6 @@ optional_policy(`
 	corecmd_exec_all_executables(abrt_t)
 ')
 
-# to install debuginfo packages
 optional_policy(`
 	rpm_exec(abrt_t)
 	rpm_dontaudit_manage_db(abrt_t)
@@ -250,7 +271,6 @@ optional_policy(`
 	rpm_signull(abrt_t)
 ')
 
-# to run mailx plugin
 optional_policy(`
 	sendmail_domtrans(abrt_t)
 ')
@@ -271,7 +291,7 @@ optional_policy(`
 
 #######################################
 #
-# abrt-handle-event local policy
+# Handle-event local policy
 #
 
 allow abrt_handle_event_t self:fifo_file rw_fifo_file_perms;
@@ -288,7 +308,7 @@ optional_policy(`
 
 ########################################
 #
-# abrt--helper local policy
+# Helper local policy
 #
 
 allow abrt_helper_t self:capability { chown setgid sys_nice };
@@ -348,7 +368,7 @@ ifdef(`hide_broken_symptoms',`
 
 #######################################
 #
-# abrt retrace coredump policy
+# Retrace coredump policy
 #
 
 allow abrt_retrace_coredump_t self:fifo_file rw_fifo_file_perms;
@@ -368,11 +388,8 @@ dev_read_urand(abrt_retrace_coredump_t)
 
 files_read_usr_files(abrt_retrace_coredump_t)
 
-logging_send_syslog_msg(abrt_retrace_coredump_t)
-
 sysnet_dns_name_resolve(abrt_retrace_coredump_t)
 
-# to install debuginfo packages
 optional_policy(`
 	rpm_exec(abrt_retrace_coredump_t)
 	rpm_dontaudit_manage_db(abrt_retrace_coredump_t)
@@ -385,11 +402,10 @@ optional_policy(`
 
 #######################################
 #
-# abrt retrace worker policy
+# Retrace worker policy
 #
 
-allow abrt_retrace_worker_t self:capability { setuid };
-
+allow abrt_retrace_worker_t self:capability setuid;
 allow abrt_retrace_worker_t self:fifo_file rw_fifo_file_perms;
 
 domtrans_pattern(abrt_retrace_worker_t, abrt_retrace_coredump_exec_t, abrt_retrace_coredump_t)
@@ -418,9 +434,10 @@ optional_policy(`
 	mock_domtrans(abrt_retrace_worker_t)
 ')
 
+
 ########################################
 #
-# abrt_dump_oops local policy
+# Dump oops local policy
 #
 
 allow abrt_dump_oops_t self:capability dac_override;
@@ -447,15 +464,14 @@ domain_use_interactive_fds(abrt_dump_oops_t)
 fs_list_inotifyfs(abrt_dump_oops_t)
 
 logging_read_generic_logs(abrt_dump_oops_t)
-logging_send_syslog_msg(abrt_dump_oops_t)
 
 #######################################
 #
-# abrt_watch_log local policy
+# Watch log local policy
 #
 
 allow abrt_watch_log_t self:fifo_file rw_fifo_file_perms;
-allow abrt_watch_log_t self:unix_stream_socket create_stream_socket_perms;
+allow abrt_watch_log_t self:unix_stream_socket { accept listen };
 
 read_files_pattern(abrt_watch_log_t, abrt_etc_t, abrt_etc_t)
 
@@ -472,7 +488,13 @@ optional_policy(`
 
 #######################################
 #
-# Local policy for all abrt domain
+# Global local policy
 #
 
+kernel_read_system_state(abrt_domain)
+
 files_read_etc_files(abrt_domain)
+
+logging_send_syslog_msg(abrt_domain)
+
+miscfiles_read_localization(abrt_domain)

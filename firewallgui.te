@@ -1,4 +1,4 @@
-policy_module(firewallgui,1.0.0)
+policy_module(firewallgui, 1.0.1)
 
 ########################################
 #
@@ -7,15 +7,14 @@ policy_module(firewallgui,1.0.0)
 
 type firewallgui_t;
 type firewallgui_exec_t;
-dbus_system_domain(firewallgui_t, firewallgui_exec_t)
-init_daemon_domain(firewallgui_t, firewallgui_exec_t)
+init_system_domain(firewallgui_t, firewallgui_exec_t)
 
 type firewallgui_tmp_t;
 files_tmp_file(firewallgui_tmp_t)
 
 ########################################
 #
-# firewallgui local policy
+# Local policy
 #
 
 allow firewallgui_t self:capability { net_admin sys_rawio } ;
@@ -31,11 +30,11 @@ kernel_rw_net_sysctls(firewallgui_t)
 kernel_rw_kernel_sysctl(firewallgui_t)
 kernel_rw_vm_sysctls(firewallgui_t)
 
-corecmd_exec_shell(firewallgui_t)
 corecmd_exec_bin(firewallgui_t)
+corecmd_exec_shell(firewallgui_t)
 
-dev_read_urand(firewallgui_t)
 dev_read_sysfs(firewallgui_t)
+dev_read_urand(firewallgui_t)
 
 files_manage_system_conf_files(firewallgui_t)
 files_etc_filetrans_system_conf(firewallgui_t)
@@ -45,6 +44,7 @@ files_list_kernel_modules(firewallgui_t)
 
 auth_use_nsswitch(firewallgui_t)
 
+miscfiles_read_localization(firewallgui_t)
 
 seutil_read_config(firewallgui_t)
 
@@ -55,7 +55,15 @@ optional_policy(`
 ')
 
 optional_policy(`
-	gnome_read_gconf_home_files(firewallgui_t)
+	dbus_system_domain(firewallgui_t, firewallgui_exec_t)
+
+	optional_policy(`
+		policykit_dbus_chat(firewallgui_t)
+	')
+')
+
+optional_policy(`
+	gnome_read_generic_gconf_home_content(firewallgui_t)
 ')
 
 optional_policy(`
@@ -66,8 +74,4 @@ optional_policy(`
 
 optional_policy(`
 	modutils_getattr_module_deps(firewallgui_t)
-')
-
-optional_policy(`
-	policykit_dbus_chat(firewallgui_t)
 ')

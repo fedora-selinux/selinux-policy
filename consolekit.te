@@ -1,4 +1,4 @@
-policy_module(consolekit, 1.8.0)
+policy_module(consolekit, 1.8.4)
 
 ########################################
 #
@@ -12,8 +12,12 @@ init_daemon_domain(consolekit_t, consolekit_exec_t)
 type consolekit_log_t;
 logging_log_file(consolekit_log_t)
 
+type consolekit_tmpfs_t;
+files_tmpfs_file(consolekit_tmpfs_t)
+
 type consolekit_var_run_t;
 files_pid_file(consolekit_var_run_t)
+init_daemon_run_dir(consolekit_var_run_t, "ConsoleKit")
 
 type consolekit_tmpfs_t;
 files_tmpfs_file(consolekit_tmpfs_t)
@@ -23,24 +27,31 @@ systemd_unit_file(consolekit_unit_file_t)
 
 ########################################
 #
-# consolekit local policy
+# Local policy
 #
 
 allow consolekit_t self:capability { chown setuid setgid sys_tty_config dac_override sys_nice sys_ptrace };
 
 allow consolekit_t self:process { getsched signal };
 allow consolekit_t self:fifo_file rw_fifo_file_perms;
-allow consolekit_t self:unix_stream_socket create_stream_socket_perms;
-allow consolekit_t self:unix_dgram_socket create_socket_perms;
+allow consolekit_t self:unix_stream_socket { accept listen };
 
-manage_files_pattern(consolekit_t, consolekit_log_t, consolekit_log_t)
+create_files_pattern(consolekit_t, consolekit_log_t, consolekit_log_t)
+append_files_pattern(consolekit_t, consolekit_log_t, consolekit_log_t)
+read_files_pattern(consolekit_t, consolekit_log_t, consolekit_log_t)
+setattr_files_pattern(consolekit_t, consolekit_log_t, consolekit_log_t)
 logging_log_filetrans(consolekit_t, consolekit_log_t, file)
 
 manage_dirs_pattern(consolekit_t, consolekit_var_run_t, consolekit_var_run_t)
 manage_files_pattern(consolekit_t, consolekit_var_run_t, consolekit_var_run_t)
-files_pid_filetrans(consolekit_t, consolekit_var_run_t, { file dir })
+files_pid_filetrans(consolekit_t, consolekit_var_run_t, { dir file })
 
 kernel_read_system_state(consolekit_t)
+
+corenet_all_recvfrom_unlabeled(consolekit_t)
+corenet_all_recvfrom_netlabel(consolekit_t)
+corenet_tcp_sendrecv_generic_if(consolekit_t)
+corenet_tcp_sendrecv_generic_node(consolekit_t)
 
 corecmd_exec_bin(consolekit_t)
 corecmd_exec_shell(consolekit_t)
@@ -66,9 +77,6 @@ auth_use_nsswitch(consolekit_t)
 auth_manage_pam_console_data(consolekit_t)
 auth_write_login_records(consolekit_t)
 
-init_telinit(consolekit_t)
-init_rw_utmp(consolekit_t)
-
 logging_send_syslog_msg(consolekit_t)
 logging_send_audit_msgs(consolekit_t)
 
@@ -85,11 +93,20 @@ optional_policy(`
 	cron_read_system_job_lib_files(consolekit_t)
 ')
 
+ifdef(`distro_debian',`
+	auth_create_pam_console_data_dirs(consolekit_t)
+	auth_pid_filetrans_pam_var_console(consolekit_t, dir, "console")
+')
+
 optional_policy(`
 	dbus_system_domain(consolekit_t, consolekit_exec_t)
 
 	optional_policy(`
 		hal_dbus_chat(consolekit_t)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(consolekit_t)
 	')
 
 	optional_policy(`
@@ -106,7 +123,10 @@ optional_policy(`
 ')
 
 optional_policy(`
-	policykit_dbus_chat(consolekit_t)
+	networkmanager_append_log_files(consolekit_t)
+')
+
+optional_policy(`
 	policykit_domtrans_auth(consolekit_t)
 	policykit_read_lib(consolekit_t)
 	policykit_read_reload(consolekit_t)
@@ -117,10 +137,12 @@ optional_policy(`
 ')
 
 optional_policy(`
+	corenet_sendrecv_xserver_client_packets(consolekit_t)
+	corenet_tcp_connect_xserver_port(consolekit_t)
+	corenet_tcp_sendrecv_xserver_port(consolekit_t)
+	xserver_non_drawing_client(consolekit_t)
 	xserver_read_xdm_pid(consolekit_t)
 	xserver_read_user_xauth(consolekit_t)
-	xserver_non_drawing_client(consolekit_t)
-	corenet_tcp_connect_xserver_port(consolekit_t)
 	xserver_stream_connect(consolekit_t)
 	xserver_user_x_domain_template(consolekit, consolekit_t, consolekit_tmpfs_t)
 ')

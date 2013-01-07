@@ -1,22 +1,33 @@
-## <summary>Munin network-wide load graphing (formerly LRRD)</summary>
+## <summary>Munin network-wide load graphing.</summary>
 
-########################################
+#######################################
 ## <summary>
-##	Create a set of derived types for various
-##	munin plugins,
+##	The template to define a munin plugin domain.
 ## </summary>
-## <param name="prefix">
+## <param name="domain_prefix">
 ##	<summary>
-##	The name to be used for deriving type names.
+##	Domain prefix to be used.
 ##	</summary>
 ## </param>
 #
 template(`munin_plugin_template',`
 	gen_require(`
+<<<<<<< HEAD
 		type munin_t;
 		attribute munin_plugin_domain;
 	')
 
+=======
+		attribute munin_plugin_domain, munin_plugin_tmp_content;
+		type munin_t;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	type $1_munin_plugin_t, munin_plugin_domain;
 	type $1_munin_plugin_exec_t;
 	typealias $1_munin_plugin_t alias munin_$1_plugin_t;
@@ -24,15 +35,21 @@ template(`munin_plugin_template',`
 	application_domain($1_munin_plugin_t, $1_munin_plugin_exec_t)
 	role system_r types $1_munin_plugin_t;
 
-	type $1_munin_plugin_tmp_t;
+	type $1_munin_plugin_tmp_t, munin_plugin_tmp_content;
 	typealias $1_munin_plugin_tmp_t alias munin_$1_plugin_tmp_t;
 	files_tmp_file($1_munin_plugin_tmp_t)
 
-	allow $1_munin_plugin_t self:fifo_file rw_fifo_file_perms;
+	########################################
+	#
+	# Policy
+	#
+
+	domtrans_pattern(munin_t, $1_munin_plugin_exec_t, $1_munin_plugin_t)
 
 	manage_files_pattern($1_munin_plugin_t, $1_munin_plugin_tmp_t, $1_munin_plugin_tmp_t)
 	manage_dirs_pattern($1_munin_plugin_t, $1_munin_plugin_tmp_t, $1_munin_plugin_tmp_t)
 	files_tmp_filetrans($1_munin_plugin_t, $1_munin_plugin_tmp_t, { dir file })
+<<<<<<< HEAD
 
 	# automatic transition rules from munin domain
 	# to specific munin plugin domain
@@ -40,6 +57,8 @@ template(`munin_plugin_template',`
 	allow munin_t $1_munin_plugin_t:process signal_perms;
 
 	kernel_read_system_state($1_munin_plugin_t)
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
@@ -64,7 +83,7 @@ interface(`munin_stream_connect',`
 
 #######################################
 ## <summary>
-##	Read munin configuration files.
+##	Read munin configuration content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -78,14 +97,19 @@ interface(`munin_read_config',`
 		type munin_etc_t;
 	')
 
+	files_search_etc($1)
 	allow $1 munin_etc_t:dir list_dir_perms;
 	allow $1 munin_etc_t:file read_file_perms;
 	allow $1 munin_etc_t:lnk_file read_lnk_file_perms;
+<<<<<<< HEAD
 	files_search_etc($1)
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 #######################################
 ## <summary>
+<<<<<<< HEAD
 ##	Read munin library files.
 ## </summary>
 ## <param name="domain">
@@ -125,6 +149,9 @@ interface(`munin_dontaudit_leaks',`
 #######################################
 ## <summary>
 ##	Append to the munin log.
+=======
+##	Append munin log files.
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -183,8 +210,8 @@ interface(`munin_dontaudit_search_lib',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an munin environment
+##	All of the rules required to
+##	administrate an munin environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -193,15 +220,17 @@ interface(`munin_dontaudit_search_lib',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the munin domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`munin_admin',`
 	gen_require(`
+		attribute munin_plugin_domain, munin_plugin_tmp_content;
 		type munin_t, munin_etc_t, munin_tmp_t;
 		type munin_log_t, munin_var_lib_t, munin_var_run_t;
+<<<<<<< HEAD
 		type httpd_munin_content_t, munin_initrc_exec_t;
 	')
 
@@ -210,6 +239,13 @@ interface(`munin_admin',`
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 munin_t:process ptrace;
 	')
+=======
+		type httpd_munin_content_t, munin_plugin_state_t, munin_initrc_exec_t;
+	')
+
+	allow $1 { munin_plugin_domain munin_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { munin_plugin_domain munin_t })
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	init_labeled_script_domtrans($1, munin_initrc_exec_t)
 	domain_system_change_exemption($1)
@@ -217,7 +253,7 @@ interface(`munin_admin',`
 	allow $2 system_r;
 
 	files_list_tmp($1)
-	admin_pattern($1, munin_tmp_t)
+	admin_pattern($1, { munin_tmp_t munin_plugin_tmp_content })
 
 	logging_list_logs($1)
 	admin_pattern($1, munin_log_t)
@@ -226,7 +262,7 @@ interface(`munin_admin',`
 	admin_pattern($1, munin_etc_t)
 
 	files_list_var_lib($1)
-	admin_pattern($1, munin_var_lib_t)
+	admin_pattern($1, { munin_var_lib_t munin_plugin_state_t })
 
 	files_list_pids($1)
 	admin_pattern($1, munin_var_run_t)

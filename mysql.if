@@ -1,4 +1,23 @@
-## <summary>Policy for MySQL</summary>
+## <summary>Open source database.</summary>
+
+########################################
+## <summary>
+##	Role access for mysql.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+interface(`mysql_role',`
+	refpolicywarn(`$0($*) has been deprecated')
+')
 
 ######################################
 ## <summary>
@@ -15,6 +34,7 @@ interface(`mysql_domtrans',`
 		type mysqld_t, mysqld_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, mysqld_exec_t, mysqld_t)
 ')
 
@@ -38,7 +58,32 @@ interface(`mysql_exec',`
 
 ########################################
 ## <summary>
-##	Send a generic signal to MySQL.
+##	Execute mysqld in the mysqld domain, and
+##	allow the specified role the mysqld domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`mysql_run_mysqld',`
+	gen_require(`
+		attribute_role mysqld_roles;
+	')
+
+	mysql_domtrans($1)
+	roleattribute $2 mysqld_roles;
+')
+
+########################################
+## <summary>
+##	Send generic signals to mysqld.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -74,7 +119,7 @@ interface(`mysql_signull',`
 
 ########################################
 ## <summary>
-##	Allow the specified domain to connect to postgresql with a tcp socket.
+##	Connect to mysqld with a tcp socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -95,7 +140,8 @@ interface(`mysql_tcp_connect',`
 
 ########################################
 ## <summary>
-##	Connect to MySQL using a unix domain stream socket.
+##	Connect to mysqld with a unix
+#	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -110,13 +156,17 @@ interface(`mysql_stream_connect',`
 	')
 
 	files_search_pids($1)
+<<<<<<< HEAD
 	stream_connect_pattern($1, mysqld_var_run_t, mysqld_var_run_t, mysqld_t)
 	stream_connect_pattern($1, mysqld_db_t, mysqld_var_run_t, mysqld_t)
+=======
+	stream_connect_pattern($1, { mysqld_db_t mysqld_var_run_t }, mysqld_var_run_t, mysqld_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-##	Read MySQL configuration files.
+##	Read mysqld configuration content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -130,6 +180,7 @@ interface(`mysql_read_config',`
 		type mysqld_etc_t;
 	')
 
+	files_search_etc($1)
 	allow $1 mysqld_etc_t:dir list_dir_perms;
 	allow $1 mysqld_etc_t:file read_file_perms;
 	allow $1 mysqld_etc_t:lnk_file read_lnk_file_perms;
@@ -137,8 +188,7 @@ interface(`mysql_read_config',`
 
 ########################################
 ## <summary>
-##	Search the directories that contain MySQL
-##	database storage.
+##	Search mysqld db directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -146,8 +196,6 @@ interface(`mysql_read_config',`
 ##	</summary>
 ## </param>
 #
-# cjp: "_dir" in the name is added to clarify that this
-# is not searching the database itself.
 interface(`mysql_search_db',`
 	gen_require(`
 		type mysqld_db_t;
@@ -159,6 +207,7 @@ interface(`mysql_search_db',`
 
 ########################################
 ## <summary>
+<<<<<<< HEAD
 ##	List the directories that contain MySQL
 ##	database storage.
 ## </summary>
@@ -180,6 +229,9 @@ interface(`mysql_list_db',`
 ########################################
 ## <summary>
 ##	Read and write to the MySQL database directory.
+=======
+##	Read and write mysqld database directories.
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -198,7 +250,8 @@ interface(`mysql_rw_db_dirs',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete MySQL database directories.
+##	Create, read, write, and delete
+##	mysqld database directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -217,7 +270,7 @@ interface(`mysql_manage_db_dirs',`
 
 #######################################
 ## <summary>
-##	Append to the MySQL database directory.
+##	Append mysqld database files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -236,7 +289,7 @@ interface(`mysql_append_db_files',`
 
 #######################################
 ## <summary>
-##	Read and write to the MySQL database directory.
+##	Read and write mysqld database files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -255,7 +308,8 @@ interface(`mysql_rw_db_files',`
 
 #######################################
 ## <summary>
-##	Create, read, write, and delete MySQL database files.
+##	Create, read, write, and delete
+##	mysqld database files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -274,7 +328,7 @@ interface(`mysql_manage_db_files',`
 
 ########################################
 ## <summary>
-##	Read and write to the MySQL database
+##	Read and write mysqld database sockets.
 ##	named socket.
 ## </summary>
 ## <param name="domain">
@@ -284,18 +338,80 @@ interface(`mysql_manage_db_files',`
 ## </param>
 #
 interface(`mysql_rw_db_sockets',`
-	gen_require(`
-		type mysqld_db_t;
-	')
-
-	files_search_var_lib($1)
-	allow $1 mysqld_db_t:dir search_dir_perms;
-	allow $1 mysqld_db_t:sock_file rw_sock_file_perms;
+	refpolicywarn(`$0($*) has been deprecated.')
 ')
 
 ########################################
 ## <summary>
-##	Write to the MySQL log.
+##	Create, read, write, and delete
+##	mysqld home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mysql_manage_mysqld_home_files',`
+	gen_require(`
+		type mysqld_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 mysqld_home_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Relabel mysqld home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mysql_relabel_mysqld_home_files',`
+	gen_require(`
+		type mysqld_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 mysqld_home_t:file relabel_file_perms;
+')
+
+########################################
+## <summary>
+##	Create objects in user home
+##	directories with the mysqld home type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`mysql_home_filetrans_mysqld_home',`
+	gen_require(`
+		type mysqld_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, mysqld_home_t, $2, $3)
+')
+
+########################################
+## <summary>
+##	Write mysqld log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -309,12 +425,21 @@ interface(`mysql_write_log',`
 	')
 
 	logging_search_logs($1)
+<<<<<<< HEAD
 	allow $1 mysqld_log_t:file { write_file_perms setattr_file_perms };
+=======
+	allow $1 mysqld_log_t:file write_file_perms;
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ######################################
 ## <summary>
+<<<<<<< HEAD
 ##	Execute MySQL safe script in the mysql safe domain.
+=======
+##	Execute mysqld safe in the
+##	mysqld safe domain.
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -327,6 +452,7 @@ interface(`mysql_domtrans_mysql_safe',`
 		type mysqld_safe_t, mysqld_safe_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, mysqld_safe_exec_t, mysqld_safe_t)
 ')
 
@@ -350,7 +476,7 @@ interface(`mysql_safe_exec',`
 
 #####################################
 ## <summary>
-##	Read MySQL PID files.
+##	Read mysqld pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -363,13 +489,13 @@ interface(`mysql_read_pid_files',`
 		type mysqld_var_run_t;
 	')
 
-	mysql_search_pid_files($1)
+	files_search_pids($1)
 	read_files_pattern($1, mysqld_var_run_t, mysqld_var_run_t)
 ')
 
 #####################################
 ## <summary>
-##	Search MySQL PID files.
+##	Search mysqld pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -383,11 +509,13 @@ interface(`mysql_search_pid_files',`
 		type mysqld_var_run_t;
 	')
 
+	files_search_pids($1)
 	search_dirs_pattern($1, mysqld_var_run_t, mysqld_var_run_t)
 ')
 
 ########################################
 ## <summary>
+<<<<<<< HEAD
 ##	Execute mysqld server in the mysqld domain.
 ## </summary>
 ## <param name="domain">
@@ -450,6 +578,10 @@ interface(`mysql_filetrans_named_content',`
 ########################################
 ## <summary>
 ##	All of the rules required to administrate an mysql environment
+=======
+##	All of the rules required to
+##	administrate an mysqld environment.
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -458,13 +590,14 @@ interface(`mysql_filetrans_named_content',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the mysql domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`mysql_admin',`
 	gen_require(`
+<<<<<<< HEAD
 		type mysqld_t, mysqld_var_run_t, mysqld_initrc_exec_t;
 		type mysqld_tmp_t, mysqld_db_t, mysqld_log_t;
 		type mysqld_etc_t;
@@ -477,17 +610,34 @@ interface(`mysql_admin',`
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 mysqld_t:process ptrace;
 	')
+=======
+		type mysqld_t, mysqld_var_run_t, mysqld_etc_t;
+		type mysqld_tmp_t, mysqld_db_t, mysqld_log_t;
+		type mysqld_safe_t, mysqlmanagerd_t, mysqlmanagerd_var_run_t;
+		type mysqld_initrc_exec_t, mysqlmanagerd_initrc_exec_t, mysqld_home_t;
+	')
 
-	init_labeled_script_domtrans($1, mysqld_initrc_exec_t)
+	allow $1 { mysqld_safe_t mysqld_t mysqlmanagerd_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { mysqld_safe_t mysqld_t mysqlmanagerd_t })
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
+
+	init_labeled_script_domtrans($1, {  mysqlmanagerd_initrc_exec_t mysqld_initrc_exec_t })
 	domain_system_change_exemption($1)
-	role_transition $2 mysqld_initrc_exec_t system_r;
+	role_transition $2 { mysqlmanagerd_initrc_exec_t mysqld_initrc_exec_t } system_r;
 	allow $2 system_r;
 
+<<<<<<< HEAD
 	files_list_pids($1)
 	admin_pattern($1, mysqld_var_run_t)
+=======
+	files_search_pids($1)
+	admin_pattern($1, { mysqlmanagerd_var_run_t mysqld_var_run_t })
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
+	files_search_var_lib($1)
 	admin_pattern($1, mysqld_db_t)
 
+<<<<<<< HEAD
 	files_list_etc($1)
 	admin_pattern($1, mysqld_etc_t)
 
@@ -506,4 +656,16 @@ interface(`mysql_admin',`
 	allow $1 mysqld_unit_file_t:service all_service_perms;
 
 	mysql_stream_connect($1)
+=======
+	files_search_etc($1)
+	admin_pattern($1, { mysqld_etc_t mysqld_home_t })
+
+	logging_search_logs($1)
+	admin_pattern($1, mysqld_log_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, mysqld_tmp_t)
+
+	mysql_run_mysqld($1, $2)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')

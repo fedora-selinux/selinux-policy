@@ -2,7 +2,7 @@
 
 ########################################
 ## <summary>
-##	Execute portmap_helper in the helper domain.
+##	Execute portmap helper in the helper domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -21,9 +21,9 @@ interface(`portmap_domtrans_helper',`
 
 ########################################
 ## <summary>
-##	Execute portmap helper in the helper domain, and
-##	allow the specified role the helper domain.
-##	Communicate with portmap.
+##	Execute portmap helper in the helper
+##	domain, and allow the specified role
+##	the helper domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -39,11 +39,11 @@ interface(`portmap_domtrans_helper',`
 #
 interface(`portmap_run_helper',`
 	gen_require(`
-		type portmap_t, portmap_helper_t;
+		attribute_role portmap_helper_roles;
 	')
 
 	portmap_domtrans_helper($1)
-	role $2 types portmap_helper_t;
+	roleattribute $2 portmap_helper_roles;
 ')
 
 ########################################
@@ -86,4 +86,44 @@ interface(`portmap_udp_chat',`
 #
 interface(`portmap_tcp_connect',`
 	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an portmap environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`portmap_admin',`
+	gen_require(`
+		type portmap_t, portmap_initrc_exec_t, portmap_helper_t;
+		type portmap_var_run_t, portmap_tmp_t;
+	')
+
+	allow $1 { portmap_t portmap_helper_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { portmap_t portmap_helper_t })
+
+	init_labeled_script_domtrans($1, portmap_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 portmap_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, portmap_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, portmap_tmp_t)
+
+	portmap_run_helper($1, $2)
 ')

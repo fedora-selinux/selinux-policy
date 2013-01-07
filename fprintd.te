@@ -1,4 +1,4 @@
-policy_module(fprintd, 1.1.0)
+policy_module(fprintd, 1.1.1)
 
 ########################################
 #
@@ -18,34 +18,36 @@ files_type(fprintd_var_lib_t)
 #
 
 allow fprintd_t self:capability sys_nice;
-
-allow fprintd_t self:fifo_file rw_fifo_file_perms;
 allow fprintd_t self:process { getsched setsched signal sigkill };
+allow fprintd_t self:fifo_file rw_fifo_file_perms;
 
 manage_dirs_pattern(fprintd_t, fprintd_var_lib_t, fprintd_var_lib_t)
 manage_files_pattern(fprintd_t, fprintd_var_lib_t, fprintd_var_lib_t)
-files_var_lib_filetrans(fprintd_t, fprintd_var_lib_t, { dir file })
 
 kernel_read_system_state(fprintd_t)
 
-corecmd_search_bin(fprintd_t)
-
 dev_list_usbfs(fprintd_t)
-dev_rw_generic_usb_dev(fprintd_t)
 dev_read_sysfs(fprintd_t)
-
-files_read_usr_files(fprintd_t)
+dev_rw_generic_usb_dev(fprintd_t)
 
 fs_getattr_all_fs(fprintd_t)
 
 auth_use_nsswitch(fprintd_t)
 
-
 userdom_use_user_ptys(fprintd_t)
 userdom_read_all_users_state(fprintd_t)
 
 optional_policy(`
-	consolekit_dbus_chat(fprintd_t)
+	dbus_system_domain(fprintd_t, fprintd_exec_t)
+
+	optional_policy(`
+		consolekit_dbus_chat(fprintd_t)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(fprintd_t)
+		policykit_dbus_chat_auth(fprintd_t)
+	')
 ')
 
 optional_policy(`

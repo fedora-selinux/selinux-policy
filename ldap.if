@@ -1,4 +1,4 @@
-## <summary>OpenLDAP directory server</summary>
+## <summary>OpenLDAP directory server.</summary>
 
 #######################################
 ## <summary>
@@ -61,8 +61,7 @@ interface(`ldap_systemctl',`
 
 ########################################
 ## <summary>
-##	Read the contents of the OpenLDAP
-##	database directories.
+##	List ldap database directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -75,11 +74,13 @@ interface(`ldap_list_db',`
 		type slapd_db_t;
 	')
 
+	files_search_etc($1)
 	allow $1 slapd_db_t:dir list_dir_perms;
 ')
 
 ########################################
 ## <summary>
+<<<<<<< HEAD
 ##	Read the contents of the OpenLDAP
 ##	database files.
 ## </summary>
@@ -100,6 +101,9 @@ interface(`ldap_read_db_files',`
 ########################################
 ## <summary>
 ##	Read the OpenLDAP configuration files.
+=======
+##	Read ldap configuration files.
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -133,7 +137,8 @@ interface(`ldap_use',`
 
 ########################################
 ## <summary>
-##	Connect to slapd over an unix stream socket.
+##	Connect to slapd over an unix
+##	stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -152,8 +157,29 @@ interface(`ldap_stream_connect',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an ldap environment
+## 	Connect to ldap over the network.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_tcp_connect',`
+	gen_require(`
+		type slapd_t;
+	')
+
+	corenet_sendrecv_ldap_client_packets($1)
+	corenet_tcp_connect_ldap_port($1)
+	corenet_tcp_recvfrom_labeled($1, slapd_t)
+	corenet_tcp_sendrecv_ldap_port($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an ldap environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -162,7 +188,7 @@ interface(`ldap_stream_connect',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the ldap domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -171,8 +197,13 @@ interface(`ldap_admin',`
 	gen_require(`
 		type slapd_t, slapd_tmp_t, slapd_replog_t;
 		type slapd_lock_t, slapd_etc_t, slapd_var_run_t;
+<<<<<<< HEAD
 		type slapd_initrc_exec_t;
 		type ldap_unit_file_t;
+=======
+		type slapd_initrc_exec_t, slapd_log_t, slapd_cert_t;
+		type slapd_db_t;
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	')
 
 	allow $1 slapd_t:process signal_perms;
@@ -187,11 +218,19 @@ interface(`ldap_admin',`
 	allow $2 system_r;
 
 	files_list_etc($1)
-	admin_pattern($1, slapd_etc_t)
+	admin_pattern($1, { slapd_etc_t slapd_db_t slapd_cert_t })
 
+	files_list_locks($1)
 	admin_pattern($1, slapd_lock_t)
 
+<<<<<<< HEAD
 	files_list_var_lib($1)
+=======
+	logging_list_logs($1)
+	admin_pattern($1, slapd_log_t)
+
+	files_search_var_lib($1)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	admin_pattern($1, slapd_replog_t)
 
 	files_list_tmp($1)

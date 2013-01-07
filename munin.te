@@ -1,4 +1,4 @@
-policy_module(munin, 1.8.0)
+policy_module(munin, 1.8.10)
 
 ########################################
 #
@@ -6,6 +6,10 @@ policy_module(munin, 1.8.0)
 #
 
 attribute munin_plugin_domain;
+<<<<<<< HEAD
+=======
+attribute munin_plugin_tmp_content;
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 type munin_t alias lrrd_t;
 type munin_exec_t alias lrrd_exec_t;
@@ -33,14 +37,57 @@ type munin_var_run_t alias lrrd_var_run_t;
 files_pid_file(munin_var_run_t)
 
 munin_plugin_template(disk)
-
 munin_plugin_template(mail)
+<<<<<<< HEAD
 
 munin_plugin_template(selinux)
 
+=======
+munin_plugin_template(selinux)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 munin_plugin_template(services)
-
 munin_plugin_template(system)
+munin_plugin_template(unconfined)
+
+################################
+#
+# Common munin plugin local policy
+#
+
+allow munin_plugin_domain self:process signal;
+allow munin_plugin_domain self:fifo_file rw_fifo_file_perms;
+
+allow munin_plugin_domain munin_t:tcp_socket rw_socket_perms;
+
+read_lnk_files_pattern(munin_plugin_domain, munin_etc_t, munin_etc_t)
+
+allow munin_plugin_domain munin_exec_t:file read_file_perms;
+
+allow munin_plugin_domain munin_var_lib_t:dir search_dir_perms;
+
+manage_files_pattern(munin_plugin_domain, munin_plugin_state_t, munin_plugin_state_t)
+
+kernel_read_system_state(munin_plugin_domain)
+
+corenet_all_recvfrom_unlabeled(munin_plugin_domain)
+corenet_all_recvfrom_netlabel(munin_plugin_domain)
+corenet_tcp_sendrecv_generic_if(munin_plugin_domain)
+corenet_tcp_sendrecv_generic_node(munin_plugin_domain)
+
+corecmd_exec_bin(munin_plugin_domain)
+corecmd_exec_shell(munin_plugin_domain)
+
+files_read_etc_files(munin_plugin_domain)
+files_read_usr_files(munin_plugin_domain)
+files_search_var_lib(munin_plugin_domain)
+
+fs_getattr_all_fs(munin_plugin_domain)
+
+miscfiles_read_localization(munin_plugin_domain)
+
+optional_policy(`
+	nscd_use(munin_plugin_domain)
+')
 
 munin_plugin_template(unconfined)
 
@@ -52,21 +99,21 @@ munin_plugin_template(unconfined)
 allow munin_t self:capability { chown dac_override kill setgid setuid sys_rawio };
 dontaudit munin_t self:capability sys_tty_config;
 allow munin_t self:process { getsched setsched signal_perms };
-allow munin_t self:unix_stream_socket { create_stream_socket_perms connectto };
-allow munin_t self:unix_dgram_socket { create_socket_perms sendto };
-allow munin_t self:tcp_socket create_stream_socket_perms;
-allow munin_t self:udp_socket create_socket_perms;
+allow munin_t self:unix_stream_socket { accept connectto listen };
+allow munin_t self:unix_dgram_socket sendto;
+allow munin_t self:tcp_socket { accept listen };
 allow munin_t self:fifo_file manage_fifo_file_perms;
 
-allow munin_t munin_etc_t:dir list_dir_perms;
-read_files_pattern(munin_t, munin_etc_t, munin_etc_t)
-read_lnk_files_pattern(munin_t, munin_etc_t, munin_etc_t)
-files_search_etc(munin_t)
+allow munin_t munin_plugin_domain:process signal_perms;
 
-can_exec(munin_t, munin_exec_t)
+allow munin_t munin_etc_t:dir list_dir_perms;
+allow munin_t munin_etc_t:file read_file_perms;
+allow munin_t munin_etc_t:lnk_file read_lnk_file_perms;
 
 manage_dirs_pattern(munin_t, munin_log_t, munin_log_t)
-manage_files_pattern(munin_t, munin_log_t, munin_log_t)
+append_files_pattern(munin_t, munin_log_t, munin_log_t)
+create_files_pattern(munin_t, munin_log_t, munin_log_t)
+setattr_files_pattern(munin_t, munin_log_t, munin_log_t)
 logging_log_filetrans(munin_t, munin_log_t, { file dir })
 
 manage_dirs_pattern(munin_t, munin_tmp_t, munin_tmp_t)
@@ -74,18 +121,27 @@ manage_files_pattern(munin_t, munin_tmp_t, munin_tmp_t)
 manage_sock_files_pattern(munin_t, munin_tmp_t, munin_tmp_t)
 files_tmp_filetrans(munin_t, munin_tmp_t, { file dir sock_file })
 
-# Allow access to the munin databases
 manage_dirs_pattern(munin_t, munin_var_lib_t, munin_var_lib_t)
 manage_files_pattern(munin_t, munin_var_lib_t, munin_var_lib_t)
 manage_lnk_files_pattern(munin_t, munin_var_lib_t, munin_var_lib_t)
-files_search_var_lib(munin_t)
 
+<<<<<<< HEAD
 manage_dirs_pattern(munin_t, munin_var_run_t, munin_var_run_t)
 manage_files_pattern(munin_t, munin_var_run_t, munin_var_run_t)
 manage_sock_files_pattern(munin_t, munin_var_run_t, munin_var_run_t)
 files_pid_filetrans(munin_t, munin_var_run_t, { file dir })
 
 rw_files_pattern(munin_t, munin_plugin_state_t, munin_plugin_state_t)
+=======
+read_files_pattern(munin_t, munin_plugin_state_t, munin_plugin_state_t)
+
+manage_dirs_pattern(munin_t, munin_var_run_t, munin_var_run_t)
+manage_files_pattern(munin_t, munin_var_run_t, munin_var_run_t)
+manage_sock_files_pattern(munin_t, munin_var_run_t, munin_var_run_t)
+files_pid_filetrans(munin_t, munin_var_run_t, { dir file })
+
+can_exec(munin_t, munin_exec_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 kernel_read_system_state(munin_t)
 kernel_read_network_state(munin_t)
@@ -96,15 +152,18 @@ corecmd_exec_shell(munin_t)
 
 corenet_all_recvfrom_netlabel(munin_t)
 corenet_tcp_sendrecv_generic_if(munin_t)
-corenet_udp_sendrecv_generic_if(munin_t)
 corenet_tcp_sendrecv_generic_node(munin_t)
-corenet_udp_sendrecv_generic_node(munin_t)
-corenet_tcp_sendrecv_all_ports(munin_t)
-corenet_udp_sendrecv_all_ports(munin_t)
 corenet_tcp_bind_generic_node(munin_t)
+
+corenet_sendrecv_munin_server_packets(munin_t)
 corenet_tcp_bind_munin_port(munin_t)
+corenet_sendrecv_munin_client_packets(munin_t)
 corenet_tcp_connect_munin_port(munin_t)
+corenet_tcp_sendrecv_munin_port(munin_t)
+
+corenet_sendrecv_http_client_packets(munin_t)
 corenet_tcp_connect_http_port(munin_t)
+corenet_tcp_sendrecv_http_port(munin_t)
 
 dev_read_sysfs(munin_t)
 dev_read_urand(munin_t)
@@ -125,6 +184,10 @@ logging_send_syslog_msg(munin_t)
 logging_read_all_logs(munin_t)
 
 miscfiles_read_fonts(munin_t)
+<<<<<<< HEAD
+=======
+miscfiles_read_localization(munin_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 miscfiles_setattr_fonts_cache_dirs(munin_t)
 
 sysnet_exec_ifconfig(munin_t)
@@ -158,10 +221,15 @@ optional_policy(`
 ')
 
 optional_policy(`
+	mta_list_queue(munin_t)
 	mta_read_config(munin_t)
+<<<<<<< HEAD
 	mta_send_mail(munin_t)
 	mta_list_queue(munin_t)
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	mta_read_queue(munin_t)
+	mta_send_mail(munin_t)
 ')
 
 optional_policy(`
@@ -171,13 +239,22 @@ optional_policy(`
 
 optional_policy(`
 	netutils_domtrans_ping(munin_t)
+<<<<<<< HEAD
 	netutils_signal_ping(munin_t)
 	netutils_kill_ping(munin_t)
+=======
+	netutils_kill_ping(munin_t)
+	netutils_signal_ping(munin_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`
 	postfix_list_spool(munin_t)
+<<<<<<< HEAD
 	postfix_getattr_spool_files(munin_t)
+=======
+	postfix_getattr_all_spool_files(munin_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`
@@ -198,7 +275,7 @@ optional_policy(`
 
 ###################################
 #
-# local policy for disk plugins
+# Disk local policy
 #
 
 allow disk_munin_plugin_t self:capability { sys_admin sys_rawio };
@@ -206,17 +283,27 @@ allow disk_munin_plugin_t self:tcp_socket create_stream_socket_perms;
 
 rw_files_pattern(disk_munin_plugin_t, munin_var_lib_t, munin_var_lib_t)
 
-corecmd_exec_shell(disk_munin_plugin_t)
-
+corenet_sendrecv_hddtemp_client_packets(disk_munin_plugin_t)
 corenet_tcp_connect_hddtemp_port(disk_munin_plugin_t)
+corenet_tcp_sendrecv_hddtemp_port(disk_munin_plugin_t)
+
+dev_getattr_all_blk_files(disk_munin_plugin_t)
+dev_getattr_lvm_control(disk_munin_plugin_t)
+dev_read_sysfs(disk_munin_plugin_t)
+dev_read_urand(disk_munin_plugin_t)
 
 files_read_etc_runtime_files(disk_munin_plugin_t)
 files_read_usr_files(disk_munin_plugin_t)
 
+<<<<<<< HEAD
 dev_getattr_lvm_control(disk_munin_plugin_t)
 dev_read_sysfs(disk_munin_plugin_t)
 dev_read_urand(disk_munin_plugin_t)
 dev_read_all_blk_files(munin_disk_plugin_t)
+=======
+fs_getattr_all_fs(disk_munin_plugin_t)
+fs_getattr_all_dirs(disk_munin_plugin_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 fs_getattr_all_fs(disk_munin_plugin_t)
 fs_getattr_all_dirs(disk_munin_plugin_t)
@@ -235,7 +322,7 @@ optional_policy(`
 
 ####################################
 #
-# local policy for mail plugins
+# Mail local policy
 #
 
 allow mail_munin_plugin_t self:capability dac_override;
@@ -248,6 +335,7 @@ rw_files_pattern(mail_munin_plugin_t, munin_var_lib_t, munin_var_lib_t)
 dev_read_urand(mail_munin_plugin_t)
 
 logging_read_generic_logs(mail_munin_plugin_t)
+<<<<<<< HEAD
 
 sysnet_read_config(mail_munin_plugin_t)
 
@@ -264,9 +352,22 @@ optional_policy(`
 
 optional_policy(`
 	nscd_socket_use(mail_munin_plugin_t)
+=======
+
+optional_policy(`
+	mta_list_queue(mail_munin_plugin_t)
+	mta_read_config(mail_munin_plugin_t)
+	mta_read_queue(mail_munin_plugin_t)
+	mta_send_mail(mail_munin_plugin_t)
 ')
 
 optional_policy(`
+	nscd_use(mail_munin_plugin_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
+')
+
+optional_policy(`
+	postfix_getattr_all_spool_files(mail_munin_plugin_t)
 	postfix_read_config(mail_munin_plugin_t)
 	postfix_list_spool(mail_munin_plugin_t)
 	postfix_getattr_spool_files(mail_munin_plugin_t)
@@ -278,14 +379,18 @@ optional_policy(`
 
 ##################################
 #
+<<<<<<< HEAD
 # local policy for selinux plugins
+=======
+# Selinux local policy
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 selinux_get_enforce_mode(selinux_munin_plugin_t)
 
 ###################################
 #
-# local policy for service plugins
+# Service local policy
 #
 
 allow services_munin_plugin_t self:shm create_sem_perms;
@@ -294,8 +399,10 @@ allow services_munin_plugin_t self:tcp_socket create_stream_socket_perms;
 allow services_munin_plugin_t self:udp_socket create_socket_perms;
 allow services_munin_plugin_t self:netlink_route_socket r_netlink_socket_perms;
 
+corenet_sendrecv_all_client_packets(services_munin_plugin_t)
 corenet_tcp_connect_all_ports(services_munin_plugin_t)
 corenet_tcp_connect_http_port(services_munin_plugin_t)
+corenet_tcp_sendrecv_all_ports(services_munin_plugin_t)
 
 dev_read_urand(services_munin_plugin_t)
 dev_read_rand(services_munin_plugin_t)
@@ -303,6 +410,13 @@ dev_read_rand(services_munin_plugin_t)
 sysnet_read_config(services_munin_plugin_t)
 
 optional_policy(`
+<<<<<<< HEAD
+=======
+	bind_read_config(munin_services_plugin_t)
+')
+
+optional_policy(`
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	cups_read_config(services_munin_plugin_t)
 	cups_stream_connect(services_munin_plugin_t)
 ')
@@ -321,11 +435,15 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	nscd_socket_use(services_munin_plugin_t)
 ')
 
 optional_policy(`
 	ntp_exec(services_munin_plugin_t)
+=======
+	nscd_use(services_munin_plugin_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`
@@ -344,31 +462,43 @@ optional_policy(`
 	varnishd_read_lib_files(services_munin_plugin_t)
 ')
 
+<<<<<<< HEAD
 optional_policy(`
     bind_read_config(munin_services_plugin_t)
 ')
 
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ##################################
 #
-# local policy for system plugins
+# System local policy
 #
 
 allow system_munin_plugin_t self:udp_socket create_socket_perms;
 
 rw_files_pattern(system_munin_plugin_t, munin_var_lib_t, munin_var_lib_t)
 
+<<<<<<< HEAD
 # needed by munin_* plugins
 read_files_pattern(system_munin_plugin_t, munin_log_t, munin_log_t)
 
 kernel_read_network_state(system_munin_plugin_t)
 
+=======
+read_files_pattern(system_munin_plugin_t, munin_log_t, munin_log_t)
+
+kernel_read_network_state(system_munin_plugin_t)
+kernel_read_all_sysctls(system_munin_plugin_t)
+
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 dev_read_sysfs(system_munin_plugin_t)
 dev_read_urand(system_munin_plugin_t)
 
 domain_read_all_domains_state(system_munin_plugin_t)
 
-# needed by users plugin
 init_read_utmp(system_munin_plugin_t)
+
+logging_search_logs(system_munin_plugin_t)
 
 sysnet_exec_ifconfig(system_munin_plugin_t)
 
@@ -382,12 +512,17 @@ optional_policy(`
 
 #######################################
 #
+<<<<<<< HEAD
 # Unconfined plugin policy
+=======
+# Unconfined plugin local policy
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 optional_policy(`
 	unconfined_domain(unconfined_munin_plugin_t)
 ')
+<<<<<<< HEAD
 
 ################################
 #
@@ -417,3 +552,5 @@ auth_read_passwd(munin_plugin_domain)
 optional_policy(`
     nscd_socket_use(munin_plugin_domain)
 ')
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a

@@ -1,4 +1,4 @@
-policy_module(passanger, 1.0.0)
+policy_module(passanger, 1.0.3)
 
 ########################################
 #
@@ -14,9 +14,6 @@ role system_r types passenger_t;
 type passenger_log_t;
 logging_log_file(passenger_log_t)
 
-type passenger_tmp_t;
-files_tmp_file(passenger_tmp_t)
-
 type passenger_var_lib_t;
 files_type(passenger_var_lib_t)
 
@@ -25,23 +22,27 @@ files_pid_file(passenger_var_run_t)
 
 ########################################
 #
-# passanger local policy
+# Local policy
 #
 
 allow passenger_t self:capability { chown dac_override fsetid fowner kill setuid setgid sys_nice sys_ptrace sys_resource };
 allow passenger_t self:process { setpgid setsched sigkill signal };
 allow passenger_t self:fifo_file rw_fifo_file_perms;
-allow passenger_t self:unix_stream_socket { create_stream_socket_perms connectto };
-
-can_exec(passenger_t, passenger_exec_t)
+allow passenger_t self:unix_stream_socket { accept connectto listen };
 
 manage_dirs_pattern(passenger_t, passenger_log_t, passenger_log_t)
+<<<<<<< HEAD
 manage_files_pattern(passenger_t, passenger_log_t, passenger_log_t)
 logging_log_filetrans(passenger_t, passenger_log_t, { dir file })
+=======
+append_files_pattern(passenger_t, passenger_log_t, passenger_log_t)
+create_files_pattern(passenger_t, passenger_log_t, passenger_log_t)
+setattr_files_pattern(passenger_t, passenger_log_t, passenger_log_t)
+logging_log_filetrans(passenger_t, passenger_log_t, file)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 manage_dirs_pattern(passenger_t, passenger_var_lib_t, passenger_var_lib_t)
 manage_files_pattern(passenger_t, passenger_var_lib_t, passenger_var_lib_t)
-files_search_var_lib(passenger_t)
 
 manage_dirs_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
 manage_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
@@ -49,11 +50,15 @@ manage_fifo_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
 manage_sock_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
 files_pid_filetrans(passenger_t, passenger_var_run_t, { file dir sock_file })
 
+<<<<<<< HEAD
 #needed by puppet
 manage_dirs_pattern(passenger_t, passenger_tmp_t, passenger_tmp_t)
 manage_files_pattern(passenger_t, passenger_tmp_t, passenger_tmp_t)
 manage_sock_files_pattern(passenger_t, passenger_tmp_t, passenger_tmp_t)
 files_tmp_filetrans(passenger_t, passenger_tmp_t, { file dir sock_file })
+=======
+can_exec(passenger_t, passenger_exec_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 kernel_read_system_state(passenger_t)
 kernel_read_kernel_sysctls(passenger_t)
@@ -61,7 +66,10 @@ kernel_read_kernel_sysctls(passenger_t)
 corenet_all_recvfrom_netlabel(passenger_t)
 corenet_tcp_sendrecv_generic_if(passenger_t)
 corenet_tcp_sendrecv_generic_node(passenger_t)
+
+corenet_sendrecv_http_client_packets(passenger_t)
 corenet_tcp_connect_http_port(passenger_t)
+corenet_tcp_sendrecv_http_port(passenger_t)
 
 corecmd_exec_bin(passenger_t)
 corecmd_exec_shell(passenger_t)
@@ -70,11 +78,20 @@ dev_read_urand(passenger_t)
 
 domain_read_all_domains_state(passenger_t)
 
+<<<<<<< HEAD
 files_read_usr_files(passenger_t)
+=======
+files_read_etc_files(passenger_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 auth_use_nsswitch(passenger_t)
 
 logging_send_syslog_msg(passenger_t)
+<<<<<<< HEAD
+=======
+
+miscfiles_read_localization(passenger_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 userdom_dontaudit_use_user_terminals(passenger_t)
 
@@ -92,6 +109,7 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	puppet_manage_lib(passenger_t)
 	puppet_read_config(passenger_t)
 	puppet_append_log(passenger_t)
@@ -103,4 +121,16 @@ optional_policy(`
 optional_policy(`
     rpm_exec(passenger_t)
     rpm_read_db(passenger_t)
+=======
+	puppet_manage_lib_files(passenger_t)
+	puppet_read_config(passenger_t)
+	puppet_append_log_files(passenger_t)
+	puppet_create_log_files(passenger_t)
+	puppet_read_log_files(passenger_t)
+')
+
+optional_policy(`
+	rpm_exec(passenger_t)
+	rpm_read_db(passenger_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 policy_module(plymouthd, 1.0.1)
+=======
+policy_module(plymouthd, 1.1.4)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 ########################################
 #
@@ -28,12 +32,13 @@ files_pid_file(plymouthd_var_run_t)
 
 ########################################
 #
-# Plymouthd private policy
+# Daemon local policy
 #
 
 allow plymouthd_t self:capability { sys_admin sys_tty_config };
 allow plymouthd_t self:capability2 block_suspend;
 dontaudit plymouthd_t self:capability dac_override;
+allow plymouthd_t self:capability2 block_suspend;
 allow plymouthd_t self:process { signal getsched };
 allow plymouthd_t self:fifo_file rw_fifo_file_perms;
 allow plymouthd_t self:unix_stream_socket create_stream_socket_perms;
@@ -48,7 +53,13 @@ manage_files_pattern(plymouthd_t, plymouthd_var_lib_t, plymouthd_var_lib_t)
 files_var_lib_filetrans(plymouthd_t, plymouthd_var_lib_t, { file dir })
 
 manage_dirs_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+<<<<<<< HEAD
 manage_files_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+=======
+append_files_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+create_files_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+setattr_files_pattern(plymouthd_t, plymouthd_var_log_t, plymouthd_var_log_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 logging_log_filetrans(plymouthd_t, plymouthd_var_log_t, { file dir })
 
 manage_dirs_pattern(plymouthd_t, plymouthd_var_run_t, plymouthd_var_run_t)
@@ -75,6 +86,7 @@ term_getattr_pty_fs(plymouthd_t)
 term_use_all_terms(plymouthd_t)
 term_use_ptmx(plymouthd_t)
 
+<<<<<<< HEAD
 init_signal(plymouthd_t)
 
 logging_link_generic_logs(plymouthd_t)
@@ -91,6 +103,14 @@ term_use_unallocated_ttys(plymouthd_t)
 
 optional_policy(`
 	gnome_read_config(plymouthd_t)
+=======
+miscfiles_read_localization(plymouthd_t)
+miscfiles_read_fonts(plymouthd_t)
+miscfiles_manage_fonts_cache(plymouthd_t)
+
+optional_policy(`
+	gnome_read_generic_home_content(plymouthd_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`
@@ -98,18 +118,25 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	xserver_xdm_manage_spool(plymouthd_t)
 	xserver_read_state_xdm(plymouthd_t)
+=======
+	xserver_manage_xdm_spool_files(plymouthd_t)
+	xserver_read_xdm_state(plymouthd_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 #
-# Plymouth private policy
+# Client local policy
 #
 
 allow plymouth_t self:process signal;
-allow plymouth_t self:fifo_file rw_file_perms;
+allow plymouth_t self:fifo_file rw_fifo_file_perms;
 allow plymouth_t self:unix_stream_socket create_stream_socket_perms;
+
+stream_connect_pattern(plymouth_t, plymouthd_spool_t, plymouthd_spool_t, plymouthd_t)
 
 kernel_read_system_state(plymouth_t)
 kernel_stream_connect(plymouth_t)
@@ -123,9 +150,7 @@ term_use_ptmx(plymouth_t)
 
 sysnet_read_config(plymouth_t)
 
-plymouthd_stream_connect(plymouth_t)
-
-ifdef(`hide_broken_symptoms', `
+ifdef(`hide_broken_symptoms',`
 	optional_policy(`
 		hal_dontaudit_write_log(plymouth_t)
 		hal_dontaudit_rw_pipes(plymouth_t)

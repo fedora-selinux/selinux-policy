@@ -1,4 +1,4 @@
-policy_module(networkmanager, 1.14.0)
+policy_module(networkmanager, 1.14.7)
 
 ########################################
 #
@@ -8,6 +8,12 @@ policy_module(networkmanager, 1.14.0)
 type NetworkManager_t;
 type NetworkManager_exec_t;
 init_daemon_domain(NetworkManager_t, NetworkManager_exec_t)
+
+type NetworkManager_etc_t;
+files_config_file(NetworkManager_etc_t)
+
+type NetworkManager_etc_rw_t;
+files_config_file(NetworkManager_etc_rw_t)
 
 type NetworkManager_initrc_exec_t;
 init_script_file(NetworkManager_initrc_exec_t)
@@ -42,6 +48,7 @@ init_system_domain(wpa_cli_t, wpa_cli_exec_t)
 # Local policy
 #
 
+<<<<<<< HEAD
 # networkmanager will ptrace itself if gdb is installed
 # and it receives a unexpected signal (rh bug #204161)
 allow NetworkManager_t self:capability { chown fsetid kill setgid setuid sys_admin sys_nice dac_override net_admin net_raw net_bind_service ipc_lock };
@@ -56,19 +63,30 @@ tunable_policy(`deny_ptrace',`',`
 	allow NetworkManager_t self:process ptrace;
 ')
 
+=======
+allow NetworkManager_t self:capability { chown fsetid kill setgid setuid sys_nice dac_override net_admin net_raw ipc_lock };
+dontaudit NetworkManager_t self:capability { sys_tty_config sys_module sys_ptrace };
+allow NetworkManager_t self:process { ptrace getcap setcap setpgid getsched setsched signal_perms };
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 allow NetworkManager_t self:fifo_file rw_fifo_file_perms;
-allow NetworkManager_t self:unix_dgram_socket { sendto create_socket_perms };
-allow NetworkManager_t self:unix_stream_socket create_stream_socket_perms;
+allow NetworkManager_t self:unix_dgram_socket sendto;
+allow NetworkManager_t self:unix_stream_socket { accept listen };
 allow NetworkManager_t self:netlink_route_socket create_netlink_socket_perms;
 allow NetworkManager_t self:netlink_socket create_socket_perms;
 allow NetworkManager_t self:netlink_kobject_uevent_socket create_socket_perms;
+<<<<<<< HEAD
 allow NetworkManager_t self:tcp_socket create_stream_socket_perms;
 allow NetworkManager_t self:tun_socket { create_socket_perms relabelfrom relabelto };
 allow NetworkManager_t self:udp_socket create_socket_perms;
+=======
+allow NetworkManager_t self:tcp_socket { accept listen };
+allow NetworkManager_t self:tun_socket { create_socket_perms relabelfrom relabelto };
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 allow NetworkManager_t self:packet_socket create_socket_perms;
 
 allow NetworkManager_t wpa_cli_t:unix_dgram_socket sendto;
 
+<<<<<<< HEAD
 can_exec(NetworkManager_t, NetworkManager_exec_t)
 #wicd
 can_exec(NetworkManager_t, wpa_cli_exec_t)
@@ -76,14 +94,25 @@ can_exec(NetworkManager_t, wpa_cli_exec_t)
 list_dirs_pattern(NetworkManager_t, NetworkManager_etc_t, NetworkManager_etc_t)
 read_files_pattern(NetworkManager_t, NetworkManager_etc_t, NetworkManager_etc_t)
 read_lnk_files_pattern(NetworkManager_t, NetworkManager_etc_t, NetworkManager_etc_t)
+=======
+allow NetworkManager_t NetworkManager_etc_t:dir list_dir_perms;
+allow NetworkManager_t NetworkManager_etc_t:file read_file_perms;
+allow NetworkManager_t NetworkManager_etc_t:lnk_file read_lnk_file_perms;
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 manage_dirs_pattern(NetworkManager_t, NetworkManager_etc_rw_t, NetworkManager_etc_rw_t)
 manage_files_pattern(NetworkManager_t, NetworkManager_etc_rw_t, NetworkManager_etc_rw_t)
 filetrans_pattern(NetworkManager_t, NetworkManager_etc_t, NetworkManager_etc_rw_t, { dir file })
+<<<<<<< HEAD
 
 logging_log_filetrans(NetworkManager_t, NetworkManager_log_t, file)
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
-manage_files_pattern(NetworkManager_t, NetworkManager_log_t, NetworkManager_log_t)
+allow NetworkManager_t NetworkManager_log_t:dir setattr_dir_perms;
+append_files_pattern(NetworkManager_t, NetworkManager_log_t, NetworkManager_log_t)
+create_files_pattern(NetworkManager_t, NetworkManager_log_t, NetworkManager_log_t)
+setattr_files_pattern(NetworkManager_t, NetworkManager_log_t, NetworkManager_log_t)
 logging_log_filetrans(NetworkManager_t, NetworkManager_log_t, file)
 
 can_exec(NetworkManager_t, NetworkManager_tmp_t)
@@ -100,6 +129,9 @@ manage_files_pattern(NetworkManager_t, NetworkManager_var_run_t, NetworkManager_
 manage_sock_files_pattern(NetworkManager_t, NetworkManager_var_run_t, NetworkManager_var_run_t)
 files_pid_filetrans(NetworkManager_t, NetworkManager_var_run_t, { dir file sock_file })
 
+can_exec(NetworkManager_t, { NetworkManager_exec_t wpa_cli_exec_t NetworkManager_tmp_t })
+
+kernel_read_crypto_sysctls(NetworkManager_t)
 kernel_read_system_state(NetworkManager_t)
 kernel_read_network_state(NetworkManager_t)
 kernel_read_kernel_sysctls(NetworkManager_t)
@@ -117,21 +149,41 @@ corenet_raw_sendrecv_generic_node(NetworkManager_t)
 corenet_tcp_sendrecv_all_ports(NetworkManager_t)
 corenet_udp_sendrecv_all_ports(NetworkManager_t)
 corenet_udp_bind_generic_node(NetworkManager_t)
-corenet_udp_bind_isakmp_port(NetworkManager_t)
-corenet_udp_bind_dhcpc_port(NetworkManager_t)
-corenet_tcp_connect_all_ports(NetworkManager_t)
+
 corenet_sendrecv_isakmp_server_packets(NetworkManager_t)
+corenet_udp_bind_isakmp_port(NetworkManager_t)
+
 corenet_sendrecv_dhcpc_server_packets(NetworkManager_t)
+corenet_udp_bind_dhcpc_port(NetworkManager_t)
+
 corenet_sendrecv_all_client_packets(NetworkManager_t)
+corenet_tcp_connect_all_ports(NetworkManager_t)
+
 corenet_rw_tun_tap_dev(NetworkManager_t)
 corenet_getattr_ppp_dev(NetworkManager_t)
 
+<<<<<<< HEAD
+=======
+corecmd_exec_shell(NetworkManager_t)
+corecmd_exec_bin(NetworkManager_t)
+
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 dev_rw_sysfs(NetworkManager_t)
 dev_read_rand(NetworkManager_t)
 dev_read_urand(NetworkManager_t)
 dev_dontaudit_getattr_generic_blk_files(NetworkManager_t)
 dev_getattr_all_chr_files(NetworkManager_t)
 dev_rw_wireless(NetworkManager_t)
+<<<<<<< HEAD
+=======
+
+domain_use_interactive_fds(NetworkManager_t)
+domain_read_all_domains_state(NetworkManager_t)
+
+files_read_etc_runtime_files(NetworkManager_t)
+files_read_usr_files(NetworkManager_t)
+files_read_usr_src_files(NetworkManager_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 fs_getattr_all_fs(NetworkManager_t)
 fs_search_auto_mountpoints(NetworkManager_t)
@@ -141,6 +193,7 @@ mls_file_read_all_levels(NetworkManager_t)
 
 selinux_dontaudit_search_fs(NetworkManager_t)
 
+<<<<<<< HEAD
 corecmd_exec_shell(NetworkManager_t)
 corecmd_exec_bin(NetworkManager_t)
 
@@ -152,6 +205,8 @@ files_read_system_conf_files(NetworkManager_t)
 files_read_usr_files(NetworkManager_t)
 files_read_usr_src_files(NetworkManager_t)
 
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 storage_getattr_fixed_disk_dev(NetworkManager_t)
 
 init_read_utmp(NetworkManager_t)
@@ -165,6 +220,10 @@ libs_exec_ldconfig(NetworkManager_t)
 logging_send_syslog_msg(NetworkManager_t)
 
 miscfiles_read_generic_certs(NetworkManager_t)
+<<<<<<< HEAD
+=======
+miscfiles_read_localization(NetworkManager_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 seutil_read_config(NetworkManager_t)
 
@@ -179,10 +238,10 @@ sysnet_kill_dhcpc(NetworkManager_t)
 sysnet_read_dhcpc_state(NetworkManager_t)
 sysnet_delete_dhcpc_state(NetworkManager_t)
 sysnet_search_dhcp_state(NetworkManager_t)
-# in /etc created by NetworkManager will be labelled net_conf_t.
 sysnet_manage_config(NetworkManager_t)
 sysnet_etc_filetrans_config(NetworkManager_t)
 
+<<<<<<< HEAD
 userdom_stream_connect(NetworkManager_t)
 userdom_dontaudit_use_unpriv_user_fds(NetworkManager_t)
 userdom_dontaudit_use_user_ttys(NetworkManager_t)
@@ -198,6 +257,14 @@ tunable_policy(`use_nfs_home_dirs',`
 tunable_policy(`use_samba_home_dirs',`
     fs_read_cifs_files(NetworkManager_t)
 ')
+=======
+# certificates in user home directories (cert_home_t in ~/\.pki)
+userdom_read_user_home_content_files(NetworkManager_t)
+
+userdom_write_user_tmp_sockets(NetworkManager_t)
+userdom_dontaudit_use_unpriv_user_fds(NetworkManager_t)
+userdom_dontaudit_use_user_ttys(NetworkManager_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 optional_policy(`
 	avahi_domtrans(NetworkManager_t)
@@ -220,6 +287,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	consolekit_read_pid_files(NetworkManager_t)
+')
+
+optional_policy(`
 	consoletype_exec(NetworkManager_t)
 ')
 
@@ -233,8 +304,16 @@ optional_policy(`
 	init_dbus_chat(NetworkManager_t)
 
 	optional_policy(`
+		avahi_dbus_chat(NetworkManager_t)
+	')
+
+	optional_policy(`
 		consolekit_dbus_chat(NetworkManager_t)
 		consolekit_read_pid_files(NetworkManager_t)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(NetworkManager_t)
 	')
 ')
 
@@ -250,6 +329,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	gnome_stream_connect_all_gkeyringd(NetworkManager_t)
+')
+
+optional_policy(`
 	hal_write_log(NetworkManager_t)
 ')
 
@@ -258,10 +341,13 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	gnome_dontaudit_search_config(NetworkManager_t)
 ')
 
 optional_policy(`
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	ipsec_domtrans_mgmt(NetworkManager_t)
 	ipsec_kill_mgmt(NetworkManager_t)
 	ipsec_signal_mgmt(NetworkManager_t)
@@ -273,6 +359,17 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
+=======
+	libs_exec_ldconfig(NetworkManager_t)
+')
+
+optional_policy(`
+	modutils_domtrans_insmod(NetworkManager_t)
+')
+
+optional_policy(`
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	netutils_exec_ping(NetworkManager_t)
 ')
 
@@ -286,16 +383,18 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# Dispatcher starting and stoping ntp
 	ntp_initrc_domtrans(NetworkManager_t)
 	ntp_systemctl(NetworkManager_t)
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	modutils_domtrans_insmod(NetworkManager_t)
 ')
 
 optional_policy(`
+=======
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	openvpn_read_config(NetworkManager_t)
 	openvpn_domtrans(NetworkManager_t)
 	openvpn_kill(NetworkManager_t)
@@ -304,7 +403,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	policykit_dbus_chat(NetworkManager_t)
 	policykit_domtrans_auth(NetworkManager_t)
 	policykit_read_lib(NetworkManager_t)
 	policykit_read_reload(NetworkManager_t)
@@ -312,7 +410,11 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	polipo_systemctl(NetworkManager_t)
+=======
+	polipo_initrc_domtrans(NetworkManager_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`
@@ -345,6 +447,11 @@ optional_policy(`
 optional_policy(`
 	udev_exec(NetworkManager_t)
 	udev_read_db(NetworkManager_t)
+')
+
+optional_policy(`
+	# unconfined_dgram_send(NetworkManager_t)
+	unconfined_stream_connect(NetworkManager_t)
 ')
 
 optional_policy(`

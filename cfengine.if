@@ -1,23 +1,22 @@
+## <summary>System administration tool for networks.</summary>
 
-## <summary>policy for cfengine</summary>
-
-######################################
+#######################################
 ## <summary>
-##  Creates types and rules for a basic
-##  cfengine init daemon domain.
+##	The template to define a cfengine domain.
 ## </summary>
-## <param name="prefix">
-##  <summary>
-##  Prefix for the domain.
-##  </summary>
+## <param name="domain_prefix">
+##	<summary>
+##	Domain prefix to be used.
+##	</summary>
 ## </param>
 #
 template(`cfengine_domain_template',`
-    gen_require(`
-        attribute cfengine_domain;
-    ')
+	gen_require(`
+		attribute cfengine_domain;
+		type cfengine_log_t, cfengine_var_lib_t;
+	')
 
-	##############################
+	########################################
 	#
 	# Declarations
 	#
@@ -26,46 +25,16 @@ template(`cfengine_domain_template',`
 	type cfengine_$1_exec_t;
 	init_daemon_domain(cfengine_$1_t, cfengine_$1_exec_t)
 
+	########################################
+	#
+	# Policy
+	#
+
 	kernel_read_system_state(cfengine_$1_t)
 
+	auth_use_nsswitch(cfengine_$1_t)
+
 	logging_send_syslog_msg(cfengine_$1_t)
-')
-
-########################################
-## <summary>
-##	Transition to cfengine.
-## </summary>
-## <param name="domain">
-## <summary>
-##	Domain allowed to transition.
-## </summary>
-## </param>
-#
-interface(`cfengine_domtrans_server',`
-	gen_require(`
-		type cfengine_server_t, cfengine_server_exec_t;
-	')
-
-	corecmd_search_bin($1)
-	domtrans_pattern($1, cfengine_server_exec_t, cfengine_server_t)
-')
-
-#######################################
-## <summary>
-##  Search cfengine lib files.
-## </summary>
-## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
-## </param>
-#
-interface(`cfengine_search_lib_files',`
-    gen_require(`
-        type cfengine_var_lib_t;
-    ')
-
-	allow $1 cfengine_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
@@ -87,60 +56,56 @@ interface(`cfengine_read_lib_files',`
 	read_files_pattern($1, cfengine_var_lib_t, cfengine_var_lib_t)
 ')
 
-######################################
-## <summary>
-##      Allow the specified domain to read cfengine's log files.
-## </summary>
-## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
-## </param>
-#
-interface(`cfengine_read_log',`
-        gen_require(`
-                type cfengine_var_log_t;
-        ')
-
-        logging_search_logs($1)
-		files_search_var_lib($1)
-		cfengine_search_lib_files($1)
-        read_files_pattern($1, cfengine_var_log_t, cfengine_var_log_t)
-')
-
-#####################################
-## <summary>
-##      Allow the specified domain to append cfengine's log files.
-## </summary>
-## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
-## </param>
-#
-interface(`cfengine_append_inherited_log',`
-        gen_require(`
-                type cfengine_var_log_t;
-        ')
-
-        cfengine_search_lib_files($1)
-		allow $1 cfengine_var_log_t:file { getattr append ioctl lock };
-')
-
 ####################################
 ## <summary>
-##      Dontaudit the specified domain to write cfengine's log files.
+##	Do not audit attempts to write
+##	cfengine log files.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain to not audit.
+##	</summary>
 ## </param>
 #
-interface(`cfengine_dontaudit_write_log',`
-        gen_require(`
-                type cfengine_var_log_t;
-        ')
+interface(`cfengine_dontaudit_write_log_files',`
+	gen_require(`
+		type cfengine_var_log_t;
+	')
 
-		dontaudit $1 cfengine_var_log_t:file write;
+	dontaudit $1 cfengine_var_log_t:file write_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an cfengine environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`cfengine_admin',`
+	gen_require(`
+		attribute cfengine_domain;
+		type cfengine_initrc_exec_t, cfengine_log_t, cfengine_var_lib_t;
+	')
+
+	allow $1 cfengine_domain:process { signal_perms };
+	ps_process_pattern($1, cfengine_domain)
+
+	init_labeled_script_domtrans($1, cfengine_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 cfengine_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, { cfengine_log_t cfengine_var_lib_t })
 ')

@@ -1,13 +1,18 @@
-policy_module(gnome, 2.2.0)
+policy_module(gnome, 2.2.5)
 
 ##############################
 #
 # Declarations
 #
 
+attribute gkeyringd_domain;
 attribute gnomedomain;
+<<<<<<< HEAD
 attribute gnome_home_type;
 attribute gkeyringd_domain;
+=======
+attribute_role gconfd_roles;
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 type gconf_etc_t;
 files_config_file(gconf_etc_t)
@@ -47,6 +52,7 @@ type gconfd_exec_t;
 typealias gconfd_t alias { user_gconfd_t staff_gconfd_t sysadm_gconfd_t };
 typealias gconfd_t alias { auditadm_gconfd_t secadm_gconfd_t };
 userdom_user_application_domain(gconfd_t, gconfd_exec_t)
+role gconfd_roles types gconfd_t;
 
 type gnome_home_t, gnome_home_type;
 typealias gnome_home_t alias { user_gnome_home_t staff_gnome_home_t sysadm_gnome_home_t };
@@ -54,6 +60,7 @@ typealias gnome_home_t alias { auditadm_gnome_home_t secadm_gnome_home_t };
 typealias gnome_home_t alias unconfined_gnome_home_t;
 userdom_user_home_content(gnome_home_t)
 
+<<<<<<< HEAD
 # type KDE /usr/share/config files
 type config_usr_t;
 files_type(config_usr_t)
@@ -74,14 +81,49 @@ init_daemon_domain(gconfdefaultsm_t, gconfdefaultsm_exec_t)
 type gnomesystemmm_t;
 type gnomesystemmm_exec_t;
 init_daemon_domain(gnomesystemmm_t, gnomesystemmm_exec_t)
+=======
+type gkeyringd_exec_t;
+application_executable_file(gkeyringd_exec_t)
+
+type gnome_keyring_home_t;
+userdom_user_home_content(gnome_keyring_home_t)
+
+type gnome_keyring_tmp_t;
+userdom_user_tmp_file(gnome_keyring_tmp_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 ##############################
 #
-# Local Policy
+# Common local Policy
 #
 
-allow gconfd_t self:process getsched;
-allow gconfd_t self:fifo_file rw_fifo_file_perms;
+allow gnomedomain self:process { getsched signal };
+allow gnomedomain self:fifo_file rw_fifo_file_perms;
+
+dev_read_urand(gnomedomain)
+
+domain_use_interactive_fds(gnomedomain)
+
+files_read_etc_files(gnomedomain)
+
+miscfiles_read_localization(gnomedomain)
+
+logging_send_syslog_msg(gnomedomain)
+
+userdom_use_user_terminals(gnomedomain)
+
+optional_policy(`
+	xserver_rw_xdm_pipes(gnomedomain)
+	xserver_use_xdm_fds(gnomedomain)
+')
+
+##############################
+#
+# Conf daemon local Policy
+#
+
+allow gconfd_t gconf_etc_t:dir list_dir_perms;
+read_files_pattern(gconfd_t, gconf_etc_t, gconf_etc_t)
 
 manage_dirs_pattern(gconfd_t, gconf_home_t, gconf_home_t)
 manage_files_pattern(gconfd_t, gconf_home_t, gconf_home_t)
@@ -91,17 +133,6 @@ manage_dirs_pattern(gconfd_t, gconf_tmp_t, gconf_tmp_t)
 manage_files_pattern(gconfd_t, gconf_tmp_t, gconf_tmp_t)
 userdom_user_tmp_filetrans(gconfd_t, gconf_tmp_t, { dir file })
 
-allow gconfd_t gconf_etc_t:dir list_dir_perms;
-read_files_pattern(gconfd_t, gconf_etc_t, gconf_etc_t)
-
-dev_read_urand(gconfd_t)
-
-files_read_etc_files(gconfd_t)
-
-
-logging_send_syslog_msg(gconfd_t)
-
-userdom_manage_user_tmp_sockets(gconfd_t)
 userdom_manage_user_tmp_dirs(gconfd_t)
 userdom_tmp_filetrans_user_tmp(gconfd_t, dir)
 
@@ -109,9 +140,47 @@ optional_policy(`
 	nscd_dontaudit_search_pid(gconfd_t)
 ')
 
+##############################
+#
+# Keyring-daemon local policy
+#
+
+<<<<<<< HEAD
+=======
+allow gkeyringd_domain self:capability ipc_lock;
+allow gkeyringd_domain self:process { getcap setcap };
+allow gkeyringd_domain self:unix_stream_socket { connectto accept listen };
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
+
+allow gkeyringd_domain gnome_home_t:dir create_dir_perms;
+gnome_home_filetrans_gnome_home(gkeyringd_domain, dir, ".gnome2")
+
+manage_dirs_pattern(gkeyringd_domain, gnome_keyring_home_t, gnome_keyring_home_t)
+manage_files_pattern(gkeyringd_domain, gnome_keyring_home_t, gnome_keyring_home_t)
+gnome_home_filetrans(gkeyringd_domain, gnome_keyring_home_t, dir, "keyrings")
+
+manage_dirs_pattern(gkeyringd_domain, gnome_keyring_tmp_t, gnome_keyring_tmp_t)
+manage_sock_files_pattern(gkeyringd_domain, gnome_keyring_tmp_t, gnome_keyring_tmp_t)
+files_tmp_filetrans(gkeyringd_domain, gnome_keyring_tmp_t, dir)
+
+kernel_read_system_state(gkeyringd_domain)
+kernel_read_crypto_sysctls(gkeyringd_domain)
+
+dev_read_rand(gkeyringd_domain)
+dev_read_sysfs(gkeyringd_domain)
+
+files_read_usr_files(gkeyringd_domain)
+
+fs_getattr_all_fs(gkeyringd_domain)
+
+selinux_getattr_fs(gkeyringd_domain)
+
 optional_policy(`
-	xserver_use_xdm_fds(gconfd_t)
-	xserver_rw_xdm_pipes(gconfd_t)
+	ssh_read_user_home_files(gkeyringd_domain)
+')
+
+optional_policy(`
+	telepathy_mission_control_read_state(gkeyringd_domain)
 ')
 
 #######################################

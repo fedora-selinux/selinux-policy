@@ -1,4 +1,4 @@
-## <summary>APT advanced package tool.</summary>
+## <summary>Advanced package tool.</summary>
 
 ########################################
 ## <summary>
@@ -15,7 +15,6 @@ interface(`apt_domtrans',`
 		type apt_t, apt_exec_t;
 	')
 
-	files_search_usr($1)
 	corecmd_search_bin($1)
 	domtrans_pattern($1, apt_exec_t, apt_t)
 ')
@@ -31,24 +30,23 @@ interface(`apt_domtrans',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to allow the apt domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`apt_run',`
 	gen_require(`
-		type apt_t;
+		attribute_role apt_roles;
 	')
 
 	apt_domtrans($1)
-	role $2 types apt_t;
-	# TODO: likely have to add dpkg_run here.
+	roleattribute $2 apt_roles;
 ')
 
 ########################################
 ## <summary>
-##	Inherit and use file descriptors from apt.
+##	Use apt file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -62,12 +60,12 @@ interface(`apt_use_fds',`
 	')
 
 	allow $1 apt_t:fd use;
-	# TODO: enforce dpkg_use_fd?
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to use file descriptors from apt.
+##	Do not audit attempts to use
+##	apt file descriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -85,7 +83,7 @@ interface(`apt_dontaudit_use_fds',`
 
 ########################################
 ## <summary>
-##	Read from an unnamed apt pipe.
+##	Read apt unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -99,12 +97,11 @@ interface(`apt_read_pipes',`
 	')
 
 	allow $1 apt_t:fifo_file read_fifo_file_perms;
-	# TODO: enforce dpkg_read_pipes?
 ')
 
 ########################################
 ## <summary>
-##	Read and write an unnamed apt pipe.
+##	Read and write apt unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -118,12 +115,11 @@ interface(`apt_rw_pipes',`
 	')
 
 	allow $1 apt_t:fifo_file rw_file_perms;
-	# TODO: enforce dpkg_rw_pipes?
 ')
 
 ########################################
 ## <summary>
-##	Read from and write to apt ptys.
+##	Read and write apt ptys.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -141,7 +137,7 @@ interface(`apt_use_ptys',`
 
 ########################################
 ## <summary>
-##	Read the apt package cache.
+##	Read apt package cache content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -156,13 +152,13 @@ interface(`apt_read_cache',`
 
 	files_search_var($1)
 	allow $1 apt_var_cache_t:dir list_dir_perms;
-	dontaudit $1 apt_var_cache_t:dir write;
+	dontaudit $1 apt_var_cache_t:dir write_dir_perms;
 	allow $1 apt_var_cache_t:file read_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Read the apt package database.
+##	Read apt package database content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -183,7 +179,8 @@ interface(`apt_read_db',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete the apt package database.
+##	Create, read, write, and delete
+##	apt package database content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -198,15 +195,14 @@ interface(`apt_manage_db',`
 
 	files_search_var_lib($1)
 	manage_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
-	# cjp: shouldnt this be manage_lnk_files?
-	rw_lnk_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
-	delete_lnk_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
+	manage_lnk_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to create, read, 
-##	write, and delete the apt package database.
+##	Do not audit attempts to create,
+##	read, write, and delete apt
+##	package database content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>

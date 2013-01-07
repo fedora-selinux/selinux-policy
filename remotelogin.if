@@ -1,4 +1,4 @@
-## <summary>Policy for rshd, rlogind, and telnetd.</summary>
+## <summary>Rshd, rlogind, and telnetd.</summary>
 
 ########################################
 ## <summary>
@@ -15,12 +15,13 @@ interface(`remotelogin_domtrans',`
 		type remote_login_t;
 	')
 
+	corecmd_search_bin($1)
 	auth_domtrans_login_program($1, remote_login_t)
 ')
 
 ########################################
 ## <summary>
-##	allow Domain to signal remote login domain.
+##	Send generic signals to remote login.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -34,4 +35,45 @@ interface(`remotelogin_signal',`
 	')
 
 	allow $1 remote_login_t:process signal;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	remote login temporary content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`remotelogin_manage_tmp_content',`
+	gen_require(`
+		type remote_login_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 remote_login_tmp_t:dir manage_dir_perms;
+	allow $1 remote_login_tmp_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Relabel remote login temporary content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`remotelogin_relabel_tmp_content',`
+	gen_require(`
+		type remote_login_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 remote_login_tmp_t:dir relabel_dir_perms;
+	allow $1 remote_login_tmp_t:file relabel_file_perms;
 ')

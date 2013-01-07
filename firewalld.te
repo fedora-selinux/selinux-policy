@@ -1,5 +1,4 @@
-
-policy_module(firewalld,1.0.0)
+policy_module(firewalld, 1.0.6)
 
 ########################################
 #
@@ -27,22 +26,23 @@ systemd_unit_file(firewalld_unit_file_t)
 
 ########################################
 #
-# firewalld local policy
+# Local policy
 #
+
 dontaudit firewalld_t self:capability sys_tty_config;
 allow firewalld_t self:fifo_file rw_fifo_file_perms;
-allow firewalld_t self:unix_stream_socket create_stream_socket_perms;
+allow firewalld_t self:unix_stream_socket { accept listen };
+allow firewalld_t self:udp_socket create_socket_perms;
 
 manage_dirs_pattern(firewalld_t, firewalld_etc_rw_t, firewalld_etc_rw_t)
 manage_files_pattern(firewalld_t, firewalld_etc_rw_t, firewalld_etc_rw_t)
 
-append_files_pattern(firewalld_t, firewalld_var_log_t, firewalld_var_log_t)
-create_files_pattern(firewalld_t, firewalld_var_log_t, firewalld_var_log_t)
-read_files_pattern(firewalld_t, firewalld_var_log_t, firewalld_var_log_t)
-setattr_files_pattern(firewalld_t, firewalld_var_log_t, firewalld_var_log_t)
+allow firewalld_t firewalld_var_log_t:file append_file_perms;
+allow firewalld_t firewalld_var_log_t:file create_file_perms;
+allow firewalld_t firewalld_var_log_t:file read_file_perms;
+allow firewalld_t firewalld_var_log_t:file setattr_file_perms;
 logging_log_filetrans(firewalld_t, firewalld_var_log_t, file)
 
-# should be fixed to cooperate with systemd to create /var/run/firewalld directory
 manage_files_pattern(firewalld_t, firewalld_var_run_t, firewalld_var_run_t)
 files_pid_filetrans(firewalld_t, firewalld_var_run_t, file)
 can_exec(firewalld_t, firewalld_var_run_t)
@@ -57,9 +57,8 @@ dev_read_urand(firewalld_t)
 
 domain_use_interactive_fds(firewalld_t)
 
-files_read_etc_files(firewalld_t)
-files_read_usr_files(firewalld_t)
 files_dontaudit_access_check_tmp(firewalld_t)
+files_dontaudit_list_tmp(firewalld_t)
 
 fs_getattr_xattr_fs(firewalld_t)
 fs_dontaudit_all_access_check(firewalld_t)
@@ -70,22 +69,20 @@ logging_send_syslog_msg(firewalld_t)
 
 sysnet_dns_name_resolve(firewalld_t)
 
-sysnet_read_config(firewalld_t)
-
 optional_policy(`
-    dbus_system_domain(firewalld_t, firewalld_exec_t)
+	dbus_system_domain(firewalld_t, firewalld_exec_t)
 
-    optional_policy(`
-	devicekit_dbus_chat_power(firewalld_t)
-    ')
+	optional_policy(`
+		devicekit_dbus_chat_power(firewalld_t)
+	')
 
-    optional_policy(`
-    	policykit_dbus_chat(firewalld_t)
-    ')
+	optional_policy(`
+		policykit_dbus_chat(firewalld_t)
+	')
 
-    optional_policy(`
-	networkmanager_dbus_chat(firewalld_t)
-    ')
+	optional_policy(`
+		networkmanager_dbus_chat(firewalld_t)
+	')
 ')
 
 optional_policy(`
@@ -93,5 +90,5 @@ optional_policy(`
 ')
 
 optional_policy(`
-    modutils_domtrans_insmod(firewalld_t)
+	modutils_domtrans_insmod(firewalld_t)
 ')

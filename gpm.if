@@ -1,4 +1,4 @@
-## <summary>General Purpose Mouse driver</summary>
+## <summary>General Purpose Mouse driver.</summary>
 
 ########################################
 ## <summary>
@@ -22,8 +22,8 @@ interface(`gpm_stream_connect',`
 
 ########################################
 ## <summary>
-##	Get the attributes of the GPM
-##	control channel named socket.
+##	Get attributes of gpm control
+##	channel named sock files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -42,9 +42,9 @@ interface(`gpm_getattr_gpmctl',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to get the 
-##	attributes of the GPM control channel
-##	named socket.
+##	Do not audit attempts to get
+##	attributes of gpm control channel
+##	named sock files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -62,8 +62,8 @@ interface(`gpm_dontaudit_getattr_gpmctl',`
 
 ########################################
 ## <summary>
-##	Set the attributes of the GPM
-##	control channel named socket.
+##	Set attributes of gpm control
+##	channel named sock files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -78,4 +78,48 @@ interface(`gpm_setattr_gpmctl',`
 
 	dev_list_all_dev_nodes($1)
 	allow $1 gpmctl_t:sock_file setattr_sock_file_perms;
+<<<<<<< HEAD
+=======
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an gpm environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`gpm_admin',`
+	gen_require(`
+		type gpm_t, gpm_conf_t, gpm_initrc_exec_t;
+		type gpm_var_run_t, gpmctl_t;
+	')
+
+	allow $1 gpm_t:process { ptrace signal_perms };
+	ps_process_pattern($1, gpm_t)
+
+	init_labeled_script_domtrans($1, gpm_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 gpm_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, gpm_conf_t)
+
+	dev_list_all_dev_nodes($1)
+	admin_pattern($1, gpmctl_t)
+
+	files_search_pids($1)
+	admin_pattern($1, gpm_var_run_t)
+>>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')

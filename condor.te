@@ -6,11 +6,12 @@ policy_module(condor, 1.0.0)
 #
 
 ## <desc>
-##  <p>
-##  Allow codnor domain to connect to the network using TCP.
-##  </p>
+##	<p>
+##	Determine whether Condor can connect
+##	to the network using TCP.
+##	</p>
 ## </desc>
-gen_tunable(condor_domain_can_network_connect, false)
+gen_tunable(condor_tcp_network_connect, false)
 
 attribute condor_domain;
 
@@ -18,14 +19,11 @@ type condor_master_t, condor_domain;
 type condor_master_exec_t;
 init_daemon_domain(condor_master_t, condor_master_exec_t)
 
-condor_domain_template(collector)
-condor_domain_template(negotiator)
-condor_domain_template(schedd)
-condor_domain_template(startd)
-condor_domain_template(procd)
-
 type condor_master_tmp_t;
 files_tmp_file(condor_master_tmp_t)
+
+type condor_initrc_exec_t;
+init_script_file(condor_initrc_exec_t)
 
 type condor_schedd_tmp_t;
 files_tmp_file(condor_schedd_tmp_t)
@@ -51,23 +49,27 @@ files_pid_file(condor_var_run_t)
 type condor_unit_file_t;
 systemd_unit_file(condor_unit_file_t)
 
-########################################
+condor_domain_template(collector)
+condor_domain_template(negotiator)
+condor_domain_template(procd)
+condor_domain_template(schedd)
+condor_domain_template(startd)
+
+#####################################
 #
-# condor domain local policy
+# Global local policy
 #
 
 allow condor_domain self:process signal_perms;
 allow condor_domain self:fifo_file rw_fifo_file_perms;
-
 allow condor_domain self:tcp_socket create_stream_socket_perms;
 allow condor_domain self:udp_socket create_socket_perms;
 allow condor_domain self:unix_stream_socket create_stream_socket_perms;
 
-allow condor_domain condor_master_t:process signull;
-allow condor_domain condor_master_t:tcp_socket getattr;
-
 manage_dirs_pattern(condor_domain, condor_log_t, condor_log_t)
-manage_files_pattern(condor_domain, condor_log_t, condor_log_t)
+append_files_pattern(condor_domain, condor_log_t, condor_log_t)
+create_files_pattern(condor_domain, condor_log_t, condor_log_t)
+getattr_files_pattern(condor_domain, condor_log_t, condor_log_t)
 logging_log_filetrans(condor_domain, condor_log_t, { dir file })
 
 manage_dirs_pattern(condor_domain, condor_var_lib_t, condor_var_lib_t)
@@ -83,38 +85,44 @@ manage_files_pattern(condor_domain, condor_var_run_t, condor_var_run_t)
 manage_fifo_files_pattern(condor_domain, condor_var_run_t, condor_var_run_t)
 files_pid_filetrans(condor_domain, condor_var_run_t, { dir file fifo_file })
 
-kernel_read_network_state(condor_domain)
+allow condor_domain condor_master_t:process signull;
+allow condor_domain condor_master_t:tcp_socket getattr;
+
 kernel_read_kernel_sysctls(condor_domain)
+kernel_read_network_state(condor_domain)
+kernel_read_system_state(condor_domain)
 
 corecmd_exec_bin(condor_domain)
 corecmd_exec_shell(condor_domain)
 
+corenet_all_recvfrom_netlabel(condor_domain)
+corenet_all_recvfrom_unlabeled(condor_domain)
+corenet_tcp_sendrecv_generic_if(condor_domain)
+corenet_tcp_sendrecv_generic_node(condor_domain)
+
+corenet_sendrecv_condor_client_packets(condor_domain)
 corenet_tcp_connect_condor_port(condor_domain)
-corenet_tcp_connect_all_ephemeral_ports(condor_domain)
+corenet_tcp_sendrecv_condor_port(condor_domain)
 
 domain_use_interactive_fds(condor_domain)
 
 dev_read_rand(condor_domain)
-dev_read_urand(condor_domain)
 dev_read_sysfs(condor_domain)
+dev_read_urand(condor_domain)
 
-files_read_etc_files(condor_domain)
-
-tunable_policy(`condor_domain_can_network_connect',`
-    corenet_tcp_connect_all_ports(condor_domain)
+tunable_policy(`condor_tcp_network_connect',`
+	corenet_sendrecv_all_client_packets(condor_domain)
+	corenet_tcp_connect_all_ports(condor_domain)
+	corenet_tcp_sendrecv_all_ports(condor_domain)
 ')
 
 optional_policy(`
 	rhcs_stream_connect_cluster(condor_domain)
 ')
 
-optional_policy(`
-    sysnet_dns_name_resolve(condor_domain)
-')
-
 #####################################
 #
-# condor master local policy
+# Master local policy
 #
 
 allow condor_master_t self:capability { setuid setgid dac_override sys_ptrace };
@@ -125,9 +133,20 @@ manage_dirs_pattern(condor_master_t, condor_master_tmp_t, condor_master_tmp_t)
 manage_files_pattern(condor_master_t, condor_master_tmp_t, condor_master_tmp_t)
 files_tmp_filetrans(condor_master_t, condor_master_tmp_t, { file dir })
 
+corenet_udp_sendrecv_generic_if(condor_master_t)
+corenet_udp_sendrecv_generic_node(condor_master_t)
+corenet_tcp_bind_generic_node(condor_master_t)
+corenet_udp_bind_generic_node(condor_master_t)
+
+corenet_sendrecv_condor_server_packets(condor_master_t)
 corenet_tcp_bind_condor_port(condor_master_t)
+corenet_tcp_sendrecv_condor_port(condor_master_t)
 corenet_udp_bind_condor_port(condor_master_t)
+corenet_udp_sendrecv_condor_port(condor_master_t)
+
+corenet_sendrecv_amqp_client_packets(condor_master_t)
 corenet_tcp_connect_amqp_port(condor_master_t)
+corenet_tcp_sendrecv_amqp_port(condor_master_t)
 
 domain_read_all_domains_state(condor_master_t)
 
@@ -138,7 +157,7 @@ optional_policy(`
 
 ######################################
 #
-# condor collector local policy
+# Collector local policy
 #
 
 allow condor_collector_t self:capability { setuid setgid };
@@ -150,8 +169,9 @@ kernel_read_network_state(condor_collector_t)
 
 #####################################
 #
-# condor negotiator local policy
+# Negotiator local policy
 #
+
 allow condor_negotiator_t self:capability { setuid setgid };
 allow condor_negotiator_t condor_master_t:tcp_socket rw_stream_socket_perms;
 allow condor_negotiator_t condor_master_t:udp_socket getattr;
@@ -160,51 +180,49 @@ corenet_tcp_connect_all_ephemeral_ports(condor_negotiator_t)
 
 ######################################
 #
-# condor procd local policy
+# Procd local policy
 #
 
-allow condor_procd_t self:capability { fowner chown dac_override sys_ptrace };
+allow condor_procd_t self:capability { fowner chown kill dac_override sys_ptrace };
 
-allow condor_procd_t self:capability kill;
 allow condor_procd_t condor_startd_t:process sigkill;
 
 domain_read_all_domains_state(condor_procd_t)
 
 #######################################
 #
-# condor schedd local policy
+# Schedd local policy
 #
 
-domtrans_pattern(condor_schedd_t, condor_procd_exec_t, condor_procd_t)
-domtrans_pattern(condor_schedd_t, condor_startd_exec_t, condor_startd_t)
-
-# dac_override because of /var/log/condor
 allow condor_schedd_t self:capability { setuid chown setgid dac_override };
+
 allow condor_schedd_t condor_master_t:tcp_socket rw_stream_socket_perms;
 allow condor_schedd_t condor_master_t:udp_socket getattr;
 
 allow condor_schedd_t condor_var_lock_t:dir manage_file_perms;
 
+domtrans_pattern(condor_schedd_t, condor_procd_exec_t, condor_procd_t)
+domtrans_pattern(condor_schedd_t, condor_startd_exec_t, condor_startd_t)
+
 manage_dirs_pattern(condor_schedd_t, condor_schedd_tmp_t, condor_schedd_tmp_t)
 manage_files_pattern(condor_schedd_t, condor_schedd_tmp_t, condor_schedd_tmp_t)
+relabel_files_pattern(condor_schedd_t, condor_schedd_tmp_t, condor_schedd_tmp_t)
 files_tmp_filetrans(condor_schedd_t, condor_schedd_tmp_t, { file dir })
-allow condor_schedd_t condor_schedd_tmp_t:file { relabelfrom relabelto };
 
 corenet_tcp_connect_all_ephemeral_ports(condor_schedd_t)
 
 #####################################
 #
-# condor startd local policy
+# Startd local policy
 #
 
-# also needed by java
 allow condor_startd_t self:capability { setuid net_admin setgid dac_override };
 allow condor_startd_t self:process execmem;
 
 manage_dirs_pattern(condor_startd_t, condor_startd_tmp_t, condor_startd_tmp_t)
 manage_files_pattern(condor_startd_t, condor_startd_tmp_t, condor_startd_tmp_t)
+relabel_files_pattern(condor_startd_t, condor_startd_tmp_t, condor_startd_tmp_t)
 files_tmp_filetrans(condor_startd_t, condor_startd_tmp_t, { file dir })
-allow condor_startd_t condor_startd_tmp_t:file { relabelfrom relabelto };
 
 manage_dirs_pattern(condor_startd_t, condor_startd_tmpfs_t, condor_startd_tmpfs_t)
 manage_files_pattern(condor_startd_t, condor_startd_tmpfs_t, condor_startd_tmpfs_t)
@@ -217,11 +235,9 @@ domain_read_all_domains_state(condor_startd_t)
 mcs_process_set_categories(condor_startd_t)
 
 init_domtrans_script(condor_startd_t)
-init_initrc_domain(condor_startd_t)
+init_initrc_domain(condor_startd_t
 
 libs_exec_lib_files(condor_startd_t)
-
-files_read_usr_files(condor_startd_t)
 
 optional_policy(`
 	ssh_basic_client_template(condor_startd, condor_startd_t, system_r)
@@ -236,5 +252,5 @@ optional_policy(`
 ')
 
 optional_policy(`
-	unconfined_domain(condor_startd_t)
+    unconfined_domain(condor_startd_t)
 ')
