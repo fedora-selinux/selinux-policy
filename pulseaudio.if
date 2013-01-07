@@ -2,55 +2,44 @@
 
 ########################################
 ## <summary>
-##	Role access for pulseaudio.
+##	Role access for pulseaudio
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access.
+##	Role allowed access
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role.
+##	User domain for the role
 ##	</summary>
 ## </param>
 #
 interface(`pulseaudio_role',`
 	gen_require(`
-		attribute pulseaudio_tmpfsfile;
-		type pulseaudio_t, pulseaudio_home_t, pulseaudio_tmpfs_t;
-		type pulseaudio_tmp_t;
+		type pulseaudio_t, pulseaudio_exec_t;
+		class dbus { acquire_svc send_msg };
 	')
 
-	pulseaudio_run($2, $1)
+	role $1 types pulseaudio_t;
 
-	allow $2 pulseaudio_t:process { ptrace signal_perms };
+	# Transition from the user domain to the derived domain.
+	domtrans_pattern($2, pulseaudio_exec_t, pulseaudio_t)
+
 	ps_process_pattern($2, pulseaudio_t)
 
-	allow $2 pulseaudio_home_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 pulseaudio_home_t:file { manage_file_perms relabel_file_perms };
-	allow $2 pulseaudio_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	allow pulseaudio_t $2:process { signal signull };
+	allow $2 pulseaudio_t:process { signal signull sigkill };
+	ps_process_pattern(pulseaudio_t, $2)
 
-	userdom_user_home_dir_filetrans($2, pulseaudio_home_t, dir, ".pulse")
-	userdom_user_home_dir_filetrans($2, pulseaudio_home_t, file, ".esd_auth")
-	userdom_user_home_dir_filetrans($2, pulseaudio_home_t, file, ".pulse-cookie")
+	allow pulseaudio_t $2:unix_stream_socket connectto;
+	allow $2 pulseaudio_t:unix_stream_socket connectto;
 
-	allow $2 { pulseaudio_tmpfs_t pulseaudio_tmpfsfile }:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 { pulseaudio_tmpfs_t pulseaudio_tmpfsfile }:file { manage_file_perms relabel_file_perms };
-
-<<<<<<< HEAD
 	userdom_manage_tmp_role($1, pulseaudio_t)
 	userdom_manage_tmpfs_role($1, pulseaudio_t)
 
 	allow $2 pulseaudio_t:dbus send_msg;
 	allow pulseaudio_t $2:dbus { acquire_svc send_msg };
-=======
-	allow $2 pulseaudio_tmp_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 pulseaudio_tmp_t:file { manage_file_perms relabel_file_perms };
-	allow $2 pulseaudio_tmp_t:sock_file { manage_sock_file_perms relabel_sock_file_perms };
-
-	allow pulseaudio_t $2:unix_stream_socket connectto;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
@@ -65,21 +54,16 @@ interface(`pulseaudio_role',`
 #
 interface(`pulseaudio_domtrans',`
 	gen_require(`
-		attribute pulseaudio_client;
 		type pulseaudio_t, pulseaudio_exec_t;
 	')
 
-	typeattribute $1 pulseaudio_client;
-
-	corecmd_search_bin($1)
 	domtrans_pattern($1, pulseaudio_exec_t, pulseaudio_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute pulseaudio in the pulseaudio
-##	domain, and allow the specified role
-##	the pulseaudio domain.
+##	Execute pulseaudio in the pulseaudio domain, and
+##	allow the specified role the pulseaudio domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -94,16 +78,16 @@ interface(`pulseaudio_domtrans',`
 #
 interface(`pulseaudio_run',`
 	gen_require(`
-		attribute_role pulseaudio_roles;
+		type pulseaudio_t;
 	')
 
 	pulseaudio_domtrans($1)
-	roleattribute $2 pulseaudio_roles;
+	role $2 types pulseaudio_t;
 ')
 
 ########################################
 ## <summary>
-##	Execute pulseaudio in the caller domain.
+##	Execute a pulseaudio in the current domain.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -116,13 +100,12 @@ interface(`pulseaudio_exec',`
 		type pulseaudio_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	can_exec($1, pulseaudio_exec_t)
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to execute pulseaudio.
+##	Do not audit to execute a pulseaudio.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -140,7 +123,7 @@ interface(`pulseaudio_dontaudit_exec',`
 
 ########################################
 ## <summary>
-##	Send null signals to pulseaudio.
+##	Send signull signal to pulseaudio
 ##	processes.
 ## </summary>
 ## <param name="domain">
@@ -159,8 +142,8 @@ interface(`pulseaudio_signull',`
 
 #####################################
 ## <summary>
-##	Connect to pulseaudio with a unix
-##	domain stream socket.
+##	Connect to pulseaudio over a unix domain
+##	stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -170,7 +153,6 @@ interface(`pulseaudio_signull',`
 #
 interface(`pulseaudio_stream_connect',`
 	gen_require(`
-<<<<<<< HEAD
 		type pulseaudio_t, pulseaudio_var_run_t;
 		type pulseaudio_home_t;
 	')
@@ -180,13 +162,6 @@ interface(`pulseaudio_stream_connect',`
 	allow pulseaudio_t $1:process signull;
 	stream_connect_pattern($1, pulseaudio_var_run_t, pulseaudio_var_run_t, pulseaudio_t)
 	stream_connect_pattern($1, pulseaudio_home_t, pulseaudio_home_t, pulseaudio_t)
-=======
-		type pulseaudio_t, pulseaudio_var_run_t, pulseaudio_tmp_t;
-	')
-
-	files_search_pids($1)
-	stream_connect_pattern($1, { pulseaudio_tmp_t pulseaudio_var_run_t }, { pulseaudio_tmp_t pulseaudio_var_run_t }, pulseaudio_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
@@ -212,9 +187,9 @@ interface(`pulseaudio_dbus_chat',`
 
 ########################################
 ## <summary>
-##	Set attributes of pulseaudio home directories.
+##	Set the attributes of the pulseaudio homedir.
 ## </summary>
-## <param name="domain">
+## <param name="user_domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
@@ -225,50 +200,34 @@ interface(`pulseaudio_setattr_home_dir',`
 		type pulseaudio_home_t;
 	')
 
-	allow $1 pulseaudio_home_t:dir setattr_dir_perms;
+	allow $1 pulseaudio_home_t:dir setattr;
 ')
 
 ########################################
 ## <summary>
-##	Read pulseaudio home content.
+##	Read pulseaudio homedir files.
 ## </summary>
-## <param name="domain">
+## <param name="user_domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
 interface(`pulseaudio_read_home_files',`
-	refpolicywarn(`$0($*) has been deprecated, use pulseaudio_read_home() instead.')
-	pulseaudio_read_home($1)
-')
-
-########################################
-## <summary>
-##	Read pulseaudio home content.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`pulseaudio_read_home',`
 	gen_require(`
 		type pulseaudio_home_t;
 	')
 
 	userdom_search_user_home_dirs($1)
-	allow $1 pulseaudio_home_t:dir list_dir_perms;
-	allow $1 pulseaudio_home_t:file read_file_perms;
-	allow $1 pulseaudio_home_t:lnk_file read_lnk_file_perms;
+	read_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
+	read_lnk_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
 ')
 
 ########################################
 ## <summary>
 ##	Read and write Pulse Audio files.
 ## </summary>
-## <param name="domain">
+## <param name="user_domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
@@ -279,74 +238,43 @@ interface(`pulseaudio_rw_home_files',`
 		type pulseaudio_home_t;
 	')
 
-	userdom_search_user_home_dirs($1)
 	rw_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
 	read_lnk_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
+	userdom_search_user_home_dirs($1)
 ')
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete
-##	pulseaudio home content.
+##	Create, read, write, and delete pulseaudio
+##	home directory files.
 ## </summary>
-## <param name="domain">
+## <param name="user_domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
 interface(`pulseaudio_manage_home_files',`
-	refpolicywarn(`$0($*) has been deprecated, use pulseaudio_manage_home() instead.')
-	pulseaudio_manage_home($1)
-')
-
-########################################
-## <summary>
-##	Create, read, write, and delete
-##	pulseaudio home content.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`pulseaudio_manage_home',`
 	gen_require(`
 		type pulseaudio_home_t;
 	')
 
 	userdom_search_user_home_dirs($1)
-<<<<<<< HEAD
 	manage_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
 	read_lnk_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
 	pulseaudio_filetrans_home_content($1)
-=======
-	allow $1 pulseaudio_home_t:dir manage_dir_perms;
-	allow $1 pulseaudio_home_t:file manage_file_perms;
-	allow $1 pulseaudio_home_t:lnk_file manage_lnk_file_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Create, read, write, and delete pulseaudio
 ##	home directory symlinks.
 ## </summary>
 ## <param name="user_domain">
-=======
-##	Create objects in user home
-##	directories with the pulseaudio
-##	home type.
-## </summary>
-## <param name="domain">
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-<<<<<<< HEAD
 #
 interface(`pulseaudio_manage_home_symlinks',`
 	gen_require(`
@@ -391,36 +319,17 @@ interface(`pulseaudio_filetrans_home_content',`
 ## </param>
 #
 interface(`pulseaudio_filetrans_admin_home_content',`
-=======
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
-## <param name="name" optional="true">
-##	<summary>
-##	The name of the object being created.
-##	</summary>
-## </param>
-#
-interface(`pulseaudio_home_filetrans_pulseaudio_home',`
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	gen_require(`
 		type pulseaudio_home_t;
 	')
 
-<<<<<<< HEAD
 	userdom_admin_home_dir_filetrans($1, pulseaudio_home_t, dir, ".pulse")
 	userdom_admin_home_dir_filetrans($1, pulseaudio_home_t, file, ".pulse-cookie")
 	userdom_admin_home_dir_filetrans($1, pulseaudio_home_t, file, ".esd_auth")
-=======
-	userdom_user_home_dir_filetrans($1, pulseaudio_home_t, $2, $3)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Allow the domain to read pulseaudio state files in /proc.
 ## </summary>
 ## <param name="domain">
@@ -436,21 +345,4 @@ interface(`pulseaudio_read_state',`
 
 	kernel_search_proc($1)
 	ps_process_pattern($1, pulseaudio_t)
-=======
-##	Make the specified tmpfs file type
-##	pulseaudio tmpfs content.
-## </summary>
-## <param name="file_type">
-##	<summary>
-##	File type to make pulseaudio tmpfs content.
-##	</summary>
-## </param>
-#
-interface(`pulseaudio_tmpfs_content',`
-	gen_require(`
-		attribute pulseaudio_tmpfsfile;
-	')
-
-	typeattribute $1 pulseaudio_tmpfsfile;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')

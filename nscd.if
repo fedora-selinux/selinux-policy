@@ -1,8 +1,8 @@
-## <summary>Name service cache daemon.</summary>
+## <summary>Name service cache daemon</summary>
 
 ########################################
 ## <summary>
-##	Send generic signals to nscd.
+##	Send generic signals to NSCD.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -20,7 +20,7 @@ interface(`nscd_signal',`
 
 ########################################
 ## <summary>
-##	Send kill signals to nscd.
+##	Send NSCD the kill signal.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -38,7 +38,7 @@ interface(`nscd_kill',`
 
 ########################################
 ## <summary>
-##	Send null signals to nscd.
+##	Send signulls to NSCD.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -56,7 +56,7 @@ interface(`nscd_signull',`
 
 ########################################
 ## <summary>
-##	Execute nscd in the nscd domain.
+##	Execute NSCD in the nscd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -75,7 +75,8 @@ interface(`nscd_domtrans',`
 
 ########################################
 ## <summary>
-##	Execute nscd in the caller domain.
+##	Allow the specified domain to execute nscd
+##	in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -88,14 +89,13 @@ interface(`nscd_exec',`
 		type nscd_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	can_exec($1, nscd_exec_t)
 ')
 
 ########################################
 ## <summary>
-##	Use nscd services by connecting using
-##	a unix domain stream socket.
+##	Use NSCD services by connecting using
+##	a unix stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -112,14 +112,11 @@ interface(`nscd_socket_use',`
 	allow $1 self:unix_stream_socket create_socket_perms;
 
 	allow $1 nscd_t:nscd { getpwd getgrp gethost };
-
 	dontaudit $1 nscd_t:fd use;
 	dontaudit $1 nscd_t:nscd { getserv shmempwd shmemgrp shmemhost shmemserv };
-
 	files_search_pids($1)
 	stream_connect_pattern($1, nscd_var_run_t, nscd_var_run_t, nscd_t)
 	dontaudit $1 nscd_var_run_t:file read_file_perms;
-<<<<<<< HEAD
 	ps_process_pattern(nscd_t, $1)
 ')
 
@@ -139,17 +136,12 @@ interface(`nscd_use',`
 	',`
 		nscd_socket_use($1)
 	')
-=======
-
-	ps_process_pattern(nscd_t, $1)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-##	Use nscd services by mapping the
-##	database from an inherited nscd
-##	file descriptor.
+##	Use NSCD services by mapping the database from
+##	an inherited NSCD file descriptor.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -163,12 +155,12 @@ interface(`nscd_shm_use',`
 		class nscd { getpwd getgrp gethost shmempwd shmemgrp shmemhost };
 	')
 
-	allow $1 self:unix_stream_socket create_stream_socket_perms;
+	allow $1 nscd_var_run_t:dir list_dir_perms;
+	allow $1 nscd_t:nscd { shmempwd shmemgrp shmemhost };
 
-	allow $1 nscd_t:nscd { getpwd getgrp gethost shmempwd shmemgrp shmemhost };
+	# Receive fd from nscd and map the backing file with read access.
 	allow $1 nscd_t:fd use;
 
-<<<<<<< HEAD
 	# cjp: these were originally inherited from the
 	# nscd_socket_domain macro. need to investigate
 	# if they are all actually required
@@ -181,38 +173,11 @@ interface(`nscd_shm_use',`
 	files_search_pids($1)
 	allow $1 nscd_t:nscd { getpwd getgrp gethost };
 	dontaudit $1 nscd_var_run_t:file read_file_perms;
-=======
-	files_search_pids($1)
-	stream_connect_pattern($1, nscd_var_run_t, nscd_var_run_t, nscd_t)
-	dontaudit $1 nscd_var_run_t:file read_file_perms;
-
-	allow $1 nscd_var_run_t:dir list_dir_perms;
-	allow $1 nscd_var_run_t:sock_file read_sock_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Use nscd services.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`nscd_use',`
-	tunable_policy(`nscd_use_shm',`
-		nscd_shm_use($1)
-	',`
-		nscd_socket_use($1)
-	')
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
-')
-
-########################################
-## <summary>
-##	Do not audit attempts to search
-##	nscd pid directories.
+##	Do not audit attempts to search the NSCD pid directory.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -230,7 +195,7 @@ interface(`nscd_dontaudit_search_pid',`
 
 ########################################
 ## <summary>
-##	Read nscd pid files.
+##	Read NSCD pid file.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -249,7 +214,7 @@ interface(`nscd_read_pid',`
 
 ########################################
 ## <summary>
-##	Unconfined access to nscd services.
+##	Unconfined access to NSCD services.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -285,17 +250,16 @@ interface(`nscd_unconfined',`
 #
 interface(`nscd_run',`
 	gen_require(`
-		attribute_role nscd_roles;
+		type nscd_t;
 	')
 
 	nscd_domtrans($1)
-	roleattribute $2 nscd_roles;
+	role $2 types nscd_t;
 ')
 
 ########################################
 ## <summary>
-##	Execute the nscd server init
-##	script in the initrc domain.
+##	Execute the nscd server init script.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -313,7 +277,6 @@ interface(`nscd_initrc_domtrans',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Execute nscd server in the nscd domain.
 ## </summary>
 ## <param name="domain">
@@ -339,10 +302,6 @@ interface(`nscd_systemctl',`
 ## <summary>
 ##	All of the rules required to administrate 
 ##	an nscd environment
-=======
-##	All of the rules required to
-##	administrate an nscd environment.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -351,7 +310,7 @@ interface(`nscd_systemctl',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access.
+##	The role to be allowed to manage the nscd domain.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -380,11 +339,7 @@ interface(`nscd_admin',`
 	files_list_pids($1)
 	admin_pattern($1, nscd_var_run_t)
 
-<<<<<<< HEAD
 	nscd_systemctl($1)
 	admin_pattern($1, nscd_unit_file_t)
 	allow $1 nscd_unit_file_t:service all_service_perms;
-=======
-	nscd_run($1, $2)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')

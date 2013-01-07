@@ -1,12 +1,13 @@
-## <summary>Network monitoring server.</summary>
+## <summary>Net Saint / NAGIOS - network monitoring server</summary>
 
-#######################################
+########################################
 ## <summary>
-##	The template to define a nagios plugin domain.
+##	Create a set of derived types for various
+##	nagios plugins,
 ## </summary>
-## <param name="domain_prefix">
+## <param name="plugins_group_name">
 ##	<summary>
-##	Domain prefix to be used.
+##	The name to be used for deriving type names.
 ##	</summary>
 ## </param>
 #
@@ -16,43 +17,25 @@ template(`nagios_plugin_template',`
 		type nagios_t, nrpe_t;
 	')
 
-<<<<<<< HEAD
-=======
-	########################################
-	#
-	# Declarations
-	#
-
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	type nagios_$1_plugin_t, nagios_plugin_domain;
 	type nagios_$1_plugin_exec_t;
 	application_domain(nagios_$1_plugin_t, nagios_$1_plugin_exec_t)
 	role system_r types nagios_$1_plugin_t;
 
-<<<<<<< HEAD
-=======
-	########################################
-	#
-	# Policy
-	#
-
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	domtrans_pattern(nrpe_t, nagios_$1_plugin_exec_t, nagios_$1_plugin_t)
 	allow nagios_t nagios_$1_plugin_exec_t:file ioctl; 
 
+	# needed by command.cfg
 	domtrans_pattern(nagios_t, nagios_$1_plugin_exec_t, nagios_$1_plugin_t)
-<<<<<<< HEAD
 
 	kernel_read_system_state(nagios_$1_plugin_t)
 
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to read or
-##	write nagios unnamed pipes.
+##	Do not audit attempts to read or write nagios
+##	unnamed pipes.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -70,7 +53,8 @@ interface(`nagios_dontaudit_rw_pipes',`
 
 ########################################
 ## <summary>
-##	Read nagios configuration content.
+##	Allow the specified domain to read
+##	nagios configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -84,15 +68,14 @@ interface(`nagios_read_config',`
 		type nagios_etc_t;
 	')
 
-	files_search_etc($1)
 	allow $1 nagios_etc_t:dir list_dir_perms;
 	allow $1 nagios_etc_t:file read_file_perms;
-	allow $1 nagios_etc_t:lnk_file read_lnk_file_perms;
+	files_search_etc($1)
 ')
 
 ######################################
 ## <summary>
-##	Read nagios log files.
+##	Read nagios logs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -111,8 +94,7 @@ interface(`nagios_read_log',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to read or
-##	write nagios log files.
+##	Do not audit attempts to read or write nagios logs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -143,13 +125,14 @@ interface(`nagios_search_spool',`
 		type nagios_spool_t;
 	')
 
-	files_search_spool($1)
 	allow $1 nagios_spool_t:dir search_dir_perms;
+	files_search_spool($1)
 ')
 
 ########################################
 ## <summary>
-##	Read nagios temporary files.
+##	Allow the specified domain to read
+##	nagios temporary files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -162,13 +145,12 @@ interface(`nagios_read_tmp_files',`
 		type nagios_tmp_t;
 	')
 
-	files_search_tmp($1)
 	allow $1 nagios_tmp_t:file read_file_perms;
+	files_search_tmp($1)
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Allow the specified domain to read
 ##	nagios temporary files.
 ## </summary>
@@ -191,9 +173,6 @@ interface(`nagios_rw_inerited_tmp_files',`
 ## <summary>
 ##	Execute the nagios NRPE with
 ##	a domain transition.
-=======
-##	Execute nrpe with a domain transition.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -206,14 +185,13 @@ interface(`nagios_domtrans_nrpe',`
 		type nrpe_t, nrpe_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, nrpe_exec_t, nrpe_t)
 ')
 
 ########################################
 ## <summary>
-##	All of the rules required to
-##	administrate an nagios environment.
+##	All of the rules required to administrate
+##	an nagios environment
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -222,14 +200,13 @@ interface(`nagios_domtrans_nrpe',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access.
+##	The role to be allowed to manage the nagios domain.
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`nagios_admin',`
 	gen_require(`
-<<<<<<< HEAD
 		type nagios_t, nrpe_t, nagios_initrc_exec_t;
 		type nagios_tmp_t, nagios_log_t, nagios_var_run_t;
 		type nagios_etc_t, nrpe_etc_t, nagios_spool_t;
@@ -240,39 +217,26 @@ interface(`nagios_admin',`
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 nagios_t:process ptrace;
 	')
-=======
-		attribute nagios_plugin_domain;
-		type nagios_t, nrpe_t, nagios_initrc_exec_t;
-		type nagios_tmp_t, nagios_log_t, nagios_var_lib_t;
-		type nagios_etc_t, nrpe_etc_t, nrpe_var_run_t;
-		type nagios_spool_t, nagios_var_run_t, nagios_system_plugin_tmp_t;
-		type nagios_eventhandler_plugin_tmp_t;
-	')
-
-	allow $1 { nagios_t nrpe_t nagios_plugin_domain }:process { ptrace signal_perms };
-	ps_process_pattern($1, { nagios_t nrpe_t nagios_plugin_domain })
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	init_labeled_script_domtrans($1, nagios_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 nagios_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	files_search_tmp($1)
-	admin_pattern($1, { nagios_eventhandler_plugin_tmp_t nagios_tmp_t nagios_system_plugin_tmp_t })
+	files_list_tmp($1)
+	admin_pattern($1, nagios_tmp_t)
 
-	logging_search_logs($1)
+	logging_list_logs($1)
 	admin_pattern($1, nagios_log_t)
 
-	files_search_etc($1)
-	admin_pattern($1, { nrpe_etc_t nagios_etc_t })
+	files_list_etc($1)
+	admin_pattern($1, nagios_etc_t)
 
-	files_search_spool($1)
+	files_list_spool($1)
 	admin_pattern($1, nagios_spool_t)
 
-	files_search_pids($1)
-	admin_pattern($1, { nrpe_var_run_t nagios_var_run_t })
+	files_list_pids($1)
+	admin_pattern($1, nagios_var_run_t)
 
-	files_search_var_lib($1)
-	admin_pattern($1, nagios_var_lib_t)
+	admin_pattern($1, nrpe_etc_t)
 ')

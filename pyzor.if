@@ -2,7 +2,7 @@
 
 ########################################
 ## <summary>
-##	Role access for pyzor.
+##	Role access for pyzor
 ## </summary>
 ## <param name="role">
 ##	<summary>
@@ -18,35 +18,26 @@
 #
 interface(`pyzor_role',`
 	gen_require(`
-		attribute_role pyzor_roles;
-		type pyzor_t, pyzor_exec_t, pyzor_home_t;
-		type pyzor_tmp_t;
+		type pyzor_t, pyzor_exec_t;
+		type pyzor_home_t, pyzor_var_lib_t, pyzor_tmp_t;
 	')
 
-	roleattribute $1 pyzor_roles;
+	role $1 types pyzor_t;
 
+	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2, pyzor_exec_t, pyzor_t)
 
-	allow $2 pyzor_t:process { ptrace signal_perms };
+	# allow ps to show pyzor and allow the user to kill it 
 	ps_process_pattern($2, pyzor_t)
-<<<<<<< HEAD
 	allow $2 pyzor_t:process signal_perms;
 	tunable_policy(`deny_ptrace',`',`
 		allow $2 pyzor_t:process ptrace;
 	')
-=======
-
-	allow $2 { pyzor_home_t pyzor_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $2  { pyzor_home_t pyzor_tmp_t }:file { manage_file_perms relabel_file_perms };
-	allow $2 pyzor_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
-
-	userdom_user_home_dir_filetrans($2, pyzor_home_t, dir, ".pyzor")
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-##	Send generic signals to pyzor.
+##	Send generic signals to pyzor
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -77,6 +68,7 @@ interface(`pyzor_domtrans',`
 		type pyzor_exec_t, pyzor_t;
 	')
 
+	files_search_usr($1)
 	corecmd_search_bin($1)
 	domtrans_pattern($1, pyzor_exec_t, pyzor_t)
 ')
@@ -96,19 +88,15 @@ interface(`pyzor_exec',`
 		type pyzor_exec_t;
 	')
 
+	files_search_usr($1)
 	corecmd_search_bin($1)
 	can_exec($1, pyzor_exec_t)
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	All of the rules required to administrate
 ##	an pyzor environment
-=======
-##	All of the rules required to
-##	administrate an pyzor environment.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -117,18 +105,13 @@ interface(`pyzor_exec',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-<<<<<<< HEAD
 ##	The role to be allowed to manage the pyzor domain.
-=======
-##	Role allowed access.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`pyzor_admin',`
 	gen_require(`
-<<<<<<< HEAD
 		type pyzord_t, pyzor_tmp_t, pyzord_log_t;
 		type pyzor_etc_t, pyzor_var_lib_t, pyzord_initrc_exec_t;
 	')
@@ -138,21 +121,12 @@ interface(`pyzor_admin',`
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 pyzord_t:process ptrace;
 	')
-=======
-		type pyzord_t, pyzord_initrc_exec_t, pyzord_log_t;
-		type pyzor_var_lib_t, pyzor_etc_t;
-	')
-
-	allow $1 pyzord_t:process { ptrace signal_perms };
-	ps_process_pattern($1, pyzord_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	init_labeled_script_domtrans($1, pyzord_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 pyzord_initrc_exec_t system_r;
 	allow $2 system_r;
 
-<<<<<<< HEAD
 	files_list_tmp($1)
 	admin_pattern($1, pyzor_tmp_t)
 
@@ -164,16 +138,4 @@ interface(`pyzor_admin',`
 
 	files_list_var_lib($1)
 	admin_pattern($1, pyzor_var_lib_t)
-=======
-	files_search_etc($1)
-	admin_pattern($1, pyzor_etc_t)
-
-	logging_search_logs($1)
-	admin_pattern($1, pyzord_log_t)
-
-	files_search_var_lib($1)
-	admin_pattern($1, pyzor_var_lib_t)
-
-	pyzor_role($2, $1)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')

@@ -1,11 +1,9 @@
-policy_module(nis, 1.11.1)
+policy_module(nis, 1.11.0)
 
 ########################################
 #
 # Declarations
 #
-
-attribute_role ypbind_roles;
 
 type nis_initrc_exec_t;
 init_script_file(nis_initrc_exec_t)
@@ -16,7 +14,6 @@ files_type(var_yp_t)
 type ypbind_t;
 type ypbind_exec_t;
 init_daemon_domain(ypbind_t, ypbind_exec_t)
-role ypbind_roles types ypbind_t;
 
 type ypbind_initrc_exec_t;
 init_script_file(ypbind_initrc_exec_t)
@@ -68,6 +65,7 @@ systemd_unit_file(nis_unit_file_t)
 dontaudit ypbind_t self:capability { net_admin sys_tty_config };
 allow ypbind_t self:fifo_file rw_fifo_file_perms;
 allow ypbind_t self:process signal_perms;
+allow ypbind_t self:{ unix_dgram_socket unix_stream_socket } create_socket_perms;
 allow ypbind_t self:netlink_route_socket r_netlink_socket_perms;
 allow ypbind_t self:tcp_socket create_stream_socket_perms;
 allow ypbind_t self:udp_socket create_socket_perms;
@@ -93,7 +91,6 @@ corenet_tcp_sendrecv_all_ports(ypbind_t)
 corenet_udp_sendrecv_all_ports(ypbind_t)
 corenet_tcp_bind_generic_node(ypbind_t)
 corenet_udp_bind_generic_node(ypbind_t)
-
 corenet_tcp_bind_generic_port(ypbind_t)
 corenet_udp_bind_generic_port(ypbind_t)
 corenet_tcp_bind_reserved_port(ypbind_t)
@@ -101,11 +98,10 @@ corenet_udp_bind_reserved_port(ypbind_t)
 corenet_tcp_bind_all_rpc_ports(ypbind_t)
 corenet_udp_bind_all_rpc_ports(ypbind_t)
 corenet_tcp_connect_all_ports(ypbind_t)
-corenet_sendrecv_all_client_packets(ypbind_t)
-corenet_sendrecv_generic_server_packets(ypbind_t)
-
 corenet_dontaudit_tcp_bind_all_reserved_ports(ypbind_t)
 corenet_dontaudit_udp_bind_all_reserved_ports(ypbind_t)
+corenet_sendrecv_all_client_packets(ypbind_t)
+corenet_sendrecv_generic_server_packets(ypbind_t)
 
 dev_read_sysfs(ypbind_t)
 
@@ -129,7 +125,6 @@ userdom_dontaudit_search_user_home_dirs(ypbind_t)
 optional_policy(`
 	dbus_system_bus_client(ypbind_t)
 	dbus_connect_system_bus(ypbind_t)
-
 	init_dbus_chat_script(ypbind_t)
 
 	optional_policy(`
@@ -154,7 +149,8 @@ allow yppasswdd_t self:capability dac_override;
 dontaudit yppasswdd_t self:capability sys_tty_config;
 allow yppasswdd_t self:fifo_file rw_fifo_file_perms;
 allow yppasswdd_t self:process { getsched setfscreate signal_perms };
-allow yppasswdd_t self:unix_stream_socket { accept listen };
+allow yppasswdd_t self:unix_dgram_socket create_socket_perms;
+allow yppasswdd_t self:unix_stream_socket create_stream_socket_perms;
 allow yppasswdd_t self:netlink_route_socket r_netlink_socket_perms;
 allow yppasswdd_t self:tcp_socket create_stream_socket_perms;
 allow yppasswdd_t self:udp_socket create_socket_perms;
@@ -165,11 +161,7 @@ files_pid_filetrans(yppasswdd_t, yppasswdd_var_run_t, file)
 manage_files_pattern(yppasswdd_t, var_yp_t, var_yp_t)
 manage_lnk_files_pattern(yppasswdd_t, var_yp_t, var_yp_t)
 
-<<<<<<< HEAD
 can_exec(yppasswdd_t,yppasswdd_exec_t)
-=======
-can_exec(yppasswdd_t, yppasswdd_exec_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 kernel_list_proc(yppasswdd_t)
 kernel_read_proc_symlinks(yppasswdd_t)
@@ -185,22 +177,11 @@ corenet_tcp_sendrecv_all_ports(yppasswdd_t)
 corenet_udp_sendrecv_all_ports(yppasswdd_t)
 corenet_tcp_bind_generic_node(yppasswdd_t)
 corenet_udp_bind_generic_node(yppasswdd_t)
-
 corenet_tcp_bind_all_rpc_ports(yppasswdd_t)
 corenet_udp_bind_all_rpc_ports(yppasswdd_t)
-corenet_sendrecv_generic_server_packets(yppasswdd_t)
-
 corenet_dontaudit_tcp_bind_all_reserved_ports(yppasswdd_t)
 corenet_dontaudit_udp_bind_all_reserved_ports(yppasswdd_t)
-
-corecmd_exec_bin(yppasswdd_t)
-corecmd_exec_shell(yppasswdd_t)
-
-domain_use_interactive_fds(yppasswdd_t)
-
-files_read_etc_files(yppasswdd_t)
-files_read_etc_runtime_files(yppasswdd_t)
-files_relabel_etc_files(yppasswdd_t)
+corenet_sendrecv_generic_server_packets(yppasswdd_t)
 
 dev_read_sysfs(yppasswdd_t)
 
@@ -213,6 +194,15 @@ auth_manage_shadow(yppasswdd_t)
 auth_relabel_shadow(yppasswdd_t)
 auth_read_passwd(yppasswdd_t)
 auth_etc_filetrans_shadow(yppasswdd_t)
+
+corecmd_exec_bin(yppasswdd_t)
+corecmd_exec_shell(yppasswdd_t)
+
+domain_use_interactive_fds(yppasswdd_t)
+
+files_read_etc_files(yppasswdd_t)
+files_read_etc_runtime_files(yppasswdd_t)
+files_relabel_etc_files(yppasswdd_t)
 
 logging_send_syslog_msg(yppasswdd_t)
 
@@ -246,7 +236,8 @@ optional_policy(`
 dontaudit ypserv_t self:capability sys_tty_config;
 allow ypserv_t self:fifo_file rw_fifo_file_perms;
 allow ypserv_t self:process signal_perms;
-allow ypserv_t self:unix_stream_socket { accept listen };
+allow ypserv_t self:unix_dgram_socket create_socket_perms;
+allow ypserv_t self:unix_stream_socket create_stream_socket_perms;
 allow ypserv_t self:netlink_route_socket r_netlink_socket_perms;
 allow ypserv_t self:tcp_socket connected_stream_socket_perms;
 allow ypserv_t self:udp_socket create_socket_perms;
@@ -275,27 +266,25 @@ corenet_tcp_sendrecv_all_ports(ypserv_t)
 corenet_udp_sendrecv_all_ports(ypserv_t)
 corenet_tcp_bind_generic_node(ypserv_t)
 corenet_udp_bind_generic_node(ypserv_t)
-
 corenet_tcp_bind_reserved_port(ypserv_t)
 corenet_udp_bind_reserved_port(ypserv_t)
 corenet_tcp_bind_all_rpc_ports(ypserv_t)
 corenet_udp_bind_all_rpc_ports(ypserv_t)
-corenet_sendrecv_generic_server_packets(ypserv_t)
-
 corenet_dontaudit_tcp_bind_all_reserved_ports(ypserv_t)
 corenet_dontaudit_udp_bind_all_reserved_ports(ypserv_t)
-
-corecmd_exec_bin(ypserv_t)
-
-files_read_etc_files(ypserv_t)
-files_read_var_files(ypserv_t)
+corenet_sendrecv_generic_server_packets(ypserv_t)
 
 dev_read_sysfs(ypserv_t)
 
-domain_use_interactive_fds(ypserv_t)
-
 fs_getattr_all_fs(ypserv_t)
 fs_search_auto_mountpoints(ypserv_t)
+
+corecmd_exec_bin(ypserv_t)
+
+domain_use_interactive_fds(ypserv_t)
+
+files_read_var_files(ypserv_t)
+files_read_etc_files(ypserv_t)
 
 logging_send_syslog_msg(ypserv_t)
 
@@ -320,8 +309,8 @@ optional_policy(`
 # ypxfr local policy
 #
 
-allow ypxfr_t self:unix_stream_socket { accept listen };
-allow ypxfr_t self:unix_dgram_socket { accept listen };
+allow ypxfr_t self:unix_stream_socket create_stream_socket_perms;
+allow ypxfr_t self:unix_dgram_socket create_stream_socket_perms;
 allow ypxfr_t self:tcp_socket create_stream_socket_perms;
 allow ypxfr_t self:udp_socket create_socket_perms;
 allow ypxfr_t self:netlink_route_socket r_netlink_socket_perms;
@@ -345,17 +334,15 @@ corenet_tcp_sendrecv_all_ports(ypxfr_t)
 corenet_udp_sendrecv_all_ports(ypxfr_t)
 corenet_tcp_bind_generic_node(ypxfr_t)
 corenet_udp_bind_generic_node(ypxfr_t)
-
 corenet_tcp_bind_reserved_port(ypxfr_t)
 corenet_udp_bind_reserved_port(ypxfr_t)
 corenet_tcp_bind_all_rpc_ports(ypxfr_t)
 corenet_udp_bind_all_rpc_ports(ypxfr_t)
+corenet_dontaudit_tcp_bind_all_reserved_ports(ypxfr_t)
+corenet_dontaudit_udp_bind_all_reserved_ports(ypxfr_t)
 corenet_tcp_connect_all_ports(ypxfr_t)
 corenet_sendrecv_generic_server_packets(ypxfr_t)
 corenet_sendrecv_all_client_packets(ypxfr_t)
-
-corenet_dontaudit_tcp_bind_all_reserved_ports(ypxfr_t)
-corenet_dontaudit_udp_bind_all_reserved_ports(ypxfr_t)
 
 files_read_etc_files(ypxfr_t)
 files_search_usr(ypxfr_t)

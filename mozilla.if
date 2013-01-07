@@ -1,58 +1,41 @@
-## <summary>Policy for Mozilla and related web browsers.</summary>
+## <summary>Policy for Mozilla and related web browsers</summary>
 
 ########################################
 ## <summary>
-##	Role access for mozilla.
+##	Role access for mozilla
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access.
+##	Role allowed access
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role.
+##	User domain for the role
 ##	</summary>
 ## </param>
 #
 interface(`mozilla_role',`
 	gen_require(`
 		type mozilla_t, mozilla_exec_t, mozilla_home_t;
-<<<<<<< HEAD
 		#attribute_role mozilla_roles;
 	')
 
 	#roleattribute $1 mozilla_roles;
 	role $1 types mozilla_t;
-=======
-		type mozilla_tmp_t, mozilla_tmpfs_t, mozilla_plugin_tmp_t;
-		type mozilla_plugin_tmpfs_t, mozilla_plugin_home_t;
-		attribute_role mozilla_roles;
-	')
 
-	########################################
-	#
-	# Declarations
-	#
-
-	roleattribute $1 mozilla_roles;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
-
-	########################################
-	#
-	# Policy
-	#
-
-	domtrans_pattern($2, mozilla_exec_t, mozilla_t)
-
-	allow $2 mozilla_t:process { noatsecure siginh rlimitinh ptrace signal_perms };
-	ps_process_pattern($2, mozilla_t)
-
-	allow mozilla_t $2:process signull;
+	domain_auto_trans($2, mozilla_exec_t, mozilla_t)
+	# Unrestricted inheritance from the caller.
+	allow $2 mozilla_t:process { noatsecure siginh rlimitinh };
+	allow mozilla_t $2:fd use;
+	allow mozilla_t $2:process { sigchld signull };
 	allow mozilla_t $2:unix_stream_socket connectto;
 
+	# Allow the user domain to signal/ps.
+	ps_process_pattern($2, mozilla_t)
+	allow $2 mozilla_t:process signal_perms;
+
 	allow $2 mozilla_t:fd use;
-<<<<<<< HEAD
 	allow $2 mozilla_t:shm { associate getattr };
 	allow $2 mozilla_t:shm { unix_read unix_write };
 	allow $2 mozilla_t:unix_stream_socket connectto;
@@ -83,105 +66,11 @@ interface(`mozilla_role',`
 
 	mozilla_filetrans_home_content($2)
 
-=======
-	allow $2 mozilla_t:shm rw_shm_perms;
-
-	stream_connect_pattern($2, mozilla_tmpfs_t, mozilla_tmpfs_t, mozilla_t)
-
-	allow $2 { mozilla_home_t mozilla_plugin_home_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 { mozilla_home_t mozilla_plugin_home_t }:file { manage_file_perms relabel_file_perms };
-	allow $2 mozilla_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
-	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".galeon")
-	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".mozilla")
-	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".netscape")
-	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".phoenix")
-
-	filetrans_pattern($2, mozilla_home_t, mozilla_plugin_home_t, dir, "plugins")
-
-	allow $2 { mozilla_tmp_t mozilla_plugin_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 { mozilla_tmp_t mozilla_plugin_tmp_t }:file { manage_file_perms relabel_file_perms };
-	allow $2 mozilla_plugin_tmp_t:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
-
-	allow $2 { mozilla_tmpfs_t mozilla_plugin_tmpfs_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 { mozilla_tmpfs_t mozilla_plugin_tmpfs_t }:file { manage_file_perms relabel_file_perms };
-	allow $2 { mozilla_tmpfs_t mozilla_plugin_tmpfs_t }:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
-	allow $2 { mozilla_tmpfs_t mozilla_plugin_tmpfs_t }:sock_file { manage_sock_file_perms relabel_sock_file_perms };
-
-	optional_policy(`
-		mozilla_dbus_chat($2)
-	')
 ')
 
 ########################################
 ## <summary>
-##	Role access for mozilla plugin.
-## </summary>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
-## <param name="domain">
-##	<summary>
-##	User domain for the role.
-##	</summary>
-## </param>
-#
-interface(`mozilla_role_plugin',`
-	gen_require(`
-		type mozilla_plugin_tmp_t, mozilla_plugin_tmpfs_t, mozilla_plugin_rw_t;
-		type mozilla_home_t;
-	')
-
-	mozilla_run_plugin($2, $1)
-	mozilla_run_plugin_config($2, $1)
-
-	allow $2 { mozilla_plugin_t mozilla_plugin_config_t }:process { ptrace signal_perms };
-	ps_process_pattern($2, { mozilla_plugin_t mozilla_plugin_config_t })
-
-	allow $2 mozilla_plugin_t:unix_stream_socket rw_socket_perms;
-	allow $2 mozilla_plugin_t:fd use;
-
-	stream_connect_pattern($2, mozilla_plugin_tmpfs_t, mozilla_plugin_tmpfs_t, mozilla_plugin_t)
-
-	allow mozilla_plugin_t $2:process signull;
-	allow mozilla_plugin_t $2:unix_stream_socket { connectto rw_socket_perms };
-	allow mozilla_plugin_t $2:unix_dgram_socket { sendto rw_socket_perms };
-	allow mozilla_plugin_t $2:shm { rw_shm_perms destroy };
-	allow mozilla_plugin_t $2:sem create_sem_perms;
-
-	allow $2 mozilla_home_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 mozilla_home_t:file { manage_file_perms relabel_file_perms };
-	allow $2 mozilla_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
-	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".galeon")
-	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".mozilla")
-	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".netscape")
-	userdom_user_home_dir_filetrans($2, mozilla_home_t, dir, ".phoenix")
-
-	allow $2 mozilla_plugin_tmp_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 mozilla_plugin_tmp_t:file { manage_file_perms relabel_file_perms };
-	allow $2 mozilla_plugin_tmp_t:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
-
-	allow $2 mozilla_plugin_tmpfs_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 mozilla_plugin_tmpfs_t:file { manage_file_perms relabel_file_perms };
-	allow $2 mozilla_plugin_tmpfs_t:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
-	allow $2 mozilla_plugin_tmpfs_t:sock_file { manage_sock_file_perms relabel_sock_file_perms };
-
-	allow $2 mozilla_plugin_rw_t:dir list_dir_perms;
-	allow $2 mozilla_plugin_rw_t:file read_file_perms;
-	allow $2 mozilla_plugin_rw_t:lnk_file read_lnk_file_perms;
-
-	can_exec($2, mozilla_plugin_rw_t)
-
-	optional_policy(`
-		mozilla_dbus_chat_plugin($2)
-	')
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
-')
-
-########################################
-## <summary>
-##	Read mozilla home directory content.
+##	Read mozilla home directory content
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -194,15 +83,15 @@ interface(`mozilla_read_user_home_files',`
 		type mozilla_home_t;
 	')
 
-	userdom_search_user_home_dirs($1)
 	allow $1 mozilla_home_t:dir list_dir_perms;
 	allow $1 mozilla_home_t:file read_file_perms;
 	allow $1 mozilla_home_t:lnk_file read_lnk_file_perms;
+	userdom_search_user_home_dirs($1)
 ')
 
 ########################################
 ## <summary>
-##	Write mozilla home directory files.
+##	Write mozilla home directory content
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -215,14 +104,13 @@ interface(`mozilla_write_user_home_files',`
 		type mozilla_home_t;
 	')
 
-	userdom_search_user_home_dirs($1)
 	write_files_pattern($1, mozilla_home_t, mozilla_home_t)
+	userdom_search_user_home_dirs($1)
 ')
 
 ########################################
 ## <summary>
-##	Do not audit attempts to read and
-##	write mozilla home directory files.
+##	Dontaudit attempts to read/write mozilla home directory content
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -240,9 +128,7 @@ interface(`mozilla_dontaudit_rw_user_home_files',`
 
 ########################################
 ## <summary>
-##	Do not audit attempt to Create,
-##	read, write, and delete mozilla
-##	home directory content.
+##	Dontaudit attempts to write mozilla home directory content
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -257,12 +143,11 @@ interface(`mozilla_dontaudit_manage_user_home_files',`
 
 	dontaudit $1 mozilla_home_t:dir manage_dir_perms;
 	dontaudit $1 mozilla_home_t:file manage_file_perms;
-	dontaudit $1 mozilla_home_t:lnk_file manage_lnk_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Execute mozilla home directory files.  (Deprecated)
+##	Execute mozilla home directory content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -271,33 +156,16 @@ interface(`mozilla_dontaudit_manage_user_home_files',`
 ## </param>
 #
 interface(`mozilla_exec_user_home_files',`
-	refpolicywarn(`$0($*) has been deprecated, use mozilla_exec_user_plugin_home_files() instead.')
-	mozilla_exec_user_plugin_home_files($1)
-')
-
-########################################
-## <summary>
-##	Execute mozilla plugin home directory files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`mozilla_exec_user_plugin_home_files',`
 	gen_require(`
-		type mozilla_home_t, mozilla_plugin_home_t;
+		type mozilla_home_t;
 	')
 
-	userdom_search_user_home_dirs($1)
-	exec_files_pattern($1, { mozilla_home_t mozilla_plugin_home_t }, mozilla_plugin_home_t)
+	can_exec($1, mozilla_home_t)
 ')
 
 ########################################
 ## <summary>
-##	Mozilla home directory file
-##	text relocation.  (Deprecated)
+##	Execmod mozilla home directory content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -306,27 +174,11 @@ interface(`mozilla_exec_user_plugin_home_files',`
 ## </param>
 #
 interface(`mozilla_execmod_user_home_files',`
-	refpolicywarn(`$0($*) has been deprecated, use mozilla_execmod_user_plugin_home_files() instead.')
-	mozilla_execmod_user_plugin_home_files($1)
-')
-
-########################################
-## <summary>
-##	Mozilla plugin home directory file
-##	text relocation.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`mozilla_execmod_user_plugin_home_files',`
 	gen_require(`
-		type mozilla_plugin_home_t;
+		type mozilla_home_t;
 	')
 
-	allow $1 mozilla_plugin_home_t:file execmod;
+	allow $1 mozilla_home_t:file execmod;
 ')
 
 ########################################
@@ -344,35 +196,28 @@ interface(`mozilla_domtrans',`
 		type mozilla_t, mozilla_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, mozilla_exec_t, mozilla_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute a domain transition to
-##	run mozilla plugin.
+##	Execute a domain transition to run mozilla_plugin.
 ## </summary>
 ## <param name="domain">
 ## <summary>
-##	Domain allowed to transition.
+##	Domain allowed access.
 ## </summary>
 ## </param>
 #
 interface(`mozilla_domtrans_plugin',`
 	gen_require(`
 		type mozilla_plugin_t, mozilla_plugin_exec_t;
-<<<<<<< HEAD
 		type mozilla_plugin_config_t, mozilla_plugin_config_exec_t;
 		type mozilla_plugin_rw_t;
 		class dbus send_msg;
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, mozilla_plugin_exec_t, mozilla_plugin_t)
-<<<<<<< HEAD
 	domtrans_pattern($1, mozilla_plugin_config_exec_t, mozilla_plugin_config_t)
 	allow mozilla_plugin_t $1:process signull;
 	dontaudit mozilla_plugin_config_t $1:file read_inherited_file_perms;
@@ -396,35 +241,30 @@ interface(`mozilla_domtrans_plugin',`
 	allow mozilla_plugin_t $1:dbus send_msg;
 
 	allow mozilla_plugin_t $1:process signull;
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-##	Execute mozilla plugin in the
-##	mozilla plugin domain, and allow
-##	the specified role the mozilla
-##	plugin domain.
+##	Execute mozilla_plugin in the mozilla_plugin domain, and
+##	allow the specified role the mozilla_plugin domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed to transition.
+##	Domain allowed access
 ##	</summary>
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access.
+##	The role to be allowed the mozilla_plugin domain.
 ##	</summary>
 ## </param>
 #
 interface(`mozilla_run_plugin',`
 	gen_require(`
-		attribute_role mozilla_plugin_roles;
+		type mozilla_plugin_t;
 	')
 
 	mozilla_domtrans_plugin($1)
-<<<<<<< HEAD
 	role $2 types mozilla_plugin_t;
 	role $2 types mozilla_plugin_config_t;
 ')
@@ -452,56 +292,6 @@ interface(`mozilla_role_plugin',`
     optional_policy(`
     	lpd_run_lpr(mozilla_plugin_t, $1)
     ')
-=======
-	roleattribute $2 mozilla_plugin_roles;
-')
-
-########################################
-## <summary>
-##	Execute a domain transition to
-##	run mozilla plugin config.
-## </summary>
-## <param name="domain">
-## <summary>
-##	Domain allowed to transition.
-## </summary>
-## </param>
-#
-interface(`mozilla_domtrans_plugin_config',`
-	gen_require(`
-		type mozilla_plugin_config_t, mozilla_plugin_config_exec_t;
-	')
-
-	corecmd_search_bin($1)
-	domtrans_pattern($1, mozilla_plugin_config_exec_t, mozilla_plugin_config_t)
-')
-
-########################################
-## <summary>
-##	Execute mozilla plugin config in
-##	the mozilla plugin config domain,
-##	and allow the specified role the
-##	mozilla plugin config domain.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed to transition.
-##	</summary>
-## </param>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
-#
-interface(`mozilla_run_plugin_config',`
-	gen_require(`
-		attribute_role mozilla_plugin_config_roles;
-	')
-
-	mozilla_domtrans_plugin_config($1)
-	roleattribute $2 mozilla_plugin_config_roles;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
@@ -527,28 +317,7 @@ interface(`mozilla_dbus_chat',`
 
 ########################################
 ## <summary>
-##	Send and receive messages from
-##	mozilla plugin over dbus.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`mozilla_dbus_chat_plugin',`
-	gen_require(`
-		type mozilla_plugin_t;
-		class dbus send_msg;
-	')
-
-	allow $1 mozilla_plugin_t:dbus send_msg;
-	allow mozilla_plugin_t $1:dbus send_msg;
-')
-
-########################################
-## <summary>
-##	Read and write mozilla TCP sockets.
+##	read/write mozilla per user tcp_socket
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -584,35 +353,11 @@ interface(`mozilla_plugin_read_tmpfs_files',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Delete mozilla_plugin tmpfs files
-=======
-##	Create, read, write, and delete
-##	mozilla plugin rw files.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`mozilla_manage_plugin_rw_files',`
-	gen_require(`
-		type mozilla_plugin_rw_t;
-	')
-
-	libs_search_lib($1)
-	manage_files_pattern($1, mozilla_plugin_rw_t, mozilla_plugin_rw_t)
-')
-
-########################################
-## <summary>
-##	Read mozilla_plugin tmpfs files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
+##	Domain allowed access
 ##	</summary>
 ## </param>
 #
@@ -621,29 +366,16 @@ interface(`mozilla_plugin_delete_tmpfs_files',`
 		type mozilla_plugin_tmpfs_t;
 	')
 
-<<<<<<< HEAD
 	allow $1 mozilla_plugin_tmpfs_t:file delete_file_perms;
-=======
-	fs_search_tmpfs($1)
-	allow $1 mozilla_plugin_tmpfs_t:file read_file_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Dontaudit read/write to a mozilla_plugin leaks
 ## </summary>
 ## <param name="domain">
 ##	<summary>
 ##	Domain to not audit.
-=======
-##	Delete mozilla_plugin tmpfs files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ##	</summary>
 ## </param>
 #
@@ -652,7 +384,6 @@ interface(`mozilla_plugin_dontaudit_leaks',`
 		type mozilla_plugin_t;
 	')
 
-<<<<<<< HEAD
 	dontaudit $1 mozilla_plugin_t:unix_stream_socket { read write };
 ')
 
@@ -672,64 +403,6 @@ interface(`mozilla_plugin_dontaudit_rw_tmp_files',`
     ')
 
     dontaudit $1 mozilla_plugin_tmp_t:file { read write };
-=======
-	fs_search_tmpfs($1)
-	allow $1 mozilla_plugin_tmpfs_t:file delete_file_perms;
-')
-
-########################################
-## <summary>
-##	Create, read, write, and delete
-##	generic mozilla plugin home content.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`mozilla_manage_generic_plugin_home_content',`
-	gen_require(`
-		type mozilla_plugin_home_t;
-	')
-
-	userdom_search_user_home_dirs($1)
-	allow $1 mozilla_plugin_home_t:dir manage_dir_perms;
-	allow $1 mozilla_plugin_home_t:file manage_file_perms;
-	allow $1 mozilla_plugin_home_t:fifo_file manage_fifo_file_perms;
-	allow $1 mozilla_plugin_home_t:lnk_file manage_lnk_file_perms;
-	allow $1 mozilla_plugin_home_t:sock_file manage_sock_file_perms;
-')
-
-########################################
-## <summary>
-##	Create objects in user home
-##	directories with the generic mozilla
-##	plugin home type.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="object_class">
-##	<summary>
-##	Class of the object being created.
-##	</summary>
-## </param>
-## <param name="name" optional="true">
-##	<summary>
-##	The name of the object being created.
-##	</summary>
-## </param>
-#
-interface(`mozilla_home_filetrans_plugin_home',`
-	gen_require(`
-		type mozilla_plugin_home_t;
-	')
-
-	userdom_user_home_dir_filetrans($1, mozilla_plugin_home_t, $2, $3)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################

@@ -1,4 +1,4 @@
-policy_module(procmail, 1.12.2)
+policy_module(procmail, 1.12.0)
 
 ########################################
 #
@@ -14,7 +14,7 @@ type procmail_home_t;
 userdom_user_home_content(procmail_home_t)
 
 type procmail_log_t;
-logging_log_file(procmail_log_t)
+logging_log_file(procmail_log_t) 
 
 type procmail_tmp_t;
 files_tmp_file(procmail_tmp_t)
@@ -27,14 +27,14 @@ files_tmp_file(procmail_tmp_t)
 allow procmail_t self:capability { sys_nice chown fsetid setuid setgid dac_override };
 allow procmail_t self:process { setsched signal signull };
 allow procmail_t self:fifo_file rw_fifo_file_perms;
-allow procmail_t self:tcp_socket { accept listen };
+allow procmail_t self:unix_stream_socket create_socket_perms;
+allow procmail_t self:unix_dgram_socket create_socket_perms;
+allow procmail_t self:tcp_socket create_stream_socket_perms;
+allow procmail_t self:udp_socket create_socket_perms;
 
-allow procmail_t procmail_home_t:file read_file_perms;
+can_exec(procmail_t, procmail_exec_t)
 
-<<<<<<< HEAD
 # Write log to /var/log/procmail.log or /var/log/procmail/.*
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 allow procmail_t procmail_log_t:dir setattr_dir_perms;
 create_files_pattern(procmail_t, procmail_log_t, procmail_log_t)
 append_files_pattern(procmail_t, procmail_log_t, procmail_log_t)
@@ -44,41 +44,35 @@ logging_log_filetrans(procmail_t, procmail_log_t, { file dir })
 allow procmail_t procmail_tmp_t:file manage_file_perms;
 files_tmp_filetrans(procmail_t, procmail_tmp_t, file)
 
-can_exec(procmail_t, procmail_exec_t)
-
 kernel_read_system_state(procmail_t)
 kernel_read_kernel_sysctls(procmail_t)
 
 corenet_all_recvfrom_netlabel(procmail_t)
 corenet_tcp_sendrecv_generic_if(procmail_t)
+corenet_udp_sendrecv_generic_if(procmail_t)
 corenet_tcp_sendrecv_generic_node(procmail_t)
-
-corenet_sendrecv_spamd_client_packets(procmail_t)
+corenet_udp_sendrecv_generic_node(procmail_t)
+corenet_tcp_sendrecv_all_ports(procmail_t)
+corenet_udp_sendrecv_all_ports(procmail_t)
+corenet_udp_bind_generic_node(procmail_t)
 corenet_tcp_connect_spamd_port(procmail_t)
-corenet_tcp_sendrecv_spamd_port(procmail_t)
-
+corenet_sendrecv_spamd_client_packets(procmail_t)
 corenet_sendrecv_comsat_client_packets(procmail_t)
-corenet_tcp_connect_comsat_port(procmail_t)
-corenet_tcp_sendrecv_comsat_port(procmail_t)
-
-corecmd_exec_bin(procmail_t)
-corecmd_exec_shell(procmail_t)
 
 dev_read_urand(procmail_t)
 
-fs_getattr_all_fs(procmail_t)
+fs_getattr_xattr_fs(procmail_t)
 fs_search_auto_mountpoints(procmail_t)
 fs_rw_anon_inodefs_files(procmail_t)
 
 auth_use_nsswitch(procmail_t)
 
-<<<<<<< HEAD
 corecmd_exec_bin(procmail_t)
 corecmd_exec_shell(procmail_t)
 
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 files_read_etc_runtime_files(procmail_t)
+files_search_pids(procmail_t)
+# for spamassasin
 files_read_usr_files(procmail_t)
 
 application_exec_all(procmail_t)
@@ -93,7 +87,6 @@ read_files_pattern(procmail_t, procmail_home_t, procmail_home_t)
 userdom_search_user_home_dirs(procmail_t)
 userdom_search_admin_dir(procmail_t)
 
-<<<<<<< HEAD
 # only works until we define a different type for maildir
 userdom_manage_user_home_content_dirs(procmail_t)
 userdom_manage_user_home_content_files(procmail_t)
@@ -111,9 +104,6 @@ mta_read_queue(procmail_t)
 ifdef(`hide_broken_symptoms',`
 	mta_dontaudit_rw_queue(procmail_t)
 ')
-=======
-userdom_search_user_home_dirs(procmail_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 userdom_home_manager(procmail_t)
 
@@ -131,40 +121,21 @@ optional_policy(`
 ')
 
 optional_policy(`
-	cyrus_stream_connect(procmail_t)
-')
-
-optional_policy(`
-	mta_manage_spool(procmail_t)
-	mta_read_config(procmail_t)
-	mta_read_queue(procmail_t)
-	mta_manage_mail_home_rw_content(procmail_t)
-	mta_home_filetrans_mail_home_rw(procmail_t, dir, "Maildir")
-	mta_home_filetrans_mail_home_rw(procmail_t, dir, ".maildir")
-')
-
-optional_policy(`
 	munin_dontaudit_search_lib(procmail_t)
 ')
 
 optional_policy(`
-	nagios_search_spool(procmail_t)
-')
-
-optional_policy(`
+	# for a bug in the postfix local program
 	postfix_dontaudit_rw_local_tcp_sockets(procmail_t)
 	postfix_dontaudit_use_fds(procmail_t)
 	postfix_read_spool_files(procmail_t)
 	postfix_read_local_state(procmail_t)
 	postfix_read_master_state(procmail_t)
 	postfix_rw_master_pipes(procmail_t)
-<<<<<<< HEAD
 ')
 
 optional_policy(`
 	nagios_search_spool(procmail_t)
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`
@@ -173,11 +144,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-<<<<<<< HEAD
 	mta_read_config(procmail_t)
 	mta_manage_home_rw(procmail_t)
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	sendmail_domtrans(procmail_t)
 	sendmail_signal(procmail_t)
 	sendmail_dontaudit_rw_tcp_sockets(procmail_t)
