@@ -1,11 +1,11 @@
-policy_module(qmail, 1.5.1)
+policy_module(qmail, 1.5.0)
 
 ########################################
 #
 # Declarations
 #
 
-attribute qmail_child_domain;
+attribute qmail_user_domains;
 
 type qmail_alias_home_t;
 files_type(qmail_alias_home_t)
@@ -18,7 +18,7 @@ files_config_file(qmail_etc_t)
 type qmail_exec_t;
 files_type(qmail_exec_t)
 
-type qmail_inject_t;
+type qmail_inject_t, qmail_user_domains;
 type qmail_inject_exec_t;
 domain_type(qmail_inject_t)
 domain_entry_file(qmail_inject_t, qmail_inject_exec_t)
@@ -32,14 +32,18 @@ qmail_child_domain_template(qmail_lspawn, qmail_start_t)
 mta_mailserver_delivery(qmail_lspawn_t)
 
 qmail_child_domain_template(qmail_queue, qmail_inject_t)
+typeattribute qmail_queue_t qmail_user_domains;
 mta_mailserver_user_agent(qmail_queue_t)
 
 qmail_child_domain_template(qmail_remote, qmail_rspawn_t)
 mta_mailserver_sender(qmail_remote_t)
 
 qmail_child_domain_template(qmail_rspawn, qmail_start_t)
+
 qmail_child_domain_template(qmail_send, qmail_start_t)
+
 qmail_child_domain_template(qmail_smtpd, qmail_tcp_env_t)
+
 qmail_child_domain_template(qmail_splogger, qmail_start_t)
 
 type qmail_spool_t;
@@ -55,33 +59,8 @@ application_domain(qmail_tcp_env_t, qmail_tcp_env_exec_t)
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-clean local policy
 #	this component cleans up the queue directory
-=======
-# Common qmail child domain local policy
-#
-
-allow qmail_child_domain self:process signal_perms;
-
-allow qmail_child_domain qmail_etc_t:dir list_dir_perms;
-allow qmail_child_domain qmail_etc_t:file read_file_perms;
-allow qmail_child_domain qmail_etc_t:lnk_file read_lnk_file_perms;
-
-allow qmail_child_domain qmail_start_t:fd use;
-
-corecmd_search_bin(qmail_child_domain)
-
-files_search_var(qmail_child_domain)
-
-fs_getattr_xattr_fs(qmail_child_domain)
-
-miscfiles_read_localization(qmail_child_domain)
-
-########################################
-#
-# Clean local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 read_files_pattern(qmail_clean_t, qmail_spool_t, qmail_spool_t)
@@ -89,12 +68,8 @@ delete_files_pattern(qmail_clean_t, qmail_spool_t, qmail_spool_t)
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-inject local policy
 #	this component preprocesses mail from stdin and invokes qmail-queue
-=======
-# Inject local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_inject_t self:process signal_perms;
@@ -111,7 +86,6 @@ qmail_read_config(qmail_inject_t)
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-local local policy
 #	this component delivers a mail message
 #
@@ -119,14 +93,6 @@ qmail_read_config(qmail_inject_t)
 allow qmail_local_t self:process signal_perms;
 allow qmail_local_t self:fifo_file write_file_perms;
 allow qmail_local_t self:unix_stream_socket create_stream_socket_perms;
-=======
-# Local local policy
-#
-
-allow qmail_local_t self:fifo_file write_fifo_file_perms;
-allow qmail_local_t self:process signal_perms;
-allow qmail_local_t self:unix_stream_socket { accept listen };
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 manage_dirs_pattern(qmail_local_t, qmail_alias_home_t, qmail_alias_home_t)
 manage_files_pattern(qmail_local_t, qmail_alias_home_t, qmail_alias_home_t)
@@ -162,12 +128,8 @@ optional_policy(`
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-lspawn local policy
 #	this component schedules local deliveries
-=======
-# Lspawn local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_lspawn_t self:capability { setuid setgid };
@@ -181,23 +143,15 @@ allow qmail_lspawn_t qmail_local_exec_t:file read_file_perms;
 
 read_files_pattern(qmail_lspawn_t, qmail_spool_t, qmail_spool_t)
 
-<<<<<<< HEAD
 corecmd_search_bin(qmail_lspawn_t)
 
-=======
-files_read_etc_files(qmail_lspawn_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 files_search_pids(qmail_lspawn_t)
 files_search_tmp(qmail_lspawn_t)
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-queue local policy
 #	this component places a mail in a delivery queue, later to be processed by qmail-send
-=======
-# Queue local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_queue_t qmail_lspawn_t:fd use;
@@ -221,37 +175,34 @@ optional_policy(`
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-remote local policy
 #	this component sends mail via SMTP
-=======
-# Remote local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
+
+allow qmail_remote_t self:tcp_socket create_socket_perms;
+allow qmail_remote_t self:udp_socket create_socket_perms;
 
 rw_files_pattern(qmail_remote_t, qmail_spool_t, qmail_spool_t)
 
 corenet_all_recvfrom_netlabel(qmail_remote_t)
 corenet_tcp_sendrecv_generic_if(qmail_remote_t)
+corenet_udp_sendrecv_generic_if(qmail_remote_t)
 corenet_tcp_sendrecv_generic_node(qmail_remote_t)
-
-corenet_sendrecv_smtp_client_packets(qmail_remote_t)
-corenet_tcp_connect_smtp_port(qmail_remote_t)
+corenet_udp_sendrecv_generic_node(qmail_remote_t)
 corenet_tcp_sendrecv_smtp_port(qmail_remote_t)
+corenet_udp_sendrecv_dns_port(qmail_remote_t)
+corenet_tcp_connect_smtp_port(qmail_remote_t)
+corenet_sendrecv_smtp_client_packets(qmail_remote_t)
 
 dev_read_rand(qmail_remote_t)
 dev_read_urand(qmail_remote_t)
 
-sysnet_dns_name_resolve(qmail_remote_t)
+sysnet_read_config(qmail_remote_t)
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-rspawn local policy
 #	this component scedules remote deliveries
-=======
-# Rspawn local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_rspawn_t self:process signal_perms;
@@ -261,14 +212,12 @@ allow qmail_rspawn_t qmail_remote_exec_t:file read_file_perms;
 
 rw_files_pattern(qmail_rspawn_t, qmail_spool_t, qmail_spool_t)
 
+corecmd_search_bin(qmail_rspawn_t)
+
 ########################################
 #
-<<<<<<< HEAD
 # qmail-send local policy
 #	this component delivers mail messages from the queue
-=======
-# Send local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_send_t self:process signal_perms;
@@ -286,12 +235,8 @@ optional_policy(`
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-smtpd local policy
 #	this component receives mails via SMTP
-=======
-# Smtpd local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_smtpd_t self:process signal_perms;
@@ -319,12 +264,8 @@ optional_policy(`
 
 ########################################
 #
-<<<<<<< HEAD
 # splogger local policy
 #	this component creates entries in syslog
-=======
-# Splogger local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_splogger_t self:unix_dgram_socket create_socket_perms;
@@ -335,12 +276,8 @@ init_dontaudit_use_script_fds(qmail_splogger_t)
 
 ########################################
 #
-<<<<<<< HEAD
 # qmail-start local policy
 #	this component starts up the mail delivery component
-=======
-# Start local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_start_t self:capability { setgid setuid };
@@ -363,12 +300,8 @@ optional_policy(`
 
 ########################################
 #
-<<<<<<< HEAD
 # tcp-env local policy
 #	this component sets up TCP-related environment variables
-=======
-# Tcp-env local policy
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
 
 allow qmail_tcp_env_t qmail_smtpd_exec_t:file read_file_perms;

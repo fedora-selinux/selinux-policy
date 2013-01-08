@@ -1,4 +1,4 @@
-## <summary>Remote Procedure Call Daemon.</summary>
+## <summary>Remote Procedure Call Daemon for managment of network based process communication</summary>
 
 ########################################
 ## <summary>
@@ -20,19 +20,21 @@ interface(`rpc_stub',`
 ## <summary>
 ##	The template to define a rpc domain.
 ## </summary>
-## <param name="domain_prefix">
+## <desc>
+##	<p>
+##	This template creates a domain to be used for
+##	a new rpc daemon.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
 ##	<summary>
-##	Domain prefix to be used.
+##	The type of daemon to be used.
 ##	</summary>
 ## </param>
 #
 template(`rpc_domain_template',`
 	gen_require(`
-<<<<<<< HEAD
 		type var_lib_nfs_t;
-=======
-		attribute rpc_domain;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	')
 
 	########################################
@@ -40,18 +42,16 @@ template(`rpc_domain_template',`
 	# Declarations
 	#
 
-	type $1_t, rpc_domain;
+	type $1_t;
 	type $1_exec_t;
 	init_daemon_domain($1_t, $1_exec_t)
-
 	domain_use_interactive_fds($1_t)
 
-	########################################
+	####################################
 	#
-	# Policy
+	# Local Policy
 	#
 
-<<<<<<< HEAD
 	dontaudit $1_t self:capability { net_admin sys_tty_config };
 	allow $1_t self:capability net_bind_service;
 	allow $1_t self:process signal_perms;
@@ -122,9 +122,6 @@ template(`rpc_domain_template',`
 	optional_policy(`
 		udev_read_db($1_t)
 	')
-=======
-	auth_use_nsswitch($1_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
@@ -143,8 +140,8 @@ interface(`rpc_udp_send',`
 
 ########################################
 ## <summary>
-##	Do not audit attempts to get
-##	attributes of export files.
+##	Do not audit attempts to get the attributes
+##	of the NFS export file.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -162,7 +159,7 @@ interface(`rpc_dontaudit_getattr_exports',`
 
 ########################################
 ## <summary>
-##	Read export files.
+##	Allow read access to exports.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -180,7 +177,7 @@ interface(`rpc_read_exports',`
 
 ########################################
 ## <summary>
-##	Write export files.
+##	Allow write access to exports.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -198,7 +195,7 @@ interface(`rpc_write_exports',`
 
 ########################################
 ## <summary>
-##	Execute nfsd in the nfsd domain.
+##	Execute domain in nfsd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -211,14 +208,12 @@ interface(`rpc_domtrans_nfsd',`
 		type nfsd_t, nfsd_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, nfsd_exec_t, nfsd_t)
 ')
 
 #######################################
 ## <summary>
-##	Execute nfsd init scripts in
-##	the initrc domain.
+##	Execute domain in nfsd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -236,7 +231,6 @@ interface(`rpc_initrc_domtrans_nfsd',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Execute nfsd server in the nfsd domain.
 ## </summary>
 ## <param name="domain">
@@ -261,9 +255,6 @@ interface(`rpc_systemctl_nfsd',`
 ########################################
 ## <summary>
 ##	Execute domain in rpcd domain.
-=======
-##	Execute rpcd in the rpcd domain.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -276,8 +267,8 @@ interface(`rpc_domtrans_rpcd',`
 		type rpcd_t, rpcd_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, rpcd_exec_t, rpcd_t)
+	allow rpcd_t $1:process signal;
 ')
 
 ########################################
@@ -308,8 +299,7 @@ interface(`rpc_run_rpcd',`
 
 #######################################
 ## <summary>
-##	Execute rpcd init scripts in
-##	the initrc domain.
+##	Execute domain in rpcd domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -327,7 +317,6 @@ interface(`rpc_initrc_domtrans_rpcd',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Execute rpcd server in the rpcd domain.
 ## </summary>
 ## <param name="domain">
@@ -352,9 +341,6 @@ interface(`rpc_systemctl_rpcd',`
 ########################################
 ## <summary>
 ##	Read NFS exported content.
-=======
-##	Read nfs exported content.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -375,8 +361,7 @@ interface(`rpc_read_nfs_content',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete
-##	nfs exported read write content.
+##	Allow domain to create read and write NFS directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -397,8 +382,7 @@ interface(`rpc_manage_nfs_rw_content',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete
-##	nfs exported read only content.
+##	Allow domain to create read and write NFS directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -419,11 +403,7 @@ interface(`rpc_manage_nfs_ro_content',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Allow domain to read and write to an NFS UDP socket.
-=======
-##	Read and write to nfsd tcp sockets.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -441,11 +421,7 @@ interface(`rpc_udp_rw_nfs_sockets',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Send UDP traffic to NFSd.  (Deprecated)
-=======
-##	Read and write to nfsd udp sockets.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -478,11 +454,7 @@ interface(`rpc_search_nfs_state_data',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	List NFS state data in /var/lib/nfs.
-=======
-##	Search nfs lib directories.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -501,7 +473,7 @@ interface(`rpc_list_nfs_state_data',`
 
 ########################################
 ## <summary>
-##	Read nfs lib files.
+##	Read NFS state data in /var/lib/nfs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -520,8 +492,7 @@ interface(`rpc_read_nfs_state_data',`
 
 ########################################
 ## <summary>
-##	Create, read, write, and delete
-##	nfs lib files.
+##	Manage NFS state data in /var/lib/nfs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -537,55 +508,4 @@ interface(`rpc_manage_nfs_state_data',`
 	files_search_var_lib($1)
 	manage_files_pattern($1, var_lib_nfs_t, var_lib_nfs_t)
 	allow $1 var_lib_nfs_t:file relabel_file_perms;
-')
-
-########################################
-## <summary>
-##	All of the rules required to
-##	administrate an rpc environment.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
-## <rolecap/>
-#
-interface(`rpc_admin',`
-	gen_require(`
-		attribute rpc_domain;
-		type nfsd_initrc_exec_t, rpcd_initrc_exec_t, exports_t;
-		type var_lib_nfs_t, rpcd_var_run_t, gssd_tmp_t;
-		type nfsd_ro_t, nfsd_rw_t;
-	')
-
-	allow $1 rpc_domain:process { ptrace signal_perms };
-	ps_process_pattern($1, rpc_domain)
-
-	init_labeled_script_domtrans($1, { nfsd_initrc_exec_t rpcd_initrc_exec_t })
- 	domain_system_change_exemption($1)
- 	role_transition $2 { nfsd_initrc_exec_t rpcd_initrc_exec_t } system_r;
- 	allow $2 system_r;
-
-	files_list_etc($1)
-	admin_pattern($1, exports_t)
-
-	files_list_var_lib($1)
-	admin_pattern($1, var_lib_nfs_t)
-
-	files_list_pids($1)
-	admin_pattern($1, rpcd_var_run_t)
-
-	files_list_all($1)
-	admin_pattern($1, { nfsd_ro_t nfsd_rw_t })
-
-	files_list_tmp($1)
-	admin_pattern($1, gssd_tmp_t)
-
-	fs_search_nfsd_fs($1)
 ')

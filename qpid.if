@@ -15,17 +15,12 @@ interface(`qpidd_domtrans',`
 		type qpidd_t, qpidd_exec_t;
 	')
 
-	corecmd_search_bin($1)
 	domtrans_pattern($1, qpidd_exec_t, qpidd_t)
 ')
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Execute qpidd server in the qpidd domain.
-=======
-##	Read and write access qpidd semaphores.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -43,11 +38,7 @@ interface(`qpidd_initrc_domtrans',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Read qpidd PID files.
-=======
-##	Read and write qpidd shared memory.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -66,16 +57,11 @@ interface(`qpidd_read_pid_files',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Manage qpidd var_run files.
-=======
-##	Execute qpidd init script in
-##	the initrc domain.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed to transition.
+##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
@@ -92,11 +78,7 @@ interface(`qpidd_manage_var_run',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Search qpidd lib directories.
-=======
-##	Read qpidd pid files.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -129,11 +111,7 @@ interface(`qpidd_read_lib_files',`
 	')
 
 	files_search_var_lib($1)
-<<<<<<< HEAD
 	read_files_pattern($1, qpidd_var_lib_t, qpidd_var_lib_t)
-=======
-	allow $1 qpidd_var_lib_t:dir search_dir_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
@@ -179,8 +157,8 @@ interface(`qpidd_manage_var_lib',`
 
 ########################################
 ## <summary>
-##	All of the rules required to
-##	administrate an qpidd environment.
+##	All of the rules required to administrate
+##	an qpidd environment
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -196,8 +174,7 @@ interface(`qpidd_manage_var_lib',`
 #
 interface(`qpidd_admin',`
 	gen_require(`
-		type qpidd_t, qpidd_initrc_exec_t, qpidd_var_lib_t;
-		type qpidd_var_run_t;
+		type qpidd_t, qpidd_initrc_exec_t;
 	')
 
 	allow $1 qpidd_t:process signal_perms;
@@ -206,12 +183,12 @@ interface(`qpidd_admin',`
 		allow $1 qpidd_t:process ptrace;
 	')
 
+	# Allow qpidd_t to restart the apache service
 	qpidd_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 qpidd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-<<<<<<< HEAD
 	qpidd_manage_var_run($1)
 
 	qpidd_manage_var_lib($1)
@@ -254,11 +231,46 @@ interface(`qpidd_rw_shm',`
 	allow $1 qpidd_t:shm rw_shm_perms;
 	fs_search_tmpfs($1)
 	manage_files_pattern($1, qpidd_tmpfs_t, qpidd_tmpfs_t)
-=======
-	files_search_var_lib($1(
-	admin_pattern($1, qpidd_var_lib_t)
+')
 
-	files_search_pids($1)
-	admin_pattern($1, qpidd_var_run_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
+#######################################
+## <summary>
+##  All of the rules required to
+##  administrate an qpidd environment.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  Role allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`qpidd_admin',`
+    gen_require(`
+        type qpidd_t, qpidd_initrc_exec_t, qpidd_var_lib_t;
+        type qpidd_var_run_t;
+    ')
+
+    allow $1 qpidd_t:process { signal_perms };
+    ps_process_pattern($1, qpidd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 qpidd_t:process ptrace;
+    ')
+
+    qpidd_initrc_domtrans($1)
+    domain_system_change_exemption($1)
+    role_transition $2 qpidd_initrc_exec_t system_r;
+    allow $2 system_r;
+
+    files_search_var_lib($1(
+    admin_pattern($1, qpidd_var_lib_t)
+
+    files_search_pids($1)
+    admin_pattern($1, qpidd_var_run_t)
 ')

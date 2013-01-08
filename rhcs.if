@@ -1,23 +1,19 @@
-## <summary>Red Hat Cluster Suite.</summary>
+## <summary>RHCS - Red Hat Cluster Suite</summary>
 
 #######################################
 ## <summary>
-##	The template to define a rhcs domain.
+##	Creates types and rules for a basic
+##	rhcs init daemon domain.
 ## </summary>
-## <param name="domain_prefix">
+## <param name="prefix">
 ##	<summary>
-##	Domain prefix to be used.
+##	Prefix for the domain.
 ##	</summary>
 ## </param>
 #
 template(`rhcs_domain_template',`
 	gen_require(`
-<<<<<<< HEAD
 		attribute cluster_domain, cluster_tmpfs, cluster_pid;
-=======
-		attribute cluster_domain, cluster_pid, cluster_tmpfs;
-		attribute cluster_log;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	')
 
 	##############################
@@ -32,7 +28,7 @@ template(`rhcs_domain_template',`
 	type $1_tmpfs_t, cluster_tmpfs;
 	files_tmpfs_file($1_tmpfs_t)
 
-	type $1_var_log_t, cluster_log;
+	type $1_var_log_t;
 	logging_log_file($1_var_log_t)
 
 	type $1_var_run_t, cluster_pid;
@@ -48,13 +44,7 @@ template(`rhcs_domain_template',`
 	fs_tmpfs_filetrans($1_t, $1_tmpfs_t, { dir file })
 
 	manage_dirs_pattern($1_t, $1_var_log_t, $1_var_log_t)
-<<<<<<< HEAD
 	manage_files_pattern($1_t, $1_var_log_t, $1_var_log_t)
-=======
-	append_files_pattern($1_t, $1_var_log_t, $1_var_log_t)
-	create_files_pattern($1_t, $1_var_log_t, $1_var_log_t)
-	setattr_files_pattern($1_t, $1_var_log_t, $1_var_log_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	manage_sock_files_pattern($1_t, $1_var_log_t, $1_var_log_t)
 	logging_log_filetrans($1_t, $1_var_log_t, { dir file sock_file })
 
@@ -63,23 +53,15 @@ template(`rhcs_domain_template',`
 	manage_fifo_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
 	manage_sock_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
 	files_pid_filetrans($1_t, $1_var_run_t, { dir file fifo_file })
-<<<<<<< HEAD
 
 	auth_use_nsswitch($1_t)
 
 	logging_send_syslog_msg($1_t)
-=======
-
-	optional_policy(`
-		dbus_system_bus_client($1_t)
-	')
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ######################################
 ## <summary>
-##	Execute a domain transition to
-##	run dlm_controld.
+##	Execute a domain transition to run dlm_controld.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -98,27 +80,8 @@ interface(`rhcs_domtrans_dlm_controld',`
 
 #####################################
 ## <summary>
-##	Get attributes of fenced
-##	executable files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`rhcs_getattr_fenced_exec_files',`
-	gen_require(`
-		type fenced_exec_t;
-	')
-
-	allow $1 fenced_exec_t:file getattr_file_perms;
-')
-
-#####################################
-## <summary>
-##	Connect to dlm_controld with a
-##	unix domain stream socket.
+##	Connect to dlm_controld over a unix domain
+##	stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -137,7 +100,7 @@ interface(`rhcs_stream_connect_dlm_controld',`
 
 #####################################
 ## <summary>
-##	Read and write dlm_controld semaphores.
+##	Allow read and write access to dlm_controld semaphores.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -195,7 +158,7 @@ interface(`rhcs_getattr_fenced',`
 
 ######################################
 ## <summary>
-##	Read and write fenced semaphores.
+##	Allow read and write access to fenced semaphores.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -214,29 +177,8 @@ interface(`rhcs_rw_fenced_semaphores',`
 	manage_files_pattern($1, fenced_tmpfs_t, fenced_tmpfs_t)
 ')
 
-####################################
-## <summary>
-##	Connect to all cluster domains
-##	with a unix domain stream socket.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`rhcs_stream_connect_cluster',`
-	gen_require(`
-		attribute cluster_domain, cluster_pid;
-	')
-
-	files_search_pids($1)
-	stream_connect_pattern($1, cluster_pid, cluster_pid, cluster_domain)
-')
-
 ######################################
 ## <summary>
-<<<<<<< HEAD
 ##	Read fenced PID files.
 ## </summary>
 ## <param name="domain">
@@ -257,10 +199,6 @@ interface(`rhcs_read_fenced_pid_files',`
 ######################################
 ## <summary>
 ##	Connect to fenced over a unix domain stream socket.
-=======
-##	Connect to fenced with an unix
-##	domain stream socket.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -279,8 +217,7 @@ interface(`rhcs_stream_connect_fenced',`
 
 #####################################
 ## <summary>
-##	Execute a domain transition
-##	to run gfs_controld.
+##	Execute a domain transition to run gfs_controld.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -299,7 +236,7 @@ interface(`rhcs_domtrans_gfs_controld',`
 
 ####################################
 ## <summary>
-##	Read and write gfs_controld semaphores.
+##	Allow read and write access to gfs_controld semaphores.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -320,7 +257,7 @@ interface(`rhcs_rw_gfs_controld_semaphores',`
 
 ########################################
 ## <summary>
-##	Read and write gfs_controld_t shared memory.
+##	Read and write to gfs_controld_t shared memory.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -341,12 +278,7 @@ interface(`rhcs_rw_gfs_controld_shm',`
 
 #####################################
 ## <summary>
-<<<<<<< HEAD
 ##	Connect to gfs_controld_t over a unix domain stream socket.
-=======
-##	Connect to gfs_controld_t with
-##	a unix domain stream socket.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -384,8 +316,8 @@ interface(`rhcs_domtrans_groupd',`
 
 #####################################
 ## <summary>
-##	Connect to groupd with a unix
-##	domain stream socket.
+##	Connect to groupd over a unix domain
+##	stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -402,50 +334,9 @@ interface(`rhcs_stream_connect_groupd',`
 	stream_connect_pattern($1, groupd_var_run_t, groupd_var_run_t, groupd_t)
 ')
 
-########################################
-## <summary>
-##	Read and write all cluster domains
-##	shared memory.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`rhcs_rw_cluster_shm',`
-	gen_require(`
-		attribute cluster_domain, cluster_tmpfs;
-	')
-
-	allow $1 cluster_domain:shm { rw_shm_perms destroy };
-
-	fs_search_tmpfs($1)
-	manage_files_pattern($1, cluster_tmpfs, cluster_tmpfs)
-')
-
-####################################
-## <summary>
-##	Read and write all cluster
-##	domains semaphores.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`rhcs_rw_cluster_semaphores',`
-	gen_require(`
-		attribute cluster_domain;
-	')
-
-	allow $1 cluster_domain:sem { rw_sem_perms destroy };
-')
-
 #####################################
 ## <summary>
-##	Read and write groupd semaphores.
+##	Allow read and write access to groupd semaphores.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -466,7 +357,7 @@ interface(`rhcs_rw_groupd_semaphores',`
 
 ########################################
 ## <summary>
-##	Read and write groupd shared memory.
+##	Read and write to group shared memory.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -565,19 +456,13 @@ interface(`rhcs_domtrans_qdiskd',`
 
 ########################################
 ## <summary>
-<<<<<<< HEAD
 ##	Allow domain to read qdiskd tmpfs files
-=======
-##	All of the rules required to
-##	administrate an rhcs environment.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-<<<<<<< HEAD
 #
 interface(`rhcs_read_qdiskd_tmpfs_files',`
 	gen_require(`
@@ -644,46 +529,4 @@ interface(`rhcs_relabel_cluster_lib_files',`
     files_search_var_lib($1)
     relabelto_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
 	relabelfrom_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
-=======
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
-## <rolecap/>
-#
-interface(`rhcs_admin',`
-	gen_require(`
-		attribute cluster_domain, cluster_pid, cluster_tmpfs;
-		attribute cluster_log;
-		type dlm_controld_initrc_exec_t, foghorn_initrc_exec_t, fenced_lock_t;
-		type fenced_tmp_t, qdiskd_var_lib_t;
-	')
-
-	allow $1 cluster_domain:process { ptrace signal_perms };
-	ps_process_pattern($1, cluster_domain)
-
-	init_labeled_script_domtrans($1, { dlm_controld_initrc_exec_t foghorn_initrc_exec_t })
-	domain_system_change_exemption($1)
-	role_transition $2 { dlm_controld_initrc_exec_t foghorn_initrc_exec_t } system_r;
-	allow $2 system_r;
-
-	files_search_pids($1)
-	admin_pattern($1, cluster_pid)
-
-	files_search_locks($1)
-	admin_pattern($1, fenced_lock_t)
-
-	files_search_tmp($1)
-	admin_pattern($1, fenced_tmp_t)
-
-	files_search_var_lib($1)
-	admin_pattern($1, qdiskd_var_lib_t)
-
-	fs_search_tmpfs($1)
-	admin_pattern($1, cluster_tmpfs)
-
-	logging_search_logs($1)
-	admin_pattern($1, cluster_log)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
