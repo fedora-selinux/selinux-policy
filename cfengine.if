@@ -37,6 +37,24 @@ template(`cfengine_domain_template',`
 	logging_send_syslog_msg(cfengine_$1_t)
 ')
 
+######################################
+## <summary>
+##  Search cfengine lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`cfengine_search_lib_files',`
+	gen_require(`
+		type cfengine_var_lib_t;
+	')
+
+	allow $1 cfengine_var_lib_t:dir search_dir_perms;
+')
+
 ########################################
 ## <summary>
 ##	Read cfengine lib files.
@@ -75,6 +93,43 @@ interface(`cfengine_dontaudit_write_log_files',`
 	dontaudit $1 cfengine_var_log_t:file write_file_perms;
 ')
 
+#####################################
+## <summary>
+##      Allow the specified domain to append cfengine's log files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`cfengine_append_inherited_log',`
+        gen_require(`
+                type cfengine_var_log_t;
+        ')
+
+        cfengine_search_lib_files($1)
+		allow $1 cfengine_var_log_t:file { getattr append ioctl lock };
+')
+
+####################################
+## <summary>
+##      Dontaudit the specified domain to write cfengine's log files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`cfengine_dontaudit_write_log',`
+        gen_require(`
+                type cfengine_var_log_t;
+        ')
+
+		dontaudit $1 cfengine_var_log_t:file write;
+')
+
 ########################################
 ## <summary>
 ##	All of the rules required to
@@ -109,3 +164,4 @@ interface(`cfengine_admin',`
 	files_search_var_lib($1)
 	admin_pattern($1, { cfengine_log_t cfengine_var_lib_t })
 ')
+
