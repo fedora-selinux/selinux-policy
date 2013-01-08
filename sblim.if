@@ -1,4 +1,4 @@
-## <summary>Standards Based Linux Instrumentation for Manageability.</summary>
+## <summary> Standards Based Linux Instrumentation for Manageability. </summary>
 
 ######################################
 ## <summary>
@@ -25,7 +25,7 @@ template(`sblim_domain_template',`
 
 ########################################
 ## <summary>
-##	Execute gatherd in the gatherd domain.
+##	Transition to gatherd.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -44,7 +44,7 @@ interface(`sblim_domtrans_gatherd',`
 
 ########################################
 ## <summary>
-##	Read gatherd pid files.
+##	Read gatherd PID files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -63,8 +63,8 @@ interface(`sblim_read_pid_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to
-##	administrate an sblim environment.
+##	All of the rules required to administrate
+##	an gatherd environment
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -75,14 +75,14 @@ interface(`sblim_read_pid_files',`
 #
 interface(`sblim_admin',`
 	gen_require(`
-		attribute sblim_domain;
-		type sblim_initrc_exec_t, sblim_var_run_t;
+		type sblim_gatherd_t;
+		type sblim_reposd_t;
+		type sblim_var_run_t;
 	')
 
-	allow $1 sblim_domain:process { ptrace signal_perms };
-	ps_process_pattern($1, sblim_domain)
+	allow $1 sblim_gatherd_t:process signal_perms;
+	ps_process_pattern($1, sblim_gatherd_t)
 
-<<<<<<< HEAD
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 sblim_gatherd_t:process ptrace;
 		allow $1 sblim_reposd_t:process ptrace;
@@ -90,12 +90,6 @@ interface(`sblim_admin',`
 
 	allow $1 sblim_reposd_t:process signal_perms;
 	ps_process_pattern($1, sblim_reposd_t)
-=======
-	init_labeled_script_domtrans($1, sblim_initrc_exec_t)
-	domain_system_change_exemption($1)
-	role_transition $2 sblim_initrc_exec_t system_r;
-	allow $2 system_r;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	files_search_pids($1)
 	admin_pattern($1, sblim_var_run_t)

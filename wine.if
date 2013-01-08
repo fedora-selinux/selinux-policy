@@ -1,10 +1,9 @@
-## <summary>Run Windows programs in Linux.</summary>
+## <summary>Wine Is Not an Emulator.  Run Windows programs in Linux.</summary>
 
-########################################
+#######################################
 ## <summary>
-##	Role access for wine.
+##	The per role template for the wine module.
 ## </summary>
-<<<<<<< HEAD
 ## <desc>
 ##	<p>
 ##	This template creates a derived domains which are used
@@ -17,66 +16,42 @@
 ##	</summary>
 ## </param>
 ## <param name="user_domain">
-=======
-## <param name="role">
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ##	<summary>
-##	Role allowed access.
+##	The type of the user domain.
 ##	</summary>
 ## </param>
-<<<<<<< HEAD
-=======
-## <param name="domain">
-##	<summary>
-##	User domain for the role.
-##	</summary>
-## </param>
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 #
-interface(`wine_role',`
+template(`wine_role',`
 	gen_require(`
-<<<<<<< HEAD
 		type wine_t;
 		type wine_home_t;
 		type wine_exec_t;
-=======
-		attribute_role wine_roles;
-		type wine_exec_t, wine_t, wine_tmp_t;
-		type wine_home_t;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	')
 
-	roleattribute $1 wine_roles;
+	role $1 types wine_t;
 
-	domtrans_pattern($2, wine_exec_t, wine_t)
-
-<<<<<<< HEAD
 	domain_auto_trans($2, wine_exec_t, wine_t)
 	# Unrestricted inheritance from the caller.
 	allow $2 wine_t:process { noatsecure siginh rlimitinh };
 	allow wine_t $2:fd use;
 	allow wine_t $2:process { sigchld signull };
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	allow wine_t $2:unix_stream_socket connectto;
-	allow wine_t $2:process signull;
 
+	# Allow the user domain to signal/ps.
 	ps_process_pattern($2, wine_t)
-	allow $2 wine_t:process { ptrace signal_perms };
+	allow $2 wine_t:process signal_perms;
 
 	allow $2 wine_t:fd use;
-<<<<<<< HEAD
 	allow $2 wine_t:shm { associate getattr  unix_read unix_write };
-=======
-	allow $2 wine_t:shm { associate getattr };
-	allow $2 wine_t:shm rw_shm_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	allow $2 wine_t:unix_stream_socket connectto;
 
-	allow $2 { wine_tmp_t wine_home_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $2 { wine_tmp_t wine_home_t }:file { manage_file_perms relabel_file_perms };
-	allow $2 wine_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
-	userdom_user_home_dir_filetrans($2, wine_home_t, dir, ".wine")
+	# X access, Home files
+	manage_dirs_pattern($2, wine_home_t, wine_home_t)
+	manage_files_pattern($2, wine_home_t, wine_home_t)
+	manage_lnk_files_pattern($2, wine_home_t, wine_home_t)
+	relabel_dirs_pattern($2, wine_home_t, wine_home_t)
+	relabel_files_pattern($2, wine_home_t, wine_home_t)
+	relabel_lnk_files_pattern($2, wine_home_t, wine_home_t)
 ')
 
 #######################################
@@ -113,21 +88,15 @@ template(`wine_role_template',`
 	')
 
 	type $1_wine_t;
-	userdom_user_application_domain($1_wine_t, wine_exec_t)
+	domain_type($1_wine_t)
+	domain_entry_file($1_wine_t, wine_exec_t)
+	ubac_constrained($1_wine_t)
 	role $2 types $1_wine_t;
 
 	allow $1_wine_t self:process { execmem execstack };
-<<<<<<< HEAD
 	allow $3 $1_wine_t:process { getattr noatsecure signal_perms };
-=======
-
-	allow $3 $1_wine_t:process { ptrace noatsecure signal_perms };
-	ps_process_pattern($3, $1_wine_t)
-
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	domtrans_pattern($3, wine_exec_t, $1_wine_t)
-
-	corecmd_bin_domtrans($1_wine_t, $3)
+	corecmd_bin_domtrans($1_wine_t, $1_t)
 
 	userdom_unpriv_usertype($1, $1_wine_t)
 	userdom_manage_tmpfs_role($2, $1_wine_t)
@@ -168,9 +137,8 @@ interface(`wine_domtrans',`
 
 ########################################
 ## <summary>
-##	Execute wine in the wine domain,
-##	and allow the specified role
-##	the wine domain.
+##	Execute wine in the wine domain, and
+##	allow the specified role the wine domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -185,11 +153,11 @@ interface(`wine_domtrans',`
 #
 interface(`wine_run',`
 	gen_require(`
-		attribute_role wine_roles;
+		type wine_t;
 	')
 
 	wine_domtrans($1)
-	roleattribute $2 wine_roles;
+	role $2 types wine_t;
 ')
 
 ########################################

@@ -2,17 +2,19 @@
 
 #######################################
 ## <summary>
-##	The template to define a telepathy domain.
+##	Creates basic types for telepathy
+##	domain
 ## </summary>
-## <param name="domain_prefix">
+## <param name="prefix">
 ##	<summary>
-##	Domain prefix to be used.
+##	Prefix for the domain.
 ##	</summary>
 ## </param>
 #
 template(`telepathy_domain_template',`
 	gen_require(`
-		attribute telepathy_domain, telepathy_executable, telepathy_tmp_content;
+		attribute telepathy_domain;
+		attribute telepathy_executable;
 	')
 
 	type telepathy_$1_t, telepathy_domain;
@@ -20,38 +22,19 @@ template(`telepathy_domain_template',`
 	application_domain(telepathy_$1_t, telepathy_$1_exec_t)
 	ubac_constrained(telepathy_$1_t)
 
-	type telepathy_$1_tmp_t, telepathy_tmp_content;
+	type telepathy_$1_tmp_t;
 	userdom_user_tmp_file(telepathy_$1_tmp_t)
 
-<<<<<<< HEAD
 	kernel_read_system_state(telepathy_$1_t)
 
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	auth_use_nsswitch(telepathy_$1_t)
 ')
 
 #######################################
 ## <summary>
-<<<<<<< HEAD
 ##	Role access for telepathy domains
 ##	that executes via dbus-session
-=======
-##	The role template for the telepathy module.
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ## </summary>
-## <desc>
-##	<p>
-##	This template creates a derived domains which are used
-##	for window manager applications.
-##	</p>
-## </desc>
-## <param name="role_prefix">
-##	<summary>
-##	The prefix of the user domain (e.g., user
-##	is the prefix for user_t).
-##	</summary>
-## </param>
 ## <param name="user_role">
 ##	<summary>
 ##	The role associated with the user domain.
@@ -68,13 +51,9 @@ template(`telepathy_domain_template',`
 ##	</summary>
 ## </param>
 #
-<<<<<<< HEAD
 template(`telepathy_role',`
-=======
-template(`telepathy_role_template',`
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 	gen_require(`
-		attribute telepathy_domain, telepathy_tmp_content;
+		attribute telepathy_domain;
 		type telepathy_gabble_t, telepathy_sofiasip_t, telepathy_idle_t;
 		type telepathy_mission_control_t, telepathy_salut_t, telepathy_sunshine_t;
 		type telepathy_stream_engine_t, telepathy_msn_t, telepathy_gabble_exec_t;
@@ -83,52 +62,17 @@ template(`telepathy_role_template',`
 		type telepathy_mission_control_exec_t, telepathy_salut_exec_t;
 		type telepathy_sunshine_exec_t, telepathy_stream_engine_exec_t;
 		type telepathy_msn_exec_t;
-
-		type telepathy_mission_control_cache_home_t, telepathy_cache_home_t, telepathy_logger_cache_home_t;
-		type telepathy_gabble_cache_home_t, telepathy_mission_control_home_t, telepathy_data_home_t;
-		type telepathy_mission_control_data_home_t, telepathy_sunshine_home_t, telepathy_logger_data_home_t;
 	')
 
-	role $2 types telepathy_domain;
+	role $1 types telepathy_domain;
 
-	allow $3 telepathy_domain:process { ptrace signal_perms };
-	ps_process_pattern($3, telepathy_domain)
+	allow $2 telepathy_domain:process signal_perms;
+	ps_process_pattern($2, telepathy_domain)
 
-	telepathy_gabble_stream_connect($3)
-	telepathy_msn_stream_connect($3)
-	telepathy_salut_stream_connect($3)
+	telepathy_gabble_stream_connect($2)
+	telepathy_msn_stream_connect($2)
+	telepathy_salut_stream_connect($2)
 
-	dbus_spec_session_domain($1, telepathy_gabble_exec_t, telepathy_gabble_t)
-	dbus_spec_session_domain($1, telepathy_sofiasip_exec_t, telepathy_sofiasip_t)
-	dbus_spec_session_domain($1, telepathy_idle_exec_t, telepathy_idle_t)
-	dbus_spec_session_domain($1, telepathy_logger_exec_t, telepathy_logger_t)
-	dbus_spec_session_domain($1, telepathy_mission_control_exec_t, telepathy_mission_control_t)
-	dbus_spec_session_domain($1, telepathy_salut_exec_t, telepathy_salut_t)
-	dbus_spec_session_domain($1, telepathy_sunshine_exec_t, telepathy_sunshine_t)
-	dbus_spec_session_domain($1, telepathy_stream_engine_exec_t, telepathy_stream_engine_t)
-	dbus_spec_session_domain($1, telepathy_msn_exec_t, telepathy_msn_t)
-
-	allow $3 { telepathy_mission_control_cache_home_t telepathy_cache_home_t telepathy_logger_cache_home_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 { telepathy_gabble_cache_home_t telepathy_mission_control_home_t telepathy_data_home_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 { telepathy_mission_control_data_home_t telepathy_sunshine_home_t telepathy_logger_data_home_t }:dir { manage_dir_perms relabel_dir_perms };
-
-	allow $3 { telepathy_mission_control_cache_home_t telepathy_cache_home_t telepathy_logger_cache_home_t }:file { manage_file_perms relabel_file_perms };
-	allow $3 { telepathy_gabble_cache_home_t telepathy_mission_control_home_t telepathy_data_home_t }:file { manage_file_perms relabel_file_perms };
-	allow $3 { telepathy_mission_control_data_home_t telepathy_sunshine_home_t telepathy_logger_data_home_t }:file { manage_file_perms relabel_file_perms };
-
-	filetrans_pattern($3, telepathy_cache_home_t, telepathy_gabble_cache_home_t, dir, "gabble")
-	# gnome_cache_filetrans($3, telepathy_gabble_cache_home_t, dir, "wocky")
-
-	filetrans_pattern($3, telepathy_cache_home_t, telepathy_logger_cache_home_t, dir, "logger")
-	# gnome_data_filetrans($3, telepathy_logger_data_home_t, dir, "TpLogger")
-
-	userdom_user_home_dir_filetrans($3, telepathy_mission_control_home_t, dir, ".mission-control")
-	filetrans_pattern($3, telepathy_data_home_t, telepathy_mission_control_data_home_t, dir, "mission-control")
-	# gnome_cache_filetrans($3, telepathy_mission_control_cache_home_t, file, ".mc_connections")
-
-	userdom_user_home_dir_filetrans($3, telepathy_sunshine_home_t, dir, ".telepathy-sunshine")
-
-<<<<<<< HEAD
 	dbus_session_domain($3, telepathy_gabble_exec_t, telepathy_gabble_t)
 	dbus_session_domain($3, telepathy_sofiasip_exec_t, telepathy_sofiasip_t)
 	dbus_session_domain($3, telepathy_idle_exec_t, telepathy_idle_t)
@@ -140,48 +84,39 @@ template(`telepathy_role_template',`
 	dbus_session_domain($3, telepathy_msn_exec_t, telepathy_msn_t)
 
 	telepathy_dbus_chat($2)
-=======
-	# gnome_cache_filetrans($3, telepathy_cache_home_t, dir, "telepathy")
-	# gnome_data_filetrans($3, telepathy_data_home_t, dir, "telepathy")
-
-	allow $3 telepathy_tmp_content:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 telepathy_tmp_content:file { manage_file_perms relabel_file_perms };
-	allow $3 telepathy_tmp_content:sock_file { manage_sock_file_perms relabel_sock_file_perms };
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 ########################################
 ## <summary>
-##	Connect to gabble with a unix
-##	domain stream socket.
+##	Stream connect to Telepathy Gabble
 ## </summary>
 ## <param name="domain">
-##	<summary>
+## 	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
-interface(`telepathy_gabble_stream_connect',`
+interface(`telepathy_gabble_stream_connect', `
 	gen_require(`
 		type telepathy_gabble_t, telepathy_gabble_tmp_t;
 	')
 
-	files_search_tmp($1)
 	stream_connect_pattern($1, telepathy_gabble_tmp_t, telepathy_gabble_tmp_t, telepathy_gabble_t)
+	files_search_tmp($1)
 ')
 
 ########################################
 ## <summary>
-##	Send dbus messages to and from
-##	gabble.
+##	Send DBus messages to and from
+##	Telepathy Gabble.
 ## </summary>
 ## <param name="domain">
-##	<summary>
+## 	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
-interface(`telepathy_gabble_dbus_chat',`
+interface(`telepathy_gabble_dbus_chat', `
 	gen_require(`
 		type telepathy_gabble_t;
 		class dbus send_msg;
@@ -193,10 +128,10 @@ interface(`telepathy_gabble_dbus_chat',`
 
 ########################################
 ## <summary>
-##	Read mission control process state files.
+##	Read telepathy mission control state.
 ## </summary>
 ## <param name="domain">
-##	<summary>
+## 	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
@@ -207,15 +142,12 @@ interface(`telepathy_mission_control_read_state',`
 	')
 
 	kernel_search_proc($1)
-	allow $1 telepathy_mission_control_t:dir list_dir_perms;
-	allow $1 telepathy_mission_control_t:file read_file_perms;
-	allow $1 telepathy_mission_control_t:lnk_file read_lnk_file_perms;
+	ps_process_pattern($1, telepathy_mission_control_t)
 ')
 
 #######################################
 ## <summary>
-##	Connect to msn with a unix
-##	domain stream socket.
+##	Stream connect to telepathy MSN managers
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -223,19 +155,18 @@ interface(`telepathy_mission_control_read_state',`
 ##	</summary>
 ## </param>
 #
-interface(`telepathy_msn_stream_connect',`
+interface(`telepathy_msn_stream_connect', `
 	gen_require(`
 		type telepathy_msn_t, telepathy_msn_tmp_t;
 	')
 
-	files_search_tmp($1)
 	stream_connect_pattern($1, telepathy_msn_tmp_t, telepathy_msn_tmp_t, telepathy_msn_t)
+	files_search_tmp($1)
 ')
 
 ########################################
 ## <summary>
-##	Connect to salut with a unix
-##	domain stream socket.
+##	Stream connect to Telepathy Salut
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -243,13 +174,13 @@ interface(`telepathy_msn_stream_connect',`
 ##	</summary>
 ## </param>
 #
-interface(`telepathy_salut_stream_connect',`
+interface(`telepathy_salut_stream_connect', `
 	gen_require(`
 		type telepathy_salut_t, telepathy_salut_tmp_t;
 	')
 
-	files_search_tmp($1)
 	stream_connect_pattern($1, telepathy_salut_tmp_t, telepathy_salut_tmp_t, telepathy_salut_t)
+	files_search_tmp($1)
 ')
 
 #######################################

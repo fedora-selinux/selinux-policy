@@ -1,4 +1,4 @@
-policy_module(tftp, 1.12.4)
+policy_module(tftp, 1.12.0)
 
 ########################################
 #
@@ -6,37 +6,23 @@ policy_module(tftp, 1.12.4)
 #
 
 ## <desc>
-##	<p>
-##	Determine whether tftp can modify
-##	public files used for public file
-##	transfer services. Directories/Files must
-##	be labeled public_content_rw_t.
-##	</p>
+## <p>
+## Allow tftp to modify public files
+## used for public file transfer services.
+## </p>
 ## </desc>
 gen_tunable(tftp_anon_write, false)
 
 ## <desc>
-<<<<<<< HEAD
 ## <p>
 ## Allow tftp to read and write files in the user home directories
 ## </p>
 ## </desc>
 gen_tunable(tftp_home_dir, false)
-=======
-##	<p>
-##	Determine whether tftp can manage
-##	generic user home content.
-##	</p>
-## </desc>
-gen_tunable(tftp_enable_homedir, false)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 type tftpd_t;
 type tftpd_exec_t;
 init_daemon_domain(tftpd_t, tftpd_exec_t)
-
-type tftpd_conf_t;
-files_config_file(tftpd_conf_t)
 
 type tftpd_var_run_t;
 files_pid_file(tftpd_var_run_t)
@@ -57,26 +43,16 @@ files_config_file(tftpd_etc_t)
 
 allow tftpd_t self:capability { setgid setuid sys_chroot };
 dontaudit tftpd_t self:capability sys_tty_config;
-<<<<<<< HEAD
 allow tftpd_t self:tcp_socket create_stream_socket_perms;
 allow tftpd_t self:udp_socket create_socket_perms;
 allow tftpd_t self:unix_dgram_socket create_socket_perms;
 allow tftpd_t self:unix_stream_socket create_stream_socket_perms;
-=======
-allow tftpd_t self:tcp_socket { accept listen };
-allow tftpd_t self:unix_stream_socket { accept listen };
-
-allow tftpd_t tftpd_conf_t:file read_file_perms;
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 allow tftpd_t tftpdir_t:dir list_dir_perms;
 allow tftpd_t tftpdir_t:file read_file_perms;
 allow tftpd_t tftpdir_t:lnk_file read_lnk_file_perms;
-<<<<<<< HEAD
 
 read_files_pattern(tftpd_t, tftpd_etc_t, tftpd_etc_t)
-=======
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 manage_dirs_pattern(tftpd_t, tftpdir_rw_t, tftpdir_rw_t)
 manage_files_pattern(tftpd_t, tftpdir_rw_t, tftpdir_rw_t)
@@ -89,15 +65,21 @@ kernel_read_system_state(tftpd_t)
 kernel_read_kernel_sysctls(tftpd_t)
 
 corenet_all_recvfrom_netlabel(tftpd_t)
+corenet_tcp_sendrecv_generic_if(tftpd_t)
 corenet_udp_sendrecv_generic_if(tftpd_t)
+corenet_tcp_sendrecv_generic_node(tftpd_t)
 corenet_udp_sendrecv_generic_node(tftpd_t)
+corenet_tcp_sendrecv_all_ports(tftpd_t)
+corenet_udp_sendrecv_all_ports(tftpd_t)
+corenet_tcp_bind_generic_node(tftpd_t)
 corenet_udp_bind_generic_node(tftpd_t)
-
-corenet_sendrecv_tftp_server_packets(tftpd_t)
 corenet_udp_bind_tftp_port(tftpd_t)
-corenet_udp_sendrecv_tftp_port(tftpd_t)
+corenet_sendrecv_tftp_server_packets(tftpd_t)
 
 dev_read_sysfs(tftpd_t)
+
+fs_getattr_all_fs(tftpd_t)
+fs_search_auto_mountpoints(tftpd_t)
 
 domain_use_interactive_fds(tftpd_t)
 
@@ -105,9 +87,6 @@ files_read_etc_runtime_files(tftpd_t)
 files_read_var_files(tftpd_t)
 files_read_var_symlinks(tftpd_t)
 files_search_var(tftpd_t)
-
-fs_getattr_all_fs(tftpd_t)
-fs_search_auto_mountpoints(tftpd_t)
 
 auth_use_nsswitch(tftpd_t)
 
@@ -117,13 +96,12 @@ miscfiles_read_public_files(tftpd_t)
 
 userdom_dontaudit_use_unpriv_user_fds(tftpd_t)
 userdom_dontaudit_use_user_terminals(tftpd_t)
-userdom_user_home_dir_filetrans_user_home_content(tftpd_t, { dir file lnk_file })
+userdom_dontaudit_search_user_home_dirs(tftpd_t)
 
 tunable_policy(`tftp_anon_write',`
 	miscfiles_manage_public_files(tftpd_t)
 ')
 
-<<<<<<< HEAD
 tunable_policy(`tftp_home_dir',`
     allow tftpd_t self:capability { dac_override dac_read_search };
 
@@ -148,27 +126,6 @@ tunable_policy(`tftp_home_dir && use_nfs_home_dirs',`
 tunable_policy(`tftp_home_dir && use_samba_home_dirs',`
     fs_manage_cifs_files(tftpd_t)
     fs_read_cifs_symlinks(tftpd_t)
-=======
-tunable_policy(`tftp_enable_homedir',`
-	allow tftpd_t self:capability { dac_override dac_read_search };
-
-	files_list_home(tftpd_t)
-	userdom_manage_user_home_content_dirs(tftpd_t)
-	userdom_manage_user_home_content_files(tftpd_t)
-	userdom_manage_user_home_content_symlinks(tftpd_t)
-')
-
-tunable_policy(`tftp_enable_homedir && use_nfs_home_dirs',`
-	fs_manage_nfs_dirs(tftpd_t)
-	fs_manage_nfs_files(tftpd_t)
-	fs_read_nfs_symlinks(tftpd_t)
-')
-
-tunable_policy(`tftp_enable_homedir && use_samba_home_dirs',`
-	fs_manage_cifs_dirs(tftpd_t)
-	fs_manage_cifs_files(tftpd_t)
-	fs_read_cifs_symlinks(tftpd_t)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 ')
 
 optional_policy(`

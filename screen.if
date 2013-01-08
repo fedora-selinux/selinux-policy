@@ -1,4 +1,4 @@
-## <summary>GNU terminal multiplexer.</summary>
+## <summary>GNU terminal multiplexer</summary>
 
 #######################################
 ## <summary>
@@ -23,8 +23,6 @@
 #
 template(`screen_role_template',`
 	gen_require(`
-		attribute screen_domain;
-		attribute_role screen_roles;
 		type screen_exec_t, screen_tmp_t;
 		type screen_home_t, screen_var_run_t;
 		attribute screen_domain;
@@ -36,7 +34,6 @@ template(`screen_role_template',`
 	#
 
 	type $1_screen_t, screen_domain;
-<<<<<<< HEAD
 	application_domain($1_screen_t, screen_exec_t)
 	domain_interactive_fd($1_screen_t)
 	ubac_constrained($1_screen_t)
@@ -47,66 +44,38 @@ template(`screen_role_template',`
 	')
 
 	userdom_home_reader($1_screen_t)
-=======
-	userdom_user_application_domain($1_screen_t, screen_exec_t)
-	domain_interactive_fd($1_screen_t)
-	role screen_roles types $1_screen_t;
-
-	roleattribute $2 screen_roles;
-
-	########################################
-	#
-	# Local policy
-	#
 
 	domtrans_pattern($3, screen_exec_t, $1_screen_t)
-
-	ps_process_pattern($3, $1_screen_t)
-	allow $3 $1_screen_t:process { ptrace signal_perms };
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
-
+	allow $3 $1_screen_t:process { signal sigchld };
 	dontaudit $3 $1_screen_t:unix_stream_socket { read write };
 	allow $1_screen_t $3:unix_stream_socket { connectto };
 	allow $1_screen_t $3:process signal;
 	ps_process_pattern($1_screen_t, $3)
 
-	allow $3 screen_tmp_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 screen_tmp_t:file { manage_file_perms relabel_file_perms };
-	allow $3 screen_tmp_t:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
-
-	allow $3 screen_home_t:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 screen_home_t:file { manage_file_perms relabel_file_perms };
-	allow $3 screen_home_t:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
-	allow $3 screen_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
-
-	userdom_user_home_dir_filetrans($3, screen_home_t, dir, ".screen")
-	userdom_user_home_dir_filetrans($3, screen_home_t, file, ".screenrc")
+	manage_fifo_files_pattern($3, screen_home_t, screen_home_t)
+	manage_dirs_pattern($3, screen_home_t, screen_home_t)
+	manage_files_pattern($3, screen_home_t, screen_home_t)
+	manage_lnk_files_pattern($3, screen_home_t, screen_home_t)
+	relabel_dirs_pattern($3, screen_home_t, screen_home_t)
+	relabel_files_pattern($3, screen_home_t, screen_home_t)
+	relabel_lnk_files_pattern($3, screen_home_t, screen_home_t)
 
 	manage_dirs_pattern($3, screen_var_run_t, screen_var_run_t)
 	manage_fifo_files_pattern($3, screen_var_run_t, screen_var_run_t)
 
-<<<<<<< HEAD
 	kernel_read_system_state($1_screen_t)
 
 	# Revert to the user domain when a shell is executed.
 	corecmd_shell_domtrans($1_screen_t, $3)
 	corecmd_bin_domtrans($1_screen_t, $3)
-=======
-	corecmd_bin_domtrans($1_screen_t, $3)
-	corecmd_shell_domtrans($1_screen_t, $3)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	auth_domtrans_chk_passwd($1_screen_t)
 	auth_use_nsswitch($1_screen_t)
 
-<<<<<<< HEAD
 	logging_send_syslog_msg($1_screen_t)
 
 	userdom_user_home_domtrans($1_screen_t, $3)
 	userdom_manage_tmp_role($2, $1_screen_t)
-=======
-	userdom_user_home_domtrans($1_screen_t, $3)
->>>>>>> 662a00bca8f52af8056f41abd0fdec77ea835b2a
 
 	tunable_policy(`use_samba_home_dirs',`
 		fs_cifs_domtrans($1_screen_t, $3)
