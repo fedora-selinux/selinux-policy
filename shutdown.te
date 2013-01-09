@@ -1,15 +1,17 @@
-policy_module(shutdown, 1.1.0)
+policy_module(shutdown, 1.1.2)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role shutdown_roles;
+
 type shutdown_t;
 type shutdown_exec_t;
 init_system_domain(shutdown_t, shutdown_exec_t)
 application_domain(shutdown_t, shutdown_exec_t)
-role system_r types shutdown_t;
+role shutdown_roles types shutdown_t;
 
 type shutdown_etc_t;
 files_config_file(shutdown_etc_t)
@@ -19,12 +21,11 @@ files_pid_file(shutdown_var_run_t)
 
 ########################################
 #
-# shutdown local policy
+# Local policy
 #
 
 allow shutdown_t self:capability { dac_override kill setuid sys_nice sys_tty_config };
-allow shutdown_t self:process { fork setsched signal signull };
-
+allow shutdown_t self:process { setsched signal signull };
 allow shutdown_t self:fifo_file manage_fifo_file_perms;
 allow shutdown_t self:unix_stream_socket create_stream_socket_perms;
 
@@ -38,8 +39,8 @@ kernel_read_system_state(shutdown_t)
 
 domain_use_interactive_fds(shutdown_t)
 
-files_read_generic_pids(shutdown_t)
 files_delete_boot_flag(shutdown_t)
+files_read_generic_pids(shutdown_t)
 
 mls_file_write_to_clearance(shutdown_t)
 
@@ -54,7 +55,6 @@ init_telinit(shutdown_t)
 
 logging_search_logs(shutdown_t)
 logging_send_audit_msgs(shutdown_t)
-
 
 optional_policy(`
 	cron_system_entry(shutdown_t, shutdown_exec_t)

@@ -1,14 +1,23 @@
-policy_module(dcc, 1.11.0)
+policy_module(dcc, 1.11.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role cdcc_roles;
+roleattribute system_r cdcc_roles;
+
+attribute_role dcc_client_roles;
+roleattribute system_r dcc_client_roles;
+
+attribute_role dcc_dbclean_roles;
+roleattribute system_r dcc_dbclean_roles;
+
 type cdcc_t;
 type cdcc_exec_t;
 application_domain(cdcc_t, cdcc_exec_t)
-role system_r types cdcc_t;
+role cdcc_roles types cdcc_t;
 
 type cdcc_tmp_t;
 files_tmp_file(cdcc_tmp_t)
@@ -16,7 +25,7 @@ files_tmp_file(cdcc_tmp_t)
 type dcc_client_t;
 type dcc_client_exec_t;
 application_domain(dcc_client_t, dcc_client_exec_t)
-role system_r types dcc_client_t;
+role dcc_client_roles types dcc_client_t;
 
 type dcc_client_map_t;
 files_type(dcc_client_map_t)
@@ -27,7 +36,7 @@ files_tmp_file(dcc_client_tmp_t)
 type dcc_dbclean_t;
 type dcc_dbclean_exec_t;
 application_domain(dcc_dbclean_t, dcc_dbclean_exec_t)
-role system_r types dcc_dbclean_t;
+role dcc_dbclean_roles types dcc_dbclean_t;
 
 type dcc_dbclean_tmp_t;
 files_tmp_file(dcc_dbclean_tmp_t)
@@ -68,21 +77,12 @@ files_tmp_file(dccm_tmp_t)
 type dccm_var_run_t;
 files_pid_file(dccm_var_run_t)
 
-# NOTE: DCC has writeable files in /etc/dcc that should probably be in
-# /var/lib/dcc.  For now this policy supports both directories being
-# writable.
-
-# cjp: dccifd and dccm should be merged, as
-# they have the same rules.
-
 ########################################
 #
-# dcc daemon controller local policy
+# Daemon controller local policy
 #
 
 allow cdcc_t self:capability { setuid setgid };
-allow cdcc_t self:unix_dgram_socket create_socket_perms;
-allow cdcc_t self:udp_socket create_socket_perms;
 
 manage_dirs_pattern(cdcc_t, cdcc_tmp_t, cdcc_tmp_t)
 manage_files_pattern(cdcc_t, cdcc_tmp_t, cdcc_tmp_t)
@@ -90,7 +90,6 @@ files_tmp_filetrans(cdcc_t, cdcc_tmp_t, { file dir })
 
 allow cdcc_t dcc_client_map_t:file rw_file_perms;
 
-# Access files in /var/dcc. The map file can be updated
 allow cdcc_t dcc_var_t:dir list_dir_perms;
 read_files_pattern(cdcc_t, dcc_var_t, dcc_var_t)
 read_lnk_files_pattern(cdcc_t, dcc_var_t, dcc_var_t)
@@ -110,12 +109,10 @@ userdom_use_inherited_user_terminals(cdcc_t)
 
 ########################################
 #
-# dcc procmail interface local policy
+# Procmail interface local policy
 #
 
 allow dcc_client_t self:capability { setuid setgid };
-allow dcc_client_t self:unix_dgram_socket create_socket_perms;
-allow dcc_client_t self:udp_socket create_socket_perms;
 
 allow dcc_client_t dcc_client_map_t:file rw_file_perms;
 
@@ -123,7 +120,6 @@ manage_dirs_pattern(dcc_client_t, dcc_client_tmp_t, dcc_client_tmp_t)
 manage_files_pattern(dcc_client_t, dcc_client_tmp_t, dcc_client_tmp_t)
 files_tmp_filetrans(dcc_client_t, dcc_client_tmp_t, { file dir })
 
-# Access files in /var/dcc. The map file can be updated
 allow dcc_client_t dcc_var_t:dir list_dir_perms;
 manage_files_pattern(dcc_client_t, dcc_var_t, dcc_var_t)
 read_lnk_files_pattern(dcc_client_t, dcc_var_t, dcc_var_t)
@@ -156,11 +152,8 @@ optional_policy(`
 
 ########################################
 #
-# Database cleanup tool local policy
+# Database cleanup local policy
 #
-
-allow dcc_dbclean_t self:unix_dgram_socket create_socket_perms;
-allow dcc_dbclean_t self:udp_socket create_socket_perms;
 
 allow dcc_dbclean_t dcc_client_map_t:file rw_file_perms;
 
@@ -189,28 +182,21 @@ userdom_use_inherited_user_terminals(dcc_dbclean_t)
 
 ########################################
 #
-# Server daemon local policy
+# Server local policy
 #
 
 allow dccd_t self:capability net_admin;
 dontaudit dccd_t self:capability sys_tty_config;
 allow dccd_t self:process signal_perms;
-allow dccd_t self:unix_stream_socket create_socket_perms;
-allow dccd_t self:netlink_route_socket { bind create getattr nlmsg_read read write };
-allow dccd_t self:udp_socket create_socket_perms;
 
 allow dccd_t dcc_client_map_t:file rw_file_perms;
 
-# Access files in /var/dcc. The map file can be updated
 allow dccd_t dcc_var_t:dir list_dir_perms;
 read_files_pattern(dccd_t, dcc_var_t, dcc_var_t)
 read_lnk_files_pattern(dccd_t, dcc_var_t, dcc_var_t)
 
-# Runs the dbclean program
 domtrans_pattern(dccd_t, dcc_dbclean_exec_t, dcc_dbclean_t)
-corecmd_search_bin(dccd_t)
 
-# Updating dcc_db, flod, ...
 manage_dirs_pattern(dccd_t, dcc_var_t, dcc_var_t)
 manage_files_pattern(dccd_t, dcc_var_t, dcc_var_t)
 manage_lnk_files_pattern(dccd_t, dcc_var_t, dcc_var_t)
@@ -231,8 +217,11 @@ corenet_udp_sendrecv_generic_if(dccd_t)
 corenet_udp_sendrecv_generic_node(dccd_t)
 corenet_udp_sendrecv_all_ports(dccd_t)
 corenet_udp_bind_generic_node(dccd_t)
+
 corenet_udp_bind_dcc_port(dccd_t)
 corenet_sendrecv_dcc_server_packets(dccd_t)
+
+corecmd_search_bin(dccd_t)
 
 dev_read_sysfs(dccd_t)
 
@@ -265,13 +254,10 @@ optional_policy(`
 
 dontaudit dccifd_t self:capability sys_tty_config;
 allow dccifd_t self:process signal_perms;
-allow dccifd_t self:unix_stream_socket create_stream_socket_perms;
-allow dccifd_t self:unix_dgram_socket create_socket_perms;
-allow dccifd_t self:udp_socket create_socket_perms;
+allow dccifd_t self:unix_stream_socket { accept listen };
 
 allow dccifd_t dcc_client_map_t:file rw_file_perms;
 
-# Updating dcc_db, flod, ...
 manage_dirs_pattern(dccifd_t, dcc_var_t, dcc_var_t)
 manage_files_pattern(dccifd_t, dcc_var_t, dcc_var_t)
 manage_lnk_files_pattern(dccifd_t, dcc_var_t, dcc_var_t)
@@ -321,14 +307,12 @@ optional_policy(`
 
 ########################################
 #
-# sendmail milter client local policy
+# Sendmail milter client local policy
 #
 
 dontaudit dccm_t self:capability sys_tty_config;
 allow dccm_t self:process signal_perms;
-allow dccm_t self:unix_stream_socket create_stream_socket_perms;
-allow dccm_t self:unix_dgram_socket create_socket_perms;
-allow dccm_t self:udp_socket create_socket_perms;
+allow dccm_t self:unix_stream_socket { accept listen };
 
 allow dccm_t dcc_client_map_t:file rw_file_perms;
 

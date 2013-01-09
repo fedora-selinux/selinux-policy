@@ -1,4 +1,4 @@
-policy_module(couchdb, 1.0.0)
+policy_module(couchdb, 1.0.2)
 
 ########################################
 #
@@ -9,14 +9,17 @@ type couchdb_t;
 type couchdb_exec_t;
 init_daemon_domain(couchdb_t, couchdb_exec_t)
 
-type couchdb_etc_t;
-files_config_file(couchdb_etc_t)
+type couchdb_initrc_exec_t;
+init_script_file(couchdb_initrc_exec_t)
 
-type couchdb_tmp_t;
-files_tmp_file(couchdb_tmp_t)
+type couchdb_conf_t;
+files_config_file(couchdb_conf_t)
 
 type couchdb_log_t;
 logging_log_file(couchdb_log_t)
+
+type couchdb_tmp_t;
+files_tmp_file(couchdb_tmp_t)
 
 type couchdb_var_lib_t;
 files_type(couchdb_var_lib_t)
@@ -29,20 +32,22 @@ systemd_unit_file(couchdb_unit_file_t)
 
 ########################################
 #
-# couchdb local policy
+# Local policy
 #
+
 allow couchdb_t self:process { setsched signal signull sigkill };
 allow couchdb_t self:fifo_file rw_fifo_file_perms;
 allow couchdb_t self:unix_stream_socket create_stream_socket_perms;
-allow couchdb_t self:tcp_socket create_stream_socket_perms;
-allow couchdb_t self:udp_socket create_socket_perms;
+allow couchdb_t self:tcp_socket { accept listen };
 
-allow couchdb_t couchdb_etc_t:dir list_dir_perms;
-read_files_pattern(couchdb_t, couchdb_etc_t, couchdb_etc_t)
+allow couchdb_t couchdb_conf_t:dir list_dir_perms;
+allow couchdb_t couchdb_conf_t:file read_file_perms;
 
 manage_dirs_pattern(couchdb_t, couchdb_log_t, couchdb_log_t)
-manage_files_pattern(couchdb_t, couchdb_log_t, couchdb_log_t)
-logging_log_filetrans(couchdb_t, couchdb_log_t, { dir file })
+append_files_pattern(couchdb_t, couchdb_log_t, couchdb_log_t)
+create_files_pattern(couchdb_t, couchdb_log_t, couchdb_log_t)
+setattr_files_pattern(couchdb_t, couchdb_log_t, couchdb_log_t)
+logging_log_filetrans(couchdb_t, couchdb_log_t, dir)
 
 manage_dirs_pattern(couchdb_t, couchdb_tmp_t, couchdb_tmp_t)
 manage_files_pattern(couchdb_t, couchdb_tmp_t, couchdb_tmp_t)
@@ -50,11 +55,11 @@ files_tmp_filetrans(couchdb_t, couchdb_tmp_t, { dir file })
 
 manage_dirs_pattern(couchdb_t, couchdb_var_lib_t, couchdb_var_lib_t)
 manage_files_pattern(couchdb_t, couchdb_var_lib_t, couchdb_var_lib_t)
-files_var_lib_filetrans(couchdb_t, couchdb_var_lib_t, { dir file })
+files_var_lib_filetrans(couchdb_t, couchdb_var_lib_t, dir)
 
 manage_dirs_pattern(couchdb_t, couchdb_var_run_t, couchdb_var_run_t)
 manage_files_pattern(couchdb_t, couchdb_var_run_t, couchdb_var_run_t)
-files_pid_filetrans(couchdb_t, couchdb_var_run_t, { dir file })
+files_pid_filetrans(couchdb_t, couchdb_var_run_t, dir)
 
 can_exec(couchdb_t, couchdb_exec_t)
 
@@ -63,21 +68,21 @@ kernel_read_system_state(couchdb_t)
 corecmd_exec_bin(couchdb_t)
 corecmd_exec_shell(couchdb_t)
 
+corenet_all_recvfrom_unlabeled(couchdb_t)
+corenet_all_recvfrom_netlabel(couchdb_t)
+corenet_tcp_sendrecv_generic_if(couchdb_t)
+corenet_tcp_sendrecv_generic_node(couchdb_t)
 corenet_tcp_bind_generic_node(couchdb_t)
-corenet_udp_bind_generic_node(couchdb_t)
+
+corenet_sendrecv_couchdb_server_packets(couchdb_t)
 corenet_tcp_bind_couchdb_port(couchdb_t)
+corenet_tcp_sendrecv_couchdb_port(couchdb_t)
 
 dev_list_sysfs(couchdb_t)
 dev_read_sysfs(couchdb_t)
 dev_read_urand(couchdb_t)
 
-domain_use_interactive_fds(couchdb_t)
-
-files_read_usr_files(couchdb_t)
-
 fs_getattr_xattr_fs(couchdb_t)
 
 auth_use_nsswitch(couchdb_t)
-
-libs_exec_lib_files(couchdb_t)
 

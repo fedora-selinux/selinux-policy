@@ -2,7 +2,7 @@
 
 ########################################
 ## <summary>
-##	Send openct a null signal.
+##	Send null signals to openct.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -58,7 +58,7 @@ interface(`openct_domtrans',`
 
 ########################################
 ## <summary>
-##	Read openct PID files.
+##	Read openct pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -77,7 +77,8 @@ interface(`openct_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Connect to openct over an unix stream socket.
+##	Connect to openct over an unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -92,4 +93,38 @@ interface(`openct_stream_connect',`
 
 	files_search_pids($1)
 	stream_connect_pattern($1, openct_var_run_t, openct_var_run_t, openct_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an openct environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`openct_admin',`
+	gen_require(`
+		type openct_t, openct_initrc_exec_t, openct_var_run_t;
+	')
+
+	allow $1 openct_t:process { ptrace signal_perms };
+	ps_process_pattern($1, openct_t)
+
+	init_labeled_script_domtrans($1, openct_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 openct_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, openct_var_run_t)
 ')

@@ -1,4 +1,4 @@
-policy_module(certmonger, 1.1.0)
+policy_module(certmonger, 1.1.5)
 
 ########################################
 #
@@ -12,18 +12,18 @@ init_daemon_domain(certmonger_t, certmonger_exec_t)
 type certmonger_initrc_exec_t;
 init_script_file(certmonger_initrc_exec_t)
 
-type certmonger_var_run_t;
-files_pid_file(certmonger_var_run_t)
-
 type certmonger_var_lib_t;
 files_type(certmonger_var_lib_t)
+
+type certmonger_var_run_t;
+files_pid_file(certmonger_var_run_t)
 
 type certmonger_unconfined_exec_t;
 application_executable_file(certmonger_unconfined_exec_t)
 
 ########################################
 #
-# certmonger local policy
+# Local policy
 #
 
 allow certmonger_t self:capability { dac_override dac_read_search setgid setuid kill sys_nice };
@@ -38,31 +38,37 @@ allow certmonger_t self:netlink_route_socket r_netlink_socket_perms;
 
 manage_dirs_pattern(certmonger_t, certmonger_var_lib_t, certmonger_var_lib_t)
 manage_files_pattern(certmonger_t, certmonger_var_lib_t, certmonger_var_lib_t)
-files_var_lib_filetrans(certmonger_t, certmonger_var_lib_t, { file dir } )
+files_var_lib_filetrans(certmonger_t, certmonger_var_lib_t, dir)
 
 manage_dirs_pattern(certmonger_t, certmonger_var_run_t, certmonger_var_run_t)
 manage_files_pattern(certmonger_t, certmonger_var_run_t, certmonger_var_run_t)
-files_pid_filetrans(certmonger_t, certmonger_var_run_t, { file dir })
+files_pid_filetrans(certmonger_t, certmonger_var_run_t, { dir file })
 
 kernel_read_kernel_sysctls(certmonger_t)
 kernel_read_system_state(certmonger_t)
 
+corenet_all_recvfrom_unlabeled(certmonger_t)
+corenet_all_recvfrom_netlabel(certmonger_t)
+corenet_tcp_sendrecv_generic_if(certmonger_t)
+corenet_tcp_sendrecv_generic_node(certmonger_t)
+
+corenet_sendrecv_certmaster_client_packets(certmonger_t)
+corenet_tcp_connect_certmaster_port(certmonger_t)
+
+corenet_tcp_connect_http_port(certmonger_t)
+corenet_tcp_connect_http_cache_port(certmonger_t)
+
+corenet_tcp_connect_pki_ca_port(certmonger_t)
+corenet_tcp_sendrecv_certmaster_port(certmonger_t)
+
 corecmd_exec_bin(certmonger_t)
 corecmd_exec_shell(certmonger_t)
 
-corenet_tcp_sendrecv_generic_if(certmonger_t)
-corenet_tcp_sendrecv_generic_node(certmonger_t)
-corenet_tcp_sendrecv_all_ports(certmonger_t)
-corenet_tcp_connect_certmaster_port(certmonger_t)
-corenet_tcp_connect_http_port(certmonger_t)
-corenet_tcp_connect_http_cache_port(certmonger_t)
-corenet_tcp_connect_pki_ca_port(certmonger_t)
-
+dev_read_rand(certmonger_t)
 dev_read_urand(certmonger_t)
 
 domain_use_interactive_fds(certmonger_t)
 
-files_read_usr_files(certmonger_t)
 files_list_tmp(certmonger_t)
 
 fs_search_cgroup_dirs(certmonger_t)
@@ -92,8 +98,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	dbus_system_bus_client(certmonger_t)
 	dbus_connect_system_bus(certmonger_t)
+	dbus_system_bus_client(certmonger_t)
 ')
 
 optional_policy(`
@@ -109,6 +115,7 @@ optional_policy(`
 
 optional_policy(`
 	pcscd_read_pub_files(certmonger_t)
+	pcscd_read_pid_files(certmonger_t)
 	pcscd_stream_connect(certmonger_t)
 ')
 

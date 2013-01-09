@@ -1,13 +1,13 @@
-## <summary>TSS Core Services (TCS) daemon (tcsd) policy</summary>
+## <summary>TSS Core Services daemon.</summary>
 
 ########################################
 ## <summary>
 ##	Execute a domain transition to run tcsd.
 ## </summary>
 ## <param name="domain">
-## <summary>
-##	Domain allowed access.
-## </summary>
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
 ## </param>
 #
 interface(`tcsd_domtrans',`
@@ -15,16 +15,18 @@ interface(`tcsd_domtrans',`
 		type tcsd_t, tcsd_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, tcsd_exec_t, tcsd_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute tcsd server in the tcsd domain.
+##	Execute tcsd init scripts in the
+##	initrc domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	The type of the process performing this action.
+##	Domain allowed to transition.
 ##	</summary>
 ## </param>
 #
@@ -51,13 +53,14 @@ interface(`tcsd_search_lib',`
 		type tcsd_var_lib_t;
 	')
 
-	allow $1 tcsd_var_lib_t:dir search_dir_perms;
 	files_search_var_lib($1)
+	allow $1 tcsd_var_lib_t:dir search_dir_perms;
 ')
 
 ########################################
 ## <summary>
-##	Manage tcsd lib dirs files.
+##	Create, read, write, and delete
+##	tcsd lib directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -115,8 +118,8 @@ interface(`tcsd_manage_lib_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an tcsd environment
+##	All of the rules required to
+##	administrate an tcsd environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -132,9 +135,7 @@ interface(`tcsd_manage_lib_files',`
 #
 interface(`tcsd_admin',`
 	gen_require(`
-		type tcsd_t;
-		type tcsd_initrc_exec_t;
-		type tcsd_var_lib_t;
+		type tcsd_t, tcsd_initrc_exec_t, tcsd_var_lib_t;
 	')
 
 	allow $1 tcsd_t:process signal_perms;

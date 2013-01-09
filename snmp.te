@@ -1,4 +1,4 @@
-policy_module(snmp, 1.13.0)
+policy_module(snmp, 1.13.4)
 
 ########################################
 #
@@ -36,7 +36,7 @@ allow snmpd_t self:unix_stream_socket { create_stream_socket_perms connectto };
 allow snmpd_t self:tcp_socket create_stream_socket_perms;
 allow snmpd_t self:udp_socket connected_stream_socket_perms;
 
-allow snmpd_t snmpd_log_t:file manage_file_perms;
+allow snmpd_t snmpd_log_t:file { append_file_perms create_file_perms setattr_file_perms };
 logging_log_filetrans(snmpd_t, snmpd_log_t, file)
 
 manage_dirs_pattern(snmpd_t, snmpd_var_lib_t, snmpd_var_lib_t)
@@ -57,6 +57,7 @@ kernel_read_net_sysctls(snmpd_t)
 kernel_read_network_state(snmpd_t)
 kernel_read_proc_symlinks(snmpd_t)
 kernel_read_all_proc(snmpd_t)
+kernel_read_system_state(snmpd_t)
 
 corecmd_exec_bin(snmpd_t)
 corecmd_exec_shell(snmpd_t)
@@ -66,17 +67,24 @@ corenet_tcp_sendrecv_generic_if(snmpd_t)
 corenet_udp_sendrecv_generic_if(snmpd_t)
 corenet_tcp_sendrecv_generic_node(snmpd_t)
 corenet_udp_sendrecv_generic_node(snmpd_t)
-corenet_tcp_sendrecv_all_ports(snmpd_t)
-corenet_udp_sendrecv_all_ports(snmpd_t)
 corenet_tcp_bind_generic_node(snmpd_t)
 corenet_udp_bind_generic_node(snmpd_t)
-corenet_tcp_bind_snmp_port(snmpd_t)
-corenet_udp_bind_snmp_port(snmpd_t)
+
 corenet_sendrecv_snmp_server_packets(snmpd_t)
+corenet_sendrecv_snmp_client_packets(snmpd_t)
+corenet_tcp_bind_snmp_port(snmpd_t)
+corenet_tcp_connect_snmp_port(snmpd_t)
+corenet_udp_bind_snmp_port(snmpd_t)
+corenet_tcp_sendrecv_snmp_port(snmpd_t)
+corenet_udp_sendrecv_snmp_port(snmpd_t)
+
+corenet_sendrecv_snmp_client_packets(snmpd_t)
 corenet_tcp_connect_agentx_port(snmpd_t)
+corenet_sendrecv_snmp_server_packets(snmpd_t)
 corenet_tcp_bind_agentx_port(snmpd_t)
 corenet_udp_bind_agentx_port(snmpd_t)
-corenet_tcp_connect_snmp_port(snmpd_t)
+corenet_tcp_sendrecv_agentx_port(snmpd_t)
+corenet_udp_sendrecv_agentx_port(snmpd_t)
 
 dev_list_sysfs(snmpd_t)
 dev_read_sysfs(snmpd_t)
@@ -95,6 +103,8 @@ files_search_home(snmpd_t)
 
 fs_getattr_all_dirs(snmpd_t)
 fs_getattr_all_fs(snmpd_t)
+files_list_all(snmpd_t)
+files_search_all_mountpoints(snmpd_t)
 fs_search_auto_mountpoints(snmpd_t)
 files_search_all_mountpoints(snmpd_t)
 
@@ -103,7 +113,6 @@ storage_dontaudit_read_removable_device(snmpd_t)
 storage_dontaudit_write_removable_device(snmpd_t)
 
 auth_use_nsswitch(snmpd_t)
-files_list_all(snmpd_t)
 
 init_read_utmp(snmpd_t)
 init_dontaudit_write_utmp(snmpd_t)
@@ -113,6 +122,8 @@ init_write_pid_socket(snmpd_t)
 logging_send_syslog_msg(snmpd_t)
 
 sysnet_read_config(snmpd_t)
+
+seutil_dontaudit_search_config(snmpd_t)
 
 userdom_dontaudit_use_unpriv_user_fds(snmpd_t)
 userdom_dontaudit_search_user_home_dirs(snmpd_t)
@@ -151,6 +162,11 @@ optional_policy(`
 
 optional_policy(`
 	rpc_search_nfs_state_data(snmpd_t)
+')
+
+optional_policy(`
+	rpm_read_db(snmpd_t)
+	rpm_dontaudit_manage_db(snmpd_t)
 ')
 
 optional_policy(`

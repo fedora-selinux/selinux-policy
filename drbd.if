@@ -1,5 +1,4 @@
-
-## <summary>policy for drbd</summary>
+## <summary>Mirrors a block device over the network to another machine.</summary>
 
 ########################################
 ## <summary>
@@ -110,18 +109,26 @@ interface(`drbd_manage_lib_dirs',`
 #
 interface(`drbd_admin',`
 	gen_require(`
-		type drbd_t;
-                type drbd_var_lib_t;
+		type drbd_t, drbd_initrc_exec_t, drbd_lock_t;
+		type drbd_var_lib_t;
 	')
 
 	allow $1 drbd_t:process signal_perms;
 	ps_process_pattern($1, drbd_t)
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 drbd_t:process ptrace;
 	')
 
+	init_labeled_script_domtrans($1, drbd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 drbd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_locks($1)
+	admin_pattern($1, drbd_lock_t)
+
 	files_search_var_lib($1)
 	admin_pattern($1, drbd_var_lib_t)
-
 ')
 

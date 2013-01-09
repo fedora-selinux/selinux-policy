@@ -29,10 +29,16 @@
 #
 template(`mono_role_template',`
 	gen_require(`
+		attribute mono_domain;
 		type mono_exec_t;
 	')
 
-	type $1_mono_t;
+	########################################
+	#
+	# Declarations
+	#
+
+	type $1_mono_t, mono_domain;
 	domain_type($1_mono_t)
 	domain_entry_file($1_mono_t, mono_exec_t)
 	role $2 types $1_mono_t;
@@ -40,25 +46,30 @@ template(`mono_role_template',`
 	domain_interactive_fd($1_mono_t)
 	application_type($1_mono_t)
 
-	allow $1_mono_t self:process { ptrace signal getsched execheap execmem execstack };
-
-	allow $3 $1_mono_t:process { getattr ptrace noatsecure signal_perms };
+	########################################
+	#
+	# Policy
+	#
 
 	domtrans_pattern($3, mono_exec_t, $1_mono_t)
 
-	fs_dontaudit_rw_tmpfs_files($1_mono_t)
-	corecmd_bin_domtrans($1_mono_t, $1_t)
+	allow $3 $1_mono_t:process { ptrace noatsecure signal_perms };
+	ps_process_pattern($2, $1_mono_t)
+
+	corecmd_bin_domtrans($1_mono_t, $3)
 
 	userdom_manage_user_tmpfs_files($1_mono_t)
 
 	optional_policy(`
+		fs_dontaudit_rw_tmpfs_files($1_mono_t)
+
 		xserver_role($1_r, $1_mono_t)
 	')
 ')
 
 ########################################
 ## <summary>
-##	Execute the mono program in the mono domain.
+##	Execute mono in the mono domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -93,16 +104,16 @@ interface(`mono_domtrans',`
 #
 interface(`mono_run',`
 	gen_require(`
-		type mono_t;
+		attribute_role mono_roles;
 	')
 
 	mono_domtrans($1)
-	role $2 types mono_t;
+	roleattribute $2 mono_roles;
 ')
 
 ########################################
 ## <summary>
-##	Execute the mono program in the caller domain.
+##	Execute mono in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -121,7 +132,7 @@ interface(`mono_exec',`
 
 ########################################
 ## <summary>
-##	Read and write to mono shared memory.
+##	Read and write mono shared memory.
 ## </summary>
 ## <param name="domain">
 ##	<summary>

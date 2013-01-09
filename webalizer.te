@@ -1,14 +1,17 @@
-policy_module(webalizer, 1.12.0)
+policy_module(webalizer, 1.12.1)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role webalizer_roles;
+roleattribute system_r webalizer_roles;
+
 type webalizer_t;
 type webalizer_exec_t;
 application_domain(webalizer_t, webalizer_exec_t)
-role system_r types webalizer_t;
+role webalizer_roles types webalizer_t;
 
 type webalizer_etc_t;
 files_config_file(webalizer_etc_t)
@@ -34,18 +37,9 @@ allow webalizer_t self:capability dac_override;
 allow webalizer_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
 allow webalizer_t self:fd use;
 allow webalizer_t self:fifo_file rw_fifo_file_perms;
-allow webalizer_t self:sock_file read_sock_file_perms;
-allow webalizer_t self:shm create_shm_perms;
-allow webalizer_t self:sem create_sem_perms;
-allow webalizer_t self:msgq create_msgq_perms;
-allow webalizer_t self:msg { send receive };
-allow webalizer_t self:unix_dgram_socket create_socket_perms;
-allow webalizer_t self:unix_stream_socket create_stream_socket_perms;
 allow webalizer_t self:unix_dgram_socket sendto;
-allow webalizer_t self:unix_stream_socket connectto;
-allow webalizer_t self:tcp_socket connected_stream_socket_perms;
-allow webalizer_t self:udp_socket { connect connected_socket_perms };
-allow webalizer_t self:netlink_route_socket r_netlink_socket_perms;
+allow webalizer_t self:unix_stream_socket { accept connectto listen };
+allow webalizer_t self:tcp_socket { accept listen };
 
 allow webalizer_t webalizer_etc_t:file read_file_perms;
 
@@ -55,6 +49,8 @@ files_tmp_filetrans(webalizer_t, webalizer_tmp_t, { file dir })
 
 manage_files_pattern(webalizer_t, webalizer_var_lib_t, webalizer_var_lib_t)
 files_var_lib_filetrans(webalizer_t, webalizer_var_lib_t, file)
+
+can_exec(webalizer_t, webalizer_exec_t)
 
 kernel_read_kernel_sysctls(webalizer_t)
 kernel_read_system_state(webalizer_t)
@@ -90,19 +86,18 @@ optional_policy(`
 ')
 
 optional_policy(`
+	apache_read_log(webalizer_t)
+	apache_content_template(webalizer)
+	manage_dirs_pattern(webalizer_t, httpd_webalizer_content_t, httpd_webalizer_content_t)
+	manage_files_pattern(webalizer_t, httpd_webalizer_content_t, httpd_webalizer_content_t)
+')
+
+optional_policy(`
 	cron_system_entry(webalizer_t, webalizer_exec_t)
 ')
 
 optional_policy(`
 	ftp_read_log(webalizer_t)
-')
-
-optional_policy(`
-	nis_use_ypbind(webalizer_t)
-')
-
-optional_policy(`
-	nscd_socket_use(webalizer_t)
 ')
 
 optional_policy(`

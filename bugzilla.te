@@ -1,4 +1,4 @@
-policy_module(bugzilla, 1.0.0)
+policy_module(bugzilla, 1.0.4)
 
 ########################################
 #
@@ -12,26 +12,22 @@ files_tmp_file(httpd_bugzilla_tmp_t)
 
 ########################################
 #
-# bugzilla local policy
+# Local policy
 #
 
-allow httpd_bugzilla_script_t self:netlink_route_socket r_netlink_socket_perms;
-allow httpd_bugzilla_script_t self:tcp_socket create_stream_socket_perms;
-allow httpd_bugzilla_script_t self:udp_socket create_socket_perms;
+allow httpd_bugzilla_script_t self:tcp_socket { accept listen };
 
 corenet_all_recvfrom_netlabel(httpd_bugzilla_script_t)
 corenet_tcp_sendrecv_generic_if(httpd_bugzilla_script_t)
-corenet_udp_sendrecv_generic_if(httpd_bugzilla_script_t)
 corenet_tcp_sendrecv_generic_node(httpd_bugzilla_script_t)
-corenet_udp_sendrecv_generic_node(httpd_bugzilla_script_t)
-corenet_tcp_sendrecv_all_ports(httpd_bugzilla_script_t)
-corenet_udp_sendrecv_all_ports(httpd_bugzilla_script_t)
-corenet_tcp_connect_postgresql_port(httpd_bugzilla_script_t)
-corenet_tcp_connect_mysqld_port(httpd_bugzilla_script_t)
+
+corenet_sendrecv_http_client_packets(httpd_bugzilla_script_t)
 corenet_tcp_connect_http_port(httpd_bugzilla_script_t)
+corenet_tcp_sendrecv_http_port(httpd_bugzilla_script_t)
+
+corenet_sendrecv_smtp_client_packets(httpd_bugzilla_script_t)
 corenet_tcp_connect_smtp_port(httpd_bugzilla_script_t)
-corenet_sendrecv_postgresql_client_packets(httpd_bugzilla_script_t)
-corenet_sendrecv_mysqld_client_packets(httpd_bugzilla_script_t)
+corenet_tcp_sendrecv_smtp_port(httpd_bugzilla_script_t)
 
 manage_dirs_pattern(httpd_bugzilla_script_t, httpd_bugzilla_tmp_t, httpd_bugzilla_tmp_t)
 manage_files_pattern(httpd_bugzilla_script_t, httpd_bugzilla_tmp_t, httpd_bugzilla_tmp_t)
@@ -49,10 +45,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-	mysql_search_db(httpd_bugzilla_script_t)
 	mysql_stream_connect(httpd_bugzilla_script_t)
+	mysql_tcp_connect(httpd_bugzilla_script_t)
 ')
 
 optional_policy(`
 	postgresql_stream_connect(httpd_bugzilla_script_t)
+	postgresql_tcp_connect(httpd_bugzilla_script_t)
 ')

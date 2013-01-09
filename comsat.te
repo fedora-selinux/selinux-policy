@@ -1,4 +1,4 @@
-policy_module(comsat, 1.7.0)
+policy_module(comsat, 1.7.1)
 
 ########################################
 #
@@ -8,7 +8,6 @@ policy_module(comsat, 1.7.0)
 type comsat_t;
 type comsat_exec_t;
 inetd_udp_service_domain(comsat_t, comsat_exec_t)
-role system_r types comsat_t;
 
 type comsat_tmp_t;
 files_tmp_file(comsat_tmp_t)
@@ -25,8 +24,7 @@ allow comsat_t self:capability { setuid setgid };
 allow comsat_t self:process signal_perms;
 allow comsat_t self:fifo_file rw_fifo_file_perms;
 allow comsat_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
-allow comsat_t self:tcp_socket connected_stream_socket_perms;
-allow comsat_t self:udp_socket create_socket_perms;
+allow comsat_t self:tcp_socket { accept listen };
 
 manage_dirs_pattern(comsat_t, comsat_tmp_t, comsat_tmp_t)
 manage_files_pattern(comsat_t, comsat_tmp_t, comsat_tmp_t)
@@ -64,7 +62,3 @@ logging_send_syslog_msg(comsat_t)
 userdom_dontaudit_getattr_user_ttys(comsat_t)
 
 mta_getattr_spool(comsat_t)
-
-optional_policy(`
-	kerberos_use(comsat_t)
-')

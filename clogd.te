@@ -1,4 +1,4 @@
-policy_module(clogd, 1.0.0)
+policy_module(clogd, 1.0.1)
 
 ########################################
 #
@@ -12,34 +12,29 @@ init_daemon_domain(clogd_t, clogd_exec_t)
 type clogd_tmpfs_t;
 files_tmpfs_file(clogd_tmpfs_t)
 
-# pid files
 type clogd_var_run_t;
 files_pid_file(clogd_var_run_t)
 
 ########################################
 #
-# clogd local policy
+# Local policy
 #
 
 allow clogd_t self:capability { net_admin mknod };
 allow clogd_t self:process signal;
-
 allow clogd_t self:sem create_sem_perms;
 allow clogd_t self:shm create_shm_perms;
 allow clogd_t self:netlink_socket create_socket_perms;
-allow clogd_t self:unix_dgram_socket create_socket_perms;
 
 manage_dirs_pattern(clogd_t, clogd_tmpfs_t, clogd_tmpfs_t)
 manage_files_pattern(clogd_t, clogd_tmpfs_t, clogd_tmpfs_t)
 fs_tmpfs_filetrans(clogd_t, clogd_tmpfs_t, { dir file })
 
-# pid files
 manage_files_pattern(clogd_t, clogd_var_run_t, clogd_var_run_t)
-manage_sock_files_pattern(clogd_t, clogd_var_run_t, clogd_var_run_t)
-files_pid_filetrans(clogd_t, clogd_var_run_t, { file })
+files_pid_filetrans(clogd_t, clogd_var_run_t, file)
 
-dev_read_lvm_control(clogd_t)
 dev_manage_generic_blk_files(clogd_t)
+dev_read_lvm_control(clogd_t)
 
 storage_raw_read_fixed_disk(clogd_t)
 storage_raw_write_fixed_disk(clogd_t)

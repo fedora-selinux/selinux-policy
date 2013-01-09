@@ -1,5 +1,4 @@
-
-policy_module(dspam, 1.0.0)
+policy_module(dspam, 1.0.5)
 
 ########################################
 #
@@ -22,67 +21,49 @@ files_type(dspam_var_lib_t)
 type dspam_var_run_t;
 files_pid_file(dspam_var_run_t)
 
-# FIXME
-# /tmp/dspam.sock
-type dspam_tmp_t;
-files_tmp_file(dspam_tmp_t)
-
 ########################################
 #
-# dspam local policy
+# Local policy
 #
 
 allow dspam_t self:capability net_admin;
-
-allow dspam_t self:process { signal };
-
+allow dspam_t self:process signal;
 allow dspam_t self:fifo_file rw_fifo_file_perms;
-allow dspam_t self:unix_stream_socket create_stream_socket_perms;
+allow dspam_t self:unix_stream_socket { accept listen };
 
 manage_dirs_pattern(dspam_t, dspam_log_t, dspam_log_t)
-manage_files_pattern(dspam_t, dspam_log_t, dspam_log_t)
+append_files_pattern(dspam_t, dspam_log_t, dspam_log_t)
+create_files_pattern(dspam_t, dspam_log_t, dspam_log_t)
+setattr_files_pattern(dspam_t, dspam_log_t, dspam_log_t)
+logging_log_filetrans(dspam_t, dspam_log_t, dir)
 
-files_search_var_lib(dspam_t)
 manage_dirs_pattern(dspam_t, dspam_var_lib_t, dspam_var_lib_t)
 manage_files_pattern(dspam_t, dspam_var_lib_t, dspam_var_lib_t)
+files_var_lib_filetrans(dspam_t, dspam_var_lib_t, dir)
 
 manage_dirs_pattern(dspam_t, dspam_var_run_t, dspam_var_run_t)
 manage_files_pattern(dspam_t, dspam_var_run_t, dspam_var_run_t)
 manage_sock_files_pattern(dspam_t, dspam_var_run_t, dspam_var_run_t)
-files_pid_filetrans(dspam_t, dspam_var_run_t, dir, "dspam")
+files_pid_filetrans(dspam_t, dspam_var_run_t, dir)
 
-manage_sock_files_pattern(dspam_t, dspam_tmp_t, dspam_tmp_t)
-files_tmp_filetrans(dspam_t, dspam_tmp_t, sock_file)
+corenet_all_recvfrom_unlabeled(dspam_t)
+corenet_all_recvfrom_netlabel(dspam_t)
+corenet_tcp_sendrecv_generic_if(dspam_t)
+corenet_tcp_sendrecv_generic_node(dspam_t)
+corenet_tcp_bind_generic_node(dspam_t)
 
-corenet_tcp_connect_spamd_port(dspam_t)
+corenet_sendrecv_spamd_client_packets(dspam_t)
+corenet_sendrecv_spamd_server_packets(dspam_t)
 corenet_tcp_bind_spamd_port(dspam_t)
-
-auth_use_nsswitch(dspam_t)
+corenet_tcp_connect_spamd_port(dspam_t)
+corenet_tcp_sendrecv_spamd_port(dspam_t)
 
 files_search_spool(dspam_t)
 
-# for RHEL5
-libs_use_ld_so(dspam_t)
-libs_use_shared_libs(dspam_t)
-libs_read_lib_files(dspam_t)
+auth_use_nsswitch(dspam_t)
 
 logging_send_syslog_msg(dspam_t)
 
-optional_policy(`
-    mysql_tcp_connect(dspam_t)
-    mysql_search_db(dspam_t)
-    mysql_stream_connect(dspam_t)	
-')
-
-optional_policy(`
-    postgresql_tcp_connect(dspam_t)
-    postgresql_stream_connect(dspam_t)
-')
-
-#######################################
-#
-# dspam web local policy.
-#
 
 optional_policy(`
 	apache_content_template(dspam)
@@ -110,4 +91,18 @@ optional_policy(`
 	    mysql_tcp_connect(httpd_dspam_script_t)
 	    mysql_stream_connect(httpd_dspam_script_t)
 	')
+')
+
+optional_policy(`
+	mysql_stream_connect(dspam_t)
+	mysql_read_config(dspam_t)
+
+	mysql_tcp_connect(dspam_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(dspam_t)
+	postgresql_unpriv_client(dspam_t)
+
+	postgresql_tcp_connect(dspam_t)
 ')

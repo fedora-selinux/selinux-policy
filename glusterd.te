@@ -1,4 +1,4 @@
-policy_module(glusterd, 1.0.0)
+policy_module(glusterfs, 1.0.1)
 
 ########################################
 #
@@ -9,14 +9,14 @@ type glusterd_t;
 type glusterd_exec_t;
 init_daemon_domain(glusterd_t, glusterd_exec_t)
 
-type glusterd_etc_t;
-files_type(glusterd_etc_t)
-
-type glusterd_tmp_t;
-files_tmp_file(glusterd_tmp_t)
+type glusterd_conf_t;
+files_type(glusterd_conf_t)
 
 type glusterd_initrc_exec_t;
 init_script_file(glusterd_initrc_exec_t)
+
+type glusterd_tmp_t;
+files_tmp_file(glusterd_tmp_t)
 
 type glusterd_log_t;
 logging_log_file(glusterd_log_t)
@@ -27,32 +27,31 @@ files_pid_file(glusterd_var_run_t)
 type glusterd_var_lib_t;
 files_type(glusterd_var_lib_t);
 
-
 ########################################
 #
-# glusterd local policy
+# Local policy
 #
 
-allow glusterd_t self:capability { net_bind_service sys_admin dac_override chown dac_read_search fowner };
+allow glusterd_t self:capability { sys_admin sys_resource dac_override chown dac_read_search fowner };
 allow glusterd_t self:process { setrlimit signal };
-allow glusterd_t self:capability sys_resource;
-
 allow glusterd_t self:fifo_file rw_fifo_file_perms;
-allow glusterd_t self:netlink_route_socket r_netlink_socket_perms;
-allow glusterd_t self:tcp_socket create_stream_socket_perms;
-allow glusterd_t self:udp_socket create_socket_perms;
-allow glusterd_t self:unix_stream_socket create_stream_socket_perms;
-allow glusterd_t self:unix_dgram_socket create_socket_perms;
+allow glusterd_t self:tcp_socket { accept listen };
+allow glusterd_t self:unix_stream_socket { accept listen };
+
+manage_dirs_pattern(glusterd_t, glusterd_conf_t, glusterd_conf_t)
+manage_files_pattern(glusterd_t, glusterd_conf_t, glusterd_conf_t)
+files_etc_filetrans(glusterd_t, glusterd_conf_t, { dir file }, "glusterfs")
 
 manage_dirs_pattern(glusterd_t, glusterd_tmp_t, glusterd_tmp_t)
 manage_files_pattern(glusterd_t, glusterd_tmp_t, glusterd_tmp_t)
 manage_sock_files_pattern(glusterd_t, glusterd_tmp_t, glusterd_tmp_t)
-files_tmp_filetrans(glusterd_t, glusterd_tmp_t, { dir file sock_file }) 
-userdom_user_tmp_filetrans(glusterd_t, glusterd_tmp_t, { dir file sock_file })
+files_tmp_filetrans(glusterd_t, glusterd_tmp_t, { dir file sock_file })
 
 manage_dirs_pattern(glusterd_t, glusterd_log_t, glusterd_log_t)
-manage_files_pattern(glusterd_t, glusterd_log_t, glusterd_log_t)
-logging_log_filetrans(glusterd_t, glusterd_log_t, { dir file })
+append_files_pattern(glusterd_t, glusterd_log_t, glusterd_log_t)
+create_files_pattern(glusterd_t, glusterd_log_t, glusterd_log_t)
+setattr_files_pattern(glusterd_t, glusterd_log_t, glusterd_log_t)
+logging_log_filetrans(glusterd_t, glusterd_log_t, dir)
 
 manage_dirs_pattern(glusterd_t, glusterd_var_run_t, glusterd_var_run_t)
 manage_files_pattern(glusterd_t, glusterd_var_run_t, glusterd_var_run_t)
@@ -60,11 +59,7 @@ files_pid_filetrans(glusterd_t, glusterd_var_run_t, { dir file })
 
 manage_dirs_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
 manage_files_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
-files_var_lib_filetrans(glusterd_t, glusterd_var_lib_t, { dir file })
-
-manage_dirs_pattern(glusterd_t, glusterd_etc_t, glusterd_etc_t)
-manage_files_pattern(glusterd_t, glusterd_etc_t, glusterd_etc_t)
-files_etc_filetrans(glusterd_t, glusterd_etc_t, { dir file }, "glusterfs")
+files_var_lib_filetrans(glusterd_t, glusterd_var_lib_t, dir)
 
 can_exec(glusterd_t, glusterd_exec_t)
 
@@ -73,29 +68,35 @@ kernel_read_system_state(glusterd_t)
 corecmd_exec_bin(glusterd_t)
 corecmd_exec_shell(glusterd_t)
 
-domain_use_interactive_fds(glusterd_t)
-
+corenet_all_recvfrom_unlabeled(glusterd_t)
+corenet_all_recvfrom_netlabel(glusterd_t)
+corenet_tcp_sendrecv_generic_if(glusterd_t)
+corenet_udp_sendrecv_generic_if(glusterd_t)
+corenet_tcp_sendrecv_generic_node(glusterd_t)
+corenet_udp_sendrecv_generic_node(glusterd_t)
+corenet_tcp_sendrecv_all_ports(glusterd_t)
+corenet_udp_sendrecv_all_ports(glusterd_t)
 corenet_tcp_bind_generic_node(glusterd_t)
-corenet_tcp_bind_generic_port(glusterd_t)
+corenet_udp_bind_generic_node(glusterd_t)
+
+# Too coarse?
+corenet_sendrecv_all_server_packets(glusterd_t)
 corenet_tcp_bind_all_reserved_ports(glusterd_t)
 corenet_udp_bind_all_rpc_ports(glusterd_t)
-corenet_tcp_connect_unreserved_ports(glusterd_t)
-corenet_udp_bind_generic_node(glusterd_t)
 corenet_udp_bind_ipp_port(glusterd_t)
+
+corenet_sendrecv_all_client_packets(glusterd_t)
+corenet_tcp_connect_all_unreserved_ports(glusterd_t)
 
 dev_read_sysfs(glusterd_t)
 dev_read_urand(glusterd_t)
 
-files_read_usr_files(glusterd_t)
-files_rw_pid_dirs(glusterd_t)
-
-# Why is this needed
-#files_manage_urandom_seed(glusterd_t)
+domain_use_interactive_fds(glusterd_t)
 
 auth_use_nsswitch(glusterd_t)
 
 logging_send_syslog_msg(glusterd_t)
 
-sysnet_read_config(glusterd_t)
+miscfiles_read_localization(glusterd_t)
 
 userdom_manage_user_home_dirs(glusterd_t)

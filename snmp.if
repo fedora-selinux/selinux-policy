@@ -1,8 +1,9 @@
-## <summary>Simple network management protocol services</summary>
+## <summary>Simple network management protocol services.</summary>
 
 ########################################
 ## <summary>
-##	Connect to snmpd using a unix domain stream socket.
+##	Connect to snmpd with a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -21,7 +22,7 @@ interface(`snmp_stream_connect',`
 
 ########################################
 ## <summary>
-##	Use snmp over a TCP connection.  (Deprecated)
+##	Connect to snmp over the TCP network.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -30,7 +31,14 @@ interface(`snmp_stream_connect',`
 ## </param>
 #
 interface(`snmp_tcp_connect',`
-	refpolicywarn(`$0($*) has been deprecated.')
+	gen_require(`
+		type snmpd_t;
+	')
+
+	corenet_tcp_recvfrom_labeled($1, snmpd_t)
+	corenet_tcp_sendrecv_snmp_port($1)
+	corenet_tcp_connect_snmp_port($1)
+	corenet_sendrecv_snmp_client_packets($1)
 ')
 
 ########################################
@@ -49,7 +57,7 @@ interface(`snmp_udp_chat',`
 
 ########################################
 ## <summary>
-##	Read snmpd libraries.
+##	Read snmpd lib content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -128,7 +136,8 @@ interface(`snmp_manage_var_lib_files',`
 
 ########################################
 ## <summary>
-##	dontaudit Read snmpd libraries.
+##	Do not audit attempts to read
+##	snmpd lib content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -148,7 +157,8 @@ interface(`snmp_dontaudit_read_snmp_var_lib_files',`
 
 ########################################
 ## <summary>
-##	dontaudit write snmpd libraries files.
+##	Do not audit attempts to write
+##	snmpd lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -166,8 +176,8 @@ interface(`snmp_dontaudit_write_snmp_var_lib_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an snmp environment
+##	All of the rules required to
+##	administrate an snmp environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -176,7 +186,7 @@ interface(`snmp_dontaudit_write_snmp_var_lib_files',`
 ## </param>
 ## <param name="role">
 ##	<summary>
-##	The role to be allowed to manage the snmp domain.
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <rolecap/>
@@ -188,6 +198,7 @@ interface(`snmp_admin',`
 	')
 
 	allow $1 snmpd_t:process signal_perms;
+
 	ps_process_pattern($1, snmpd_t)
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 snmpd_t:process ptrace;

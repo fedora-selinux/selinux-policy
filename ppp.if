@@ -1,8 +1,96 @@
 ## <summary>Point to Point Protocol daemon creates links in ppp networks</summary>
 
+#######################################
+## <summary>
+##  Create, read, write, and delete
+##  ppp home files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ppp_manage_home_files',`
+    gen_require(`
+        type ppp_home_t;
+    ')
+
+    userdom_search_user_home_dirs($1)
+    allow $1 ppp_home_t:file manage_file_perms;
+')
+
+#######################################
+## <summary>
+##  Read ppp user home content files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ppp_read_home_files',`
+    gen_require(`
+        type ppp_home_t;
+
+    ')
+
+    userdom_search_user_home_dirs($1)
+    allow $1 ppp_home_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  Relabel ppp home files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ppp_relabel_home_files',`
+    gen_require(`
+        type ppp_home_t;
+    ')
+
+    userdom_search_user_home_dirs($1)
+    allow $1 ppp_home_t:file relabel_file_perms;
+')
+
+#######################################
+## <summary>
+##  Create objects in user home
+##  directories with the ppp home type.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="object_class">
+##  <summary>
+##  Class of the object being created.
+##  </summary>
+## </param>
+## <param name="name" optional="true">
+##  <summary>
+##  The name of the object being created.
+##  </summary>
+## </param>
+#
+interface(`ppp_home_filetrans_ppp_home',`
+    gen_require(`
+        type ppp_home_t;
+    ')
+
+    userdom_user_home_dir_filetrans($1, ppp_home_t, $2, $3)
+')
+
 ########################################
 ## <summary>
-##	Use PPP file discriptors.
+##	Inherit and use ppp file discriptors.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -147,10 +235,10 @@ interface(`ppp_domtrans',`
 #
 interface(`ppp_run_cond',`
 	gen_require(`
-		type pppd_t;
+		attribute_role pppd_roles;
 	')
 
-	role $2 types pppd_t;
+	roleattribute $2 pppd_roles;
 
 	tunable_policy(`pppd_for_user',`
 		ppp_domtrans($1)
@@ -175,18 +263,11 @@ interface(`ppp_run_cond',`
 #
 interface(`ppp_run',`
 	gen_require(`
-		#attribute_role pppd_roles;
-		type pppd_t;
+		attribute_role pppd_roles;
 	')
 
-	#ppp_domtrans($1)
-	#roleattribute $2 pppd_roles;
-
-	role $2 types pppd_t;
-
-        tunable_policy(`pppd_for_user',`
-                ppp_domtrans($1)
-        ')
+	ppp_domtrans($1)
+	roleattribute $2 pppd_roles;
 ')
 
 ########################################

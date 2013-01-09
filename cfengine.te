@@ -1,4 +1,4 @@
-policy_module(cfengine, 1.0.0)
+policy_module(cfengine, 1.0.2)
 
 ########################################
 #
@@ -17,25 +17,29 @@ init_script_file(cfengine_initrc_exec_t)
 type cfengine_var_lib_t;
 files_type(cfengine_var_lib_t)
 
-type cfengine_var_log_t;
-logging_log_file(cfengine_var_log_t)
+type cfengine_log_t;
+logging_log_file(cfengine_log_t)
 
-#######################################
+########################################
 #
-# cfengine domain local policy
+# Common cfengine domain local policy
 #
 
+allow cfengine_domain self:capability { chown kill setgid setuid sys_chroot };
+allow cfengine_domain self:process { setfscreate signal };
 allow cfengine_domain self:fifo_file rw_fifo_file_perms;
-allow cfengine_domain self:unix_stream_socket create_stream_socket_perms;
+allow cfengine_domain self:unix_stream_socket { accept listen };
 
 manage_dirs_pattern(cfengine_domain, cfengine_var_lib_t, cfengine_var_lib_t)
 manage_files_pattern(cfengine_domain, cfengine_var_lib_t, cfengine_var_lib_t)
 manage_lnk_files_pattern(cfengine_domain, cfengine_var_lib_t, cfengine_var_lib_t)
-files_var_lib_filetrans(cfengine_domain, cfengine_var_lib_t, { dir file })
+files_var_lib_filetrans(cfengine_domain, cfengine_var_lib_t, dir)
 
-manage_files_pattern(cfengine_domain, cfengine_var_log_t,cfengine_var_log_t)
-manage_dirs_pattern(cfengine_domain, cfengine_var_log_t,cfengine_var_log_t)
-logging_log_filetrans(cfengine_domain,cfengine_var_log_t,{ dir file })
+manage_dirs_pattern(cfengine_domain, cfengine_log_t, cfengine_log_t)
+append_files_pattern(cfengine_domain, cfengine_log_t, cfengine_log_t)
+create_files_pattern(cfengine_domain, cfengine_log_t, cfengine_log_t)
+setattr_files_pattern(cfengine_domain, cfengine_log_t, cfengine_log_t)
+logging_log_filetrans(cfengine_domain, cfengine_log_t, dir)
 
 corecmd_exec_bin(cfengine_domain)
 corecmd_exec_shell(cfengine_domain)
@@ -46,49 +50,23 @@ dev_read_sysfs(cfengine_domain)
 sysnet_dns_name_resolve(cfengine_domain)
 sysnet_domtrans_ifconfig(cfengine_domain)
 
-files_read_etc_files(cfengine_domain)
-
 ########################################
 #
-# cfengine-server local policy
+# Exec local policy
 #
-
-allow cfengine_serverd_t self:capability { chown kill setgid setuid sys_chroot };
-allow cfengine_serverd_t self:process { fork setfscreate signal };
-
-domain_use_interactive_fds(cfengine_serverd_t)
-
-auth_use_nsswitch(cfengine_serverd_t)
-
-########################################
-#
-# cfengine_exec local policy
-#
-
-allow cfengine_execd_t self:capability { chown kill setgid setuid sys_chroot };
-allow cfengine_execd_t self:process { fork setfscreate signal };
 
 kernel_read_sysctl(cfengine_execd_t)
 
 domain_read_all_domains_state(cfengine_execd_t)
-domain_use_interactive_fds(cfengine_execd_t)
-
-auth_use_nsswitch(cfengine_execd_t)
 
 ########################################
 #
-# cfengine_monitord local policy
+# Monitord local policy
 #
-
-allow cfengine_monitord_t self:capability { chown kill setgid setuid sys_chroot };
-allow cfengine_monitord_t self:process { fork setfscreate signal };
 
 kernel_read_hotplug_sysctls(cfengine_monitord_t)
 kernel_read_network_state(cfengine_monitord_t)
 
 domain_read_all_domains_state(cfengine_monitord_t)
-domain_use_interactive_fds(cfengine_monitord_t)
 
 fs_getattr_xattr_fs(cfengine_monitord_t)
-
-auth_use_nsswitch(cfengine_monitord_t)

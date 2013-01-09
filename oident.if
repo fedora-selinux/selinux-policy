@@ -1,16 +1,27 @@
-## <summary>SELinux policy for Oident daemon.</summary>
-## <desc>
-##	<p>
-##	Oident daemon is a server that implements the TCP/IP
-##	standard IDENT user identification protocol as
-##	specified in the RFC 1413 document.
-##	</p>
-## </desc>
+## <summary>An ident daemon with IP masq/NAT support and the ability to specify responses.</summary>
 
 ########################################
 ## <summary>
-##	Allow the specified domain to read
-##	Oidentd personal configuration files.
+##	Role access for oident.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+interface(`oident_role',`
+	refpolicywarn(`$0($*) has been deprecated')
+')
+
+########################################
+## <summary>
+##	Read oidentd user home content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -23,14 +34,14 @@ interface(`oident_read_user_content', `
 		type oidentd_home_t;
 	')
 
-	allow $1 oidentd_home_t:file read_file_perms;
 	userdom_search_user_home_dirs($1)
+	allow $1 oidentd_home_t:file read_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Allow the specified domain to create, read, write, and delete
-##	Oidentd personal configuration files.
+##	Create, read, write, and delete
+##	oidentd user home content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -43,14 +54,13 @@ interface(`oident_manage_user_content', `
 		type oidentd_home_t;
 	')
 
-	allow $1 oidentd_home_t:file manage_file_perms;
 	userdom_search_user_home_dirs($1)
+	allow $1 oidentd_home_t:file manage_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Allow the specified domain to relabel
-##	Oidentd personal configuration files.
+##	Relabel oidentd user home content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -63,14 +73,43 @@ interface(`oident_relabel_user_content', `
 		type oidentd_home_t;
 	')
 
-	allow $1 oidentd_home_t:file relabel_file_perms;
 	userdom_search_user_home_dirs($1)
+	allow $1 oidentd_home_t:file relabel_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate 
-##	an oident environment
+##	Create objects in user home
+##	directories with the oidentd home type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`oident_home_filetrans_oidentd_home',`
+	gen_require(`
+		type oidentd_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, oidentd_home_t, $2, $3)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an oident environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -89,11 +128,8 @@ interface(`oident_admin',`
 		type oidentd_t, oidentd_initrc_exec_t, oidentd_config_t;
 	')
 
-	allow $1 oidentd_t:process signal_perms;
+	allow $1 oidentd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, oidentd_t)
-	tunable_policy(`deny_ptrace',`',`
-		allow $1 oidentd_t:process ptrace;
-	')
 
 	init_labeled_script_domtrans($1, oidentd_initrc_exec_t)
 	domain_system_change_exemption($1)
