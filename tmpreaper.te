@@ -1,4 +1,4 @@
-policy_module(tmpreaper, 1.6.0)
+policy_module(tmpreaper, 1.6.3)
 
 ########################################
 #
@@ -9,17 +9,18 @@ type tmpreaper_t;
 type tmpreaper_exec_t;
 init_system_domain(tmpreaper_t, tmpreaper_exec_t)
 application_domain(tmpreaper_t, tmpreaper_exec_t)
-role system_r types tmpreaper_t;
 
 ########################################
 #
 # Local Policy
 #
 
-allow tmpreaper_t self:process { fork sigchld };
 allow tmpreaper_t self:capability { dac_override dac_read_search fowner };
 
+kernel_list_unlabeled(tmpreaper_t)
 kernel_read_system_state(tmpreaper_t)
+kernel_list_unlabeled(tmpreaper_t)
+kernel_delete_unlabeled(tmpreaper_t)
 
 dev_read_urand(tmpreaper_t)
 
@@ -37,8 +38,6 @@ files_setattr_isid_type_dirs(tmpreaper_t)
 files_setattr_usr_dirs(tmpreaper_t)
 files_getattr_all_dirs(tmpreaper_t)
 files_getattr_all_files(tmpreaper_t)
-kernel_list_unlabeled(tmpreaper_t)
-kernel_delete_unlabeled(tmpreaper_t)
 
 mcs_file_read_all(tmpreaper_t)
 mcs_file_write_all(tmpreaper_t)
@@ -78,11 +77,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kismet_manage_log(tmpreaper_t)
+	cron_system_entry(tmpreaper_t, tmpreaper_exec_t)
 ')
 
 optional_policy(`
-	lpd_manage_spool(tmpreaper_t)
+	kismet_manage_log(tmpreaper_t)
 ')
 
 optional_policy(`

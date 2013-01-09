@@ -1,52 +1,47 @@
-## <summary>Thunderbird email client</summary>
+## <summary>Thunderbird email client.</summary>
 
 ########################################
 ## <summary>
-##	Role access for thunderbird
+##	Role access for thunderbird.
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role
+##	User domain for the role.
 ##	</summary>
 ## </param>
 #
 interface(`thunderbird_role',`
 	gen_require(`
-		type thunderbird_t, thunderbird_exec_t;
-		type thunderbird_home_t, thunderbird_tmpfs_t;
+		attribute_role thunderbird_roles;
+		type thunderbird_t, thunderbird_exec_t, thunderbird_home_t;
+		type thunderbird_tmpfs_t;
 	')
 
-	role $1 types thunderbird_t;
+	roleattribute $1 thunderbird_roles;
 
-	domain_auto_trans($2, thunderbird_exec_t, thunderbird_t)
-	allow $2 thunderbird_t:fd use;
-	allow $2 thunderbird_t:shm { associate getattr };
-	allow $2 thunderbird_t:unix_stream_socket connectto;
-	allow thunderbird_t $2:fd use;
-	allow thunderbird_t $2:process sigchld;
+	domtrans_pattern($2, thunderbird_exec_t, thunderbird_t)
+
+	stream_connect_pattern($2, thunderbird_tmpfs_t, thunderbird_tmpfs_t, thunderbird_t)
+
 	allow thunderbird_t $2:unix_stream_socket connectto;
 
-	# allow ps to show thunderbird and allow the user to kill it 
+	allow $2 thunderbird_t:process { ptrace signal_perms };
 	ps_process_pattern($2, thunderbird_t)
-	allow $2 thunderbird_t:process signal;
 
-	# Access ~/.thunderbird
-	manage_dirs_pattern($2, thunderbird_home_t, thunderbird_home_t)
-	manage_files_pattern($2, thunderbird_home_t, thunderbird_home_t)
-	manage_lnk_files_pattern($2, thunderbird_home_t, thunderbird_home_t)
-	relabel_dirs_pattern($2, thunderbird_home_t, thunderbird_home_t)
-	relabel_files_pattern($2, thunderbird_home_t, thunderbird_home_t)
-	relabel_lnk_files_pattern($2, thunderbird_home_t, thunderbird_home_t)
+	allow $2 thunderbird_home_t:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 thunderbird_home_t:file { manage_file_perms relabel_file_perms };
+	allow $2 thunderbird_home_t:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	userdom_user_home_dir_filetrans($2, thunderbird_home_t, dir, ".thunderbird")
 ')
 
 ########################################
 ## <summary>
-##	Run thunderbird in the user thunderbird domain.
+##	Execute thunderbird in the thunderbird domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -59,5 +54,6 @@ interface(`thunderbird_domtrans',`
 		type thunderbird_t, thunderbird_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, thunderbird_exec_t, thunderbird_t)
 ')

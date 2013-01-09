@@ -1,32 +1,33 @@
-## <summary>Evolution email client</summary>
+## <summary>Evolution email client.</summary>
 
 ########################################
 ## <summary>
-##	Role access for evolution
+##	Role access for evolution.
 ## </summary>
 ## <param name="role">
 ##	<summary>
-##	Role allowed access
+##	Role allowed access.
 ##	</summary>
 ## </param>
 ## <param name="domain">
 ##	<summary>
-##	User domain for the role
+##	User domain for the role.
 ##	</summary>
 ## </param>
 #
 interface(`evolution_role',`
 	gen_require(`
+		attribute_role evolution_roles;
 		type evolution_t, evolution_exec_t, evolution_home_t;
-		type evolution_alarm_t, evolution_alarm_exec_t;
-		type evolution_exchange_t, evolution_exchange_exec_t;
-		type evolution_exchange_orbit_tmp_t;
-		type evolution_server_t, evolution_server_exec_t;
-		type evolution_webcal_t, evolution_webcal_exec_t;
+		type evolution_alarm_t, evolution_alarm_exec_t, evolution_alarm_orbit_tmp_t;
+		type evolution_exchange_t, evolution_exchange_exec_t, evolution_exchange_tmp_t;
+		type evolution_exchange_orbit_tmp_t, evolution_orbit_tmp_t, evolution_server_orbit_tmp_t;
+		type evolution_server_t, evolution_server_exec_t, evolution_webcal_t;
+		type evolution_webcal_exec_t, evolution_alarm_tmpfs_t, evolution_exchange_tmpfs_t;
+		type evolution_tmpfs_t, evolution_webcal_tmpfs_t;
 	')
 
-	role $1 types { evolution_t evolution_alarm_t evolution_exchange_t };
-	role $1 types { evolution_server_t evolution_webcal_t };
+	roleattribute $1 evolution_roles;
 
 	domtrans_pattern($2, evolution_exec_t, evolution_t)
 	domtrans_pattern($2, evolution_alarm_exec_t, evolution_alarm_t)
@@ -34,51 +35,64 @@ interface(`evolution_role',`
 	domtrans_pattern($2, evolution_server_exec_t, evolution_server_t)
 	domtrans_pattern($2, evolution_webcal_exec_t, evolution_webcal_t)
 
-	ps_process_pattern($2, evolution_t)
-	ps_process_pattern($2, evolution_alarm_t)
-	ps_process_pattern($2, evolution_exchange_t)
-	ps_process_pattern($2, evolution_server_t)
-	ps_process_pattern($2, evolution_webcal_t)
+	allow $2 { evolution_t evolution_alarm_t evolution_exchange_t evolution_server_t evolution_webcal_t }:process { noatsecure ptrace signal_perms };
+	ps_process_pattern($2, { evolution_t evolution_alarm_t evolution_exchange_t })
+	ps_process_pattern($2, { evolution_server_t evolution_webcal_t })
 
-	allow evolution_t $2:dir search;
-	allow evolution_t $2:file read;
-	allow evolution_t $2:lnk_file read;
-	allow evolution_t $2:unix_stream_socket connectto;
+	allow evolution_t $2:dir search_dir_perms;
+	allow evolution_t $2:file read_file_perms;
+	allow evolution_t $2:lnk_file read_lnk_file_perms;
 
-	allow $2 evolution_t:unix_stream_socket connectto;
-	allow $2 evolution_t:process noatsecure;
-	allow $2 evolution_t:process signal_perms;
+	allow $2 evolution_home_t:dir { relabel_dir_perms manage_dir_perms };
+	allow $2 evolution_home_t:file { relabel_file_perms manage_file_perms };
+	allow $2 evolution_home_t:lnk_file { relabel_lnk_file_perms manage_lnk_file_perms };
 
-	# Access .evolution
-	allow $2 evolution_home_t:dir manage_dir_perms;
-	allow $2 evolution_home_t:file manage_file_perms;
-	allow $2 evolution_home_t:lnk_file manage_lnk_file_perms;
-	allow $2 evolution_home_t:{ dir file lnk_file } { relabelfrom relabelto };
+	userdom_user_home_dir_filetrans($2, evolution_home_t, dir, ".camel_certs")
+	userdom_user_home_dir_filetrans($2, evolution_home_t, dir, ".evolution")
 
-	allow evolution_exchange_t $2:unix_stream_socket connectto;
+	allow $2 evolution_exchange_tmp_t:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { evolution_alarm_orbit_tmp_t evolution_exchange_orbit_tmp_t evolution_orbit_tmp_t evolution_server_orbit_tmp_t }:sock_file { manage_sock_file_perms relabel_sock_file_perms };
 
-	# Clock applet talks to exchange (FIXME: Needs policy)
-	allow $2 evolution_exchange_t:unix_stream_socket connectto;
-	allow $2 evolution_exchange_orbit_tmp_t:sock_file write;
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:sock_file { manage_sock_file_perms relabel_sock_file_perms };
+	allow $2 { evolution_alarm_tmpfs_t evolution_exchange_tmpfs_t evolution_tmpfs_t evolution_webcal_tmpfs_t }:fifo_file { manage_fifo_file_perms relabel_fifo_file_perms };
+
+	allow { evolution_t evolution_exchange_t } $2:unix_stream_socket connectto;
+
+	stream_connect_pattern($2, evolution_orbit_tmp_t, evolution_orbit_tmp_t, evolution_t)
+	stream_connect_pattern($2, evolution_exchange_orbit_tmp_t, evolution_exchange_orbit_tmp_t, evolution_exchange_t)
+
+	optional_policy(`
+		evolution_dbus_chat($2)
+		evolution_alarm_dbus_chat($2)
+	')
 ')
 
 ########################################
 ## <summary>
-##	Create objects in users evolution home folders.
+##	Create objects in the evolution home
+##	directories with a private type.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-## <param name="file_type">
+## <param name="private_type">
 ##	<summary>
 ##	Private file type.
 ##	</summary>
 ## </param>
-## <param name="class">
+## <param name="object_class">
 ##	<summary>
-##	The object class of the object being created.
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
 ##	</summary>
 ## </param>
 #
@@ -87,13 +101,14 @@ interface(`evolution_home_filetrans',`
 		type evolution_home_t;
 	')
 
-	allow $1 evolution_home_t:dir rw_dir_perms;
-	type_transition $1 evolution_home_t:$3 $2;
+	userdom_search_user_home_dirs($1)
+	filetrans_pattern($1, evolution_home_t, $2, $3, $4)
 ')
 
 ########################################
 ## <summary>
-##	Connect to evolution unix stream socket.
+##	Connect to evolution using a unix
+##	domain stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -103,11 +118,12 @@ interface(`evolution_home_filetrans',`
 #
 interface(`evolution_stream_connect',`
 	gen_require(`
-		type evolution_t, evolution_home_t;
+		type evolution_t, evolution_orbit_tmp_t;
 	')
 
-	allow $1 evolution_t:unix_stream_socket connectto;
-	allow $1 evolution_home_t:dir search;
+
+	files_search_tmp($1)
+	stream_connect_pattern($1, evolution_orbit_tmp_t, evolution_orbit_tmp_t, evolution_t)
 ')
 
 ########################################

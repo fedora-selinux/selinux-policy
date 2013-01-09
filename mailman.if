@@ -17,43 +17,33 @@
 ## </param>
 #
 template(`mailman_domain_template', `
+
+    ########################################
+    #    
+    # Declarations
+    #            
+
 	type mailman_$1_t;
 	domain_type(mailman_$1_t)
-	role system_r types mailman_$1_t;
-
 	type mailman_$1_exec_t;
 	domain_entry_file(mailman_$1_t, mailman_$1_exec_t)
+	role system_r types mailman_$1_t;
 
 	type mailman_$1_tmp_t;
 	files_tmp_file(mailman_$1_tmp_t)
 
-	allow mailman_$1_t self:{ unix_stream_socket unix_dgram_socket } create_socket_perms;
-	allow mailman_$1_t self:tcp_socket create_stream_socket_perms;
-	allow mailman_$1_t self:udp_socket create_socket_perms;
-
-	files_search_spool(mailman_$1_t)
-
-	manage_dirs_pattern(mailman_$1_t, mailman_archive_t, mailman_archive_t)
-	manage_files_pattern(mailman_$1_t, mailman_archive_t, mailman_archive_t)
-	manage_lnk_files_pattern(mailman_$1_t, mailman_archive_t, mailman_archive_t)
-
-	manage_dirs_pattern(mailman_$1_t, mailman_data_t, mailman_data_t)
-	manage_files_pattern(mailman_$1_t, mailman_data_t, mailman_data_t)
-	manage_lnk_files_pattern(mailman_$1_t, mailman_data_t, mailman_data_t)
-
-	manage_files_pattern(mailman_$1_t, mailman_lock_t, mailman_lock_t)
-	files_lock_filetrans(mailman_$1_t, mailman_lock_t, file)
-
-	manage_files_pattern(mailman_$1_t, mailman_log_t, mailman_log_t)
-	logging_log_filetrans(mailman_$1_t, mailman_log_t, file)
+    ####################################
+    # 
+    # Policy
+    #            
 
 	manage_dirs_pattern(mailman_$1_t, mailman_$1_tmp_t, mailman_$1_tmp_t)
 	manage_files_pattern(mailman_$1_t, mailman_$1_tmp_t, mailman_$1_tmp_t)
 	files_tmp_filetrans(mailman_$1_t, mailman_$1_tmp_t, { file dir })
 
-	kernel_read_kernel_sysctls(mailman_$1_t)
 	kernel_read_system_state(mailman_$1_t)
 
+	corenet_all_recvfrom_unlabeled(mailman_$1_t)
 	corenet_all_recvfrom_netlabel(mailman_$1_t)
 	corenet_tcp_sendrecv_generic_if(mailman_$1_t)
 	corenet_udp_sendrecv_generic_if(mailman_$1_t)
@@ -68,24 +58,9 @@ template(`mailman_domain_template', `
 	corenet_tcp_connect_smtp_port(mailman_$1_t)
 	corenet_sendrecv_smtp_client_packets(mailman_$1_t)
 
-	fs_getattr_xattr_fs(mailman_$1_t)
-
-	corecmd_exec_all_executables(mailman_$1_t)
-
-	files_exec_etc_files(mailman_$1_t)
-	files_read_usr_files(mailman_$1_t)
-	files_list_var(mailman_$1_t)
-	files_list_var_lib(mailman_$1_t)
-	files_read_var_lib_symlinks(mailman_$1_t)
-	files_read_etc_runtime_files(mailman_$1_t)
-
 	auth_use_nsswitch(mailman_$1_t)
 
-	libs_exec_ld_so(mailman_$1_t)
-	libs_exec_lib_files(mailman_$1_t)
-
 	logging_send_syslog_msg(mailman_$1_t)
-
 ')
 
 #######################################

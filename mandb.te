@@ -1,25 +1,29 @@
-policy_module(mandb, 1.0.0)
+policy_module(mandb, 1.0.3)
 
 ########################################
 #
 # Declarations
 #
 
+attribute_role mandb_roles;
+roleattribute system_r mandb_roles;
+
 type mandb_t;
 type mandb_exec_t;
 init_daemon_domain(mandb_t, mandb_exec_t)
-cron_system_entry(mandb_t, mandb_exec_t)
+role mandb_roles types mandb_t;
 
 type mandb_cache_t;
 files_type(mandb_cache_t)
 
 ########################################
 #
-# mandb local policy
+# Local policy
 #
+
+allow mandb_t self:process signal;
 allow mandb_t self:fifo_file rw_fifo_file_perms;
 allow mandb_t self:unix_stream_socket create_stream_socket_perms;
-allow mandb_t self:process signal;
 
 manage_dirs_pattern(mandb_t, mandb_cache_t, mandb_cache_t)
 manage_files_pattern(mandb_t, mandb_cache_t, mandb_cache_t)
@@ -32,4 +36,8 @@ corecmd_exec_bin(mandb_t)
 
 domain_use_interactive_fds(mandb_t)
 
-files_read_etc_files(mandb_t)
+miscfiles_manage_man_cache(mandb_t)
+
+optional_policy(`
+	cron_system_entry(mandb_t, mandb_exec_t)
+')

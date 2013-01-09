@@ -1,4 +1,4 @@
-## <summary>policy for glance</summary>
+## <summary>OpenStack image registry and delivery service.</summary>
 
 #######################################
 ## <summary>
@@ -20,11 +20,15 @@ template(`glance_basic_types_template',`
 	type $1_exec_t;
 
 	kernel_read_system_state($1_t)
+
+	corenet_all_recvfrom_unlabeled($1_t)
+	corenet_all_recvfrom_netlabel($1_t)
 ')
 
 ########################################
 ## <summary>
-##	Transition to glance registry.
+##	Execute a domain transition to
+##	run glance registry.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -43,7 +47,8 @@ interface(`glance_domtrans_registry',`
 
 ########################################
 ## <summary>
-##	Transition to glance api.
+##	Execute a domain transition to
+##	run glance api.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -62,7 +67,7 @@ interface(`glance_domtrans_api',`
 
 ########################################
 ## <summary>
-##	Read glance's log files.
+##	Read glance log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -82,7 +87,7 @@ interface(`glance_read_log',`
 
 ########################################
 ## <summary>
-##	Append to glance log files.
+##	Append glance log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -101,7 +106,8 @@ interface(`glance_append_log',`
 
 ########################################
 ## <summary>
-##	Manage glance log files
+##	Create, read, write, and delete
+##	glance log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -160,7 +166,8 @@ interface(`glance_read_lib_files',`
 
 ########################################
 ## <summary>
-##	Manage glance lib files.
+##	Create, read, write, and delete
+##	glance lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -179,7 +186,8 @@ interface(`glance_manage_lib_files',`
 
 ########################################
 ## <summary>
-##	Manage glance lib directories.
+##	Create, read, write, and delete
+##	glance lib directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -198,7 +206,7 @@ interface(`glance_manage_lib_dirs',`
 
 ########################################
 ## <summary>
-##	Read glance PID files.
+##	Read glance pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -217,7 +225,8 @@ interface(`glance_read_pid_files',`
 
 ########################################
 ## <summary>
-##	Manage glance PID files.
+##	Create, read, write, and delete
+##	glance pid files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -236,8 +245,8 @@ interface(`glance_manage_pid_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an glance environment
+##	All of the rules required to
+##	administrate an glance environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -260,21 +269,16 @@ interface(`glance_admin',`
 
 	allow $1 glance_registry_t:process signal_perms;
 	ps_process_pattern($1, glance_registry_t)
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 glance_registry_t:process ptrace;
 		allow $1 glance_api_t:process ptrace;
 	')
 
-	allow $1 glance_api_t:process signal_perms;
-	ps_process_pattern($1, glance_api_t)
-
-	init_labeled_script_domtrans($1, glance_registry_initrc_exec_t)
+	init_labeled_script_domtrans($1, { glance_api_initrc_exec_t glance_registry_initrc_exec_t })
 	domain_system_change_exemption($1)
-	role_transition $2 glance_registry_initrc_exec_t system_r;
+	role_transition $2 { glance_api_initrc_exec_t glance_registry_initrc_exec_t } system_r;
 	allow $2 system_r;
-
-	init_labeled_script_domtrans($1, glance_api_initrc_exec_t)
-	role_transition $2 glance_api_initrc_exec_t system_r;
 
 	logging_search_logs($1)
 	admin_pattern($1, glance_log_t)

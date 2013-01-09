@@ -1,4 +1,23 @@
-## <summary>Ainit ALSA configuration tool.</summary>
+## <summary>Advanced Linux Sound Architecture utilities.</summary>
+
+########################################
+## <summary>
+##	Role access for alsa.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+template(`alsa_role',`
+	refpolicywarn(`$0($*) has been deprecated')
+')
 
 ########################################
 ## <summary>
@@ -38,11 +57,11 @@ interface(`alsa_domtrans',`
 #
 interface(`alsa_run',`
 	gen_require(`
-		type alsa_t;
+		attribute_role alsa_roles;
 	')
 
 	alsa_domtrans($1)
-	role $2 types alsa_t;
+	roleattribute $2 alsa_roles;
 ')
 
 ########################################
@@ -83,7 +102,7 @@ interface(`alsa_rw_shared_mem',`
 
 ########################################
 ## <summary>
-##	Read writable Alsa config files.
+##	Read writable Alsa configuration content.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -133,7 +152,8 @@ interface(`alsa_manage_rw_config',`
 
 ########################################
 ## <summary>
-##	Manage alsa home files.
+##	Create, read, write, and delete
+##	alsa home files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -187,6 +207,36 @@ interface(`alsa_relabel_home_files',`
 
 	userdom_search_user_home_dirs($1)
 	allow $1 alsa_home_t:file relabel_file_perms;
+')
+
+########################################
+## <summary>
+##	Create objects in user home
+##	directories with the generic alsa
+##	home type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`alsa_home_filetrans_alsa_home',`
+	gen_require(`
+		type alsa_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, alsa_home_t, $2, $3)
 ')
 
 ########################################

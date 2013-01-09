@@ -1,23 +1,13 @@
 ## <summary>Cobbler installation server.</summary>
-## <desc>
-##	<p>
-##	Cobbler is a Linux installation server that allows for
-##	rapid setup of network installation environments. It
-##	glues together and automates many associated Linux
-##	tasks so you do not have to hop between lots of various
-##	commands and applications when rolling out new systems,
-##	and, in some cases, changing existing ones.
-##	</p>
-## </desc>
 
 ########################################
 ## <summary>
 ##	Execute a domain transition to run cobblerd.
 ## </summary>
 ## <param name="domain">
-##	<summary>
+## <summary>
 ##	Domain allowed to transition.
-##	</summary>
+## </summary>
 ## </param>
 #
 interface(`cobblerd_domtrans',`
@@ -25,13 +15,14 @@ interface(`cobblerd_domtrans',`
 		type cobblerd_t, cobblerd_exec_t;
 	')
 
-	domtrans_pattern($1, cobblerd_exec_t, cobblerd_t)
 	corecmd_search_bin($1)
+	domtrans_pattern($1, cobblerd_exec_t, cobblerd_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute cobblerd server in the cobblerd domain.
+##	Execute cobblerd init scripts in
+##	the init script domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -47,9 +38,11 @@ interface(`cobblerd_initrc_domtrans',`
 	init_labeled_script_domtrans($1, cobblerd_initrc_exec_t)
 ')
 
+
+
 ########################################
 ## <summary>
-##	List Cobbler configuration.
+##	Read cobbler configuration dirs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -66,13 +59,14 @@ interface(`cobbler_list_config',`
 	files_search_etc($1)
 ')
 
+
 ########################################
 ## <summary>
-##	Read Cobbler configuration files.
+##	Read cobbler configuration files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain to not audit.
+##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
@@ -87,69 +81,8 @@ interface(`cobbler_read_config',`
 
 ########################################
 ## <summary>
-##	Search cobbler dirs in /var/lib
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`cobbler_search_lib',`
-	gen_require(`
-		type cobbler_var_lib_t;
-	')
-
-	search_dirs_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
-	read_lnk_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
-	files_search_var_lib($1)
-')
-
-########################################
-## <summary>
-##	Read cobbler files in /var/lib
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`cobbler_read_lib_files',`
-	gen_require(`
-		type cobbler_var_lib_t;
-	')
-
-	read_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
-	read_lnk_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
-	files_search_var_lib($1)
-')
-
-########################################
-## <summary>
-##	Manage cobbler files in /var/lib
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`cobbler_manage_lib_files',`
-	gen_require(`
-		type cobbler_var_lib_t;
-	')
-
-	manage_dirs_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
-	manage_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
-	manage_lnk_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
-	files_search_var_lib($1)
-')
-
-########################################
-## <summary>
 ##	Do not audit attempts to read and write
-##	Cobbler log files (leaked fd).
+##	cobbler log files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -162,36 +95,71 @@ interface(`cobbler_dontaudit_rw_log',`
 		type cobbler_var_log_t;
 	')
 
-	dontaudit $1 cobbler_var_log_t:file rw_inherited_file_perms;
+	dontaudit $1 cobbler_var_log_t:file rw_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Execute cobblerd server in the cobblerd domain.
+##	Search cobbler lib directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed to transition.
+##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
-interface(`cobblerd_systemctl',`
+interface(`cobbler_search_lib',`
 	gen_require(`
-		type cobblerd_t;
-		type cobblerd_unit_file_t;
+		type cobbler_var_lib_t;
 	')
 
-	systemd_exec_systemctl($1)
-	allow $1 cobblerd_unit_file_t:file read_file_perms;
-	allow $1 cobblerd_unit_file_t:service manage_service_perms;
-
-	ps_process_pattern($1, cobblerd_t)
+	files_search_var_lib($1)
+	search_dirs_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
 ')
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an cobblerd environment
+##	Read cobbler lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cobbler_read_lib_files',`
+	gen_require(`
+		type cobbler_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	cobbler lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cobbler_manage_lib_files',`
+	gen_require(`
+		type cobbler_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, cobbler_var_lib_t, cobbler_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an cobbler environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -206,45 +174,54 @@ interface(`cobblerd_systemctl',`
 ## <rolecap/>
 #
 interface(`cobblerd_admin',`
+	refpolicywarn(`$0($*) has been deprecated, use cobbler_admin() instead.')
+	cobbler_admin($1, $2)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an cobbler environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`cobbler_admin',`
 	gen_require(`
 		type cobblerd_t, cobbler_var_lib_t, cobbler_var_log_t;
 		type cobbler_etc_t, cobblerd_initrc_exec_t, httpd_cobbler_content_t;
-		type httpd_cobbler_content_ra_t, httpd_cobbler_content_rw_t;
-		type cobblerd_unit_file_t;
+		type httpd_cobbler_content_ra_t, httpd_cobbler_content_rw_t, cobbler_tmp_t;
 	')
 
-	allow $1 cobblerd_t:process signal_perms;
+	allow $1 cobblerd_t:process { ptrace signal_perms };
 	ps_process_pattern($1, cobblerd_t)
-
-	tunable_policy(`deny_ptrace',`',`
-		allow $1 cobblerd_t:process ptrace;
-	')
-
-	files_list_etc($1)
-	admin_pattern($1, cobbler_etc_t)
-
-	files_list_var_lib($1)
-	admin_pattern($1, cobbler_var_lib_t)
-
-	logging_list_logs($1)
-	admin_pattern($1, cobbler_var_log_t)
-
-	apache_list_sys_content($1)
-	admin_pattern($1, httpd_cobbler_content_t)
-	admin_pattern($1, httpd_cobbler_content_ra_t)
-	admin_pattern($1, httpd_cobbler_content_rw_t)
 
 	cobblerd_initrc_domtrans($1)
 	domain_system_change_exemption($1)
 	role_transition $2 cobblerd_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	optional_policy(`
-		# traverse /var/lib/tftpdir to get to cobbler_var_lib_t there.
-		tftp_search_rw_content($1)
-	')
+	files_search_etc($1)
+	admin_pattern($1, cobbler_etc_t)
 
-	cobblerd_systemctl($1)
-	admin_pattern($1, cobblerd_unit_file_t)
-	allow $1 cobblerd_unit_file_t:service all_service_perms;
+	files_search_tmp($1)
+	admin_pattern($1, cobbler_tmp_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, cobbler_var_lib_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, cobbler_var_log_t)
+
+	apache_search_sys_content($1)
+	admin_pattern($1, { httpd_cobbler_content_t httpd_cobbler_content_ra_t httpd_cobbler_content_rw_t })
 ')
