@@ -715,11 +715,11 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		canna_stream_connect($1_usertype)
+		chrome_role($1_r, $1_usertype)
 	')
 
 	optional_policy(`
-		chrome_role($1_r, $1_usertype)
+		canna_stream_connect($1_usertype)
 	')
 
 	optional_policy(`
@@ -733,10 +733,6 @@ template(`userdom_common_user_template',`
 
 		optional_policy(`
 			avahi_dbus_chat($1_usertype)
-		')
-
-		optional_policy(`
-			policykit_dbus_chat($1_usertype)
 		')
 
 		optional_policy(`
@@ -781,12 +777,16 @@ template(`userdom_common_user_template',`
 		')
 
 		optional_policy(`
+			policykit_dbus_chat($1_usertype)
+		')
+
+		optional_policy(`
 			vpn_dbus_chat($1_usertype)
 		')
 	')
 
 	optional_policy(`
-		git_session_role($1_r, $1_usertype)
+		git_role($1_r, $1_t)
 	')
 
 	optional_policy(`
@@ -805,7 +805,12 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		locate_read_lib_files($1_usertype)
+		locate_read_lib_files($1_t)
+	')
+
+	optional_policy(`
+		mpd_manage_user_data_content($1_t)
+		mpd_relabel_user_data_content($1_t)
 	')
 
 	# for running depmod as part of the kernel packaging process
@@ -828,6 +833,7 @@ template(`userdom_common_user_template',`
 	optional_policy(`
 		oident_manage_user_content($1_t)
 		oident_relabel_user_content($1_t)
+		oident_home_filetrans_oidentd_home($1_t, file, ".oidentd.conf")
 	')
 
 	optional_policy(`
@@ -836,8 +842,8 @@ template(`userdom_common_user_template',`
 	')
 
 	optional_policy(`
-		pcscd_read_pub_files($1_usertype)
-		pcscd_stream_connect($1_usertype)
+		pcscd_read_pid_files($1_t)
+		pcscd_stream_connect($1_t)
 	')
 
 	optional_policy(`
@@ -845,6 +851,12 @@ template(`userdom_common_user_template',`
 			postgresql_stream_connect($1_usertype)
 			postgresql_tcp_connect($1_usertype)
 		')
+	')
+
+	optional_policy(`
+		ppp_manage_home_files($1_t)
+		ppp_relabel_home_files($1_t)
+		ppp_home_filetrans_ppp_home($1_t, file, ".ppprc")
 	')
 
 	optional_policy(`
@@ -1193,6 +1205,10 @@ template(`userdom_restricted_xwindows_user_template',`
 		optional_policy(`
 			realmd_dbus_chat($1_t)
 		')
+
+		optional_policy(`
+			wm_role_template($1, $1_r, $1_t)
+		')
 	')
 
 	optional_policy(`
@@ -1211,14 +1227,10 @@ template(`userdom_restricted_xwindows_user_template',`
 
 	optional_policy(`
 		setroubleshoot_dontaudit_stream_connect($1_t)
-        ')
+	')
 
 	optional_policy(`
 		udev_read_db($1_usertype)
-        ')
-
-	optional_policy(`
-		wm_role_template($1, $1_r, $1_t)
 	')
 ')
 
@@ -1692,9 +1704,12 @@ interface(`userdom_user_application_domain',`
 #
 interface(`userdom_user_home_content',`
 	gen_require(`
+		attribute user_home_content_type;
 		type user_home_t;
 		attribute user_home_type;
 	')
+
+	typeattribute $1 user_home_content_type;
 
 	allow $1 user_home_t:filesystem associate;
 	files_type($1)
@@ -2158,6 +2173,25 @@ interface(`userdom_dontaudit_search_user_home_content',`
 	dontaudit $1 user_home_t:dir search_dir_perms;
 	fs_dontaudit_list_nfs($1)
 	fs_dontaudit_list_cifs($1)
+')
+
+########################################
+## <summary>
+##	List all users home content directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_list_all_user_home_content',`
+	gen_require(`
+		attribute user_home_content_type;
+	')
+
+	userdom_search_user_home_dirs($1)
+	allow $1 user_home_content_type:dir list_dir_perms;
 ')
 
 ########################################

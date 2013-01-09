@@ -1,4 +1,4 @@
-policy_module(init, 1.19.0)
+policy_module(init, 1.19.6)
 
 gen_require(`
 	class passwd rootok;
@@ -50,6 +50,9 @@ attribute systemprocess_entry;
 
 # Mark process types as initrc domain
 attribute initrc_domain;
+
+# Mark file type as a daemon run directory
+attribute daemonrundir;
 
 #
 # init_t is the domain of the init process.
@@ -498,6 +501,9 @@ init_telinit(initrc_t)
 
 can_exec(initrc_t, init_script_file_type)
 
+create_dirs_pattern(initrc_t, daemonrundir, daemonrundir)
+setattr_dirs_pattern(initrc_t, daemonrundir, daemonrundir)
+
 domtrans_pattern(init_run_all_scripts_domain, initrc_exec_t, initrc_t)
 
 manage_dirs_pattern(initrc_t, initrc_state_t, initrc_state_t)
@@ -739,9 +745,12 @@ ifdef(`distro_gentoo',`
 	# early init
 	dev_create_generic_dirs(initrc_t)
 	dev_delete_generic_dirs(initrc_t)
+	dev_setattr_generic_dirs(initrc_t)
 
+	files_manage_all_pids(initrc_t)
 	# allow bootmisc to create /var/lock/.keep.
 	files_manage_generic_locks(initrc_t)
+	files_manage_var_symlinks(initrc_t)
 	files_pid_filetrans(initrc_t, initrc_state_t, dir, "openrc")
 
 	# openrc uses tmpfs for its state data
@@ -982,6 +991,10 @@ optional_policy(`
 
 optional_policy(`
 	clamav_read_config(initrc_t)
+')
+
+optional_policy(`
+	courier_read_config(initrc_t)
 ')
 
 optional_policy(`
@@ -1260,10 +1273,15 @@ optional_policy(`
 ')
 
 optional_policy(`
+	stunnel_read_config(initrc_t)
+')
+
+optional_policy(`
 	sysnet_read_dhcpc_state(initrc_t)
 ')
 
 optional_policy(`
+	udev_rw_db(initrc_t)
 	udev_manage_pid_files(initrc_t)
 	udev_manage_pid_dirs(initrc_t)
 	udev_manage_rules_files(initrc_t)
@@ -1277,6 +1295,7 @@ optional_policy(`
 	virt_manage_pid_dirs(initrc_t)
 	virt_manage_cache(initrc_t)
 	virt_manage_lib_files(initrc_t)
+	virt_stream_connect(initrc_t)
 ')
 
 # Cron jobs used to start and stop services
