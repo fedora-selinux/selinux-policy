@@ -26,15 +26,20 @@ gen_tunable(mozilla_read_content, false)
 ## </desc>
 gen_tunable(mozilla_plugin_enable_homedirs, false)
 
-#attribute_role mozilla_roles;
+attribute_role mozilla_roles;
+attribute_role mozilla_plugin_roles;
+attribute_role mozilla_plugin_config_roles;
+
+roleattribute system_r mozilla_roles;
+roleattribute system_r mozilla_plugin_roles;
+roleattribute system_r mozilla_plugin_config_roles;
 
 type mozilla_t;
 type mozilla_exec_t;
 typealias mozilla_t alias { user_mozilla_t staff_mozilla_t sysadm_mozilla_t };
 typealias mozilla_t alias { auditadm_mozilla_t secadm_mozilla_t };
 userdom_user_application_domain(mozilla_t, mozilla_exec_t)
-#role mozilla_roles types mozilla_t;
-role system_r types mozilla_t;
+role mozilla_roles types mozilla_t;
 
 type mozilla_conf_t;
 files_config_file(mozilla_conf_t)
@@ -47,8 +52,7 @@ userdom_user_home_content(mozilla_home_t)
 type mozilla_plugin_t;
 type mozilla_plugin_exec_t;
 application_domain(mozilla_plugin_t, mozilla_plugin_exec_t)
-#role mozilla_roles types mozilla_plugin_t;
-role system_r types mozilla_plugin_t;
+role mozilla_roles types mozilla_plugin_t;
 
 type mozilla_plugin_tmp_t;
 userdom_user_tmp_content(mozilla_plugin_tmp_t)
@@ -64,8 +68,7 @@ files_type(mozilla_plugin_rw_t)
 type mozilla_plugin_config_t;
 type mozilla_plugin_config_exec_t;
 application_domain(mozilla_plugin_config_t, mozilla_plugin_config_exec_t)
-#role mozilla_roles types mozilla_plugin_config_t;
-role system_r types mozilla_plugin_config_t;
+role mozilla_roles types mozilla_plugin_config_t;
 
 type mozilla_tmp_t;
 userdom_user_tmp_file(mozilla_tmp_t)
@@ -166,7 +169,6 @@ dev_getattr_sysfs_dirs(mozilla_t)
 domain_dontaudit_read_all_domains_state(mozilla_t)
 
 files_read_etc_runtime_files(mozilla_t)
-files_read_usr_files(mozilla_t)
 # /var/lib
 files_read_var_lib_files(mozilla_t)
 # interacting with gstreamer
@@ -419,7 +421,6 @@ domain_use_interactive_fds(mozilla_plugin_t)
 domain_dontaudit_read_all_domains_state(mozilla_plugin_t)
 
 files_read_config_files(mozilla_plugin_t)
-files_read_usr_files(mozilla_plugin_t)
 files_list_mnt(mozilla_plugin_t)
 files_exec_usr_files(mozilla_plugin_t)
 fs_rw_inherited_tmpfs_files(mozilla_plugin_t)
@@ -503,9 +504,9 @@ optional_policy(`
 	java_exec(mozilla_plugin_t)
 ')
 
-#optional_policy(`
-#	lpd_run_lpr(mozilla_plugin_t, mozilla_roles)
-#')
+optional_policy(`
+	lpd_run_lpr(mozilla_plugin_t, mozilla_roles)
+')
 
 optional_policy(`
     mplayer_exec(mozilla_plugin_t)
@@ -584,7 +585,6 @@ kernel_request_load_module(mozilla_plugin_config_t)
 
 domain_use_interactive_fds(mozilla_plugin_config_t)
 
-files_read_usr_files(mozilla_plugin_config_t)
 files_dontaudit_search_home(mozilla_plugin_config_t)
 files_list_tmp(mozilla_plugin_config_t)
 

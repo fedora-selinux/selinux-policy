@@ -18,10 +18,21 @@
 #
 interface(`lpd_role',`
 	gen_require(`
+		attribute_role lpr_roles;
 		type lpr_t, lpr_exec_t, print_spool_t;
 	')
 
-	role $1 types lpr_t;
+    ########################################
+    # 
+    # Declarations
+    #            
+
+	roleattribute $1 lpr_roles;
+
+    ########################################
+    #
+    # Policy
+    #            
 
 	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2, lpr_exec_t, lpr_t)
@@ -29,6 +40,7 @@ interface(`lpd_role',`
 
 	ps_process_pattern($2, lpr_t)
 	allow $2 lpr_t:process signal_perms;
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $2 lpr_t:process ptrace;
 	')
@@ -217,11 +229,11 @@ interface(`lpd_domtrans_lpr',`
 #
 interface(`lpd_run_lpr',`
 	gen_require(`
-		type lpr_t;
+		attribute_role lpr_roles;
 	')
 
 	lpd_domtrans_lpr($1)
-	role $2 types lpr_t;
+	roleattribute $2 lpr_roles;
 ')
 
 ########################################
