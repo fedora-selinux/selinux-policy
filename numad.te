@@ -23,23 +23,29 @@ files_pid_file(numad_var_run_t)
 # numad local policy
 #
 
-allow numad_t self:process { fork };
+allow numad_t self:capability sys_ptrace;
 allow numad_t self:fifo_file rw_fifo_file_perms;
 allow numad_t self:msgq create_msgq_perms;
-allow numad_t self:msg { send receive };
+allow numad_t self:msg create_msg_perms;
 allow numad_t self:unix_stream_socket create_stream_socket_perms;
 
 manage_files_pattern(numad_t, numad_var_log_t, numad_var_log_t)
-logging_log_filetrans(numad_t, numad_var_log_t, { file })
+logging_log_filetrans(numad_t, numad_var_log_t, file)
 
 manage_files_pattern(numad_t, numad_var_run_t, numad_var_run_t)
-files_pid_filetrans(numad_t, numad_var_run_t, { file })
+files_pid_filetrans(numad_t, numad_var_run_t, file)
 
 kernel_read_system_state(numad_t)
 
 dev_read_sysfs(numad_t)
 
 domain_use_interactive_fds(numad_t)
+domain_read_all_domains_state(numad_t)
+domain_setpriority_all_domains(numad_t)
 
+fs_manage_cgroup_dirs(numad_t)
+fs_rw_cgroup_files(numad_t)
 
-fs_search_cgroup_dirs(numad_t)
+tunable_policy(`deny_ptrace',`',`
+	virt_ptrace(numad_t)
+')
