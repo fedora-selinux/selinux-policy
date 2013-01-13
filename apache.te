@@ -368,10 +368,6 @@ files_tmp_file(httpd_suexec_tmp_t)
 # setup the system domain for system CGI scripts
 apache_content_template(sys)
 
-optional_policy(`
-	postgresql_unpriv_client(httpd_sys_script_t)
-')
-
 typeattribute httpd_sys_content_t httpdcontent; # customizable
 typeattribute httpd_sys_rw_content_t httpdcontent; # customizable
 typeattribute httpd_sys_ra_content_t httpdcontent; # customizable
@@ -849,9 +845,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-        # needed by FreeIPA 
+	#needed by FreeIPA 
 	dirsrv_stream_connect(httpd_t)
-	ldap_stream_connect(httpd_t)
 ')
 
 optional_policy(`
@@ -964,12 +959,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-        pki_apache_domain_signal(httpd_t)
-        pki_apache_domain_signal(httpd_t)
-        pki_manage_apache_run(httpd_t)
-        pki_manage_apache_config_files(httpd_t)
-        pki_manage_apache_log_files(httpd_t)
-        pki_manage_apache_lib(httpd_t)
+	pki_apache_domain_signal(httpd_t)
+	pki_manage_apache_config_files(httpd_t)
+	pki_manage_apache_lib(httpd_t)
+	pki_manage_apache_log_files(httpd_t)
+	pki_manage_apache_run(httpd_t)
 ')
 
 optional_policy(`
@@ -1034,8 +1028,6 @@ allow httpd_helper_t httpd_config_t:file read_file_perms;
 allow httpd_helper_t httpd_log_t:file append_file_perms;
 
 logging_send_syslog_msg(httpd_helper_t)
-
-userdom_use_inherited_user_terminals(httpd_helper_t)
 
 tunable_policy(`httpd_verify_dns',`
 	corenet_udp_bind_all_ephemeral_ports(httpd_t)
@@ -1559,8 +1551,6 @@ allow httpd_script_type httpd_t:process sigchld;
 
 dontaudit httpd_script_type httpd_t:tcp_socket { read write };
 
-dev_read_urand(httpd_script_type)
-
 fs_getattr_xattr_fs(httpd_script_type)
 
 files_read_etc_runtime_files(httpd_script_type)
@@ -1582,10 +1572,6 @@ read_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
 tunable_policy(`httpd_builtin_scripting',`
 	allow httpd_t httpd_content_type:dir search_dir_perms;
 	allow httpd_suexec_t httpd_content_type:dir search_dir_perms;
-
-	allow httpd_t httpd_content_type:dir list_dir_perms;
-	read_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
-	read_lnk_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
 
 	allow httpd_t httpd_content_type:dir list_dir_perms;
 	read_files_pattern(httpd_t, httpd_content_type, httpd_content_type)
