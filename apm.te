@@ -129,8 +129,6 @@ domain_dontaudit_list_all_domains_state(apmd_t)
 
 auth_use_nsswitch(apmd_t)
 
-auth_use_nsswitch(apmd_t)
-
 init_domtrans_script(apmd_t)
 
 libs_exec_ld_so(apmd_t)
@@ -149,44 +147,6 @@ seutil_sigchld_newrole(apmd_t)
 userdom_dontaudit_use_unpriv_user_fds(apmd_t)
 userdom_dontaudit_search_user_home_dirs(apmd_t)
 userdom_dontaudit_search_user_home_content(apmd_t) # Excessive?
-
-ifdef(`distro_redhat',`
-	allow apmd_t apmd_lock_t:file manage_file_perms;
-	files_lock_filetrans(apmd_t, apmd_lock_t, file)
-
-	can_exec(apmd_t, apmd_var_run_t)
-
-	optional_policy(`
-		fstools_domtrans(apmd_t)
-	')
-
-	optional_policy(`
-		iptables_domtrans(apmd_t)
-	')
-
-	optional_policy(`
-		netutils_domtrans(apmd_t)
-	')
-
-	# ifconfig_exec_t needs to be run in its own domain for Red Hat
-	optional_policy(`
-		sssd_search_lib(apmd_t)
-	')
-
-	optional_policy(`
-		sysnet_domtrans_ifconfig(apmd_t)
-	')
-
-',`
-	# for ifconfig which is run all the time
-	kernel_dontaudit_search_sysctl(apmd_t)
-')
-
-ifdef(`distro_suse',`
-	manage_dirs_pattern(apmd_t, apmd_var_lib_t, apmd_var_lib_t)
-	manage_files_pattern(apmd_t, apmd_var_lib_t, apmd_var_lib_t)
-	files_var_lib_filetrans(apmd_t, apmd_var_lib_t, file)
-')
 
 optional_policy(`
 	automount_domtrans(apmd_t)
@@ -250,11 +210,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-	systemd_dbus_chat_logind(apmd_t)
+	sssd_search_lib(apmd_t)
 ')
 
 optional_policy(`
-	shutdown_domtrans(apmd_t)
+	systemd_dbus_chat_logind(apmd_t)
 ')
 
 optional_policy(`
