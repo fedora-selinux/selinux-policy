@@ -1,4 +1,4 @@
-.TH  "vmware_selinux"  "8"  "12-11-01" "vmware" "SELinux Policy documentation for vmware"
+.TH  "vmware_selinux"  "8"  "13-01-16" "vmware" "SELinux Policy documentation for vmware"
 .SH "NAME"
 vmware_selinux \- Security Enhanced Linux Policy for the vmware processes
 .SH "DESCRIPTION"
@@ -14,9 +14,11 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The vmware_t SELinux type can be entered via the "vmware_exec_t" file type.  The default entrypoint paths for the vmware_t domain are the following:"
+The vmware_t SELinux type can be entered via the \fBvmware_exec_t\fP file type.
 
-/usr/bin/vmware, /usr/bin/vmware-ping, /usr/bin/vmware-wizard, /usr/sbin/vmware-serverd, /usr/lib/vmware/bin/vmplayer, /usr/lib/vmware/bin/vmware-ui, /usr/lib/vmware/bin/vmware-mks
+The default entrypoint paths for the vmware_t domain are the following:
+
+/opt/vmware/(workstation|player)/bin/vmware, /opt/vmware/(workstation|player)/bin/vmware-ping, /opt/vmware/(workstation|player)/bin/vmware-wizard, /usr/bin/vmware, /usr/bin/vmware-ping, /usr/bin/vmware-wizard, /usr/sbin/vmware-serverd, /usr/lib/vmware/bin/vmplayer, /usr/lib/vmware/bin/vmware-ui, /usr/lib/vmware/bin/vmware-mks
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
 .PP
@@ -32,8 +34,198 @@ The following process types are defined for vmware:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a vmware_t
+can be used to make the process type vmware_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  vmware policy is extremely flexible and has several booleans that allow you to manipulate the policy and run vmware with the tightest access possible.
+
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.PP
+If you want to allow regular users direct dri device access, you must turn on the selinuxuser_direct_dri_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P selinuxuser_direct_dri_enabled 1
+
+.EE
+
+.PP
+If you want to support NFS home directories, you must turn on the use_nfs_home_dirs boolean. Enabled by default.
+
+.EX
+.B setsebool -P use_nfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support SAMBA home directories, you must turn on the use_samba_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_samba_home_dirs 1
+
+.EE
+
+.PP
+If you want to allows clients to write to the X server shared memory segments, you must turn on the xserver_clients_write_xshm boolean. Disabled by default.
+
+.EX
+.B setsebool -P xserver_clients_write_xshm 1
+
+.EE
+
+.PP
+If you want to support X userspace object manager, you must turn on the xserver_object_manager boolean. Enabled by default.
+
+.EX
+.B setsebool -P xserver_object_manager 1
+
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type vmware_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B cifs_t
+
+
+.br
+.B nfs_t
+
+
+.br
+.B usbfs_t
+
+
+.br
+.B user_fonts_cache_t
+
+	/root/\.fontconfig(/.*)?
+.br
+	/root/\.fonts/auto(/.*)?
+.br
+	/root/\.fonts\.cache-.*
+.br
+	/home/[^/]*/\.fontconfig(/.*)?
+.br
+	/home/[^/]*/\.fonts/auto(/.*)?
+.br
+	/home/[^/]*/\.fonts\.cache-.*
+.br
+	/home/pwalsh/\.fontconfig(/.*)?
+.br
+	/home/pwalsh/\.fonts/auto(/.*)?
+.br
+	/home/pwalsh/\.fonts\.cache-.*
+.br
+	/home/dwalsh/\.fontconfig(/.*)?
+.br
+	/home/dwalsh/\.fonts/auto(/.*)?
+.br
+	/home/dwalsh/\.fonts\.cache-.*
+.br
+	/var/lib/xguest/home/xguest/\.fontconfig(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts/auto(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.fonts\.cache-.*
+.br
+
+.br
+.B vmware_conf_t
+
+	/home/[^/]*/\.vmware[^/]*/.*\.cfg
+.br
+	/home/pwalsh/\.vmware[^/]*/.*\.cfg
+.br
+	/home/dwalsh/\.vmware[^/]*/.*\.cfg
+.br
+	/var/lib/xguest/home/xguest/\.vmware[^/]*/.*\.cfg
+.br
+
+.br
+.B vmware_file_t
+
+	/home/[^/]*/vmware(/.*)?
+.br
+	/home/[^/]*/\.vmware(/.*)?
+.br
+	/home/pwalsh/vmware(/.*)?
+.br
+	/home/pwalsh/\.vmware(/.*)?
+.br
+	/home/dwalsh/vmware(/.*)?
+.br
+	/home/dwalsh/\.vmware(/.*)?
+.br
+	/var/lib/xguest/home/xguest/vmware(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.vmware(/.*)?
+.br
+
+.br
+.B vmware_pid_t
+
+
+.br
+.B vmware_tmp_t
+
+
+.br
+.B vmware_tmpfs_t
+
+
+.br
+.B xserver_tmpfs_t
+
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type.
@@ -43,7 +235,31 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux vmware policy is very flexible allowing users to setup their vmware processes in as secure a method as possible.
 .PP
-The following file types are defined for vmware:
+
+.PP
+.B EQUIVALENCE DIRECTORIES
+
+.PP
+vmware policy stores data with multiple different file context types under the /var/lib/xguest/home/xguest/\.vmware directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/lib/xguest/home/xguest/\.vmware /srv/\.vmware
+.br
+.B restorecon -R -v /srv/\.vmware
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the vmware, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t vmware_conf_t '/srv/vmware/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myvmware_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for vmware:
 
 
 .EX
@@ -53,6 +269,10 @@ The following file types are defined for vmware:
 
 - Set files with the vmware_conf_t type, if you want to treat the files as vmware configuration data, usually stored under the /etc directory.
 
+.br
+.TP 5
+Paths:
+/home/[^/]*/\.vmware[^/]*/.*\.cfg, /home/pwalsh/\.vmware[^/]*/.*\.cfg, /home/dwalsh/\.vmware[^/]*/.*\.cfg, /var/lib/xguest/home/xguest/\.vmware[^/]*/.*\.cfg
 
 .EX
 .PP
@@ -61,6 +281,10 @@ The following file types are defined for vmware:
 
 - Set files with the vmware_exec_t type, if you want to transition an executable to the vmware_t domain.
 
+.br
+.TP 5
+Paths:
+/opt/vmware/(workstation|player)/bin/vmware, /opt/vmware/(workstation|player)/bin/vmware-ping, /opt/vmware/(workstation|player)/bin/vmware-wizard, /usr/bin/vmware, /usr/bin/vmware-ping, /usr/bin/vmware-wizard, /usr/sbin/vmware-serverd, /usr/lib/vmware/bin/vmplayer, /usr/lib/vmware/bin/vmware-ui, /usr/lib/vmware/bin/vmware-mks
 
 .EX
 .PP
@@ -69,6 +293,10 @@ The following file types are defined for vmware:
 
 - Set files with the vmware_file_t type, if you want to treat the files as vmware content.
 
+.br
+.TP 5
+Paths:
+/home/[^/]*/vmware(/.*)?, /home/[^/]*/\.vmware(/.*)?, /home/pwalsh/vmware(/.*)?, /home/pwalsh/\.vmware(/.*)?, /home/dwalsh/vmware(/.*)?, /home/dwalsh/\.vmware(/.*)?, /var/lib/xguest/home/xguest/vmware(/.*)?, /var/lib/xguest/home/xguest/\.vmware(/.*)?
 
 .EX
 .PP
@@ -77,6 +305,10 @@ The following file types are defined for vmware:
 
 - Set files with the vmware_host_exec_t type, if you want to transition an executable to the vmware_host_t domain.
 
+.br
+.TP 5
+Paths:
+/opt/vmware/(workstation|player)/bin/vmnet-natd, /opt/vmware/(workstation|player)/bin/vmnet-dhcpd, /opt/vmware/(workstation|player)/bin/vmware-nmbd, /opt/vmware/(workstation|player)/bin/vmware-smbd, /opt/vmware/(workstation|player)/bin/vmnet-bridge, /opt/vmware/(workstation|player)/bin/vmnet-netifup, /opt/vmware/(workstation|player)/bin/vmnet-sniffer, /opt/vmware/(workstation|player)/bin/vmware-smbpasswd, /opt/vmware/(workstation|player)/bin/vmware-smbpasswd\.bin, /usr/sbin/vmware-guest.*, /usr/lib/vmware-tools/sbin32/vmware.*, /usr/lib/vmware-tools/sbin64/vmware.*, /usr/bin/vmnet-natd, /usr/bin/vmware-vmx, /usr/bin/vmnet-dhcpd, /usr/bin/vmware-nmbd, /usr/bin/vmware-smbd, /usr/bin/vmnet-bridge, /usr/bin/vmnet-netifup, /usr/bin/vmnet-sniffer, /usr/bin/vmware-network, /usr/bin/vmware-smbpasswd, /usr/bin/vmware-smbpasswd\.bin, /usr/lib/vmware/bin/vmware-vmx
 
 .EX
 .PP
@@ -101,6 +333,10 @@ The following file types are defined for vmware:
 
 - Set files with the vmware_log_t type, if you want to treat the data as vmware log data, usually stored under the /var/log directory.
 
+.br
+.TP 5
+Paths:
+/var/log/vmware.*, /var/log/vnetlib.*
 
 .EX
 .PP
@@ -117,6 +353,10 @@ The following file types are defined for vmware:
 
 - Set files with the vmware_sys_conf_t type, if you want to treat the files as vmware sys configuration data, usually stored under the /etc directory.
 
+.br
+.TP 5
+Paths:
+/etc/vmware.*(/.*)?, /usr/lib/vmware/config
 
 .EX
 .PP
@@ -141,82 +381,6 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH "MANAGED FILES"
-
-The SELinux process type vmware_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
-
-.br
-.B usbfs_t
-
-
-.br
-.B user_fonts_cache_t
-
-	/root/\.fontconfig(/.*)?
-.br
-	/root/\.fonts/auto(/.*)?
-.br
-	/root/\.fonts\.cache-.*
-.br
-	/home/[^/]*/\.fontconfig(/.*)?
-.br
-	/home/[^/]*/\.fonts/auto(/.*)?
-.br
-	/home/[^/]*/\.fonts\.cache-.*
-.br
-	/home/dwalsh/\.fontconfig(/.*)?
-.br
-	/home/dwalsh/\.fonts/auto(/.*)?
-.br
-	/home/dwalsh/\.fonts\.cache-.*
-.br
-	/var/lib/xguest/home/xguest/\.fontconfig(/.*)?
-.br
-	/var/lib/xguest/home/xguest/\.fonts/auto(/.*)?
-.br
-	/var/lib/xguest/home/xguest/\.fonts\.cache-.*
-.br
-
-.br
-.B vmware_conf_t
-
-	/home/[^/]*/\.vmware[^/]*/.*\.cfg
-.br
-	/home/dwalsh/\.vmware[^/]*/.*\.cfg
-.br
-	/var/lib/xguest/home/xguest/\.vmware[^/]*/.*\.cfg
-.br
-
-.br
-.B vmware_file_t
-
-	/home/[^/]*/vmware(/.*)?
-.br
-	/home/[^/]*/\.vmware(/.*)?
-.br
-	/home/dwalsh/vmware(/.*)?
-.br
-	/home/dwalsh/\.vmware(/.*)?
-.br
-	/var/lib/xguest/home/xguest/vmware(/.*)?
-.br
-	/var/lib/xguest/home/xguest/\.vmware(/.*)?
-.br
-
-.br
-.B vmware_pid_t
-
-
-.br
-.B vmware_tmp_t
-
-
-.br
-.B vmware_tmpfs_t
-
-
-.SH NSSWITCH DOMAIN
-
 .SH "COMMANDS"
 .B semanage fcontext
 can also be used to manipulate default file context mappings.
@@ -226,6 +390,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
 
 .PP
 .B system-config-selinux
@@ -238,4 +405,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), vmware(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
-, vmware_host_selinux(8)
+, setsebool(8), vmware_host_selinux(8)

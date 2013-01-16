@@ -1,4 +1,4 @@
-.TH  "xend_selinux"  "8"  "12-11-01" "xend" "SELinux Policy documentation for xend"
+.TH  "xend_selinux"  "8"  "13-01-16" "xend" "SELinux Policy documentation for xend"
 .SH "NAME"
 xend_selinux \- Security Enhanced Linux Policy for the xend processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The xend_t SELinux type can be entered via the "xend_exec_t" file type.  The default entrypoint paths for the xend_t domain are the following:"
+The xend_t SELinux type can be entered via the \fBxend_exec_t\fP file type.
+
+The default entrypoint paths for the xend_t domain are the following:
 
 /usr/sbin/xend
 .SH PROCESS TYPES
@@ -32,112 +34,108 @@ The following process types are defined for xend:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a xend_t
+can be used to make the process type xend_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  xend policy is extremely flexible and has several booleans that allow you to manipulate the policy and run xend with the tightest access possible.
 
 
 .PP
-If you want to allow xend to run blktapctrl/tapdisk. Not required if using dedicated logical volumes for disk images, you must turn on the xend_run_blktap boolean.
+If you want to allow xend to run blktapctrl/tapdisk. Not required if using dedicated logical volumes for disk images, you must turn on the xend_run_blktap boolean. Enabled by default.
 
 .EX
 .B setsebool -P xend_run_blktap 1
+
 .EE
 
 .PP
-If you want to allow xen to manage nfs files, you must turn on the xen_use_nfs boolean.
-
-.EX
-.B setsebool -P xen_use_nfs 1
-.EE
-
-.PP
-If you want to allow xend to run qemu-dm. Not required if using paravirt and no vfb, you must turn on the xend_run_qemu boolean.
+If you want to allow xend to run qemu-dm. Not required if using paravirt and no vfb, you must turn on the xend_run_qemu boolean. Enabled by default.
 
 .EX
 .B setsebool -P xend_run_qemu 1
+
 .EE
 
 .PP
-If you want to allow xend to run blktapctrl/tapdisk. Not required if using dedicated logical volumes for disk images, you must turn on the xend_run_blktap boolean.
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
 
 .EX
-.B setsebool -P xend_run_blktap 1
+.B setsebool -P daemons_dump_core 1
+
 .EE
 
 .PP
-If you want to allow xen to manage nfs files, you must turn on the xen_use_nfs boolean.
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.PP
+If you want to allow xen to manage nfs files, you must turn on the xen_use_nfs boolean. Disabled by default.
 
 .EX
 .B setsebool -P xen_use_nfs 1
+
 .EE
-
-.PP
-If you want to allow xend to run qemu-dm. Not required if using paravirt and no vfb, you must turn on the xend_run_qemu boolean.
-
-.EX
-.B setsebool -P xend_run_qemu 1
-.EE
-
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
-.PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux xend policy is very flexible allowing users to setup their xend processes in as secure a method as possible.
-.PP
-The following file types are defined for xend:
-
-
-.EX
-.PP
-.B xend_exec_t
-.EE
-
-- Set files with the xend_exec_t type, if you want to transition an executable to the xend_t domain.
-
-
-.EX
-.PP
-.B xend_tmp_t
-.EE
-
-- Set files with the xend_tmp_t type, if you want to store xend temporary files in the /tmp directories.
-
-
-.EX
-.PP
-.B xend_var_lib_t
-.EE
-
-- Set files with the xend_var_lib_t type, if you want to store the xend files under the /var/lib directory.
-
-
-.EX
-.PP
-.B xend_var_log_t
-.EE
-
-- Set files with the xend_var_log_t type, if you want to treat the data as xend var log data, usually stored under the /var/log directory.
-
-
-.EX
-.PP
-.B xend_var_run_t
-.EE
-
-- Set files with the xend_var_run_t type, if you want to store the xend files under the /run directory.
-
-
-.PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
 
 .SH PORT TYPES
 SELinux defines port types to represent TCP and UDP ports.
@@ -205,9 +203,9 @@ The SELinux process type xend_t can manage files labeled with the following file
 .br
 	/etc/cmtab
 .br
-	/\.autofsck
-.br
 	/forcefsck
+.br
+	/\.autofsck
 .br
 	/\.suspended
 .br
@@ -217,9 +215,9 @@ The SELinux process type xend_t can manage files labeled with the following file
 .br
 	/etc/securetty
 .br
-	/etc/killpower
-.br
 	/etc/nohotplug
+.br
+	/etc/killpower
 .br
 	/etc/ioctl\.save
 .br
@@ -239,9 +237,29 @@ The SELinux process type xend_t can manage files labeled with the following file
 .br
 
 .br
+.B nfs_t
+
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
+
+.br
 .B sysfs_t
 
 	/sys(/.*)?
+.br
+
+.br
+.B virt_image_t
+
+	/var/lib/libvirt/images(/.*)?
+.br
+	/var/lib/imagefactory/images(/.*)?
 .br
 
 .br
@@ -298,7 +316,115 @@ The SELinux process type xend_t can manage files labeled with the following file
 	/var/run/xenstore\.pid
 .br
 
-.SH NSSWITCH DOMAIN
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux xend policy is very flexible allowing users to setup their xend processes in as secure a method as possible.
+.PP
+
+.PP
+.B EQUIVALENCE DIRECTORIES
+
+.PP
+xend policy stores data with multiple different file context types under the /var/log/xen directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/log/xen /srv/xen
+.br
+.B restorecon -R -v /srv/xen
+.PP
+
+.PP
+xend policy stores data with multiple different file context types under the /var/lib/xen directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/lib/xen /srv/xen
+.br
+.B restorecon -R -v /srv/xen
+.PP
+
+.PP
+xend policy stores data with multiple different file context types under the /var/run/xend directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/run/xend /srv/xend
+.br
+.B restorecon -R -v /srv/xend
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the xend, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t xend_exec_t '/srv/xend/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myxend_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for xend:
+
+
+.EX
+.PP
+.B xend_exec_t
+.EE
+
+- Set files with the xend_exec_t type, if you want to transition an executable to the xend_t domain.
+
+
+.EX
+.PP
+.B xend_tmp_t
+.EE
+
+- Set files with the xend_tmp_t type, if you want to store xend temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B xend_var_lib_t
+.EE
+
+- Set files with the xend_var_lib_t type, if you want to store the xend files under the /var/lib directory.
+
+.br
+.TP 5
+Paths:
+/var/lib/xen(/.*)?, /var/lib/xend(/.*)?
+
+.EX
+.PP
+.B xend_var_log_t
+.EE
+
+- Set files with the xend_var_log_t type, if you want to treat the data as xend var log data, usually stored under the /var/log directory.
+
+.br
+.TP 5
+Paths:
+/var/log/xen(/.*)?, /var/log/xend\.log.*, /var/log/xend-debug\.log.*, /var/log/xen-hotplug\.log.*
+
+.EX
+.PP
+.B xend_var_run_t
+.EE
+
+- Set files with the xend_var_run_t type, if you want to store the xend files under the /run or /var/run directory.
+
+.br
+.TP 5
+Paths:
+/var/run/xend(/.*)?, /var/run/xenner(/.*)?, /var/run/xend\.pid
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext

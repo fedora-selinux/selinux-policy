@@ -1,4 +1,4 @@
-.TH  "kdump_selinux"  "8"  "12-11-01" "kdump" "SELinux Policy documentation for kdump"
+.TH  "kdump_selinux"  "8"  "13-01-16" "kdump" "SELinux Policy documentation for kdump"
 .SH "NAME"
 kdump_selinux \- Security Enhanced Linux Policy for the kdump processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The kdump_t SELinux type can be entered via the "kdump_exec_t" file type.  The default entrypoint paths for the kdump_t domain are the following:"
+The kdump_t SELinux type can be entered via the \fBkdump_exec_t\fP file type.
+
+The default entrypoint paths for the kdump_t domain are the following:
 
 /sbin/kdump, /sbin/kexec, /usr/sbin/kdump, /usr/sbin/kexec
 .SH PROCESS TYPES
@@ -32,8 +34,76 @@ The following process types are defined for kdump:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a kdump_t
+can be used to make the process type kdump_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  kdump policy is extremely flexible and has several booleans that allow you to manipulate the policy and run kdump with the tightest access possible.
+
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the kdumpgui_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the kdumpgui_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type.
@@ -43,7 +113,20 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux kdump policy is very flexible allowing users to setup their kdump processes in as secure a method as possible.
 .PP
-The following file types are defined for kdump:
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the kdump, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t kdump_etc_t '/srv/kdump/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mykdump_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for kdump:
 
 
 .EX
@@ -61,6 +144,10 @@ The following file types are defined for kdump:
 
 - Set files with the kdump_exec_t type, if you want to transition an executable to the kdump_t domain.
 
+.br
+.TP 5
+Paths:
+/sbin/kdump, /sbin/kexec, /usr/sbin/kdump, /usr/sbin/kexec
 
 .EX
 .PP
@@ -117,22 +204,6 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the kdumpgui_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the kdumpgui_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
-
 .SH "COMMANDS"
 .B semanage fcontext
 can also be used to manipulate default file context mappings.
@@ -142,6 +213,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
 
 .PP
 .B system-config-selinux
@@ -154,4 +228,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), kdump(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
-, kdumpctl_selinux(8), kdumpgui_selinux(8)
+, setsebool(8), kdumpctl_selinux(8), kdumpgui_selinux(8)

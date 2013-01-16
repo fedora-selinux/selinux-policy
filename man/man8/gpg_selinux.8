@@ -1,4 +1,4 @@
-.TH  "gpg_selinux"  "8"  "12-11-01" "gpg" "SELinux Policy documentation for gpg"
+.TH  "gpg_selinux"  "8"  "13-01-16" "gpg" "SELinux Policy documentation for gpg"
 .SH "NAME"
 gpg_selinux \- Security Enhanced Linux Policy for the gpg processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The gpg_t SELinux type can be entered via the "gpg_exec_t" file type.  The default entrypoint paths for the gpg_t domain are the following:"
+The gpg_t SELinux type can be entered via the \fBgpg_exec_t\fP file type.
+
+The default entrypoint paths for the gpg_t domain are the following:
 
 /usr/bin/gpg(2)?, /usr/lib/gnupg/.*, /usr/bin/gpgsm
 .SH PROCESS TYPES
@@ -32,151 +34,160 @@ The following process types are defined for gpg:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a gpg_t
+can be used to make the process type gpg_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  gpg policy is extremely flexible and has several booleans that allow you to manipulate the policy and run gpg with the tightest access possible.
 
 
 .PP
-If you want to allow httpd to run gpg, you must turn on the httpd_use_gpg boolean.
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
 
 .EX
-.B setsebool -P httpd_use_gpg 1
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
 .EE
 
 .PP
-If you want to allow usage of the gpg-agent --write-env-file option. This also allows gpg-agent to manage user files, you must turn on the gpg_agent_env_file boolean.
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
 
 .EX
-.B setsebool -P gpg_agent_env_file 1
+.B setsebool -P deny_ptrace 1
+
 .EE
 
 .PP
-If you want to allow httpd to run gpg, you must turn on the httpd_use_gpg boolean.
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
 
 .EX
-.B setsebool -P httpd_use_gpg 1
+.B setsebool -P domain_fd_use 1
+
 .EE
 
 .PP
-If you want to allow usage of the gpg-agent --write-env-file option. This also allows gpg-agent to manage user files, you must turn on the gpg_agent_env_file boolean.
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
 
 .EX
-.B setsebool -P gpg_agent_env_file 1
-.EE
+.B setsebool -P domain_kernel_load_modules 1
 
-.SH SHARING FILES
-If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
-.TP
-Allow gpg servers to read the /var/gpg directory by adding the public_content_t file type to the directory and by restoring the file type.
-.PP
-.B
-semanage fcontext -a -t public_content_t "/var/gpg(/.*)?"
-.br
-.B restorecon -F -R -v /var/gpg
-.pp
-.TP
-Allow gpg servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_gpgd_anon_write boolean to be set.
-.PP
-.B
-semanage fcontext -a -t public_content_rw_t "/var/gpg/incoming(/.*)?"
-.br
-.B restorecon -F -R -v /var/gpg/incoming
-
-
-.PP
-If you want to allow gpg web domain to modify public files used for public file transfer services., you must turn on the gpg_web_anon_write boolean.
-
-.EX
-.B setsebool -P gpg_web_anon_write 1
 .EE
 
 .PP
-If you want to allow gpg web domain to modify public files used for public file transfer services., you must turn on the gpg_web_anon_write boolean.
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
 
 .EX
-.B setsebool -P gpg_web_anon_write 1
+.B setsebool -P fips_mode 1
+
 .EE
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
 .PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux gpg policy is very flexible allowing users to setup their gpg processes in as secure a method as possible.
-.PP
-The following file types are defined for gpg:
-
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
 
 .EX
-.PP
-.B gpg_agent_exec_t
+.B setsebool -P global_ssp 1
+
 .EE
 
-- Set files with the gpg_agent_exec_t type, if you want to transition an executable to the gpg_agent_t domain.
-
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
 
 .EX
-.PP
-.B gpg_agent_tmp_t
+.B setsebool -P kerberos_enabled 1
+
 .EE
 
-- Set files with the gpg_agent_tmp_t type, if you want to store gpg agent temporary files in the /tmp directories.
-
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
 
 .EX
-.PP
-.B gpg_exec_t
+.B setsebool -P nis_enabled 1
+
 .EE
 
-- Set files with the gpg_exec_t type, if you want to transition an executable to the gpg_t domain.
-
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
 
 .EX
-.PP
-.B gpg_helper_exec_t
+.B setsebool -P nscd_use_shm 1
+
 .EE
 
-- Set files with the gpg_helper_exec_t type, if you want to transition an executable to the gpg_helper_t domain.
-
+.PP
+If you want to support ecryptfs home directories, you must turn on the use_ecryptfs_home_dirs boolean. Disabled by default.
 
 .EX
-.PP
-.B gpg_pinentry_tmp_t
+.B setsebool -P use_ecryptfs_home_dirs 1
+
 .EE
 
-- Set files with the gpg_pinentry_tmp_t type, if you want to store gpg pinentry temporary files in the /tmp directories.
-
+.PP
+If you want to support fusefs home directories, you must turn on the use_fusefs_home_dirs boolean. Disabled by default.
 
 .EX
-.PP
-.B gpg_pinentry_tmpfs_t
+.B setsebool -P use_fusefs_home_dirs 1
+
 .EE
 
-- Set files with the gpg_pinentry_tmpfs_t type, if you want to store gpg pinentry files on a tmpfs file system.
-
+.PP
+If you want to support NFS home directories, you must turn on the use_nfs_home_dirs boolean. Enabled by default.
 
 .EX
-.PP
-.B gpg_secret_t
+.B setsebool -P use_nfs_home_dirs 1
+
 .EE
 
-- Set files with the gpg_secret_t type, if you want to treat the files as gpg se secret data.
+.PP
+If you want to support SAMBA home directories, you must turn on the use_samba_home_dirs boolean. Disabled by default.
 
+.EX
+.B setsebool -P use_samba_home_dirs 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "MANAGED FILES"
 
 The SELinux process type gpg_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B cifs_t
+
+
+.br
+.B ecryptfs_t
+
+	/home/[^/]*/\.Private(/.*)?
+.br
+	/home/[^/]*/\.ecryptfs(/.*)?
+.br
+	/home/pwalsh/\.Private(/.*)?
+.br
+	/home/pwalsh/\.ecryptfs(/.*)?
+.br
+	/home/dwalsh/\.Private(/.*)?
+.br
+	/home/dwalsh/\.ecryptfs(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.Private(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.ecryptfs(/.*)?
+.br
 
 .br
 .B etc_mail_t
@@ -185,9 +196,19 @@ The SELinux process type gpg_t can manage files labeled with the following file 
 .br
 
 .br
+.B fusefs_t
+
+
+.br
+.B gnome_home_type
+
+
+.br
 .B gpg_agent_tmp_t
 
 	/home/[^/]*/\.gnupg/log-socket
+.br
+	/home/pwalsh/\.gnupg/log-socket
 .br
 	/home/dwalsh/\.gnupg/log-socket
 .br
@@ -203,6 +224,8 @@ The SELinux process type gpg_t can manage files labeled with the following file 
 .br
 	/home/[^/]*/\.gnupg(/.+)?
 .br
+	/home/pwalsh/\.gnupg(/.+)?
+.br
 	/home/dwalsh/\.gnupg(/.+)?
 .br
 	/var/lib/xguest/home/xguest/\.gnupg(/.+)?
@@ -211,6 +234,8 @@ The SELinux process type gpg_t can manage files labeled with the following file 
 .br
 .B mozilla_home_t
 
+	/home/[^/]*/\.lyx(/.*)?
+.br
 	/home/[^/]*/\.java(/.*)?
 .br
 	/home/[^/]*/\.adobe(/.*)?
@@ -241,6 +266,40 @@ The SELinux process type gpg_t can manage files labeled with the following file 
 .br
 	/home/[^/]*/\.config/chromium(/.*)?
 .br
+	/home/pwalsh/\.lyx(/.*)?
+.br
+	/home/pwalsh/\.java(/.*)?
+.br
+	/home/pwalsh/\.adobe(/.*)?
+.br
+	/home/pwalsh/\.gnash(/.*)?
+.br
+	/home/pwalsh/\.galeon(/.*)?
+.br
+	/home/pwalsh/\.spicec(/.*)?
+.br
+	/home/pwalsh/\.mozilla(/.*)?
+.br
+	/home/pwalsh/\.phoenix(/.*)?
+.br
+	/home/pwalsh/\.netscape(/.*)?
+.br
+	/home/pwalsh/\.ICAClient(/.*)?
+.br
+	/home/pwalsh/\.macromedia(/.*)?
+.br
+	/home/pwalsh/\.thunderbird(/.*)?
+.br
+	/home/pwalsh/\.gcjwebplugin(/.*)?
+.br
+	/home/pwalsh/\.icedteaplugin(/.*)?
+.br
+	/home/pwalsh/zimbrauserdata(/.*)?
+.br
+	/home/pwalsh/\.config/chromium(/.*)?
+.br
+	/home/dwalsh/\.lyx(/.*)?
+.br
 	/home/dwalsh/\.java(/.*)?
 .br
 	/home/dwalsh/\.adobe(/.*)?
@@ -270,6 +329,8 @@ The SELinux process type gpg_t can manage files labeled with the following file 
 	/home/dwalsh/zimbrauserdata(/.*)?
 .br
 	/home/dwalsh/\.config/chromium(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.lyx(/.*)?
 .br
 	/var/lib/xguest/home/xguest/\.java(/.*)?
 .br
@@ -303,9 +364,15 @@ The SELinux process type gpg_t can manage files labeled with the following file 
 .br
 
 .br
+.B nfs_t
+
+
+.br
 .B user_home_t
 
 	/home/[^/]*/.+
+.br
+	/home/pwalsh/.+
 .br
 	/home/dwalsh/.+
 .br
@@ -318,21 +385,104 @@ The SELinux process type gpg_t can manage files labeled with the following file 
 	all user tmp files
 .br
 
-.SH NSSWITCH DOMAIN
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux gpg policy is very flexible allowing users to setup their gpg processes in as secure a method as possible.
+.PP
 
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the gpg, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t gpg_agent_exec_t '/srv/gpg/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mygpg_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for gpg:
+
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.PP
+.B gpg_agent_exec_t
 .EE
+
+- Set files with the gpg_agent_exec_t type, if you want to transition an executable to the gpg_agent_t domain.
+
+
+.EX
+.PP
+.B gpg_agent_tmp_t
+.EE
+
+- Set files with the gpg_agent_tmp_t type, if you want to store gpg agent temporary files in the /tmp directories.
+
+.br
+.TP 5
+Paths:
+/home/[^/]*/\.gnupg/log-socket, /home/pwalsh/\.gnupg/log-socket, /home/dwalsh/\.gnupg/log-socket, /var/lib/xguest/home/xguest/\.gnupg/log-socket
+
+.EX
+.PP
+.B gpg_exec_t
+.EE
+
+- Set files with the gpg_exec_t type, if you want to transition an executable to the gpg_t domain.
+
+.br
+.TP 5
+Paths:
+/usr/bin/gpg(2)?, /usr/lib/gnupg/.*, /usr/bin/gpgsm
+
+.EX
+.PP
+.B gpg_helper_exec_t
+.EE
+
+- Set files with the gpg_helper_exec_t type, if you want to transition an executable to the gpg_helper_t domain.
+
+
+.EX
+.PP
+.B gpg_pinentry_tmp_t
+.EE
+
+- Set files with the gpg_pinentry_tmp_t type, if you want to store gpg pinentry temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B gpg_pinentry_tmpfs_t
+.EE
+
+- Set files with the gpg_pinentry_tmpfs_t type, if you want to store gpg pinentry files on a tmpfs file system.
+
+
+.EX
+.PP
+.B gpg_secret_t
+.EE
+
+- Set files with the gpg_secret_t type, if you want to treat the files as gpg se secret data.
+
+.br
+.TP 5
+Paths:
+/root/\.gnupg(/.+)?, /etc/mail/spamassassin/sa-update-keys(/.*)?, /home/[^/]*/\.gnupg(/.+)?, /home/pwalsh/\.gnupg(/.+)?, /home/dwalsh/\.gnupg(/.+)?, /var/lib/xguest/home/xguest/\.gnupg(/.+)?
 
 .PP
-If you want to allow confined applications to run with kerberos for the gpg_t, gpg_helper_t, gpg_pinentry_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -358,4 +508,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), gpg(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
-, setsebool(8), gpg_agent_selinux(8), gpg_helper_selinux(8)
+, setsebool(8), gpg_agent_selinux(8), gpg_helper_selinux(8), gpg_pinentry_selinux(8), gpg_web_selinux(8)

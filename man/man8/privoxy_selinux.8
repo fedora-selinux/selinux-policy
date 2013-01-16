@@ -1,4 +1,4 @@
-.TH  "privoxy_selinux"  "8"  "12-11-01" "privoxy" "SELinux Policy documentation for privoxy"
+.TH  "privoxy_selinux"  "8"  "13-01-16" "privoxy" "SELinux Policy documentation for privoxy"
 .SH "NAME"
 privoxy_selinux \- Security Enhanced Linux Policy for the privoxy processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The privoxy_t SELinux type can be entered via the "privoxy_exec_t" file type.  The default entrypoint paths for the privoxy_t domain are the following:"
+The privoxy_t SELinux type can be entered via the \fBprivoxy_exec_t\fP file type.
+
+The default entrypoint paths for the privoxy_t domain are the following:
 
 /usr/sbin/privoxy
 .SH PROCESS TYPES
@@ -32,26 +34,156 @@ The following process types are defined for privoxy:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a privoxy_t
+can be used to make the process type privoxy_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  privoxy policy is extremely flexible and has several booleans that allow you to manipulate the policy and run privoxy with the tightest access possible.
 
 
 .PP
-If you want to allow privoxy to connect to all ports, not just HTTP, FTP, and Gopher ports, you must turn on the privoxy_connect_any boolean.
+If you want to determine whether privoxy can connect to all tcp ports, you must turn on the privoxy_connect_any boolean. Enabled by default.
 
 .EX
 .B setsebool -P privoxy_connect_any 1
+
 .EE
 
 .PP
-If you want to allow privoxy to connect to all ports, not just HTTP, FTP, and Gopher ports, you must turn on the privoxy_connect_any boolean.
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
 
 .EX
-.B setsebool -P privoxy_connect_any 1
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
 .EE
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_dump_core 1
+
+.EE
+
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the privoxy_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the privoxy_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type privoxy_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B privoxy_etc_rw_t
+
+	/etc/privoxy/[^/]*\.action
+.br
+
+.br
+.B privoxy_var_run_t
+
+	/var/run/privoxy\.pid
+.br
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type.
@@ -61,7 +193,20 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux privoxy policy is very flexible allowing users to setup their privoxy processes in as secure a method as possible.
 .PP
-The following file types are defined for privoxy:
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the privoxy, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t privoxy_etc_rw_t '/srv/privoxy/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myprivoxy_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for privoxy:
 
 
 .EX
@@ -101,7 +246,7 @@ The following file types are defined for privoxy:
 .B privoxy_var_run_t
 .EE
 
-- Set files with the privoxy_var_run_t type, if you want to store the privoxy files under the /run directory.
+- Set files with the privoxy_var_run_t type, if you want to store the privoxy files under the /run or /var/run directory.
 
 
 .PP
@@ -110,42 +255,6 @@ Note: File context can be temporarily modified with the chcon command.  If you w
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
-
-.SH "MANAGED FILES"
-
-The SELinux process type privoxy_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
-
-.br
-.B privoxy_etc_rw_t
-
-	/etc/privoxy/[^/]*\.action
-.br
-
-.br
-.B privoxy_log_t
-
-	/var/log/privoxy(/.*)?
-.br
-
-.br
-.B privoxy_var_run_t
-
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the privoxy_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the privoxy_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

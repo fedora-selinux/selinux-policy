@@ -1,4 +1,4 @@
-.TH  "httpd_rotatelogs_selinux"  "8"  "12-11-01" "httpd_rotatelogs" "SELinux Policy documentation for httpd_rotatelogs"
+.TH  "httpd_rotatelogs_selinux"  "8"  "13-01-16" "httpd_rotatelogs" "SELinux Policy documentation for httpd_rotatelogs"
 .SH "NAME"
 httpd_rotatelogs_selinux \- Security Enhanced Linux Policy for the httpd_rotatelogs processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The httpd_rotatelogs_t SELinux type can be entered via the "httpd_rotatelogs_exec_t" file type.  The default entrypoint paths for the httpd_rotatelogs_t domain are the following:"
+The httpd_rotatelogs_t SELinux type can be entered via the \fBhttpd_rotatelogs_exec_t\fP file type.
+
+The default entrypoint paths for the httpd_rotatelogs_t domain are the following:
 
 /usr/sbin/rotatelogs
 .SH PROCESS TYPES
@@ -32,34 +34,76 @@ The following process types are defined for httpd_rotatelogs:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a httpd_rotatelogs_t
+can be used to make the process type httpd_rotatelogs_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
-.PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux httpd_rotatelogs policy is very flexible allowing users to setup their httpd_rotatelogs processes in as secure a method as possible.
-.PP
-The following file types are defined for httpd_rotatelogs:
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  httpd_rotatelogs policy is extremely flexible and has several booleans that allow you to manipulate the policy and run httpd_rotatelogs with the tightest access possible.
 
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
 
 .EX
-.PP
-.B httpd_rotatelogs_exec_t
+.B setsebool -P daemons_dump_core 1
+
 .EE
 
-- Set files with the httpd_rotatelogs_exec_t type, if you want to transition an executable to the httpd_rotatelogs_t domain.
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
 
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
 
 .SH "MANAGED FILES"
 
@@ -75,6 +119,8 @@ The SELinux process type httpd_rotatelogs_t can manage files labeled with the fo
 	/var/log/httpd(/.*)?
 .br
 	/var/log/apache(2)?(/.*)?
+.br
+	/var/log/php-fpm(/.*)?
 .br
 	/var/log/cherokee(/.*)?
 .br
@@ -92,10 +138,63 @@ The SELinux process type httpd_rotatelogs_t can manage files labeled with the fo
 .br
 	/var/log/dirsrv/admin-serv(/.*)?
 .br
+	/var/lib/openshift/\.log/httpd(/.*)?
+.br
+	/var/www/openshift/console/log(/.*)?
+.br
+	/var/www/openshift/broker/httpd/logs(/.*)?
+.br
+	/var/www/openshift/console/httpd/logs(/.*)?
+.br
 	/etc/httpd/logs
 .br
 
-.SH NSSWITCH DOMAIN
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
+
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux httpd_rotatelogs policy is very flexible allowing users to setup their httpd_rotatelogs processes in as secure a method as possible.
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the httpd_rotatelogs, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t httpd_rotatelogs_exec_t '/srv/httpd_rotatelogs/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myhttpd_rotatelogs_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for httpd_rotatelogs:
+
+
+.EX
+.PP
+.B httpd_rotatelogs_exec_t
+.EE
+
+- Set files with the httpd_rotatelogs_exec_t type, if you want to transition an executable to the httpd_rotatelogs_t domain.
+
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -106,6 +205,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
 
 .PP
 .B system-config-selinux
@@ -118,4 +220,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), httpd_rotatelogs(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
-, httpd_selinux(8), httpd_selinux(8), httpd_apcupsd_cgi_script_selinux(8), httpd_awstats_script_selinux(8), httpd_bugzilla_script_selinux(8), httpd_cobbler_script_selinux(8), httpd_collectd_script_selinux(8), httpd_cvs_script_selinux(8), httpd_dirsrvadmin_script_selinux(8), httpd_dspam_script_selinux(8), httpd_git_script_selinux(8), httpd_helper_selinux(8), httpd_man2html_script_selinux(8), httpd_mediawiki_script_selinux(8), httpd_mojomojo_script_selinux(8), httpd_munin_script_selinux(8), httpd_nagios_script_selinux(8), httpd_nutups_cgi_script_selinux(8), httpd_openshift_script_selinux(8), httpd_passwd_selinux(8), httpd_php_selinux(8), httpd_prewikka_script_selinux(8), httpd_smokeping_cgi_script_selinux(8), httpd_squid_script_selinux(8), httpd_suexec_selinux(8), httpd_sys_script_selinux(8), httpd_user_script_selinux(8), httpd_w3c_validator_script_selinux(8), httpd_zoneminder_script_selinux(8)
+, setsebool(8), httpd_selinux(8), httpd_selinux(8), httpd_apcupsd_cgi_script_selinux(8), httpd_awstats_script_selinux(8), httpd_bugzilla_script_selinux(8), httpd_collectd_script_selinux(8), httpd_cvs_script_selinux(8), httpd_dirsrvadmin_script_selinux(8), httpd_dspam_script_selinux(8), httpd_git_script_selinux(8), httpd_helper_selinux(8), httpd_man2html_script_selinux(8), httpd_mediawiki_script_selinux(8), httpd_mojomojo_script_selinux(8), httpd_munin_script_selinux(8), httpd_mythtv_script_selinux(8), httpd_nagios_script_selinux(8), httpd_nutups_cgi_script_selinux(8), httpd_openshift_script_selinux(8), httpd_passwd_selinux(8), httpd_php_selinux(8), httpd_prewikka_script_selinux(8), httpd_smokeping_cgi_script_selinux(8), httpd_squid_script_selinux(8), httpd_suexec_selinux(8), httpd_sys_script_selinux(8), httpd_user_script_selinux(8), httpd_w3c_validator_script_selinux(8), httpd_webalizer_script_selinux(8), httpd_zoneminder_script_selinux(8)

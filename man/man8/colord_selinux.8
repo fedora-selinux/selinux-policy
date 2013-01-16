@@ -1,4 +1,4 @@
-.TH  "colord_selinux"  "8"  "12-11-01" "colord" "SELinux Policy documentation for colord"
+.TH  "colord_selinux"  "8"  "13-01-16" "colord" "SELinux Policy documentation for colord"
 .SH "NAME"
 colord_selinux \- Security Enhanced Linux Policy for the colord processes
 .SH "DESCRIPTION"
@@ -14,9 +14,11 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The colord_t SELinux type can be entered via the "colord_exec_t" file type.  The default entrypoint paths for the colord_t domain are the following:"
+The colord_t SELinux type can be entered via the \fBcolord_exec_t\fP file type.
 
-/usr/libexec/colord, /usr/libexec/colord-sane
+The default entrypoint paths for the colord_t domain are the following:
+
+/usr/lib/[^/]*/colord/colord, /usr/lib/[^/]*/colord/colord-sane, /usr/libexec/colord, /usr/libexec/colord-sane
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
 .PP
@@ -32,8 +34,196 @@ The following process types are defined for colord:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a colord_t
+can be used to make the process type colord_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  colord policy is extremely flexible and has several booleans that allow you to manipulate the policy and run colord with the tightest access possible.
+
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
+.EE
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_dump_core 1
+
+.EE
+
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.PP
+If you want to support ecryptfs home directories, you must turn on the use_ecryptfs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_ecryptfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support fusefs home directories, you must turn on the use_fusefs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_fusefs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support NFS home directories, you must turn on the use_nfs_home_dirs boolean. Enabled by default.
+
+.EX
+.B setsebool -P use_nfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support SAMBA home directories, you must turn on the use_samba_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_samba_home_dirs 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the colord_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the colord_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type colord_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B colord_tmp_t
+
+
+.br
+.B colord_tmpfs_t
+
+
+.br
+.B colord_var_lib_t
+
+	/var/lib/color(/.*)?
+.br
+	/var/lib/colord(/.*)?
+.br
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
+
+.br
+.B user_tmpfs_t
+
+	/dev/shm/mono.*
+.br
+	/dev/shm/pulse-shm.*
+.br
+
+.br
+.B zoneminder_tmpfs_t
+
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type.
@@ -43,7 +233,31 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux colord policy is very flexible allowing users to setup their colord processes in as secure a method as possible.
 .PP
-The following file types are defined for colord:
+
+.PP
+.B EQUIVALENCE DIRECTORIES
+
+.PP
+colord policy stores data with multiple different file context types under the /var/lib/color directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/lib/color /srv/color
+.br
+.B restorecon -R -v /srv/color
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the colord, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t colord_exec_t '/srv/colord/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mycolord_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for colord:
 
 
 .EX
@@ -53,6 +267,10 @@ The following file types are defined for colord:
 
 - Set files with the colord_exec_t type, if you want to transition an executable to the colord_t domain.
 
+.br
+.TP 5
+Paths:
+/usr/lib/[^/]*/colord/colord, /usr/lib/[^/]*/colord/colord-sane, /usr/libexec/colord, /usr/libexec/colord-sane
 
 .EX
 .PP
@@ -85,6 +303,10 @@ The following file types are defined for colord:
 
 - Set files with the colord_var_lib_t type, if you want to store the colord files under the /var/lib directory.
 
+.br
+.TP 5
+Paths:
+/var/lib/color(/.*)?, /var/lib/colord(/.*)?
 
 .PP
 Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
@@ -92,54 +314,6 @@ Note: File context can be temporarily modified with the chcon command.  If you w
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
-
-.SH "MANAGED FILES"
-
-The SELinux process type colord_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
-
-.br
-.B colord_tmp_t
-
-
-.br
-.B colord_tmpfs_t
-
-
-.br
-.B colord_var_lib_t
-
-	/var/lib/color(/.*)?
-.br
-	/var/lib/colord(/.*)?
-.br
-
-.br
-.B user_tmpfs_t
-
-	/dev/shm/mono.*
-.br
-	/dev/shm/pulse-shm.*
-.br
-
-.br
-.B zoneminder_tmpfs_t
-
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the colord_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the colord_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -150,6 +324,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
 
 .PP
 .B system-config-selinux
@@ -162,3 +339,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), colord(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)

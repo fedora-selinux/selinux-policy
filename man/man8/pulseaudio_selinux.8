@@ -1,4 +1,4 @@
-.TH  "pulseaudio_selinux"  "8"  "12-11-01" "pulseaudio" "SELinux Policy documentation for pulseaudio"
+.TH  "pulseaudio_selinux"  "8"  "13-01-16" "pulseaudio" "SELinux Policy documentation for pulseaudio"
 .SH "NAME"
 pulseaudio_selinux \- Security Enhanced Linux Policy for the pulseaudio processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The pulseaudio_t SELinux type can be entered via the "pulseaudio_exec_t" file type.  The default entrypoint paths for the pulseaudio_t domain are the following:"
+The pulseaudio_t SELinux type can be entered via the \fBpulseaudio_exec_t\fP file type.
+
+The default entrypoint paths for the pulseaudio_t domain are the following:
 
 /usr/bin/pulseaudio
 .SH PROCESS TYPES
@@ -32,66 +34,164 @@ The following process types are defined for pulseaudio:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a pulseaudio_t
+can be used to make the process type pulseaudio_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
-.PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux pulseaudio policy is very flexible allowing users to setup their pulseaudio processes in as secure a method as possible.
-.PP
-The following file types are defined for pulseaudio:
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  pulseaudio policy is extremely flexible and has several booleans that allow you to manipulate the policy and run pulseaudio with the tightest access possible.
 
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
 
 .EX
-.PP
-.B pulseaudio_exec_t
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
 .EE
 
-- Set files with the pulseaudio_exec_t type, if you want to transition an executable to the pulseaudio_t domain.
-
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
 
 .EX
-.PP
-.B pulseaudio_home_t
+.B setsebool -P daemons_dump_core 1
+
 .EE
 
-- Set files with the pulseaudio_home_t type, if you want to store pulseaudio files in the users home directory.
-
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
 
 .EX
-.PP
-.B pulseaudio_tmpfs_t
+.B setsebool -P daemons_use_tcp_wrapper 1
+
 .EE
 
-- Set files with the pulseaudio_tmpfs_t type, if you want to store pulseaudio files on a tmpfs file system.
-
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
 
 .EX
-.PP
-.B pulseaudio_var_lib_t
+.B setsebool -P daemons_use_tty 1
+
 .EE
 
-- Set files with the pulseaudio_var_lib_t type, if you want to store the pulseaudio files under the /var/lib directory.
-
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
 
 .EX
-.PP
-.B pulseaudio_var_run_t
+.B setsebool -P deny_ptrace 1
+
 .EE
 
-- Set files with the pulseaudio_var_run_t type, if you want to store the pulseaudio files under the /run directory.
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
 
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.PP
+If you want to allow regular users direct dri device access, you must turn on the selinuxuser_direct_dri_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P selinuxuser_direct_dri_enabled 1
+
+.EE
+
+.PP
+If you want to support NFS home directories, you must turn on the use_nfs_home_dirs boolean. Enabled by default.
+
+.EX
+.B setsebool -P use_nfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support SAMBA home directories, you must turn on the use_samba_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_samba_home_dirs 1
+
+.EE
+
+.PP
+If you want to allows clients to write to the X server shared memory segments, you must turn on the xserver_clients_write_xshm boolean. Disabled by default.
+
+.EX
+.B setsebool -P xserver_clients_write_xshm 1
+
+.EE
+
+.PP
+If you want to support X userspace object manager, you must turn on the xserver_object_manager boolean. Enabled by default.
+
+.EX
+.B setsebool -P xserver_object_manager 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the pulseaudio_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the pulseaudio_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH PORT TYPES
 SELinux defines port types to represent TCP and UDP ports.
@@ -127,15 +227,23 @@ The SELinux process type pulseaudio_t can manage files labeled with the followin
 
 
 .br
+.B cifs_t
+
+
+.br
 .B gstreamer_home_t
 
 	/var/run/user/[^/]*/\.orc(/.*)?
 .br
 	/root/\.gstreamer-.*
 .br
+	/root/\.cache/gstreamer-.*
+.br
 	/home/[^/]*/\.orc(/.*)?
 .br
 	/home/[^/]*/\.gstreamer-.*
+.br
+	/home/[^/]*/\.cache/gstreamer-.*
 .br
 	/home/[^/]*/\.grl-bookmarks
 .br
@@ -143,9 +251,23 @@ The SELinux process type pulseaudio_t can manage files labeled with the followin
 .br
 	/home/[^/]*/\.grl-metadata-store
 .br
+	/home/pwalsh/\.orc(/.*)?
+.br
+	/home/pwalsh/\.gstreamer-.*
+.br
+	/home/pwalsh/\.cache/gstreamer-.*
+.br
+	/home/pwalsh/\.grl-bookmarks
+.br
+	/home/pwalsh/\.grl-bookmarks
+.br
+	/home/pwalsh/\.grl-metadata-store
+.br
 	/home/dwalsh/\.orc(/.*)?
 .br
 	/home/dwalsh/\.gstreamer-.*
+.br
+	/home/dwalsh/\.cache/gstreamer-.*
 .br
 	/home/dwalsh/\.grl-bookmarks
 .br
@@ -157,6 +279,8 @@ The SELinux process type pulseaudio_t can manage files labeled with the followin
 .br
 	/var/lib/xguest/home/xguest/\.gstreamer-.*
 .br
+	/var/lib/xguest/home/xguest/\.cache/gstreamer-.*
+.br
 	/var/lib/xguest/home/xguest/\.grl-bookmarks
 .br
 	/var/lib/xguest/home/xguest/\.grl-bookmarks
@@ -165,9 +289,15 @@ The SELinux process type pulseaudio_t can manage files labeled with the followin
 .br
 
 .br
+.B nfs_t
+
+
+.br
 .B pulseaudio_home_t
 
 	/root/\.pulse(/.*)?
+.br
+	/root/\.config/pulse(/.*)?
 .br
 	/root/\.esd_auth
 .br
@@ -175,17 +305,31 @@ The SELinux process type pulseaudio_t can manage files labeled with the followin
 .br
 	/home/[^/]*/\.pulse(/.*)?
 .br
+	/home/[^/]*/\.config/pulse(/.*)?
+.br
 	/home/[^/]*/\.esd_auth
 .br
 	/home/[^/]*/\.pulse-cookie
 .br
+	/home/pwalsh/\.pulse(/.*)?
+.br
+	/home/pwalsh/\.config/pulse(/.*)?
+.br
+	/home/pwalsh/\.esd_auth
+.br
+	/home/pwalsh/\.pulse-cookie
+.br
 	/home/dwalsh/\.pulse(/.*)?
+.br
+	/home/dwalsh/\.config/pulse(/.*)?
 .br
 	/home/dwalsh/\.esd_auth
 .br
 	/home/dwalsh/\.pulse-cookie
 .br
 	/var/lib/xguest/home/xguest/\.pulse(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.config/pulse(/.*)?
 .br
 	/var/lib/xguest/home/xguest/\.esd_auth
 .br
@@ -205,6 +349,14 @@ The SELinux process type pulseaudio_t can manage files labeled with the followin
 .br
 
 .br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
+
+.br
 .B user_fonts_cache_t
 
 	/root/\.fontconfig(/.*)?
@@ -218,6 +370,12 @@ The SELinux process type pulseaudio_t can manage files labeled with the followin
 	/home/[^/]*/\.fonts/auto(/.*)?
 .br
 	/home/[^/]*/\.fonts\.cache-.*
+.br
+	/home/pwalsh/\.fontconfig(/.*)?
+.br
+	/home/pwalsh/\.fonts/auto(/.*)?
+.br
+	/home/pwalsh/\.fonts\.cache-.*
 .br
 	/home/dwalsh/\.fontconfig(/.*)?
 .br
@@ -258,21 +416,95 @@ The SELinux process type pulseaudio_t can manage files labeled with the followin
 	/tmp/\.X0-lock
 .br
 
-.SH NSSWITCH DOMAIN
+.br
+.B xserver_tmpfs_t
+
+
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux pulseaudio policy is very flexible allowing users to setup their pulseaudio processes in as secure a method as possible.
+.PP
 
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the pulseaudio_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
+.B EQUIVALENCE DIRECTORIES
 
 .PP
-If you want to allow confined applications to run with kerberos for the pulseaudio_t, you must turn on the kerberos_enabled boolean.
+pulseaudio policy stores data with multiple different file context types under the /var/lib/xguest/home/xguest/\.pulse directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/lib/xguest/home/xguest/\.pulse /srv/\.pulse
+.br
+.B restorecon -R -v /srv/\.pulse
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the pulseaudio, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t pulseaudio_exec_t '/srv/pulseaudio/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mypulseaudio_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for pulseaudio:
+
 
 .EX
-.B setsebool -P kerberos_enabled 1
+.PP
+.B pulseaudio_exec_t
 .EE
+
+- Set files with the pulseaudio_exec_t type, if you want to transition an executable to the pulseaudio_t domain.
+
+
+.EX
+.PP
+.B pulseaudio_home_t
+.EE
+
+- Set files with the pulseaudio_home_t type, if you want to store pulseaudio files in the users home directory.
+
+.br
+.TP 5
+Paths:
+/root/\.pulse(/.*)?, /root/\.config/pulse(/.*)?, /root/\.esd_auth, /root/\.pulse-cookie, /home/[^/]*/\.pulse(/.*)?, /home/[^/]*/\.config/pulse(/.*)?, /home/[^/]*/\.esd_auth, /home/[^/]*/\.pulse-cookie, /home/pwalsh/\.pulse(/.*)?, /home/pwalsh/\.config/pulse(/.*)?, /home/pwalsh/\.esd_auth, /home/pwalsh/\.pulse-cookie, /home/dwalsh/\.pulse(/.*)?, /home/dwalsh/\.config/pulse(/.*)?, /home/dwalsh/\.esd_auth, /home/dwalsh/\.pulse-cookie, /var/lib/xguest/home/xguest/\.pulse(/.*)?, /var/lib/xguest/home/xguest/\.config/pulse(/.*)?, /var/lib/xguest/home/xguest/\.esd_auth, /var/lib/xguest/home/xguest/\.pulse-cookie
+
+.EX
+.PP
+.B pulseaudio_tmpfs_t
+.EE
+
+- Set files with the pulseaudio_tmpfs_t type, if you want to store pulseaudio files on a tmpfs file system.
+
+
+.EX
+.PP
+.B pulseaudio_var_lib_t
+.EE
+
+- Set files with the pulseaudio_var_lib_t type, if you want to store the pulseaudio files under the /var/lib directory.
+
+
+.EX
+.PP
+.B pulseaudio_var_run_t
+.EE
+
+- Set files with the pulseaudio_var_run_t type, if you want to store the pulseaudio files under the /run or /var/run directory.
+
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -287,6 +519,9 @@ can also be used to enable/disable/install/remove policy modules.
 .B semanage port
 can also be used to manipulate the port definitions
 
+.B semanage boolean
+can also be used to manipulate the booleans
+
 .PP
 .B system-config-selinux
 is a GUI tool available to customize SELinux policy settings.
@@ -298,3 +533,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), pulseaudio(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)

@@ -1,4 +1,4 @@
-.TH  "tvtime_selinux"  "8"  "12-11-01" "tvtime" "SELinux Policy documentation for tvtime"
+.TH  "tvtime_selinux"  "8"  "13-01-16" "tvtime" "SELinux Policy documentation for tvtime"
 .SH "NAME"
 tvtime_selinux \- Security Enhanced Linux Policy for the tvtime processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The tvtime_t SELinux type can be entered via the "tvtime_exec_t" file type.  The default entrypoint paths for the tvtime_t domain are the following:"
+The tvtime_t SELinux type can be entered via the \fBtvtime_exec_t\fP file type.
+
+The default entrypoint paths for the tvtime_t domain are the following:
 
 /usr/bin/tvtime
 .SH PROCESS TYPES
@@ -32,66 +34,204 @@ The following process types are defined for tvtime:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a tvtime_t
+can be used to make the process type tvtime_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
-.PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux tvtime policy is very flexible allowing users to setup their tvtime processes in as secure a method as possible.
-.PP
-The following file types are defined for tvtime:
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  tvtime policy is extremely flexible and has several booleans that allow you to manipulate the policy and run tvtime with the tightest access possible.
 
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
 
 .EX
-.PP
-.B tvtime_exec_t
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
 .EE
 
-- Set files with the tvtime_exec_t type, if you want to transition an executable to the tvtime_t domain.
-
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
 
 .EX
-.PP
-.B tvtime_home_t
+.B setsebool -P deny_ptrace 1
+
 .EE
 
-- Set files with the tvtime_home_t type, if you want to store tvtime files in the users home directory.
-
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
 
 .EX
-.PP
-.B tvtime_tmp_t
+.B setsebool -P domain_fd_use 1
+
 .EE
 
-- Set files with the tvtime_tmp_t type, if you want to store tvtime temporary files in the /tmp directories.
-
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
 
 .EX
-.PP
-.B tvtime_tmpfs_t
+.B setsebool -P domain_kernel_load_modules 1
+
 .EE
 
-- Set files with the tvtime_tmpfs_t type, if you want to store tvtime files on a tmpfs file system.
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
 
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.PP
+If you want to allow regular users direct dri device access, you must turn on the selinuxuser_direct_dri_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P selinuxuser_direct_dri_enabled 1
+
+.EE
+
+.PP
+If you want to support ecryptfs home directories, you must turn on the use_ecryptfs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_ecryptfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support fusefs home directories, you must turn on the use_fusefs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_fusefs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support NFS home directories, you must turn on the use_nfs_home_dirs boolean. Enabled by default.
+
+.EX
+.B setsebool -P use_nfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support SAMBA home directories, you must turn on the use_samba_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_samba_home_dirs 1
+
+.EE
+
+.PP
+If you want to allows clients to write to the X server shared memory segments, you must turn on the xserver_clients_write_xshm boolean. Disabled by default.
+
+.EX
+.B setsebool -P xserver_clients_write_xshm 1
+
+.EE
+
+.PP
+If you want to support X userspace object manager, you must turn on the xserver_object_manager boolean. Enabled by default.
+
+.EX
+.B setsebool -P xserver_object_manager 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the tvtime_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the tvtime_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "MANAGED FILES"
 
 The SELinux process type tvtime_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
+.B cifs_t
+
+
+.br
+.B ecryptfs_t
+
+	/home/[^/]*/\.Private(/.*)?
+.br
+	/home/[^/]*/\.ecryptfs(/.*)?
+.br
+	/home/pwalsh/\.Private(/.*)?
+.br
+	/home/pwalsh/\.ecryptfs(/.*)?
+.br
+	/home/dwalsh/\.Private(/.*)?
+.br
+	/home/dwalsh/\.ecryptfs(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.Private(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.ecryptfs(/.*)?
+.br
+
+.br
+.B fusefs_t
+
+
+.br
+.B nfs_t
+
+
+.br
 .B tvtime_home_t
 
+	/home/[^/]*/\.tvtime(/.*)?
+.br
+	/home/pwalsh/\.tvtime(/.*)?
+.br
+	/home/dwalsh/\.tvtime(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.tvtime(/.*)?
+.br
 
 .br
 .B tvtime_tmp_t
@@ -116,6 +256,12 @@ The SELinux process type tvtime_t can manage files labeled with the following fi
 .br
 	/home/[^/]*/\.fonts\.cache-.*
 .br
+	/home/pwalsh/\.fontconfig(/.*)?
+.br
+	/home/pwalsh/\.fonts/auto(/.*)?
+.br
+	/home/pwalsh/\.fonts\.cache-.*
+.br
 	/home/dwalsh/\.fontconfig(/.*)?
 .br
 	/home/dwalsh/\.fonts/auto(/.*)?
@@ -129,7 +275,76 @@ The SELinux process type tvtime_t can manage files labeled with the following fi
 	/var/lib/xguest/home/xguest/\.fonts\.cache-.*
 .br
 
-.SH NSSWITCH DOMAIN
+.br
+.B xserver_tmpfs_t
+
+
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux tvtime policy is very flexible allowing users to setup their tvtime processes in as secure a method as possible.
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the tvtime, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t tvtime_exec_t '/srv/tvtime/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mytvtime_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for tvtime:
+
+
+.EX
+.PP
+.B tvtime_exec_t
+.EE
+
+- Set files with the tvtime_exec_t type, if you want to transition an executable to the tvtime_t domain.
+
+
+.EX
+.PP
+.B tvtime_home_t
+.EE
+
+- Set files with the tvtime_home_t type, if you want to store tvtime files in the users home directory.
+
+.br
+.TP 5
+Paths:
+/home/[^/]*/\.tvtime(/.*)?, /home/pwalsh/\.tvtime(/.*)?, /home/dwalsh/\.tvtime(/.*)?, /var/lib/xguest/home/xguest/\.tvtime(/.*)?
+
+.EX
+.PP
+.B tvtime_tmp_t
+.EE
+
+- Set files with the tvtime_tmp_t type, if you want to store tvtime temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B tvtime_tmpfs_t
+.EE
+
+- Set files with the tvtime_tmpfs_t type, if you want to store tvtime files on a tmpfs file system.
+
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -140,6 +355,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
 
 .PP
 .B system-config-selinux
@@ -152,3 +370,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), tvtime(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)

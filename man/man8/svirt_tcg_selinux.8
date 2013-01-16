@@ -1,0 +1,282 @@
+.TH  "svirt_tcg_selinux"  "8"  "13-01-16" "svirt_tcg" "SELinux Policy documentation for svirt_tcg"
+.SH "NAME"
+svirt_tcg_selinux \- Security Enhanced Linux Policy for the svirt_tcg processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the svirt_tcg processes via flexible mandatory access control.
+
+The svirt_tcg processes execute with the svirt_tcg_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier.
+
+For example:
+
+.B ps -eZ | grep svirt_tcg_t
+
+
+.SH "ENTRYPOINTS"
+
+The svirt_tcg_t SELinux type can be entered via the \fBqemu_exec_t\fP file type.
+
+The default entrypoint paths for the svirt_tcg_t domain are the following:
+
+/usr/libexec/qemu.*, /usr/bin/qemu-system-.*, /usr/bin/qemu, /usr/bin/qemu-kvm
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files.
+SELinux svirt_tcg policy is very flexible allowing users to setup their svirt_tcg processes in as secure a method as possible.
+.PP
+The following process types are defined for svirt_tcg:
+
+.EX
+.B svirt_tcg_t
+.EE
+.PP
+Note:
+.B semanage permissive -a svirt_tcg_t
+can be used to make the process type svirt_tcg_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  svirt_tcg policy is extremely flexible and has several booleans that allow you to manipulate the policy and run svirt_tcg with the tightest access possible.
+
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to use serial/parallel communication ports, you must turn on the virt_use_comm boolean. Disabled by default.
+
+.EX
+.B setsebool -P virt_use_comm 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to use executable memory and executable stack, you must turn on the virt_use_execmem boolean. Disabled by default.
+
+.EX
+.B setsebool -P virt_use_execmem 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to read fuse files, you must turn on the virt_use_fusefs boolean. Disabled by default.
+
+.EX
+.B setsebool -P virt_use_fusefs 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to manage nfs files, you must turn on the virt_use_nfs boolean. Disabled by default.
+
+.EX
+.B setsebool -P virt_use_nfs 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to interact with rawip sockets, you must turn on the virt_use_rawip boolean. Disabled by default.
+
+.EX
+.B setsebool -P virt_use_rawip 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to manage cifs files, you must turn on the virt_use_samba boolean. Disabled by default.
+
+.EX
+.B setsebool -P virt_use_samba 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to interact with the sanlock, you must turn on the virt_use_sanlock boolean. Disabled by default.
+
+.EX
+.B setsebool -P virt_use_sanlock 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to use usb devices, you must turn on the virt_use_usb boolean. Enabled by default.
+
+.EX
+.B setsebool -P virt_use_usb 1
+
+.EE
+
+.PP
+If you want to allow confined virtual guests to interact with the xserver, you must turn on the virt_use_xserver boolean. Disabled by default.
+
+.EX
+.B setsebool -P virt_use_xserver 1
+
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type svirt_tcg_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B anon_inodefs_t
+
+
+.br
+.B cifs_t
+
+
+.br
+.B dosfs_t
+
+
+.br
+.B fusefs_t
+
+
+.br
+.B nfs_t
+
+
+.br
+.B qemu_var_run_t
+
+	/var/lib/libvirt/qemu(/.*)?
+.br
+	/var/run/libvirt/qemu(/.*)?
+.br
+
+.br
+.B svirt_home_t
+
+	/home/[^/]*/\.libvirt/qemu(/.*)?
+.br
+	/home/[^/]*/\.cache/libvirt/qemu(/.*)?
+.br
+	/home/[^/]*/\.config/libvirt/qemu(/.*)?
+.br
+	/home/[^/]*/\.local/share/gnome-boxes/images(/.*)?
+.br
+	/home/pwalsh/\.libvirt/qemu(/.*)?
+.br
+	/home/pwalsh/\.cache/libvirt/qemu(/.*)?
+.br
+	/home/pwalsh/\.config/libvirt/qemu(/.*)?
+.br
+	/home/pwalsh/\.local/share/gnome-boxes/images(/.*)?
+.br
+	/home/dwalsh/\.libvirt/qemu(/.*)?
+.br
+	/home/dwalsh/\.cache/libvirt/qemu(/.*)?
+.br
+	/home/dwalsh/\.config/libvirt/qemu(/.*)?
+.br
+	/home/dwalsh/\.local/share/gnome-boxes/images(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.libvirt/qemu(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.cache/libvirt/qemu(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.config/libvirt/qemu(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.local/share/gnome-boxes/images(/.*)?
+.br
+
+.br
+.B svirt_image_t
+
+
+.br
+.B svirt_tmp_t
+
+
+.br
+.B svirt_tmpfs_t
+
+
+.br
+.B tmpfs_t
+
+	/dev/shm
+.br
+	/lib/udev/devices/shm
+.br
+	/usr/lib/udev/devices/shm
+.br
+
+.br
+.B usbfs_t
+
+
+.br
+.B virt_cache_t
+
+	/var/cache/oz(/.*)?
+.br
+	/var/cache/libvirt(/.*)?
+.br
+
+.SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR
+This manual page was auto-generated using
+.B "sepolicy manpage"
+by Dan Walsh.
+
+.SH "SEE ALSO"
+selinux(8), svirt_tcg(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8), svirt_selinux(8), svirt_selinux(8), svirt_lxc_net_selinux(8)

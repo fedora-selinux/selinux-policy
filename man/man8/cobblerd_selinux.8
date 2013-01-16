@@ -1,4 +1,4 @@
-.TH  "cobblerd_selinux"  "8"  "12-11-01" "cobblerd" "SELinux Policy documentation for cobblerd"
+.TH  "cobblerd_selinux"  "8"  "13-01-16" "cobblerd" "SELinux Policy documentation for cobblerd"
 .SH "NAME"
 cobblerd_selinux \- Security Enhanced Linux Policy for the cobblerd processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The cobblerd_t SELinux type can be entered via the "cobblerd_exec_t" file type.  The default entrypoint paths for the cobblerd_t domain are the following:"
+The cobblerd_t SELinux type can be entered via the \fBcobblerd_exec_t\fP file type.
+
+The default entrypoint paths for the cobblerd_t domain are the following:
 
 /usr/bin/cobblerd
 .SH PROCESS TYPES
@@ -32,143 +34,108 @@ The following process types are defined for cobblerd:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a cobblerd_t
+can be used to make the process type cobblerd_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  cobblerd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run cobblerd with the tightest access possible.
 
 
 .PP
-If you want to allow Cobbler to access nfs file systems, you must turn on the cobbler_use_nfs boolean.
-
-.EX
-.B setsebool -P cobbler_use_nfs 1
-.EE
-
-.PP
-If you want to allow Cobbler to connect to the network using TCP, you must turn on the cobbler_can_network_connect boolean.
+If you want to determine whether Cobbler can connect to the network using TCP, you must turn on the cobbler_can_network_connect boolean. Disabled by default.
 
 .EX
 .B setsebool -P cobbler_can_network_connect 1
+
 .EE
 
 .PP
-If you want to allow HTTPD scripts and modules to connect to cobbler over the network, you must turn on the httpd_can_network_connect_cobbler boolean.
-
-.EX
-.B setsebool -P httpd_can_network_connect_cobbler 1
-.EE
-
-.PP
-If you want to allow Cobbler to access cifs file systems, you must turn on the cobbler_use_cifs boolean.
+If you want to determine whether Cobbler can access cifs file systems, you must turn on the cobbler_use_cifs boolean. Disabled by default.
 
 .EX
 .B setsebool -P cobbler_use_cifs 1
+
 .EE
 
 .PP
-If you want to allow Cobbler to access nfs file systems, you must turn on the cobbler_use_nfs boolean.
+If you want to determine whether Cobbler can access nfs file systems, you must turn on the cobbler_use_nfs boolean. Disabled by default.
 
 .EX
 .B setsebool -P cobbler_use_nfs 1
+
 .EE
 
 .PP
-If you want to allow Cobbler to connect to the network using TCP, you must turn on the cobbler_can_network_connect boolean.
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
 
 .EX
-.B setsebool -P cobbler_can_network_connect 1
+.B setsebool -P daemons_dump_core 1
+
 .EE
 
 .PP
-If you want to allow HTTPD scripts and modules to connect to cobbler over the network, you must turn on the httpd_can_network_connect_cobbler boolean.
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
 
 .EX
-.B setsebool -P httpd_can_network_connect_cobbler 1
+.B setsebool -P daemons_use_tcp_wrapper 1
+
 .EE
 
 .PP
-If you want to allow Cobbler to access cifs file systems, you must turn on the cobbler_use_cifs boolean.
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
 
 .EX
-.B setsebool -P cobbler_use_cifs 1
+.B setsebool -P daemons_use_tty 1
+
 .EE
 
-.SH SHARING FILES
-If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
-.TP
-Allow cobblerd servers to read the /var/cobblerd directory by adding the public_content_t file type to the directory and by restoring the file type.
 .PP
-.B
-semanage fcontext -a -t public_content_t "/var/cobblerd(/.*)?"
-.br
-.B restorecon -F -R -v /var/cobblerd
-.pp
-.TP
-Allow cobblerd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_cobblerdd_anon_write boolean to be set.
-.PP
-.B
-semanage fcontext -a -t public_content_rw_t "/var/cobblerd/incoming(/.*)?"
-.br
-.B restorecon -F -R -v /var/cobblerd/incoming
-
-
-.PP
-If you want to allow Cobbler to modify public files used for public file transfer services., you must turn on the cobbler_anon_write boolean.
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
 
 .EX
-.B setsebool -P cobbler_anon_write 1
+.B setsebool -P deny_ptrace 1
+
 .EE
 
 .PP
-If you want to allow Cobbler to modify public files used for public file transfer services., you must turn on the cobbler_anon_write boolean.
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
 
 .EX
-.B setsebool -P cobbler_anon_write 1
+.B setsebool -P domain_fd_use 1
+
 .EE
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
 .PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux cobblerd policy is very flexible allowing users to setup their cobblerd processes in as secure a method as possible.
-.PP
-The following file types are defined for cobblerd:
-
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
 
 .EX
-.PP
-.B cobblerd_exec_t
+.B setsebool -P domain_kernel_load_modules 1
+
 .EE
 
-- Set files with the cobblerd_exec_t type, if you want to transition an executable to the cobblerd_t domain.
-
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
 
 .EX
-.PP
-.B cobblerd_initrc_exec_t
+.B setsebool -P fips_mode 1
+
 .EE
 
-- Set files with the cobblerd_initrc_exec_t type, if you want to transition an executable to the cobblerd_initrc_t domain.
-
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
 
 .EX
-.PP
-.B cobblerd_unit_file_t
+.B setsebool -P global_ssp 1
+
 .EE
 
-- Set files with the cobblerd_unit_file_t type, if you want to treat the files as cobblerd unit content.
-
-
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Enabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
 
 .SH PORT TYPES
 SELinux defines port types to represent TCP and UDP ports.
@@ -198,6 +165,10 @@ tcp 25151
 The SELinux process type cobblerd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
 
 .br
+.B cifs_t
+
+
+.br
 .B cobbler_tmp_t
 
 
@@ -206,7 +177,7 @@ The SELinux process type cobblerd_t can manage files labeled with the following 
 
 	/var/lib/cobbler(/.*)?
 .br
-	/var/www/cobbler/pub(/.*)?
+	/var/www/cobbler(/.*)?
 .br
 	/var/lib/tftpboot/etc(/.*)?
 .br
@@ -214,21 +185,9 @@ The SELinux process type cobblerd_t can manage files labeled with the following 
 .br
 	/var/lib/tftpboot/grub(/.*)?
 .br
-	/var/www/cobbler/links(/.*)?
-.br
 	/var/lib/tftpboot/s390x(/.*)?
 .br
-	/var/www/cobbler/images(/.*)?
-.br
 	/var/lib/tftpboot/images(/.*)?
-.br
-	/var/www/cobbler/rendered(/.*)?
-.br
-	/var/www/cobbler/ks_mirror(/.*)?
-.br
-	/var/www/cobbler/localmirror(/.*)?
-.br
-	/var/www/cobbler/repo_mirror(/.*)?
 .br
 	/var/lib/tftpboot/pxelinux\.cfg(/.*)?
 .br
@@ -239,12 +198,6 @@ The SELinux process type cobblerd_t can manage files labeled with the following 
 	/var/lib/tftpboot/menu\.c32
 .br
 	/var/lib/tftpboot/pxelinux\.0
-.br
-
-.br
-.B cobbler_var_log_t
-
-	/var/log/cobbler(/.*)?
 .br
 
 .br
@@ -270,10 +223,6 @@ The SELinux process type cobblerd_t can manage files labeled with the following 
 
 	/etc/dnsmasq\.conf
 .br
-
-.br
-.B httpd_cobbler_rw_content_t
-
 
 .br
 .B named_conf_t
@@ -316,8 +265,6 @@ The SELinux process type cobblerd_t can manage files labeled with the following 
 .br
 .B net_conf_t
 
-	/etc/ntpd?\.conf.*
-.br
 	/etc/hosts[^/]*
 .br
 	/etc/yp\.conf.*
@@ -327,8 +274,6 @@ The SELinux process type cobblerd_t can manage files labeled with the following 
 	/etc/hosts\.deny.*
 .br
 	/etc/resolv\.conf.*
-.br
-	/etc/ntp/step-tickers.*
 .br
 	/etc/sysconfig/networking(/.*)?
 .br
@@ -340,17 +285,27 @@ The SELinux process type cobblerd_t can manage files labeled with the following 
 .br
 
 .br
+.B nfs_t
+
+
+.br
+.B public_content_rw_t
+
+	/var/spool/abrt-upload(/.*)?
+.br
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
+
+.br
 .B rsync_etc_t
 
 	/etc/rsyncd\.conf
-.br
-
-.br
-.B systemd_passwd_var_run_t
-
-	/var/run/systemd/ask-password(/.*)?
-.br
-	/var/run/systemd/ask-password-block(/.*)?
 .br
 
 .br
@@ -359,7 +314,78 @@ The SELinux process type cobblerd_t can manage files labeled with the following 
 	/etc/xinetd\.d/tftp
 .br
 
-.SH NSSWITCH DOMAIN
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux cobblerd policy is very flexible allowing users to setup their cobblerd processes in as secure a method as possible.
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the cobblerd, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t cobblerd_exec_t '/srv/cobblerd/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mycobblerd_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for cobblerd:
+
+
+.EX
+.PP
+.B cobblerd_exec_t
+.EE
+
+- Set files with the cobblerd_exec_t type, if you want to transition an executable to the cobblerd_t domain.
+
+
+.EX
+.PP
+.B cobblerd_initrc_exec_t
+.EE
+
+- Set files with the cobblerd_initrc_exec_t type, if you want to transition an executable to the cobblerd_initrc_t domain.
+
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
+
+.SH SHARING FILES
+If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
+.TP
+Allow cobblerd servers to read the /var/cobblerd directory by adding the public_content_t file type to the directory and by restoring the file type.
+.PP
+.B
+semanage fcontext -a -t public_content_t "/var/cobblerd(/.*)?"
+.br
+.B restorecon -F -R -v /var/cobblerd
+.pp
+.TP
+Allow cobblerd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_cobblerdd_anon_write boolean to be set.
+.PP
+.B
+semanage fcontext -a -t public_content_rw_t "/var/cobblerd/incoming(/.*)?"
+.br
+.B restorecon -F -R -v /var/cobblerd/incoming
+
+
+.PP
+If you want to determine whether Cobbler can modify public files used for public file transfer services., you must turn on the cobbler_anon_write boolean.
+
+.EX
+.B setsebool -P cobbler_anon_write 1
+.EE
 
 .SH "COMMANDS"
 .B semanage fcontext

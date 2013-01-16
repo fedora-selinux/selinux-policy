@@ -1,4 +1,4 @@
-.TH  "jockey_selinux"  "8"  "12-11-01" "jockey" "SELinux Policy documentation for jockey"
+.TH  "jockey_selinux"  "8"  "13-01-16" "jockey" "SELinux Policy documentation for jockey"
 .SH "NAME"
 jockey_selinux \- Security Enhanced Linux Policy for the jockey processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The jockey_t SELinux type can be entered via the "jockey_exec_t" file type.  The default entrypoint paths for the jockey_t domain are the following:"
+The jockey_t SELinux type can be entered via the \fBjockey_exec_t\fP file type.
+
+The default entrypoint paths for the jockey_t domain are the following:
 
 /usr/share/jockey/jockey-backend
 .SH PROCESS TYPES
@@ -32,8 +34,94 @@ The following process types are defined for jockey:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a jockey_t
+can be used to make the process type jockey_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  jockey policy is extremely flexible and has several booleans that allow you to manipulate the policy and run jockey with the tightest access possible.
+
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_dump_core 1
+
+.EE
+
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type jockey_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B jockey_cache_t
+
+	/var/cache/jockey(/.*)?
+.br
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type.
@@ -43,7 +131,31 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux jockey policy is very flexible allowing users to setup their jockey processes in as secure a method as possible.
 .PP
-The following file types are defined for jockey:
+
+.PP
+.B EQUIVALENCE DIRECTORIES
+
+.PP
+jockey policy stores data with multiple different file context types under the /var/log/jockey directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/log/jockey /srv/jockey
+.br
+.B restorecon -R -v /srv/jockey
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the jockey, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t jockey_cache_t '/srv/jockey/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myjockey_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for jockey:
 
 
 .EX
@@ -69,6 +181,10 @@ The following file types are defined for jockey:
 
 - Set files with the jockey_var_log_t type, if you want to treat the data as jockey var log data, usually stored under the /var/log directory.
 
+.br
+.TP 5
+Paths:
+/var/log/jockey(/.*)?, /var/log/jockey\.log.*
 
 .PP
 Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
@@ -76,26 +192,6 @@ Note: File context can be temporarily modified with the chcon command.  If you w
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
-
-.SH "MANAGED FILES"
-
-The SELinux process type jockey_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
-
-.br
-.B jockey_cache_t
-
-	/var/cache/jockey(/.*)?
-.br
-
-.br
-.B jockey_var_log_t
-
-	/var/log/jockey(/.*)?
-.br
-	/var/log/jockey\.log.*
-.br
-
-.SH NSSWITCH DOMAIN
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -106,6 +202,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
 
 .PP
 .B system-config-selinux
@@ -118,3 +217,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), jockey(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)

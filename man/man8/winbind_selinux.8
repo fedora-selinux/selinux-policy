@@ -1,4 +1,4 @@
-.TH  "winbind_selinux"  "8"  "12-11-01" "winbind" "SELinux Policy documentation for winbind"
+.TH  "winbind_selinux"  "8"  "13-01-16" "winbind" "SELinux Policy documentation for winbind"
 .SH "NAME"
 winbind_selinux \- Security Enhanced Linux Policy for the winbind processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The winbind_t SELinux type can be entered via the "winbind_exec_t" file type.  The default entrypoint paths for the winbind_t domain are the following:"
+The winbind_t SELinux type can be entered via the \fBwinbind_exec_t\fP file type.
+
+The default entrypoint paths for the winbind_t domain are the following:
 
 /usr/sbin/winbindd
 .SH PROCESS TYPES
@@ -32,76 +34,124 @@ The following process types are defined for winbind:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a winbind_t
+can be used to make the process type winbind_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  winbind policy is extremely flexible and has several booleans that allow you to manipulate the policy and run winbind with the tightest access possible.
 
 
 .PP
-If you want to allow Apache to use mod_auth_ntlm_winbind, you must turn on the httpd_mod_auth_ntlm_winbind boolean.
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
 
 .EX
-.B setsebool -P httpd_mod_auth_ntlm_winbind 1
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
 .EE
 
 .PP
-If you want to allow Apache to use mod_auth_ntlm_winbind, you must turn on the httpd_mod_auth_ntlm_winbind boolean.
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
 
 .EX
-.B setsebool -P httpd_mod_auth_ntlm_winbind 1
+.B setsebool -P daemons_dump_core 1
+
 .EE
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
 .PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux winbind policy is very flexible allowing users to setup their winbind processes in as secure a method as possible.
-.PP
-The following file types are defined for winbind:
-
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
 
 .EX
-.PP
-.B winbind_exec_t
+.B setsebool -P daemons_use_tcp_wrapper 1
+
 .EE
 
-- Set files with the winbind_exec_t type, if you want to transition an executable to the winbind_t domain.
-
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
 
 .EX
-.PP
-.B winbind_helper_exec_t
+.B setsebool -P daemons_use_tty 1
+
 .EE
 
-- Set files with the winbind_helper_exec_t type, if you want to transition an executable to the winbind_helper_t domain.
-
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
 
 .EX
-.PP
-.B winbind_log_t
+.B setsebool -P deny_ptrace 1
+
 .EE
 
-- Set files with the winbind_log_t type, if you want to treat the data as winbind log data, usually stored under the /var/log directory.
-
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
 
 .EX
-.PP
-.B winbind_var_run_t
+.B setsebool -P domain_fd_use 1
+
 .EE
 
-- Set files with the winbind_var_run_t type, if you want to store the winbind files under the /run directory.
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
 
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the winbind_helper_t, winbind_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the winbind_helper_t, winbind_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH "MANAGED FILES"
 
@@ -116,12 +166,6 @@ The SELinux process type winbind_t can manage files labeled with the following f
 .br
 .B ctdbd_var_lib_t
 
-	/etc/ctdb(/.*)?
-.br
-	/var/ctdb(/.*)?
-.br
-	/var/ctdbd(/.*)?
-.br
 	/var/lib/ctdbd(/.*)?
 .br
 
@@ -130,25 +174,19 @@ The SELinux process type winbind_t can manage files labeled with the following f
 
 	/var/log/btmp.*
 .br
+	/var/log/faillog.*
+.br
+	/var/log/tallylog.*
+.br
 	/var/run/faillock(/.*)?
 .br
-	/var/log/faillog
-.br
-	/var/log/tallylog
-.br
 
 .br
-.B pcscd_var_run_t
+.B root_t
 
-	/var/run/pcscd(/.*)?
+	/
 .br
-	/var/run/pcscd\.events(/.*)?
-.br
-	/var/run/pcscd\.pid
-.br
-	/var/run/pcscd\.pub
-.br
-	/var/run/pcscd\.comm
+	/initrd
 .br
 
 .br
@@ -172,6 +210,8 @@ The SELinux process type winbind_t can manage files labeled with the following f
 .br
 .B samba_var_t
 
+	/var/nmbd(/.*)?
+.br
 	/var/lib/samba(/.*)?
 .br
 	/var/cache/samba(/.*)?
@@ -208,6 +248,8 @@ The SELinux process type winbind_t can manage files labeled with the following f
 
 	/home/[^/]*/.+
 .br
+	/home/pwalsh/.+
+.br
 	/home/dwalsh/.+
 .br
 	/var/lib/xguest/home/xguest/.+
@@ -219,6 +261,8 @@ The SELinux process type winbind_t can manage files labeled with the following f
 	/var/run/user(/.*)?
 .br
 	/tmp/gconfd-.*
+.br
+	/tmp/gconfd-pwalsh
 .br
 	/tmp/gconfd-dwalsh
 .br
@@ -241,21 +285,72 @@ The SELinux process type winbind_t can manage files labeled with the following f
 	/var/cache/samba/winbindd_privileged(/.*)?
 .br
 
-.SH NSSWITCH DOMAIN
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux winbind policy is very flexible allowing users to setup their winbind processes in as secure a method as possible.
+.PP
 
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the winbind_helper_t, winbind_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the winbind, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t winbind_exec_t '/srv/winbind/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mywinbind_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for winbind:
+
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.PP
+.B winbind_exec_t
 .EE
+
+- Set files with the winbind_exec_t type, if you want to transition an executable to the winbind_t domain.
+
+
+.EX
+.PP
+.B winbind_helper_exec_t
+.EE
+
+- Set files with the winbind_helper_exec_t type, if you want to transition an executable to the winbind_helper_t domain.
+
+
+.EX
+.PP
+.B winbind_log_t
+.EE
+
+- Set files with the winbind_log_t type, if you want to treat the data as winbind log data, usually stored under the /var/log directory.
+
+
+.EX
+.PP
+.B winbind_var_run_t
+.EE
+
+- Set files with the winbind_var_run_t type, if you want to store the winbind files under the /run or /var/run directory.
+
+.br
+.TP 5
+Paths:
+/var/run/winbindd(/.*)?, /var/run/samba/winbindd(/.*)?, /var/lib/samba/winbindd_privileged(/.*)?, /var/cache/samba/winbindd_privileged(/.*)?
 
 .PP
-If you want to allow confined applications to run with kerberos for the winbind_helper_t, winbind_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext

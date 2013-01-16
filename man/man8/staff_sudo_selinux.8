@@ -1,0 +1,326 @@
+.TH  "staff_sudo_selinux"  "8"  "13-01-16" "staff_sudo" "SELinux Policy documentation for staff_sudo"
+.SH "NAME"
+staff_sudo_selinux \- Security Enhanced Linux Policy for the staff_sudo processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the staff_sudo processes via flexible mandatory access control.
+
+The staff_sudo processes execute with the staff_sudo_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier.
+
+For example:
+
+.B ps -eZ | grep staff_sudo_t
+
+
+.SH "ENTRYPOINTS"
+
+The staff_sudo_t SELinux type can be entered via the \fBsudo_exec_t\fP file type.
+
+The default entrypoint paths for the staff_sudo_t domain are the following:
+
+/usr/bin/sudo(edit)?
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files.
+SELinux staff_sudo policy is very flexible allowing users to setup their staff_sudo processes in as secure a method as possible.
+.PP
+The following process types are defined for staff_sudo:
+
+.EX
+.B staff_sudo_t
+.EE
+.PP
+Note:
+.B semanage permissive -a staff_sudo_t
+can be used to make the process type staff_sudo_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  staff_sudo policy is extremely flexible and has several booleans that allow you to manipulate the policy and run staff_sudo with the tightest access possible.
+
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.PP
+If you want to support ecryptfs home directories, you must turn on the use_ecryptfs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_ecryptfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support fusefs home directories, you must turn on the use_fusefs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_fusefs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support NFS home directories, you must turn on the use_nfs_home_dirs boolean. Enabled by default.
+
+.EX
+.B setsebool -P use_nfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support SAMBA home directories, you must turn on the use_samba_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_samba_home_dirs 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the staff_sudo_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the staff_sudo_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type staff_sudo_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B cifs_t
+
+
+.br
+.B ecryptfs_t
+
+	/home/[^/]*/\.Private(/.*)?
+.br
+	/home/[^/]*/\.ecryptfs(/.*)?
+.br
+	/home/pwalsh/\.Private(/.*)?
+.br
+	/home/pwalsh/\.ecryptfs(/.*)?
+.br
+	/home/dwalsh/\.Private(/.*)?
+.br
+	/home/dwalsh/\.ecryptfs(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.Private(/.*)?
+.br
+	/var/lib/xguest/home/xguest/\.ecryptfs(/.*)?
+.br
+
+.br
+.B faillog_t
+
+	/var/log/btmp.*
+.br
+	/var/log/faillog.*
+.br
+	/var/log/tallylog.*
+.br
+	/var/run/faillock(/.*)?
+.br
+
+.br
+.B fusefs_t
+
+
+.br
+.B initrc_var_run_t
+
+	/var/run/utmp
+.br
+	/var/run/random-seed
+.br
+	/var/run/runlevel\.dir
+.br
+	/var/run/setmixer_flag
+.br
+
+.br
+.B krb5_host_rcache_t
+
+	/var/cache/krb5rcache(/.*)?
+.br
+	/var/tmp/nfs_0
+.br
+	/var/tmp/DNS_25
+.br
+	/var/tmp/host_0
+.br
+	/var/tmp/imap_0
+.br
+	/var/tmp/HTTP_23
+.br
+	/var/tmp/HTTP_48
+.br
+	/var/tmp/ldap_55
+.br
+	/var/tmp/ldap_487
+.br
+	/var/tmp/ldapmap1_0
+.br
+
+.br
+.B nfs_t
+
+
+.br
+.B pam_var_run_t
+
+	/var/(db|lib|adm)/sudo(/.*)?
+.br
+	/var/run/sudo(/.*)?
+.br
+	/var/run/sepermit(/.*)?
+.br
+	/var/run/pam_mount(/.*)?
+.br
+
+.br
+.B security_t
+
+	/selinux
+.br
+
+.br
+.B staff_sudo_tmp_t
+
+
+.br
+.B sudo_db_t
+
+	/var/db/sudo(/.*)?
+.br
+
+.br
+.B user_home_t
+
+	/home/[^/]*/.+
+.br
+	/home/pwalsh/.+
+.br
+	/home/dwalsh/.+
+.br
+	/var/lib/xguest/home/xguest/.+
+.br
+
+.br
+.B user_tmp_t
+
+	/var/run/user(/.*)?
+.br
+	/tmp/gconfd-.*
+.br
+	/tmp/gconfd-pwalsh
+.br
+	/tmp/gconfd-dwalsh
+.br
+	/tmp/gconfd-xguest
+.br
+
+.SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR
+This manual page was auto-generated using
+.B "sepolicy manpage"
+by Dan Walsh.
+
+.SH "SEE ALSO"
+selinux(8), staff_sudo(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8), staff_selinux(8), staff_selinux(8), staff_consolehelper_selinux(8), staff_dbusd_selinux(8), staff_gkeyringd_selinux(8), staff_screen_selinux(8), staff_seunshare_selinux(8), staff_ssh_agent_selinux(8), staff_wine_selinux(8)

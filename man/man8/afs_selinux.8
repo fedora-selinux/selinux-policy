@@ -1,4 +1,4 @@
-.TH  "afs_selinux"  "8"  "12-11-01" "afs" "SELinux Policy documentation for afs"
+.TH  "afs_selinux"  "8"  "13-01-16" "afs" "SELinux Policy documentation for afs"
 .SH "NAME"
 afs_selinux \- Security Enhanced Linux Policy for the afs processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The afs_t SELinux type can be entered via the "afs_exec_t" file type.  The default entrypoint paths for the afs_t domain are the following:"
+The afs_t SELinux type can be entered via the \fBafs_exec_t\fP file type.
+
+The default entrypoint paths for the afs_t domain are the following:
 
 /usr/sbin/afsd, /usr/vice/etc/afsd
 .SH PROCESS TYPES
@@ -32,146 +34,84 @@ The following process types are defined for afs:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a afs_t
+can be used to make the process type afs_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
-.PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux afs policy is very flexible allowing users to setup their afs processes in as secure a method as possible.
-.PP
-The following file types are defined for afs:
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  afs policy is extremely flexible and has several booleans that allow you to manipulate the policy and run afs with the tightest access possible.
 
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
 
 .EX
-.PP
-.B afs_bosserver_exec_t
+.B setsebool -P daemons_dump_core 1
+
 .EE
 
-- Set files with the afs_bosserver_exec_t type, if you want to transition an executable to the afs_bosserver_t domain.
-
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
 
 .EX
-.PP
-.B afs_cache_t
+.B setsebool -P daemons_use_tcp_wrapper 1
+
 .EE
 
-- Set files with the afs_cache_t type, if you want to store the files under the /var/cache directory.
-
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
 
 .EX
-.PP
-.B afs_config_t
+.B setsebool -P daemons_use_tty 1
+
 .EE
 
-- Set files with the afs_config_t type, if you want to treat the files as afs configuration data, usually stored under the /etc directory.
-
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
 
 .EX
-.PP
-.B afs_dbdir_t
+.B setsebool -P deny_ptrace 1
+
 .EE
 
-- Set files with the afs_dbdir_t type, if you want to treat the files as afs dbdir data.
-
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
 
 .EX
-.PP
-.B afs_exec_t
+.B setsebool -P domain_fd_use 1
+
 .EE
 
-- Set files with the afs_exec_t type, if you want to transition an executable to the afs_t domain.
-
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
 
 .EX
-.PP
-.B afs_files_t
+.B setsebool -P domain_kernel_load_modules 1
+
 .EE
 
-- Set files with the afs_files_t type, if you want to treat the files as afs content.
-
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
 
 .EX
-.PP
-.B afs_fsserver_exec_t
+.B setsebool -P fips_mode 1
+
 .EE
 
-- Set files with the afs_fsserver_exec_t type, if you want to transition an executable to the afs_fsserver_t domain.
-
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
 
 .EX
-.PP
-.B afs_initrc_exec_t
+.B setsebool -P global_ssp 1
+
 .EE
 
-- Set files with the afs_initrc_exec_t type, if you want to transition an executable to the afs_initrc_t domain.
-
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Enabled by default.
 
 .EX
-.PP
-.B afs_ka_db_t
+.B setsebool -P nscd_use_shm 1
+
 .EE
-
-- Set files with the afs_ka_db_t type, if you want to treat the files as afs ka database content.
-
-
-.EX
-.PP
-.B afs_kaserver_exec_t
-.EE
-
-- Set files with the afs_kaserver_exec_t type, if you want to transition an executable to the afs_kaserver_t domain.
-
-
-.EX
-.PP
-.B afs_logfile_t
-.EE
-
-- Set files with the afs_logfile_t type, if you want to treat the files as afs logfile data.
-
-
-.EX
-.PP
-.B afs_pt_db_t
-.EE
-
-- Set files with the afs_pt_db_t type, if you want to treat the files as afs pt database content.
-
-
-.EX
-.PP
-.B afs_ptserver_exec_t
-.EE
-
-- Set files with the afs_ptserver_exec_t type, if you want to transition an executable to the afs_ptserver_t domain.
-
-
-.EX
-.PP
-.B afs_vl_db_t
-.EE
-
-- Set files with the afs_vl_db_t type, if you want to treat the files as afs vl database content.
-
-
-.EX
-.PP
-.B afs_vlserver_exec_t
-.EE
-
-- Set files with the afs_vlserver_exec_t type, if you want to transition an executable to the afs_vlserver_t domain.
-
-
-.PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
 
 .SH PORT TYPES
 SELinux defines port types to represent TCP and UDP ports.
@@ -188,6 +128,19 @@ The following port types are defined for afs:
 
 .EX
 .TP 5
+.B afs3_callback_port_t
+.TP 10
+.EE
+
+
+Default Defined Ports:
+tcp 7001
+.EE
+udp 7001
+.EE
+
+.EX
+.TP 5
 .B afs_bos_port_t
 .TP 10
 .EE
@@ -195,17 +148,6 @@ The following port types are defined for afs:
 
 Default Defined Ports:
 udp 7007
-.EE
-
-.EX
-.TP 5
-.B afs_client_port_t
-.TP 10
-.EE
-
-
-Default Defined Ports:
-udp 7001
 .EE
 
 .EX
@@ -260,7 +202,7 @@ The SELinux process type afs_t can manage files labeled with the following file 
 .br
 .B afs_cache_t
 
-	/var/cache/afs(/.*)?
+	/var/cache/(open)?afs(/.*)?
 .br
 	/usr/vice/cache(/.*)?
 .br
@@ -286,9 +228,9 @@ The SELinux process type afs_t can manage files labeled with the following file 
 .br
 	/etc/cmtab
 .br
-	/\.autofsck
-.br
 	/forcefsck
+.br
+	/\.autofsck
 .br
 	/\.suspended
 .br
@@ -298,9 +240,9 @@ The SELinux process type afs_t can manage files labeled with the following file 
 .br
 	/etc/securetty
 .br
-	/etc/killpower
-.br
 	/etc/nohotplug
+.br
+	/etc/killpower
 .br
 	/etc/ioctl\.save
 .br
@@ -320,10 +262,207 @@ The SELinux process type afs_t can manage files labeled with the following file 
 .br
 
 .br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
+
+.br
 .B unlabeled_t
 
 
-.SH NSSWITCH DOMAIN
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux afs policy is very flexible allowing users to setup their afs processes in as secure a method as possible.
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the afs, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t afs_bosserver_exec_t '/srv/afs/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myafs_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for afs:
+
+
+.EX
+.PP
+.B afs_bosserver_exec_t
+.EE
+
+- Set files with the afs_bosserver_exec_t type, if you want to transition an executable to the afs_bosserver_t domain.
+
+.br
+.TP 5
+Paths:
+/usr/sbin/bosserver, /usr/afs/bin/bosserver
+
+.EX
+.PP
+.B afs_cache_t
+.EE
+
+- Set files with the afs_cache_t type, if you want to store the files under the /var/cache directory.
+
+.br
+.TP 5
+Paths:
+/var/cache/(open)?afs(/.*)?, /usr/vice/cache(/.*)?
+
+.EX
+.PP
+.B afs_config_t
+.EE
+
+- Set files with the afs_config_t type, if you want to treat the files as afs configuration data, usually stored under the /etc directory.
+
+.br
+.TP 5
+Paths:
+/etc/(open)?afs(/.*)?, /usr/afs/etc(/.*)?, /usr/afs/local(/.*)?
+
+.EX
+.PP
+.B afs_dbdir_t
+.EE
+
+- Set files with the afs_dbdir_t type, if you want to treat the files as afs dbdir data.
+
+
+.EX
+.PP
+.B afs_exec_t
+.EE
+
+- Set files with the afs_exec_t type, if you want to transition an executable to the afs_t domain.
+
+.br
+.TP 5
+Paths:
+/usr/sbin/afsd, /usr/vice/etc/afsd
+
+.EX
+.PP
+.B afs_files_t
+.EE
+
+- Set files with the afs_files_t type, if you want to treat the files as afs content.
+
+.br
+.TP 5
+Paths:
+/vicepa, /vicepb, /vicepc
+
+.EX
+.PP
+.B afs_fsserver_exec_t
+.EE
+
+- Set files with the afs_fsserver_exec_t type, if you want to transition an executable to the afs_fsserver_t domain.
+
+.br
+.TP 5
+Paths:
+/usr/afs/bin/salvager, /usr/afs/bin/volserver, /usr/afs/bin/fileserver, /usr/libexec/openafs/salvager, /usr/libexec/openafs/volserver, /usr/libexec/openafs/fileserver
+
+.EX
+.PP
+.B afs_initrc_exec_t
+.EE
+
+- Set files with the afs_initrc_exec_t type, if you want to transition an executable to the afs_initrc_t domain.
+
+.br
+.TP 5
+Paths:
+/etc/rc\.d/init\.d/(open)?afs, /etc/rc\.d/init\.d/openafs-client
+
+.EX
+.PP
+.B afs_ka_db_t
+.EE
+
+- Set files with the afs_ka_db_t type, if you want to treat the files as afs ka database content.
+
+
+.EX
+.PP
+.B afs_kaserver_exec_t
+.EE
+
+- Set files with the afs_kaserver_exec_t type, if you want to transition an executable to the afs_kaserver_t domain.
+
+.br
+.TP 5
+Paths:
+/usr/afs/bin/kaserver, /usr/libexec/openafs/kaserver
+
+.EX
+.PP
+.B afs_logfile_t
+.EE
+
+- Set files with the afs_logfile_t type, if you want to treat the files as afs logfile data.
+
+
+.EX
+.PP
+.B afs_pt_db_t
+.EE
+
+- Set files with the afs_pt_db_t type, if you want to treat the files as afs pt database content.
+
+
+.EX
+.PP
+.B afs_ptserver_exec_t
+.EE
+
+- Set files with the afs_ptserver_exec_t type, if you want to transition an executable to the afs_ptserver_t domain.
+
+.br
+.TP 5
+Paths:
+/usr/afs/bin/ptserver, /usr/libexec/openafs/ptserver
+
+.EX
+.PP
+.B afs_vl_db_t
+.EE
+
+- Set files with the afs_vl_db_t type, if you want to treat the files as afs vl database content.
+
+
+.EX
+.PP
+.B afs_vlserver_exec_t
+.EE
+
+- Set files with the afs_vlserver_exec_t type, if you want to transition an executable to the afs_vlserver_t domain.
+
+.br
+.TP 5
+Paths:
+/usr/afs/bin/vlserver, /usr/libexec/openafs/vlserver
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -338,6 +477,9 @@ can also be used to enable/disable/install/remove policy modules.
 .B semanage port
 can also be used to manipulate the port definitions
 
+.B semanage boolean
+can also be used to manipulate the booleans
+
 .PP
 .B system-config-selinux
 is a GUI tool available to customize SELinux policy settings.
@@ -349,4 +491,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), afs(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
-, afs_bosserver_selinux(8), afs_fsserver_selinux(8), afs_kaserver_selinux(8), afs_ptserver_selinux(8), afs_vlserver_selinux(8)
+, setsebool(8), afs_bosserver_selinux(8), afs_fsserver_selinux(8), afs_kaserver_selinux(8), afs_ptserver_selinux(8), afs_vlserver_selinux(8)

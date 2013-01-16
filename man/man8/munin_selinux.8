@@ -1,4 +1,4 @@
-.TH  "munin_selinux"  "8"  "12-11-01" "munin" "SELinux Policy documentation for munin"
+.TH  "munin_selinux"  "8"  "13-01-16" "munin" "SELinux Policy documentation for munin"
 .SH "NAME"
 munin_selinux \- Security Enhanced Linux Policy for the munin processes
 .SH "DESCRIPTION"
@@ -14,9 +14,11 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The munin_t SELinux type can be entered via the "munin_exec_t" file type.  The default entrypoint paths for the munin_t domain are the following:"
+The munin_t SELinux type can be entered via the \fBmunin_exec_t\fP file type.
 
-/usr/bin/munin-.*, /usr/sbin/munin-.*, /usr/share/munin/munin-.*, /usr/share/munin/plugins/.*
+The default entrypoint paths for the munin_t domain are the following:
+
+/usr/bin/munin-.*, /usr/sbin/munin-.*, /usr/share/munin/munin-.*
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
 .PP
@@ -32,8 +34,189 @@ The following process types are defined for munin:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a munin_t
+can be used to make the process type munin_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  munin policy is extremely flexible and has several booleans that allow you to manipulate the policy and run munin with the tightest access possible.
+
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
+.EE
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_dump_core 1
+
+.EE
+
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the munin_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the munin_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH PORT TYPES
+SELinux defines port types to represent TCP and UDP ports.
+.PP
+You can see the types associated with a port by using the following command:
+
+.B semanage port -l
+
+.PP
+Policy governs the access confined processes have to these ports.
+SELinux munin policy is very flexible allowing users to setup their munin processes in as secure a method as possible.
+.PP
+The following port types are defined for munin:
+
+.EX
+.TP 5
+.B munin_port_t
+.TP 10
+.EE
+
+
+Default Defined Ports:
+tcp 4949
+.EE
+udp 4949
+.EE
+.SH "MANAGED FILES"
+
+The SELinux process type munin_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B httpd_munin_content_t
+
+	/var/www/html/munin(/.*)?
+.br
+
+.br
+.B munin_plugin_state_t
+
+	/var/lib/munin/plugin-state(/.*)?
+.br
+
+.br
+.B munin_tmp_t
+
+
+.br
+.B munin_var_lib_t
+
+	/var/lib/munin(/.*)?
+.br
+
+.br
+.B munin_var_run_t
+
+	/var/run/munin(/.*)?
+.br
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type.
@@ -43,7 +226,31 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux munin policy is very flexible allowing users to setup their munin processes in as secure a method as possible.
 .PP
-The following file types are defined for munin:
+
+.PP
+.B EQUIVALENCE DIRECTORIES
+
+.PP
+munin policy stores data with multiple different file context types under the /var/lib/munin directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/lib/munin /srv/munin
+.br
+.B restorecon -R -v /srv/munin
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the munin, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t munin_etc_t '/srv/munin/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mymunin_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for munin:
 
 
 .EX
@@ -61,6 +268,10 @@ The following file types are defined for munin:
 
 - Set files with the munin_exec_t type, if you want to transition an executable to the munin_t domain.
 
+.br
+.TP 5
+Paths:
+/usr/bin/munin-.*, /usr/sbin/munin-.*, /usr/share/munin/munin-.*
 
 .EX
 .PP
@@ -107,7 +318,7 @@ The following file types are defined for munin:
 .B munin_var_run_t
 .EE
 
-- Set files with the munin_var_run_t type, if you want to store the munin files under the /run directory.
+- Set files with the munin_var_run_t type, if you want to store the munin files under the /run or /var/run directory.
 
 
 .PP
@@ -116,85 +327,6 @@ Note: File context can be temporarily modified with the chcon command.  If you w
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
-
-.SH PORT TYPES
-SELinux defines port types to represent TCP and UDP ports.
-.PP
-You can see the types associated with a port by using the following command:
-
-.B semanage port -l
-
-.PP
-Policy governs the access confined processes have to these ports.
-SELinux munin policy is very flexible allowing users to setup their munin processes in as secure a method as possible.
-.PP
-The following port types are defined for munin:
-
-.EX
-.TP 5
-.B munin_port_t
-.TP 10
-.EE
-
-
-Default Defined Ports:
-tcp 4949
-.EE
-udp 4949
-.EE
-.SH "MANAGED FILES"
-
-The SELinux process type munin_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
-
-.br
-.B httpd_munin_content_t
-
-	/var/www/html/munin(/.*)?
-.br
-
-.br
-.B munin_log_t
-
-	/var/log/munin.*
-.br
-
-.br
-.B munin_plugin_state_t
-
-	/var/lib/munin/plugin-state(/.*)?
-.br
-
-.br
-.B munin_tmp_t
-
-
-.br
-.B munin_var_lib_t
-
-	/var/lib/munin(/.*)?
-.br
-
-.br
-.B munin_var_run_t
-
-	/var/run/munin(/.*)?
-.br
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the munin_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the munin_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -209,6 +341,9 @@ can also be used to enable/disable/install/remove policy modules.
 .B semanage port
 can also be used to manipulate the port definitions
 
+.B semanage boolean
+can also be used to manipulate the booleans
+
 .PP
 .B system-config-selinux
 is a GUI tool available to customize SELinux policy settings.
@@ -220,3 +355,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), munin(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)

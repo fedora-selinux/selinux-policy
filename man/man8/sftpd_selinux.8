@@ -1,0 +1,221 @@
+.TH  "sftpd_selinux"  "8"  "13-01-16" "sftpd" "SELinux Policy documentation for sftpd"
+.SH "NAME"
+sftpd_selinux \- Security Enhanced Linux Policy for the sftpd processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the sftpd processes via flexible mandatory access control.
+
+The sftpd processes execute with the sftpd_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier.
+
+For example:
+
+.B ps -eZ | grep sftpd_t
+
+
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files.
+SELinux sftpd policy is very flexible allowing users to setup their sftpd processes in as secure a method as possible.
+.PP
+The following process types are defined for sftpd:
+
+.EX
+.B sftpd_t
+.EE
+.PP
+Note:
+.B semanage permissive -a sftpd_t
+can be used to make the process type sftpd_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  sftpd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run sftpd with the tightest access possible.
+
+
+.PP
+If you want to determine whether sftpd-can read and write files in user home directories, you must turn on the sftpd_enable_homedirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P sftpd_enable_homedirs 1
+
+.EE
+
+.PP
+If you want to determine whether sftpd-can login to local users and read and write all files on the system, governed by DAC, you must turn on the sftpd_full_access boolean. Disabled by default.
+
+.EX
+.B setsebool -P sftpd_full_access 1
+
+.EE
+
+.PP
+If you want to determine whether sftpd can read and write files in user ssh home directories, you must turn on the sftpd_write_ssh_home boolean. Disabled by default.
+
+.EX
+.B setsebool -P sftpd_write_ssh_home 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to support ecryptfs home directories, you must turn on the use_ecryptfs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_ecryptfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support fusefs home directories, you must turn on the use_fusefs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_fusefs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support NFS home directories, you must turn on the use_nfs_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_nfs_home_dirs 1
+
+.EE
+
+.PP
+If you want to support SAMBA home directories, you must turn on the use_samba_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_samba_home_dirs 1
+
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type sftpd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B cifs_t
+
+
+.br
+.B non_security_file_type
+
+
+.br
+.B user_home_t
+
+	/home/[^/]*/.+
+.br
+	/home/pwalsh/.+
+.br
+	/home/dwalsh/.+
+.br
+	/var/lib/xguest/home/xguest/.+
+.br
+
+.br
+.B user_tmp_t
+
+	/var/run/user(/.*)?
+.br
+	/tmp/gconfd-.*
+.br
+	/tmp/gconfd-pwalsh
+.br
+	/tmp/gconfd-dwalsh
+.br
+	/tmp/gconfd-xguest
+.br
+
+.SH SHARING FILES
+If you want to share files with multiple domains (Apache, FTP, rsync, Samba), you can set a file context of public_content_t and public_content_rw_t.  These context allow any of the above domains to read the content.  If you want a particular domain to write to the public_content_rw_t domain, you must set the appropriate boolean.
+.TP
+Allow sftpd servers to read the /var/sftpd directory by adding the public_content_t file type to the directory and by restoring the file type.
+.PP
+.B
+semanage fcontext -a -t public_content_t "/var/sftpd(/.*)?"
+.br
+.B restorecon -F -R -v /var/sftpd
+.pp
+.TP
+Allow sftpd servers to read and write /var/tmp/incoming by adding the public_content_rw_t type to the directory and by restoring the file type.  This also requires the allow_sftpdd_anon_write boolean to be set.
+.PP
+.B
+semanage fcontext -a -t public_content_rw_t "/var/sftpd/incoming(/.*)?"
+.br
+.B restorecon -F -R -v /var/sftpd/incoming
+
+
+.PP
+If you want to determine whether sftpd can modify public files used for public file transfer services. Directories/Files must be labeled public_content_rw_t., you must turn on the sftpd_anon_write boolean.
+
+.EX
+.B setsebool -P sftpd_anon_write 1
+.EE
+
+.SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR
+This manual page was auto-generated using
+.B "sepolicy manpage"
+by Dan Walsh.
+
+.SH "SEE ALSO"
+selinux(8), sftpd(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)

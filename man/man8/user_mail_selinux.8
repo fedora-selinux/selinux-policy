@@ -1,0 +1,278 @@
+.TH  "user_mail_selinux"  "8"  "13-01-16" "user_mail" "SELinux Policy documentation for user_mail"
+.SH "NAME"
+user_mail_selinux \- Security Enhanced Linux Policy for the user_mail processes
+.SH "DESCRIPTION"
+
+Security-Enhanced Linux secures the user_mail processes via flexible mandatory access control.
+
+The user_mail processes execute with the user_mail_t SELinux type. You can check if you have these processes running by executing the \fBps\fP command with the \fB\-Z\fP qualifier.
+
+For example:
+
+.B ps -eZ | grep user_mail_t
+
+
+.SH "ENTRYPOINTS"
+
+The user_mail_t SELinux type can be entered via the \fBmta_exec_type, sendmail_exec_t\fP file types.
+
+The default entrypoint paths for the user_mail_t domain are the following:
+
+/bin/mail(x)?, /usr/bin/mail(x)?, /usr/sbin/sendmail(\.sendmail)?, /usr/bin/esmtp, /usr/sbin/rmail, /usr/sbin/ssmtp, /usr/lib/sendmail, /var/qmail/bin/sendmail, /usr/sbin/sendmail\.postfix, /usr/lib/courier/bin/sendmail
+.SH PROCESS TYPES
+SELinux defines process types (domains) for each process running on the system
+.PP
+You can see the context of a process using the \fB\-Z\fP option to \fBps\bP
+.PP
+Policy governs the access confined processes have to files.
+SELinux user_mail policy is very flexible allowing users to setup their user_mail processes in as secure a method as possible.
+.PP
+The following process types are defined for user_mail:
+
+.EX
+.B user_mail_t
+.EE
+.PP
+Note:
+.B semanage permissive -a user_mail_t
+can be used to make the process type user_mail_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  user_mail policy is extremely flexible and has several booleans that allow you to manipulate the policy and run user_mail with the tightest access possible.
+
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.PP
+If you want to support SAMBA home directories, you must turn on the use_samba_home_dirs boolean. Disabled by default.
+
+.EX
+.B setsebool -P use_samba_home_dirs 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the user_mail_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the user_mail_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type user_mail_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B cifs_t
+
+
+.br
+.B courier_spool_t
+
+	/var/spool/courier(/.*)?
+.br
+	/var/spool/authdaemon(/.*)?
+.br
+
+.br
+.B exim_log_t
+
+	/var/log/exim[0-9]?(/.*)?
+.br
+
+.br
+.B exim_spool_t
+
+	/var/spool/exim[0-9]?(/.*)?
+.br
+
+.br
+.B mail_home_rw_t
+
+	/root/Maildir(/.*)?
+.br
+	/home/[^/]*/.maildir(/.*)?
+.br
+	/home/[^/]*/Maildir(/.*)?
+.br
+	/home/pwalsh/.maildir(/.*)?
+.br
+	/home/pwalsh/Maildir(/.*)?
+.br
+	/home/dwalsh/.maildir(/.*)?
+.br
+	/home/dwalsh/Maildir(/.*)?
+.br
+	/var/lib/xguest/home/xguest/.maildir(/.*)?
+.br
+	/var/lib/xguest/home/xguest/Maildir(/.*)?
+.br
+
+.br
+.B mail_spool_t
+
+	/var/mail(/.*)?
+.br
+	/var/spool/imap(/.*)?
+.br
+	/var/spool/mail(/.*)?
+.br
+
+.br
+.B mqueue_spool_t
+
+	/var/spool/(client)?mqueue(/.*)?
+.br
+	/var/spool/mqueue\.in(/.*)?
+.br
+
+.br
+.B sendmail_log_t
+
+	/var/log/mail(/.*)?
+.br
+	/var/log/sendmail\.st.*
+.br
+
+.br
+.B user_home_t
+
+	/home/[^/]*/.+
+.br
+	/home/pwalsh/.+
+.br
+	/home/dwalsh/.+
+.br
+	/var/lib/xguest/home/xguest/.+
+.br
+
+.br
+.B user_mail_tmp_t
+
+
+.br
+.B user_tmp_t
+
+	/var/run/user(/.*)?
+.br
+	/tmp/gconfd-.*
+.br
+	/tmp/gconfd-pwalsh
+.br
+	/tmp/gconfd-dwalsh
+.br
+	/tmp/gconfd-xguest
+.br
+
+.br
+.B uucpd_spool_t
+
+	/var/spool/uucp(/.*)?
+.br
+	/var/spool/uucppublic(/.*)?
+.br
+
+.SH "COMMANDS"
+.B semanage fcontext
+can also be used to manipulate default file context mappings.
+.PP
+.B semanage permissive
+can also be used to manipulate whether or not a process type is permissive.
+.PP
+.B semanage module
+can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
+
+.PP
+.B system-config-selinux
+is a GUI tool available to customize SELinux policy settings.
+
+.SH AUTHOR
+This manual page was auto-generated using
+.B "sepolicy manpage"
+by Dan Walsh.
+
+.SH "SEE ALSO"
+selinux(8), user_mail(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8), user_selinux(8), user_selinux(8), user_dbusd_selinux(8), user_gkeyringd_selinux(8), user_screen_selinux(8), user_seunshare_selinux(8), user_ssh_agent_selinux(8), user_wine_selinux(8), useradd_selinux(8), usernetctl_selinux(8)

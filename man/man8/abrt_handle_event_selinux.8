@@ -1,4 +1,4 @@
-.TH  "abrt_handle_event_selinux"  "8"  "12-11-01" "abrt_handle_event" "SELinux Policy documentation for abrt_handle_event"
+.TH  "abrt_handle_event_selinux"  "8"  "13-01-16" "abrt_handle_event" "SELinux Policy documentation for abrt_handle_event"
 .SH "NAME"
 abrt_handle_event_selinux \- Security Enhanced Linux Policy for the abrt_handle_event processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The abrt_handle_event_t SELinux type can be entered via the "abrt_handle_event_exec_t" file type.  The default entrypoint paths for the abrt_handle_event_t domain are the following:"
+The abrt_handle_event_t SELinux type can be entered via the \fBabrt_handle_event_exec_t\fP file type.
+
+The default entrypoint paths for the abrt_handle_event_t domain are the following:
 
 /usr/libexec/abrt-handle-event
 .SH PROCESS TYPES
@@ -32,25 +34,59 @@ The following process types are defined for abrt_handle_event:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a abrt_handle_event_t
+can be used to make the process type abrt_handle_event_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  abrt_handle_event policy is extremely flexible and has several booleans that allow you to manipulate the policy and run abrt_handle_event with the tightest access possible.
 
 
 .PP
-If you want to allow ABRT to run in abrt_handle_event_t domain to handle ABRT event scripts, you must turn on the abrt_handle_event boolean.
+If you want to allow ABRT to run in abrt_handle_event_t domain to handle ABRT event scripts, you must turn on the abrt_handle_event boolean. Disabled by default.
 
 .EX
 .B setsebool -P abrt_handle_event 1
+
 .EE
 
 .PP
-If you want to allow ABRT to run in abrt_handle_event_t domain to handle ABRT event scripts, you must turn on the abrt_handle_event boolean.
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
 
 .EX
-.B setsebool -P abrt_handle_event 1
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
 .EE
 
 .SH FILE CONTEXTS
@@ -61,7 +97,20 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux abrt_handle_event policy is very flexible allowing users to setup their abrt_handle_event processes in as secure a method as possible.
 .PP
-The following file types are defined for abrt_handle_event:
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the abrt_handle_event, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t abrt_handle_event_exec_t '/srv/abrt_handle_event/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myabrt_handle_event_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for abrt_handle_event:
 
 
 .EX
@@ -78,8 +127,6 @@ Note: File context can be temporarily modified with the chcon command.  If you w
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
-
-.SH NSSWITCH DOMAIN
 
 .SH "COMMANDS"
 .B semanage fcontext

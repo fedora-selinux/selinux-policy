@@ -1,4 +1,4 @@
-.TH  "krb5kdc_selinux"  "8"  "12-11-01" "krb5kdc" "SELinux Policy documentation for krb5kdc"
+.TH  "krb5kdc_selinux"  "8"  "13-01-16" "krb5kdc" "SELinux Policy documentation for krb5kdc"
 .SH "NAME"
 krb5kdc_selinux \- Security Enhanced Linux Policy for the krb5kdc processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The krb5kdc_t SELinux type can be entered via the "krb5kdc_exec_t" file type.  The default entrypoint paths for the krb5kdc_t domain are the following:"
+The krb5kdc_t SELinux type can be entered via the \fBkrb5kdc_exec_t\fP file type.
+
+The default entrypoint paths for the krb5kdc_t domain are the following:
 
 /usr/(kerberos/)?sbin/krb5kdc
 .SH PROCESS TYPES
@@ -32,86 +34,92 @@ The following process types are defined for krb5kdc:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a krb5kdc_t
+can be used to make the process type krb5kdc_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
-.PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux krb5kdc policy is very flexible allowing users to setup their krb5kdc processes in as secure a method as possible.
-.PP
-The following file types are defined for krb5kdc:
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  krb5kdc policy is extremely flexible and has several booleans that allow you to manipulate the policy and run krb5kdc with the tightest access possible.
 
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
 
 .EX
-.PP
-.B krb5kdc_conf_t
+.B setsebool -P daemons_dump_core 1
+
 .EE
 
-- Set files with the krb5kdc_conf_t type, if you want to treat the files as krb5kdc configuration data, usually stored under the /etc directory.
-
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
 
 .EX
-.PP
-.B krb5kdc_exec_t
+.B setsebool -P daemons_use_tcp_wrapper 1
+
 .EE
 
-- Set files with the krb5kdc_exec_t type, if you want to transition an executable to the krb5kdc_t domain.
-
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
 
 .EX
-.PP
-.B krb5kdc_lock_t
+.B setsebool -P daemons_use_tty 1
+
 .EE
 
-- Set files with the krb5kdc_lock_t type, if you want to treat the files as krb5kdc lock data, stored under the /var/lock directory
-
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
 
 .EX
-.PP
-.B krb5kdc_log_t
+.B setsebool -P deny_ptrace 1
+
 .EE
 
-- Set files with the krb5kdc_log_t type, if you want to treat the data as krb5kdc log data, usually stored under the /var/log directory.
-
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
 
 .EX
-.PP
-.B krb5kdc_principal_t
+.B setsebool -P domain_fd_use 1
+
 .EE
 
-- Set files with the krb5kdc_principal_t type, if you want to treat the files as krb5kdc principal data.
-
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
 
 .EX
-.PP
-.B krb5kdc_tmp_t
+.B setsebool -P domain_kernel_load_modules 1
+
 .EE
 
-- Set files with the krb5kdc_tmp_t type, if you want to store krb5kdc temporary files in the /tmp directories.
-
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
 
 .EX
-.PP
-.B krb5kdc_var_run_t
+.B setsebool -P fips_mode 1
+
 .EE
 
-- Set files with the krb5kdc_var_run_t type, if you want to store the krb5kdc files under the /run directory.
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
 
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
 
 .SH "MANAGED FILES"
 
 The SELinux process type krb5kdc_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B anon_inodefs_t
+
 
 .br
 .B krb5kdc_lock_t
@@ -146,12 +154,128 @@ The SELinux process type krb5kdc_t can manage files labeled with the following f
 
 
 .br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
+
+.br
 .B security_t
 
 	/selinux
 .br
 
-.SH NSSWITCH DOMAIN
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux krb5kdc policy is very flexible allowing users to setup their krb5kdc processes in as secure a method as possible.
+.PP
+
+.PP
+.B EQUIVALENCE DIRECTORIES
+
+.PP
+krb5kdc policy stores data with multiple different file context types under the /var/kerberos/krb5kdc directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/kerberos/krb5kdc /srv/krb5kdc
+.br
+.B restorecon -R -v /srv/krb5kdc
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the krb5kdc, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t krb5kdc_conf_t '/srv/krb5kdc/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mykrb5kdc_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for krb5kdc:
+
+
+.EX
+.PP
+.B krb5kdc_conf_t
+.EE
+
+- Set files with the krb5kdc_conf_t type, if you want to treat the files as krb5kdc configuration data, usually stored under the /etc directory.
+
+.br
+.TP 5
+Paths:
+/etc/krb5kdc(/.*)?, /usr/var/krb5kdc(/.*)?, /var/kerberos/krb5kdc(/.*)?
+
+.EX
+.PP
+.B krb5kdc_exec_t
+.EE
+
+- Set files with the krb5kdc_exec_t type, if you want to transition an executable to the krb5kdc_t domain.
+
+
+.EX
+.PP
+.B krb5kdc_lock_t
+.EE
+
+- Set files with the krb5kdc_lock_t type, if you want to treat the files as krb5kdc lock data, stored under the /var/lock directory
+
+.br
+.TP 5
+Paths:
+/var/kerberos/krb5kdc/principal.*\.ok, /var/kerberos/krb5kdc/from_master.*
+
+.EX
+.PP
+.B krb5kdc_log_t
+.EE
+
+- Set files with the krb5kdc_log_t type, if you want to treat the data as krb5kdc log data, usually stored under the /var/log directory.
+
+
+.EX
+.PP
+.B krb5kdc_principal_t
+.EE
+
+- Set files with the krb5kdc_principal_t type, if you want to treat the files as krb5kdc principal data.
+
+.br
+.TP 5
+Paths:
+/etc/krb5kdc/principal.*, /usr/var/krb5kdc/principal.*, /var/kerberos/krb5kdc/principal.*
+
+.EX
+.PP
+.B krb5kdc_tmp_t
+.EE
+
+- Set files with the krb5kdc_tmp_t type, if you want to store krb5kdc temporary files in the /tmp directories.
+
+
+.EX
+.PP
+.B krb5kdc_var_run_t
+.EE
+
+- Set files with the krb5kdc_var_run_t type, if you want to store the krb5kdc files under the /run or /var/run directory.
+
+
+.PP
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -162,6 +286,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
 
 .PP
 .B system-config-selinux
@@ -174,3 +301,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), krb5kdc(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)

@@ -40,6 +40,50 @@ You need to add nx_server_r to the staff_u user.  You could setup the staff_u us
 .B $ semanage user -m -R 'staff_r system_r nx_server_r' staff_u
 
 
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  nx_server policy is extremely flexible and has several booleans that allow you to manipulate the policy and run nx_server with the tightest access possible.
+
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
 .SH "MANAGED FILES"
 
 The SELinux process type nx_server_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
@@ -79,6 +123,8 @@ The SELinux process type nx_server_t can manage files labeled with the following
 
 	/root/\.ssh(/.*)?
 .br
+	/var/lib/pgsql/\.ssh(/.*)?
+.br
 	/var/lib/openshift/[^/]+/\.ssh(/.*)?
 .br
 	/var/lib/amanda/\.ssh(/.*)?
@@ -96,6 +142,10 @@ The SELinux process type nx_server_t can manage files labeled with the following
 	/home/[^/]*/\.ssh(/.*)?
 .br
 	/home/[^/]*/\.shosts
+.br
+	/home/pwalsh/\.ssh(/.*)?
+.br
+	/home/pwalsh/\.shosts
 .br
 	/home/dwalsh/\.ssh(/.*)?
 .br
@@ -116,6 +166,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
 
+.B semanage boolean
+can also be used to manipulate the booleans
+
 .PP
 .B system-config-selinux
 is a GUI tool available to customize SELinux policy settings.
@@ -127,3 +180,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), nx_server(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8), nx_server_ssh_selinux(8)

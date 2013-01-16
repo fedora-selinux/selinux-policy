@@ -1,4 +1,4 @@
-.TH  "iscsid_selinux"  "8"  "12-11-01" "iscsid" "SELinux Policy documentation for iscsid"
+.TH  "iscsid_selinux"  "8"  "13-01-16" "iscsid" "SELinux Policy documentation for iscsid"
 .SH "NAME"
 iscsid_selinux \- Security Enhanced Linux Policy for the iscsid processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The iscsid_t SELinux type can be entered via the "iscsid_exec_t" file type.  The default entrypoint paths for the iscsid_t domain are the following:"
+The iscsid_t SELinux type can be entered via the \fBiscsid_exec_t\fP file type.
+
+The default entrypoint paths for the iscsid_t domain are the following:
 
 /sbin/iscsid, /sbin/iscsiuio, /usr/sbin/iscsid, /usr/sbin/iscsiuio, /sbin/brcm_iscsiuio, /usr/sbin/brcm_iscsiuio
 .SH PROCESS TYPES
@@ -32,34 +34,124 @@ The following process types are defined for iscsid:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a iscsid_t
+can be used to make the process type iscsid_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
-.SH FILE CONTEXTS
-SELinux requires files to have an extended attribute to define the file type.
-.PP
-You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
-.PP
-Policy governs the access confined processes have to these files.
-SELinux iscsid policy is very flexible allowing users to setup their iscsid processes in as secure a method as possible.
-.PP
-The following file types are defined for iscsid:
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  iscsid policy is extremely flexible and has several booleans that allow you to manipulate the policy and run iscsid with the tightest access possible.
 
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
 
 .EX
-.PP
-.B iscsid_exec_t
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
 .EE
 
-- Set files with the iscsid_exec_t type, if you want to transition an executable to the iscsid_t domain.
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
 
+.EX
+.B setsebool -P daemons_dump_core 1
+
+.EE
 
 .PP
-Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
-.B semanage fcontext
-command.  This will modify the SELinux labeling database.  You will need to use
-.B restorecon
-to apply the labels.
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the iscsid_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the iscsid_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
 
 .SH PORT TYPES
 SELinux defines port types to represent TCP and UDP ports.
@@ -95,14 +187,6 @@ The SELinux process type iscsid_t can manage files labeled with the following fi
 .br
 
 .br
-.B iscsi_log_t
-
-	/var/log/iscsiuio\.log.*
-.br
-	/var/log/brcm-iscsi\.log.*
-.br
-
-.br
 .B iscsi_tmp_t
 
 
@@ -111,6 +195,16 @@ The SELinux process type iscsid_t can manage files labeled with the following fi
 
 	/var/run/iscsid\.pid
 .br
+	/var/run/iscsiuio\.pid
+.br
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
 
 .br
 .B sysfs_t
@@ -118,21 +212,48 @@ The SELinux process type iscsid_t can manage files labeled with the following fi
 	/sys(/.*)?
 .br
 
-.SH NSSWITCH DOMAIN
+.SH FILE CONTEXTS
+SELinux requires files to have an extended attribute to define the file type.
+.PP
+You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
+.PP
+Policy governs the access confined processes have to these files.
+SELinux iscsid policy is very flexible allowing users to setup their iscsid processes in as secure a method as possible.
+.PP
 
 .PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the iscsid_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the iscsid, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t iscsid_exec_t '/srv/iscsid/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myiscsid_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for iscsid:
+
 
 .EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
+.PP
+.B iscsid_exec_t
 .EE
+
+- Set files with the iscsid_exec_t type, if you want to transition an executable to the iscsid_t domain.
+
+.br
+.TP 5
+Paths:
+/sbin/iscsid, /sbin/iscsiuio, /usr/sbin/iscsid, /usr/sbin/iscsiuio, /sbin/brcm_iscsiuio, /usr/sbin/brcm_iscsiuio
 
 .PP
-If you want to allow confined applications to run with kerberos for the iscsid_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
+Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
+.B semanage fcontext
+command.  This will modify the SELinux labeling database.  You will need to use
+.B restorecon
+to apply the labels.
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -147,6 +268,9 @@ can also be used to enable/disable/install/remove policy modules.
 .B semanage port
 can also be used to manipulate the port definitions
 
+.B semanage boolean
+can also be used to manipulate the booleans
+
 .PP
 .B system-config-selinux
 is a GUI tool available to customize SELinux policy settings.
@@ -158,3 +282,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), iscsid(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)

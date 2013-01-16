@@ -1,4 +1,4 @@
-.TH  "polipo_selinux"  "8"  "12-11-01" "polipo" "SELinux Policy documentation for polipo"
+.TH  "polipo_selinux"  "8"  "13-01-16" "polipo" "SELinux Policy documentation for polipo"
 .SH "NAME"
 polipo_selinux \- Security Enhanced Linux Policy for the polipo processes
 .SH "DESCRIPTION"
@@ -14,7 +14,9 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The polipo_t SELinux type can be entered via the "polipo_exec_t" file type.  The default entrypoint paths for the polipo_t domain are the following:"
+The polipo_t SELinux type can be entered via the \fBpolipo_exec_t\fP file type.
+
+The default entrypoint paths for the polipo_t domain are the following:
 
 /usr/bin/polipo
 .SH PROCESS TYPES
@@ -32,82 +34,186 @@ The following process types are defined for polipo:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a polipo_t
+can be used to make the process type polipo_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
 
 .SH BOOLEANS
 SELinux policy is customizable based on least access required.  polipo policy is extremely flexible and has several booleans that allow you to manipulate the policy and run polipo with the tightest access possible.
 
 
 .PP
-If you want to determine whether calling user domains can execute Polipo daemon in the polipo_session_t domain, you must turn on the polipo_session_users boolean.
-
-.EX
-.B setsebool -P polipo_session_users 1
-.EE
-
-.PP
-If you want to determine whether Polipo can access nfs file systems, you must turn on the polipo_use_nfs boolean.
-
-.EX
-.B setsebool -P polipo_use_nfs 1
-.EE
-
-.PP
-If you want to determine whether polipo can access cifs file systems, you must turn on the polipo_use_cifs boolean.
-
-.EX
-.B setsebool -P polipo_use_cifs 1
-.EE
-
-.PP
-If you want to determine whether Polipo session daemon can bind tcp sockets to all unreserved ports, you must turn on the polipo_session_bind_all_unreserved_ports boolean.
-
-.EX
-.B setsebool -P polipo_session_bind_all_unreserved_ports 1
-.EE
-
-.PP
-If you want to allow polipo to connect to all ports > 1023, you must turn on the polipo_connect_all_unreserved boolean.
+If you want to allow polipo to connect to all ports > 1023, you must turn on the polipo_connect_all_unreserved boolean. Disabled by default.
 
 .EX
 .B setsebool -P polipo_connect_all_unreserved 1
+
 .EE
 
 .PP
-If you want to determine whether calling user domains can execute Polipo daemon in the polipo_session_t domain, you must turn on the polipo_session_users boolean.
-
-.EX
-.B setsebool -P polipo_session_users 1
-.EE
-
-.PP
-If you want to determine whether Polipo can access nfs file systems, you must turn on the polipo_use_nfs boolean.
-
-.EX
-.B setsebool -P polipo_use_nfs 1
-.EE
-
-.PP
-If you want to determine whether polipo can access cifs file systems, you must turn on the polipo_use_cifs boolean.
+If you want to determine whether polipo can access cifs file systems, you must turn on the polipo_use_cifs boolean. Disabled by default.
 
 .EX
 .B setsebool -P polipo_use_cifs 1
+
 .EE
 
 .PP
-If you want to determine whether Polipo session daemon can bind tcp sockets to all unreserved ports, you must turn on the polipo_session_bind_all_unreserved_ports boolean.
+If you want to determine whether Polipo can access nfs file systems, you must turn on the polipo_use_nfs boolean. Disabled by default.
 
 .EX
-.B setsebool -P polipo_session_bind_all_unreserved_ports 1
+.B setsebool -P polipo_use_nfs 1
+
 .EE
 
 .PP
-If you want to allow polipo to connect to all ports > 1023, you must turn on the polipo_connect_all_unreserved boolean.
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
 
 .EX
-.B setsebool -P polipo_connect_all_unreserved 1
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
 .EE
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_dump_core 1
+
+.EE
+
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the polipo_t, polipo_session_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the polipo_t, polipo_session_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type polipo_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B cifs_t
+
+
+.br
+.B nfs_t
+
+
+.br
+.B polipo_cache_t
+
+	/var/cache/polipo(/.*)?
+.br
+
+.br
+.B polipo_log_t
+
+	/var/log/polipo.*
+.br
+
+.br
+.B polipo_pid_t
+
+	/var/run/polipo(/.*)?
+.br
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type.
@@ -117,7 +223,20 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux polipo policy is very flexible allowing users to setup their polipo processes in as secure a method as possible.
 .PP
-The following file types are defined for polipo:
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the polipo, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t polipo_cache_home_t '/srv/polipo/content(/.*)?'
+.br
+.B restorecon -R -v /srv/mypolipo_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for polipo:
 
 
 .EX
@@ -127,6 +246,10 @@ The following file types are defined for polipo:
 
 - Set files with the polipo_cache_home_t type, if you want to store polipo cache files in the users home directory.
 
+.br
+.TP 5
+Paths:
+/home/[^/]*/\.polipo-cache(/.*)?, /home/pwalsh/\.polipo-cache(/.*)?, /home/dwalsh/\.polipo-cache(/.*)?, /var/lib/xguest/home/xguest/\.polipo-cache(/.*)?
 
 .EX
 .PP
@@ -143,6 +266,10 @@ The following file types are defined for polipo:
 
 - Set files with the polipo_config_home_t type, if you want to store polipo config files in the users home directory.
 
+.br
+.TP 5
+Paths:
+/home/[^/]*/\.polipo, /home/pwalsh/\.polipo, /home/dwalsh/\.polipo, /var/lib/xguest/home/xguest/\.polipo
 
 .EX
 .PP
@@ -199,44 +326,6 @@ command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
 
-.SH "MANAGED FILES"
-
-The SELinux process type polipo_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
-
-.br
-.B polipo_cache_t
-
-	/var/cache/polipo(/.*)?
-.br
-
-.br
-.B polipo_log_t
-
-	/var/log/polipo.*
-.br
-
-.br
-.B polipo_pid_t
-
-	/var/run/polipo(/.*)?
-.br
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the polipo_t, polipo_session_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the polipo_t, polipo_session_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
-
 .SH "COMMANDS"
 .B semanage fcontext
 can also be used to manipulate default file context mappings.
@@ -261,4 +350,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), polipo(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
-, setsebool(8)
+, setsebool(8), polipo_session_selinux(8)

@@ -1,4 +1,4 @@
-.TH  "slapd_selinux"  "8"  "12-11-01" "slapd" "SELinux Policy documentation for slapd"
+.TH  "slapd_selinux"  "8"  "13-01-16" "slapd" "SELinux Policy documentation for slapd"
 .SH "NAME"
 slapd_selinux \- Security Enhanced Linux Policy for the slapd processes
 .SH "DESCRIPTION"
@@ -14,9 +14,11 @@ For example:
 
 .SH "ENTRYPOINTS"
 
-The slapd_t SELinux type can be entered via the "slapd_exec_t" file type.  The default entrypoint paths for the slapd_t domain are the following:"
+The slapd_t SELinux type can be entered via the \fBslapd_exec_t\fP file type.
 
-/usr/sbin/slapd
+The default entrypoint paths for the slapd_t domain are the following:
+
+/usr/lib/slapd, /usr/sbin/slapd
 .SH PROCESS TYPES
 SELinux defines process types (domains) for each process running on the system
 .PP
@@ -32,8 +34,210 @@ The following process types are defined for slapd:
 .EE
 .PP
 Note:
-.B semanage permissive -a PROCESS_TYPE
-can be used to make a process type permissive. Permissive process types are not denied access by SELinux. AVC messages will still be generated.
+.B semanage permissive -a slapd_t
+can be used to make the process type slapd_t permissive. SELinux does not deny access to permissive process types, but the AVC (SELinux denials) messages are still generated.
+
+.SH BOOLEANS
+SELinux policy is customizable based on least access required.  slapd policy is extremely flexible and has several booleans that allow you to manipulate the policy and run slapd with the tightest access possible.
+
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server, you must turn on the authlogin_nsswitch_use_ldap boolean. Disabled by default.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+
+.EE
+
+.PP
+If you want to allow all daemons to write corefiles to /, you must turn on the daemons_dump_core boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_dump_core 1
+
+.EE
+
+.PP
+If you want to allow all daemons to use tcp wrappers, you must turn on the daemons_use_tcp_wrapper boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tcp_wrapper 1
+
+.EE
+
+.PP
+If you want to allow all daemons the ability to read/write terminals, you must turn on the daemons_use_tty boolean. Disabled by default.
+
+.EX
+.B setsebool -P daemons_use_tty 1
+
+.EE
+
+.PP
+If you want to allow sysadm to debug or ptrace all processes, you must turn on the deny_ptrace boolean. Enabled by default.
+
+.EX
+.B setsebool -P deny_ptrace 1
+
+.EE
+
+.PP
+If you want to allow all domains to use other domains file descriptors, you must turn on the domain_fd_use boolean. Enabled by default.
+
+.EX
+.B setsebool -P domain_fd_use 1
+
+.EE
+
+.PP
+If you want to allow all domains to have the kernel load modules, you must turn on the domain_kernel_load_modules boolean. Disabled by default.
+
+.EX
+.B setsebool -P domain_kernel_load_modules 1
+
+.EE
+
+.PP
+If you want to allow all domains to execute in fips_mode, you must turn on the fips_mode boolean. Enabled by default.
+
+.EX
+.B setsebool -P fips_mode 1
+
+.EE
+
+.PP
+If you want to enable reading of urandom for all domains, you must turn on the global_ssp boolean. Disabled by default.
+
+.EX
+.B setsebool -P global_ssp 1
+
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos, you must turn on the kerberos_enabled boolean. Enabled by default.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+
+.EE
+
+.PP
+If you want to allow system to run with NIS, you must turn on the nis_enabled boolean. Disabled by default.
+
+.EX
+.B setsebool -P nis_enabled 1
+
+.EE
+
+.PP
+If you want to allow confined applications to use nscd shared memory, you must turn on the nscd_use_shm boolean. Disabled by default.
+
+.EX
+.B setsebool -P nscd_use_shm 1
+
+.EE
+
+.SH NSSWITCH DOMAIN
+
+.PP
+If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd server for the slapd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
+
+.EX
+.B setsebool -P authlogin_nsswitch_use_ldap 1
+.EE
+
+.PP
+If you want to allow confined applications to run with kerberos for the slapd_t, you must turn on the kerberos_enabled boolean.
+
+.EX
+.B setsebool -P kerberos_enabled 1
+.EE
+
+.SH "MANAGED FILES"
+
+The SELinux process type slapd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
+
+.br
+.B auth_cache_t
+
+	/var/cache/coolkey(/.*)?
+.br
+
+.br
+.B krb5_host_rcache_t
+
+	/var/cache/krb5rcache(/.*)?
+.br
+	/var/tmp/nfs_0
+.br
+	/var/tmp/DNS_25
+.br
+	/var/tmp/host_0
+.br
+	/var/tmp/imap_0
+.br
+	/var/tmp/HTTP_23
+.br
+	/var/tmp/HTTP_48
+.br
+	/var/tmp/ldap_55
+.br
+	/var/tmp/ldap_487
+.br
+	/var/tmp/ldapmap1_0
+.br
+
+.br
+.B root_t
+
+	/
+.br
+	/initrd
+.br
+
+.br
+.B slapd_db_t
+
+	/var/lib/ldap(/.*)?
+.br
+	/etc/openldap/slapd\.d(/.*)?
+.br
+
+.br
+.B slapd_lock_t
+
+	/var/lock/subsys/ldap
+.br
+	/var/lock/subsys/slapd
+.br
+
+.br
+.B slapd_replog_t
+
+	/var/lib/ldap/replog(/.*)?
+.br
+
+.br
+.B slapd_tmp_t
+
+
+.br
+.B slapd_tmpfs_t
+
+
+.br
+.B slapd_var_run_t
+
+	/var/run/slapd.*
+.br
+	/var/run/openldap(/.*)?
+.br
+	/var/run/ldapi
+.br
+	/var/run/slapd\.pid
+.br
+	/var/run/slapd\.args
+.br
 
 .SH FILE CONTEXTS
 SELinux requires files to have an extended attribute to define the file type.
@@ -43,7 +247,31 @@ You can see the context of a file using the \fB\-Z\fP option to \fBls\bP
 Policy governs the access confined processes have to these files.
 SELinux slapd policy is very flexible allowing users to setup their slapd processes in as secure a method as possible.
 .PP
-The following file types are defined for slapd:
+
+.PP
+.B EQUIVALENCE DIRECTORIES
+
+.PP
+slapd policy stores data with multiple different file context types under the /var/lib/ldap directory.  If you would like to store the data in a different directory you can use the semanage command to create an equivalence mapping.  If you wanted to store this data under the /srv dirctory you would execute the following command:
+.PP
+.B semanage fcontext -a -e /var/lib/ldap /srv/ldap
+.br
+.B restorecon -R -v /srv/ldap
+.PP
+
+.PP
+.B STANDARD FILE CONTEXT
+
+SELinux defines the file context types for the slapd, if you wanted to
+store files with these types in a diffent paths, you need to execute the semanage command to sepecify alternate labeling and then use restorecon to put the labels on disk.
+
+.B semanage fcontext -a -t slapd_cert_t '/srv/slapd/content(/.*)?'
+.br
+.B restorecon -R -v /srv/myslapd_content
+
+Note: SELinux often uses regular expressions to specify labels that match multiple files.
+
+.I The following file types are defined for slapd:
 
 
 .EX
@@ -61,6 +289,10 @@ The following file types are defined for slapd:
 
 - Set files with the slapd_db_t type, if you want to treat the files as slapd database content.
 
+.br
+.TP 5
+Paths:
+/var/lib/ldap(/.*)?, /etc/openldap/slapd\.d(/.*)?
 
 .EX
 .PP
@@ -77,6 +309,10 @@ The following file types are defined for slapd:
 
 - Set files with the slapd_exec_t type, if you want to transition an executable to the slapd_t domain.
 
+.br
+.TP 5
+Paths:
+/usr/lib/slapd, /usr/sbin/slapd
 
 .EX
 .PP
@@ -101,6 +337,10 @@ The following file types are defined for slapd:
 
 - Set files with the slapd_lock_t type, if you want to treat the files as slapd lock data, stored under the /var/lock directory
 
+.br
+.TP 5
+Paths:
+/var/lock/subsys/ldap, /var/lock/subsys/slapd
 
 .EX
 .PP
@@ -109,6 +349,10 @@ The following file types are defined for slapd:
 
 - Set files with the slapd_log_t type, if you want to treat the data as slapd log data, usually stored under the /var/log directory.
 
+.br
+.TP 5
+Paths:
+/var/log/ldap.*, /var/log/slapd.*
 
 .EX
 .PP
@@ -147,8 +391,12 @@ The following file types are defined for slapd:
 .B slapd_var_run_t
 .EE
 
-- Set files with the slapd_var_run_t type, if you want to store the slapd files under the /run directory.
+- Set files with the slapd_var_run_t type, if you want to store the slapd files under the /run or /var/run directory.
 
+.br
+.TP 5
+Paths:
+/var/run/slapd.*, /var/run/openldap(/.*)?, /var/run/ldapi, /var/run/slapd\.pid, /var/run/slapd\.args
 
 .PP
 Note: File context can be temporarily modified with the chcon command.  If you want to permanently change the file context you need to use the
@@ -156,100 +404,6 @@ Note: File context can be temporarily modified with the chcon command.  If you w
 command.  This will modify the SELinux labeling database.  You will need to use
 .B restorecon
 to apply the labels.
-
-.SH "MANAGED FILES"
-
-The SELinux process type slapd_t can manage files labeled with the following file types.  The paths listed are the default paths for these file types.  Note the processes UID still need to have DAC permissions.
-
-.br
-.B auth_cache_t
-
-	/var/cache/coolkey(/.*)?
-.br
-
-.br
-.B krb5_host_rcache_t
-
-	/var/cache/krb5rcache(/.*)?
-.br
-	/var/tmp/nfs_0
-.br
-	/var/tmp/DNS_25
-.br
-	/var/tmp/host_0
-.br
-	/var/tmp/imap_0
-.br
-	/var/tmp/HTTP_23
-.br
-	/var/tmp/HTTP_48
-.br
-	/var/tmp/ldap_55
-.br
-	/var/tmp/ldap_487
-.br
-	/var/tmp/ldapmap1_0
-.br
-
-.br
-.B slapd_db_t
-
-	/var/lib/ldap(/.*)?
-.br
-	/etc/openldap/slapd\.d(/.*)?
-.br
-
-.br
-.B slapd_lock_t
-
-
-.br
-.B slapd_log_t
-
-
-.br
-.B slapd_replog_t
-
-	/var/lib/ldap/replog(/.*)?
-.br
-
-.br
-.B slapd_tmp_t
-
-
-.br
-.B slapd_tmpfs_t
-
-
-.br
-.B slapd_var_run_t
-
-	/var/run/slapd.*
-.br
-	/var/run/openldap(/.*)?
-.br
-	/var/run/ldapi
-.br
-	/var/run/slapd\.pid
-.br
-	/var/run/slapd\.args
-.br
-
-.SH NSSWITCH DOMAIN
-
-.PP
-If you want to allow users to resolve user passwd entries directly from ldap rather then using a sssd serve for the slapd_t, you must turn on the authlogin_nsswitch_use_ldap boolean.
-
-.EX
-.B setsebool -P authlogin_nsswitch_use_ldap 1
-.EE
-
-.PP
-If you want to allow confined applications to run with kerberos for the slapd_t, you must turn on the kerberos_enabled boolean.
-
-.EX
-.B setsebool -P kerberos_enabled 1
-.EE
 
 .SH "COMMANDS"
 .B semanage fcontext
@@ -260,6 +414,9 @@ can also be used to manipulate whether or not a process type is permissive.
 .PP
 .B semanage module
 can also be used to enable/disable/install/remove policy modules.
+
+.B semanage boolean
+can also be used to manipulate the booleans
 
 .PP
 .B system-config-selinux
@@ -272,3 +429,4 @@ by Dan Walsh.
 
 .SH "SEE ALSO"
 selinux(8), slapd(8), semanage(8), restorecon(8), chcon(1), sepolicy(8)
+, setsebool(8)
