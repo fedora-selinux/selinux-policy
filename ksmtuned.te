@@ -5,9 +5,26 @@ policy_module(ksmtuned, 1.0.1)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow ksmtuned to use nfs file systems
+## </p>
+## </desc>
+gen_tunable(ksmtuned_use_nfs, false)
+
+## <desc>
+## <p>
+## Allow ksmtuned to use cifs/Samba file systems
+## </p>
+## </desc>
+gen_tunable(ksmtuned_use_cifs, false)
+
 type ksmtuned_t;
 type ksmtuned_exec_t;
 init_daemon_domain(ksmtuned_t, ksmtuned_exec_t)
+
+type ksmtuned_unit_file_t;
+systemd_unit_file(ksmtuned_unit_file_t)
 
 type ksmtuned_initrc_exec_t;
 init_script_file(ksmtuned_initrc_exec_t)
@@ -52,3 +69,12 @@ term_use_all_terms(ksmtuned_t)
 auth_use_nsswitch(ksmtuned_t)
 
 logging_send_syslog_msg(ksmtuned_t)
+
+tunable_policy(`ksmtuned_use_nfs',`
+    fs_read_nfs_files(ksmtuned_t)
+')
+
+tunable_policy(`ksmtuned_use_cifs',`
+    fs_read_cifs_files(ksmtuned_t)
+	samba_read_share_files(ksmtuned_t)
+')
