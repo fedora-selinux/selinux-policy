@@ -38,6 +38,29 @@ interface(`ksmtuned_initrc_domtrans',`
 	init_labeled_script_domtrans($1, ksmtuned_initrc_exec_t)
 ')
 
+#######################################
+## <summary>
+##  Execute ksmtuned server in the ksmtunedd domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`ksmtuned_systemctl',`
+    gen_require(`
+        type ksmtuned_unit_file_t;
+        type ksmtuned_t;
+    ')
+
+    systemd_exec_systemctl($1)
+    allow $1 ksmtuned_unit_file_t:file read_file_perms;
+    allow $1 ksmtuned_unit_file_t:service manage_service_perms;
+
+    ps_process_pattern($1, ksmtuned_t)
+')
+
 ########################################
 ## <summary>
 ##	All of the rules required to
@@ -57,7 +80,7 @@ interface(`ksmtuned_initrc_domtrans',`
 #
 interface(`ksmtuned_admin',`
 	gen_require(`
-		type ksmtuned_t, ksmtuned_var_run_t, ksmtuned_initrc_exec_t;
+		type ksmtuned_t, ksmtuned_var_run_t, ksmtuned_initrc_exec_t, ksmtuned_unit_file_t;
 	')
 
 	allow $1 ksmtuned_t:process signal_perms;
@@ -72,4 +95,10 @@ interface(`ksmtuned_admin',`
 
 	logging_search_logs($1)
 	admin_pattern($1, ksmtuned_log_t)
+
+    ksmtuned_systemctl($1)
+    admin_pattern($1, ksmtuned_unit_file_t)
+    allow $1 ksmtuned_unit_file_t:service all_service_perms;
+
+
 ')
