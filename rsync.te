@@ -42,6 +42,14 @@ gen_tunable(rsync_export_all_ro, false)
 ## </desc>
 gen_tunable(rsync_anon_write, false)
 
+## <desc>
+##	<p>
+##	Allow rsync server to manage all files/directories on the system.
+##	</p>
+## </desc>
+gen_tunable(rsync_full_access, false)
+
+
 type rsync_t;
 type rsync_exec_t;
 init_domain(rsync_t, rsync_exec_t)
@@ -126,10 +134,6 @@ miscfiles_read_public_files(rsync_t)
 
 userdom_home_manager(rsync_t)
 
-tunable_policy(`rsync_anon_write',`
-	miscfiles_manage_public_files(rsync_t)
-')
-
 optional_policy(`
 	daemontools_service_domain(rsync_t, rsync_exec_t)
 ')
@@ -140,6 +144,17 @@ optional_policy(`
 
 optional_policy(`
 	inetd_service_domain(rsync_t, rsync_exec_t)
+')
+
+tunable_policy(`rsync_anon_write',`
+	miscfiles_manage_public_files(rsync_t)
+')
+
+tunable_policy(`rsync_full_access',`
+	allow rsync_t self:capability { dac_override dac_read_search };
+	files_manage_non_security_dirs(rsync_t)
+	files_manage_non_security_files(rsync_t)
+	files_relabel_non_security_files(rsync_t)
 ')
 
 tunable_policy(`rsync_export_all_ro',`
