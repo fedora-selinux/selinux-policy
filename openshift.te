@@ -29,7 +29,6 @@ optional_policy(`
 	oddjob_ranged_domain(openshift_initrc_t, openshift_initrc_exec_t, s0 - mcs_systemhigh)
 ')
 
-
 type openshift_initrc_tmp_t;
 files_tmp_file(openshift_initrc_tmp_t)
 
@@ -64,6 +63,19 @@ corenet_reserved_port(openshift_port_t)
 type openshift_cgroup_read_t;
 type openshift_cgroup_read_exec_t;
 application_domain(openshift_cgroup_read_t, openshift_cgroup_read_exec_t)
+
+type openshift_cron_t;
+type openshift_cron_exec_t;
+domain_type(openshift_cron_t)
+domain_entry_file(openshift_cron_t, openshift_cron_exec_t)
+role system_r types openshift_cron_t;
+
+optional_policy(`
+	cron_system_entry(openshift_cron_t, openshift_cron_exec_t)
+')
+
+type openshift_cron_tmp_t, openshift_file_type;
+files_tmp_file(openshift_cron_tmp_t)
 
 ########################################
 #
@@ -377,3 +389,25 @@ fs_read_cgroup_files(openshift_cgroup_read_t)
 
 allow openshift_cgroup_read_t openshift_var_lib_t:dir list_dir_perms;
 read_files_pattern(openshift_cgroup_read_t, openshift_var_lib_t, openshift_var_lib_t)
+
+########################################
+#
+# openshift_cron local policy
+#
+allow openshift_cron_t self:netlink_route_socket rw_netlink_socket_perms;
+
+manage_dirs_pattern(openshift_cron_t, openshift_cron_tmp_t, openshift_cron_tmp_t)
+manage_fifo_files_pattern(openshift_cron_t, openshift_cron_tmp_t, openshift_cron_tmp_t)
+manage_files_pattern(openshift_cron_t, openshift_cron_tmp_t, openshift_cron_tmp_t)
+manage_lnk_files_pattern(openshift_cron_t, openshift_cron_tmp_t, openshift_cron_tmp_t)
+manage_sock_files_pattern(openshift_cron_t, openshift_cron_tmp_t, openshift_cron_tmp_t)
+files_tmp_filetrans(openshift_cron_t, openshift_cron_tmp_t, { lnk_file file dir sock_file fifo_file })
+
+kernel_search_network_sysctl(openshift_cron_t)
+kernel_read_system_state(openshift_cron_t)
+
+corecmd_exec_bin(openshift_cron_t)
+corecmd_exec_shell(openshift_cron_t)
+
+dev_read_raw_memory(openshift_cron_t)
+dev_read_urand(openshift_cron_t)
