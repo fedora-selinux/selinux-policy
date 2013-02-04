@@ -394,6 +394,11 @@ read_files_pattern(openshift_cgroup_read_t, openshift_var_lib_t, openshift_var_l
 #
 # openshift_cron local policy
 #
+allow openshift_cron_t self:capability net_admin;
+allow openshift_cron_t self:process signal_perms;
+allow openshift_cron_t self:tcp_socket create_stream_socket_perms;
+allow openshift_cron_t self:udp_socket create_socket_perms;
+allow openshift_cron_t self:unix_dgram_socket create_socket_perms;
 allow openshift_cron_t self:netlink_route_socket rw_netlink_socket_perms;
 
 manage_dirs_pattern(openshift_cron_t, openshift_cron_tmp_t, openshift_cron_tmp_t)
@@ -403,7 +408,11 @@ manage_lnk_files_pattern(openshift_cron_t, openshift_cron_tmp_t, openshift_cron_
 manage_sock_files_pattern(openshift_cron_t, openshift_cron_tmp_t, openshift_cron_tmp_t)
 files_tmp_filetrans(openshift_cron_t, openshift_cron_tmp_t, { lnk_file file dir sock_file fifo_file })
 
+openshift_manage_lib_dirs(openshift_cron_t)
+openshift_manage_lib_files(openshift_cron_t)
+
 kernel_search_network_sysctl(openshift_cron_t)
+kernel_read_network_state(openshift_cron_t)
 kernel_read_system_state(openshift_cron_t)
 
 corecmd_exec_bin(openshift_cron_t)
@@ -411,3 +420,44 @@ corecmd_exec_shell(openshift_cron_t)
 
 dev_read_raw_memory(openshift_cron_t)
 dev_read_urand(openshift_cron_t)
+
+corenet_udp_bind_generic_node(openshift_cron_t)
+corenet_udp_bind_generic_port(openshift_cron_t)
+
+dev_getattr_fs(openshift_cron_t)
+dev_list_sysfs(openshift_cron_t)
+dev_read_sysfs(openshift_cron_t)
+
+files_getattr_home_dir(openshift_cron_t)
+files_manage_etc_files(openshift_cron_t)
+
+fs_getattr_tmpfs_dirs(openshift_cron_t)
+fs_getattr_all_fs(openshift_cron_t)
+fs_list_hugetlbfs(openshift_cron_t)
+fs_search_cgroup_dirs(openshift_cron_t)
+
+seutil_domtrans_setfiles(openshift_cron_t)
+
+term_getattr_pty_fs(openshift_cron_t)
+term_search_ptys(openshift_cron_t)
+
+auth_use_nsswitch(openshift_cron_t)
+
+miscfiles_read_generic_certs(openshift_cron_t)
+miscfiles_read_hwdata(openshift_cron_t)
+
+sysnet_exec_ifconfig(openshift_cron_t)
+sysnet_read_config(openshift_cron_t)
+
+optional_policy(`
+	dmidecode_exec(openshift_cron_t)
+')
+
+optional_policy(`
+	hostname_exec(openshift_cron_t)
+')
+
+optional_policy(`
+	ssh_exec_keygen(openshift_cron_t)
+	ssh_dontaudit_read_server_keys(openshift_cron_t)
+')
