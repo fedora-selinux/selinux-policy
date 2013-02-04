@@ -14,10 +14,13 @@ files_pid_file(cupsd_config_var_run_t)
 
 type cupsd_t;
 type cupsd_exec_t;
+typealias cupsd_t alias hplip_t;
+typealias cupsd_exec_t alias hplip_exec_t;
 init_daemon_domain(cupsd_t, cupsd_exec_t)
 mls_trusted_object(cupsd_t)
 
 type cupsd_etc_t;
+typealias cupsd_etc_t alias hplip_etc_t;
 files_config_file(cupsd_etc_t)
 
 type cupsd_initrc_exec_t;
@@ -33,7 +36,11 @@ type cupsd_lock_t;
 files_lock_file(cupsd_lock_t)
 
 type cupsd_log_t;
+typealias cupsd_log_t alias hplip_var_log_t;
 logging_log_file(cupsd_log_t)
+
+type cupsd_var_lib_t;
+files_type(cupsd_var_lib_t)
 
 type cupsd_lpd_t;
 type cupsd_lpd_exec_t;
@@ -55,35 +62,17 @@ type cups_pdf_tmp_t;
 files_tmp_file(cups_pdf_tmp_t)
 
 type cupsd_tmp_t;
+typealias cupsd_tmp_t alias hplip_tmp_t;
 files_tmp_file(cupsd_tmp_t)
 
 type cupsd_var_run_t;
+typealias cupsd_var_run_t alias hplip_var_run_t;
 files_pid_file(cupsd_var_run_t)
 init_daemon_run_dir(cupsd_var_run_t, "cups")
 mls_trusted_object(cupsd_var_run_t)
 
 type cupsd_unit_file_t;
 systemd_unit_file(cupsd_unit_file_t)
-
-type hplip_t;
-type hplip_exec_t;
-init_daemon_domain(hplip_t, hplip_exec_t)
-cups_backend(hplip_t, hplip_exec_t)
-
-type hplip_etc_t;
-files_config_file(hplip_etc_t)
-
-type hplip_tmp_t;
-files_tmp_file(hplip_tmp_t)
-
-type hplip_var_lib_t;
-files_type(hplip_var_lib_t)
-
-type hplip_var_log_t;
-logging_log_file(hplip_var_log_t)
-
-type hplip_var_run_t;
-files_pid_file(hplip_var_run_t)
 
 type ptal_t;
 type ptal_exec_t;
@@ -146,6 +135,9 @@ read_files_pattern(cupsd_t, cupsd_log_t, cupsd_log_t)
 setattr_files_pattern(cupsd_t, cupsd_log_t, cupsd_log_t)
 logging_log_filetrans(cupsd_t, cupsd_log_t, { file dir })
 
+manage_files_pattern(cupsd_t, cupsd_var_lib_t, cupsd_var_lib_t)
+manage_lnk_files_pattern(cupsd_t, cupsd_var_lib_t, cupsd_var_lib_t)
+
 manage_dirs_pattern(cupsd_t, cupsd_tmp_t, cupsd_tmp_t)
 manage_files_pattern(cupsd_t, cupsd_tmp_t, cupsd_tmp_t)
 manage_fifo_files_pattern(cupsd_t, cupsd_tmp_t, cupsd_tmp_t)
@@ -158,11 +150,8 @@ manage_sock_files_pattern(cupsd_t, cupsd_var_run_t, cupsd_var_run_t)
 manage_fifo_files_pattern(cupsd_t, cupsd_var_run_t, cupsd_var_run_t)
 files_pid_filetrans(cupsd_t, cupsd_var_run_t, { dir fifo_file file })
 
-allow cupsd_t hplip_t:process { signal sigkill };
+allow cupsd_t cupsd_unit_file_t:file read_file_perms;
 
-read_files_pattern(cupsd_t, hplip_etc_t, hplip_etc_t)
-
-allow cupsd_t hplip_var_run_t:file read_file_perms;
 
 stream_connect_pattern(cupsd_t, ptal_var_run_t, ptal_var_run_t, ptal_t)
 allow cupsd_t ptal_var_run_t:sock_file setattr_sock_file_perms;
@@ -196,6 +185,19 @@ corenet_dontaudit_tcp_bind_all_reserved_ports(cupsd_t)
 corenet_tcp_bind_all_rpc_ports(cupsd_t)
 corenet_tcp_connect_all_ports(cupsd_t)
 
+corenet_sendrecv_hplip_client_packets(cupsd_t)
+corenet_receive_hplip_server_packets(cupsd_t)
+corenet_tcp_bind_hplip_port(cupsd_t)
+corenet_tcp_connect_hplip_port(cupsd_t)
+corenet_tcp_bind_glance_port(cupsd_t)
+corenet_tcp_connect_glance_port(cupsd_t)
+
+corenet_sendrecv_ipp_client_packets(cupsd_t)
+corenet_tcp_connect_ipp_port(cupsd_t)
+
+corenet_sendrecv_howl_server_packets(cupsd_t)
+corenet_udp_bind_howl_port(cupsd_t)
+
 corecmd_exec_bin(cupsd_t)
 corecmd_exec_shell(cupsd_t)
 
@@ -225,11 +227,13 @@ files_dontaudit_getattr_all_tmp_files(cupsd_t)
 files_dontaudit_list_home(cupsd_t)
 # for /etc/printcap
 files_dontaudit_write_etc_files(cupsd_t)
+files_dontaudit_write_usr_dirs(cupsd_t)
 
 fs_getattr_all_fs(cupsd_t)
 fs_search_auto_mountpoints(cupsd_t)
 fs_search_fusefs(cupsd_t)
 fs_read_anon_inodefs_files(cupsd_t)
+fs_rw_anon_inodefs_files(cupsd_t)
 
 mls_fd_use_all_levels(cupsd_t)
 mls_file_downgrade(cupsd_t)
@@ -240,6 +244,7 @@ mls_socket_write_all_levels(cupsd_t)
 
 term_search_ptys(cupsd_t)
 term_use_unallocated_ttys(cupsd_t)
+term_use_ptmx(cupsd_t)
 
 selinux_compute_access_vector(cupsd_t)
 selinux_validate_context(cupsd_t)
@@ -263,7 +268,11 @@ miscfiles_setattr_fonts_cache_dirs(cupsd_t)
 seutil_read_config(cupsd_t)
 
 sysnet_exec_ifconfig(cupsd_t)
+sysnet_dns_name_resolve(cupsd_t)
 
+userdom_dontaudit_use_unpriv_user_fds(cupsd_t)
+userdom_dontaudit_search_user_home_dirs(cupsd_t)
+userdom_dontaudit_search_user_home_content(cupsd_t)
 userdom_dontaudit_use_unpriv_user_fds(cupsd_t)
 userdom_dontaudit_search_user_home_content(cupsd_t)
 
@@ -382,13 +391,11 @@ manage_dirs_pattern(cupsd_config_t, cupsd_config_var_run_t, cupsd_config_var_run
 manage_files_pattern(cupsd_config_t, cupsd_config_var_run_t, cupsd_config_var_run_t)
 files_pid_filetrans(cupsd_config_t, cupsd_config_var_run_t, { dir file })
 
-read_files_pattern(cupsd_config_t, hplip_etc_t, hplip_etc_t)
+read_files_pattern(cupsd_config_t, cupsd_etc_t, cupsd_etc_t)
 
 stream_connect_pattern(cupsd_config_t, cupsd_var_run_t, cupsd_var_run_t, cupsd_t)
 
 can_exec(cupsd_config_t, cupsd_config_exec_t)
-
-domtrans_pattern(cupsd_config_t, hplip_exec_t, hplip_t)
 
 kernel_read_system_state(cupsd_config_t)
 kernel_read_all_sysctls(cupsd_config_t)
@@ -460,7 +467,6 @@ optional_policy(`
 optional_policy(`
 	hal_domtrans(cupsd_config_t)
 	hal_read_tmp_files(cupsd_config_t)
-	hal_dontaudit_use_fds(hplip_t)
 ')
 
 optional_policy(`
@@ -595,128 +601,8 @@ optional_policy(`
 	lpd_manage_spool(cups_pdf_t)
 ')
 
-########################################
-#
-# HPLIP local policy
-#
 
-allow hplip_t self:capability { dac_override dac_read_search net_raw };
-dontaudit hplip_t self:capability sys_tty_config;
-allow hplip_t self:fifo_file rw_fifo_file_perms;
-allow hplip_t self:process signal_perms;
-allow hplip_t self:tcp_socket { accept listen };
-allow hplip_t self:rawip_socket create_socket_perms;
 
-allow hplip_t cupsd_etc_t:dir search_dir_perms;
-
-manage_dirs_pattern(hplip_t, cupsd_tmp_t, cupsd_tmp_t)
-manage_files_pattern(hplip_t, cupsd_tmp_t, cupsd_tmp_t)
-files_tmp_filetrans(hplip_t, cupsd_tmp_t, { dir file })
-
-allow hplip_t hplip_etc_t:dir list_dir_perms;
-allow hplip_t hplip_etc_t:file read_file_perms;
-allow hplip_t hplip_etc_t:lnk_file read_lnk_file_perms;
-
-allow hplip_t cupsd_unit_file_t:file read_file_perms;
-
-manage_files_pattern(hplip_t, hplip_var_lib_t, hplip_var_lib_t)
-manage_lnk_files_pattern(hplip_t, hplip_var_lib_t, hplip_var_lib_t)
-
-manage_files_pattern(hplip_t, hplip_var_log_t,hplip_var_log_t)
-manage_fifo_files_pattern(hplip_t, hplip_var_log_t,hplip_var_log_t)
-manage_dirs_pattern(hplip_t, hplip_var_log_t,hplip_var_log_t)
-logging_log_filetrans(hplip_t,hplip_var_log_t,{ dir fifo_file file })
-
-manage_fifo_files_pattern(hplip_t, hplip_tmp_t, hplip_tmp_t)
-files_tmp_filetrans(hplip_t, hplip_tmp_t, fifo_file)
-
-manage_files_pattern(hplip_t, hplip_var_run_t, hplip_var_run_t)
-files_pid_filetrans(hplip_t, hplip_var_run_t, file)
-
-stream_connect_pattern(hplip_t, cupsd_var_run_t, cupsd_var_run_t, cupsd_t)
-
-kernel_read_system_state(hplip_t)
-kernel_read_kernel_sysctls(hplip_t)
-
-corenet_all_recvfrom_netlabel(hplip_t)
-corenet_tcp_sendrecv_generic_if(hplip_t)
-corenet_udp_sendrecv_generic_if(hplip_t)
-corenet_raw_sendrecv_generic_if(hplip_t)
-corenet_tcp_sendrecv_generic_node(hplip_t)
-corenet_udp_sendrecv_generic_node(hplip_t)
-corenet_raw_sendrecv_generic_node(hplip_t)
-corenet_tcp_sendrecv_all_ports(hplip_t)
-corenet_udp_sendrecv_all_ports(hplip_t)
-corenet_tcp_bind_generic_node(hplip_t)
-corenet_udp_bind_generic_node(hplip_t)
-
-corenet_sendrecv_hplip_client_packets(hplip_t)
-corenet_receive_hplip_server_packets(hplip_t)
-corenet_tcp_bind_hplip_port(hplip_t)
-corenet_tcp_connect_hplip_port(hplip_t)
-corenet_tcp_bind_glance_port(hplip_t)
-corenet_tcp_connect_glance_port(hplip_t)
-
-corenet_sendrecv_ipp_client_packets(hplip_t)
-corenet_tcp_connect_ipp_port(hplip_t)
-
-corenet_sendrecv_howl_server_packets(hplip_t)
-corenet_udp_bind_howl_port(hplip_t)
-
-corecmd_exec_bin(hplip_t)
-
-dev_read_sysfs(hplip_t)
-dev_rw_printer(hplip_t)
-dev_read_urand(hplip_t)
-dev_read_rand(hplip_t)
-dev_rw_generic_usb_dev(hplip_t)
-dev_rw_usbfs(hplip_t)
-
-domain_use_interactive_fds(hplip_t)
-
-files_read_etc_runtime_files(hplip_t)
-files_dontaudit_write_usr_dirs(hplip_t)
-
-fs_getattr_all_fs(hplip_t)
-fs_search_auto_mountpoints(hplip_t)
-fs_rw_anon_inodefs_files(hplip_t)
-
-term_use_ptmx(hplip_t)
-
-auth_read_passwd(hplip_t)
-
-logging_send_syslog_msg(hplip_t)
-
-sysnet_dns_name_resolve(hplip_t)
-
-userdom_dontaudit_use_unpriv_user_fds(hplip_t)
-userdom_dontaudit_search_user_home_dirs(hplip_t)
-userdom_dontaudit_search_user_home_content(hplip_t)
-
-optional_policy(`
-	dbus_system_bus_client(hplip_t)
-
-	optional_policy(`
-		userdom_dbus_send_all_users(hplip_t)
-	')
-')
-
-optional_policy(`
-	lpd_read_config(hplip_t)
-	lpd_manage_spool(hplip_t)
-')
-
-optional_policy(`
-	seutil_sigchld_newrole(hplip_t)
-')
-
-optional_policy(`
-	snmp_read_snmp_var_lib_files(hplip_t)
-')
-
-optional_policy(`
-	udev_read_db(hplip_t)
-')
 
 ########################################
 #
