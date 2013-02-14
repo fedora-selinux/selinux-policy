@@ -87,7 +87,7 @@ init_daemon_domain(systemd_sysctl_t, systemd_sysctl_exec_t)
 
 # dac_override is for /run/user/$USER ($USER ownership is $USER:$USER)
 allow systemd_logind_t self:capability { chown kill dac_override fowner sys_tty_config };
-allow systemd_logind_t self:process getcap;
+allow systemd_logind_t self:process { getcap };
 allow systemd_logind_t self:netlink_kobject_uevent_socket create_socket_perms;
 allow systemd_logind_t self:unix_dgram_socket create_socket_perms;
 
@@ -174,7 +174,6 @@ init_rw_stream_sockets(systemd_logind_t)
 
 logging_send_syslog_msg(systemd_logind_t)
 logging_stream_connect_syslog(systemd_logind_t)
-
 
 udev_read_db(systemd_logind_t)
 udev_manage_rules_files(systemd_logind_t)
@@ -523,7 +522,7 @@ optional_policy(`
 # Timedated policy
 #
 allow systemd_timedated_t self:capability { sys_nice sys_time dac_override };
-allow systemd_timedated_t self:process { getattr getsched signal };
+allow systemd_timedated_t self:process { getattr getsched signal setfscreate };
 allow systemd_timedated_t self:fifo_file rw_fifo_file_perms;
 allow systemd_timedated_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_timedated_t self:unix_dgram_socket create_socket_perms;
@@ -555,6 +554,8 @@ logging_send_syslog_msg(systemd_timedated_t)
 
 miscfiles_manage_localization(systemd_timedated_t)
 miscfiles_etc_filetrans_localization(systemd_timedated_t)
+
+seutil_read_file_contexts(systemd_timedated_t)
 
 userdom_read_all_users_state(systemd_timedated_t)
 
