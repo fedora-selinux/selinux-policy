@@ -472,6 +472,7 @@ init_use_fds(systemctl_domain)
 #
 # Localed policy
 #
+
 allow systemd_localed_t self:process setfscreate;
 allow systemd_localed_t self:fifo_file rw_fifo_file_perms;
 allow systemd_localed_t self:unix_stream_socket create_stream_socket_perms;
@@ -491,10 +492,23 @@ optional_policy(`
 #
 # Hostnamed policy
 #
+
+dontaudit systemd_hostnamed_t self:capability sys_ptrace;
+
 allow systemd_hostnamed_t self:fifo_file rw_fifo_file_perms;
 allow systemd_hostnamed_t self:unix_stream_socket create_stream_socket_perms;
+allow systemd_hostnamed_t self:unix_dgram_socket create_socket_perms;
+
+kernel_dgram_send(systemd_hostnamed_t)
+
+dev_write_kmsg(systemd_hostnamed_t)
+dev_read_sysfs(systemd_hostnamed_t)
 
 init_status(systemd_hostnamed_t)
+init_read_state(systemd_hostnamed_t)
+init_stream_connect(systemd_hostnamed_t)
+
+logging_stream_connect_syslog(systemd_hostnamed_t)
 
 optional_policy(`
         dbus_system_bus_client(systemd_hostnamed_t)
@@ -505,6 +519,7 @@ optional_policy(`
 #
 # Timedated policy
 #
+
 allow systemd_timedated_t self:capability { sys_nice sys_time dac_override };
 allow systemd_timedated_t self:process { getattr getsched signal setfscreate };
 allow systemd_timedated_t self:fifo_file rw_fifo_file_perms;
