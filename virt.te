@@ -273,6 +273,7 @@ manage_files_pattern(virtd_t, virt_content_t, virt_content_t)
 allow virtd_t virt_domain:process { getattr getsched setsched transition signal signull sigkill };
 allow virt_domain virtd_t:fd use;
 dontaudit virt_domain virtd_t:unix_stream_socket { read write };
+allow virtd_t virt_domain:unix_stream_socket { connectto create_stream_socket_perms };
 
 can_exec(virtd_t, qemu_exec_t)
 can_exec(virt_domain, qemu_exec_t)
@@ -922,15 +923,19 @@ optional_policy(`
 #
 # virt_lxc local policy
 #
-allow virtd_lxc_t self:capability { dac_override net_admin net_raw setpcap chown sys_admin sys_boot sys_resource };
+allow virtd_lxc_t self:capability { dac_override net_admin net_raw setpcap chown sys_admin sys_boot sys_resource setuid sys_nice setgid };
+allow virtd_lxc_t self:process { transition setpgid signal_perms };
 allow virtd_lxc_t self:capability2 compromise_kernel;
 
 allow virtd_lxc_t self:process { setexec setrlimit setsched getcap setcap signal_perms };
 allow virtd_lxc_t self:fifo_file rw_fifo_file_perms;
 allow virtd_lxc_t self:netlink_route_socket rw_netlink_socket_perms;
-allow virtd_lxc_t self:unix_stream_socket create_stream_socket_perms;
+allow virtd_lxc_t self:unix_stream_socket { connectto create_stream_socket_perms };
 allow virtd_lxc_t self:packet_socket create_socket_perms;
 ps_process_pattern(virtd_lxc_t, svirt_lxc_domain)
+allow virtd_t virtd_lxc_t:unix_stream_socket create_stream_socket_perms;
+
+files_entrypoint_all_files(virtd_lxc_t)
 
 allow virtd_lxc_t virt_image_type:dir mounton;
 manage_files_pattern(virtd_lxc_t, virt_image_t, virt_image_t)
@@ -1019,6 +1024,12 @@ selinux_compute_relabel_context(virtd_lxc_t)
 selinux_compute_user_contexts(virtd_lxc_t)
 
 sysnet_exec_ifconfig(virtd_lxc_t)
+
+userdom_read_admin_home_files(virtd_lxc_t)
+
+optional_policy(`
+	gnome_read_generic_cache_files(virtd_lxc_t)
+')
 
 optional_policy(`
 	unconfined_domain(virtd_lxc_t)
