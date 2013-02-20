@@ -148,6 +148,29 @@ interface(`oddjob_run_mkhomedir',`
 	role $2 types oddjob_mkhomedir_t;
 ')
 
+#######################################
+## <summary>
+##  Execute oddjob in the oddjob domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`oddjob_systemctl',`
+    gen_require(`
+        type oddjob_unit_file_t;
+        type oddjob_t;
+    ')
+
+    systemd_exec_systemctl($1)
+    allow $1 oddjob_unit_file_t:file read_file_perms;
+    allow $1 oddjob_unit_file_t:service manage_service_perms;
+
+    ps_process_pattern($1, oddjob_t)
+')
+
 ########################################
 ## <summary>
 ##	Create a domain which can be started by init,
