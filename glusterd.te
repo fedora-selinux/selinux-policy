@@ -1,5 +1,28 @@
 policy_module(glusterfs, 1.0.1)
 
+## <desc>
+## <p>
+## Allow glusterfsd to modify public files used for public file
+## transfer services.  Files/Directories must be labeled
+## public_content_rw_t.
+## </p>
+## </desc>
+gen_tunable(gluster_anon_write, false)
+
+## <desc>
+## <p>
+## Allow glusterfsd to share any file/directory read only.
+## </p>
+## </desc>
+gen_tunable(gluster_export_all_ro, false)
+
+## <desc>
+## <p>
+## Allow glusterfsd to share any file/directory read/write.
+## </p>
+## </desc>
+gen_tunable(gluster_export_all_rw, false)
+
 ########################################
 #
 # Declarations
@@ -98,5 +121,21 @@ auth_use_nsswitch(glusterd_t)
 logging_send_syslog_msg(glusterd_t)
 
 miscfiles_read_localization(glusterd_t)
+miscfiles_read_public_files(glusterd_t)
 
 userdom_manage_user_home_dirs(glusterd_t)
+
+tunable_policy(`gluster_anon_write',`
+	miscfiles_manage_public_files(glusterd_t)
+') 
+
+tunable_policy(`gluster_export_all_ro',`
+	fs_read_noxattr_fs_files(glusterd_t) 
+	files_read_non_security_files(glusterd_t) 
+')
+
+tunable_policy(`gluster_export_all_rw',`
+	fs_manage_noxattr_fs_files(glusterd_t) 
+	files_manage_non_security_files(glusterd_t)
+')
+
