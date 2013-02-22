@@ -87,28 +87,21 @@ interface(`iscsi_read_lib_files',`
 ##	<summary>
 ##	Domain allowed access.
 ##	</summary>
-## </param>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
 ## <rolecap/>
 #
 interface(`iscsi_admin',`
 	gen_require(`
 		type iscsid_t, iscsi_lock_t, iscsi_log_t;
 		type iscsi_var_lib_t, iscsi_var_run_t, iscsi_tmp_t;
-		type iscsi_initrc_exec_t;
+		type iscsi_unit_file_t;
 	')
 
 	allow $1 iscsid_t:process { ptrace signal_perms };
 	ps_process_pattern($1, iscsid_t)
 
-	init_labeled_script_domtrans($1, iscsi_initrc_exec_t)
-	domain_system_change_exemption($1)
-	role_transition $2 iscsi_initrc_exec_t system_r;
-	allow $2 system_r;
+	systemd_exec_systemctl($1)
+	allow $1 iscsi_unit_file_t:file manage_file_perms;
+	allow $1 iscsi_unit_file_t:service manage_service_perms;
 
 	logging_search_logs($1)
 	admin_pattern($1, iscsi_log_t)
