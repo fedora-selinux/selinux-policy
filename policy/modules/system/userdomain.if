@@ -143,7 +143,6 @@ template(`userdom_base_user_template',`
 	miscfiles_read_all_certs($1_usertype)
 	miscfiles_read_public_files($1_usertype)
 
-	systemd_dbus_chat_hostnamed($1_usertype)
 	systemd_dbus_chat_logind($1_usertype)
 	systemd_read_logind_sessions_files($1_usertype)
 	systemd_write_inhibit_pipes($1_usertype)
@@ -284,7 +283,6 @@ interface(`userdom_manage_home_role',`
 	relabel_lnk_files_pattern($2, { user_home_dir_t user_home_type }, user_home_type)
 	relabel_sock_files_pattern($2, { user_home_dir_t user_home_type }, user_home_type)
 	relabel_fifo_files_pattern($2, { user_home_dir_t user_home_type }, user_home_type)
-	filetrans_pattern($2, user_home_dir_t, user_home_t, { dir file lnk_file sock_file fifo_file })
 	userdom_filetrans_home_content($2)
 
 	files_list_home($2)
@@ -695,7 +693,6 @@ template(`userdom_common_user_template',`
 	auth_run_pam_timestamp($1_t,$1_r)
 	auth_run_utempter($1_t,$1_r)
 	auth_filetrans_admin_home_content($1_t)
-	auth_filetrans_home_content($1_t)
 
 	init_read_utmp($1_usertype)
 
@@ -823,7 +820,6 @@ template(`userdom_common_user_template',`
 	optional_policy(`
 		mta_rw_spool($1_usertype)
 		mta_manage_queue($1_usertype)
-		mta_filetrans_home_content($1_usertype)
 	')
 
 	optional_policy(`
@@ -1021,7 +1017,6 @@ template(`userdom_login_user_template', `
 
 	optional_policy(`
 		kerberos_use($1_usertype)
-		kerberos_filetrans_home_content($1_usertype)
 	')
 
 	optional_policy(`
@@ -1226,7 +1221,6 @@ template(`userdom_restricted_xwindows_user_template',`
 	optional_policy(`
 		pulseaudio_role($1_r, $1_usertype)
 		pulseaudio_filetrans_admin_home_content($1_usertype)
-		pulseaudio_filetrans_home_content($1_usertype)
 	')
 
 	optional_policy(`
@@ -5443,21 +5437,10 @@ interface(`userdom_rw_unpriv_user_semaphores',`
 #
 interface(`userdom_filetrans_home_content',`
 	gen_require(`
-		type home_bin_t, home_cert_t;
-		type audio_home_t;
+	        attribute userdom_filetrans_type;
 	')
 
-	userdom_user_home_dir_filetrans($1, home_bin_t, dir, "bin")
-	userdom_user_home_dir_filetrans($1, audio_home_t, dir, "Audio")
-	userdom_user_home_dir_filetrans($1, audio_home_t, dir, "Music")
-	userdom_user_home_dir_filetrans($1, home_cert_t, dir, ".cert")
-	userdom_user_home_dir_filetrans($1, home_cert_t, dir, ".pki")
-	userdom_user_home_dir_filetrans($1, home_cert_t, dir, "certificates")
-
-	optional_policy(`
-		gnome_config_filetrans($1, home_cert_t, dir, "certificates")
-		#gnome_admin_home_gconf_filetrans($1, home_bin_t, dir, "bin")
-	')
+	typeattribute $1  userdom_filetrans_type;
 ')
 
 ########################################
@@ -5493,8 +5476,9 @@ interface(`userdom_home_manager',`
 	gen_require(`
 		attribute userdom_home_manager_type;
 	')
-
 	typeattribute $1 userdom_home_manager_type;
+
+	userdom_filetrans_home_content($1)
 ')
 
 ########################################
