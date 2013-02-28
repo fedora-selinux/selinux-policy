@@ -40,6 +40,9 @@ munin_plugin_template(services)
 munin_plugin_template(system)
 munin_plugin_template(unconfined)
 
+type httpd_munin_script_tmp_t;
+files_tmp_file(httpd_munin_script_tmp_t)
+
 ################################
 #
 # Common munin plugin local policy
@@ -162,18 +165,6 @@ sysnet_exec_ifconfig(munin_t)
 userdom_dontaudit_use_unpriv_user_fds(munin_t)
 userdom_dontaudit_search_user_home_dirs(munin_t)
 
-optional_policy(`
-	apache_content_template(munin)
-
-	manage_dirs_pattern(munin_t, httpd_munin_content_t, httpd_munin_content_t)
-	manage_files_pattern(munin_t, httpd_munin_content_t, httpd_munin_content_t)
-	apache_search_sys_content(munin_t)
-
-	read_files_pattern(httpd_munin_script_t, munin_var_lib_t, munin_var_lib_t)
-	read_files_pattern(httpd_munin_script_t, munin_etc_t, munin_etc_t)
-
-	files_search_var_lib(httpd_munin_script_t)
-')
 
 optional_policy(`
 	cron_system_entry(munin_t, munin_exec_t)
@@ -420,3 +411,29 @@ optional_policy(`
 	unconfined_domain(unconfined_munin_plugin_t)
 ')
 
+
+#######################################
+#
+# Munin CGI script local policy
+#
+
+apache_content_template(munin)
+
+manage_dirs_pattern(munin_t, httpd_munin_content_t, httpd_munin_content_t)
+manage_files_pattern(munin_t, httpd_munin_content_t, httpd_munin_content_t)
+
+manage_dirs_pattern(httpd_munin_script_t, httpd_munin_script_tmp_t, httpd_munin_script_tmp_t)
+manage_files_pattern(httpd_munin_script_t, httpd_munin_script_tmp_t,httpd_munin_script_tmp_t)
+
+read_files_pattern(httpd_munin_script_t, munin_var_lib_t, munin_var_lib_t)
+read_files_pattern(httpd_munin_script_t, munin_etc_t, munin_etc_t)
+
+allow httpd_munin_script_t munin_log_t:file r_file_perms;
+
+files_search_var_lib(httpd_munin_script_t)
+
+auth_read_passwd(httpd_munin_script_t)
+
+optional_policy(`
+	apache_search_sys_content(munin_t)
+')
