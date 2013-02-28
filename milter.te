@@ -27,6 +27,32 @@ milter_template(spamass)
 type spamass_milter_state_t;
 files_type(spamass_milter_state_t)
 
+
+#######################################
+#
+# milter domains local policy
+#
+
+# Allow communication with MTA over a unix-domain socket
+# Note: usage with TCP sockets requires additional policy
+
+allow milter_domains self:fifo_file rw_fifo_file_perms;
+
+# Allow communication with MTA over a TCP socket
+allow milter_domains self:tcp_socket create_stream_socket_perms;
+
+kernel_dontaudit_read_system_state(milter_domains)
+
+corenet_tcp_bind_generic_node(milter_domains)
+corenet_tcp_bind_milter_port(milter_domains)
+
+dev_read_rand(milter_domains)
+dev_read_urand(milter_domains)
+
+mta_read_config(milter_domains)
+
+sysnet_read_config(greylist_milter_t)
+
 #######################################
 #
 # dkim-milter local policy
@@ -44,8 +70,6 @@ kernel_read_kernel_sysctls(dkim_milter_t)
 auth_use_nsswitch(dkim_milter_t)
 
 sysnet_dns_name_resolve(dkim_milter_t)
-
-mta_read_config(dkim_milter_t)
 
 ########################################
 #
@@ -67,9 +91,6 @@ files_pid_filetrans(greylist_milter_t, greylist_milter_data_t, file)
 
 kernel_read_kernel_sysctls(greylist_milter_t)
 
-dev_read_rand(greylist_milter_t)
-dev_read_urand(greylist_milter_t)
-
 corecmd_exec_bin(greylist_milter_t)
 corecmd_exec_shell(greylist_milter_t)
 
@@ -84,13 +105,6 @@ files_search_var_lib(greylist_milter_t)
 
 # Look up username for dropping privs
 auth_use_nsswitch(greylist_milter_t)
-
-# Config is in /etc/mail/greylist.conf
-mta_read_config(greylist_milter_t)
-
-
-sysnet_read_config(greylist_milter_t)
-
 
 optional_policy(`
 	mysql_stream_connect(greylist_milter_t)
@@ -112,9 +126,6 @@ files_search_spool(regex_milter_t)
 
 # Look up username for dropping privs
 auth_use_nsswitch(regex_milter_t)
-
-# Config is in /etc/mail/milter-regex.conf
-mta_read_config(regex_milter_t)
 
 ########################################
 #
