@@ -530,3 +530,144 @@ interface(`rhcs_relabel_cluster_lib_files',`
     relabelto_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
 	relabelfrom_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
 ')
+
+######################################
+## <summary>
+##  Execute a domain transition to run cluster administrative domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`rhcs_domtrans_cluster',`
+    gen_require(`
+        type cluster_t, cluster_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    domtrans_pattern($1, cluster_exec_t, cluster_t)
+')
+
+######################################
+## <summary>
+##  Connect to cluster over a unix stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_stream_connect_cluster',`
+    gen_require(`
+        type cluster_t, cluster_var_run_t;
+    ')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, cluster_var_run_t, cluster_var_run_t, cluster_t)
+')
+
+#####################################
+## <summary>
+##  Allow manage cluster tmp files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_manage_tmp_files_cluster',`
+    gen_require(`
+        type cluster_tmp_t;
+    ')
+
+    files_search_tmp($1)
+    manage_files_pattern($1, cluster_tmp_t, cluster_tmp_t)
+')
+
+#####################################
+## <summary>
+##  Allow manage cluster tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_manage_cluster_tmpfs_files',`
+    gen_require(`
+        type rgmanager_tmpfs_t;
+    ')
+
+    fs_search_tmpfs($1)
+    manage_files_pattern($1, cluster_tmpfs_t, cluster_tmpfs_t)
+')
+
+######################################
+## <summary>
+##  Allow read and write access to cluster semaphores.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_rw_cluster_semaphores',`
+    gen_require(`
+        type rgmanager_t;
+    ')
+
+    allow $1 rgmanager_t:sem rw_sem_perms;
+')
+
+#####################################
+## <summary>
+##  All of the rules required to administrate
+##  an cluster environment
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  The role to be allowed to manage the rgmanager domain.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`rhcs_admin_cluster',`
+    gen_require(`
+        type cluster_t, cluster_initrc_exec_t, cluster_tmp_t;
+        type cluster_tmpfs_t, cluster_var_log_t, cluster_var_run_t;
+    ')
+
+    allow $1 cluster_t:process signal_perms;
+    ps_process_pattern($1, cluster_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 cluster_t:process ptrace;
+    ')
+
+    init_labeled_script_domtrans($1, cluster_initrc_exec_t)
+    domain_system_change_exemption($1)
+    role_transition $2 cluster_initrc_exec_t system_r;
+    allow $2 system_r;
+
+    files_list_tmp($1)
+    admin_pattern($1, cluster_tmp_t)
+
+    admin_pattern($1, cluster_tmpfs_t)
+
+    logging_list_logs($1)
+    admin_pattern($1, cluster_var_log_t)
+
+    files_list_pids($1)
+    admin_pattern($1, cluster_var_run_t)
+')
