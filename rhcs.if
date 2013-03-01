@@ -530,3 +530,229 @@ interface(`rhcs_relabel_cluster_lib_files',`
     relabelto_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
 	relabelfrom_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
 ')
+
+######################################
+## <summary>
+##  Execute a domain transition to run cluster administrative domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`rhcs_domtrans_cluster',`
+    gen_require(`
+        type cluster_t, cluster_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    domtrans_pattern($1, cluster_exec_t, cluster_t)
+')
+
+#######################################
+## <summary>
+##  Execute cluster init scripts in
+##  the init script domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`rhcs_initrc_domtrans_cluster',`
+    gen_require(`
+        type cluster_initrc_exec_t;
+    ')
+
+    init_labeled_script_domtrans($1, cluster_initrc_exec_t)
+')
+
+#####################################
+## <summary>
+##  Execute cluster in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_exec_cluster',`
+    gen_require(`
+        type cluster_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    can_exec($1, cluster_exec_t)
+')
+
+######################################
+## <summary>
+##  Read cluster log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_read_log_cluster',`
+    gen_require(`
+        type cluster_var_log_t;
+    ')
+
+    logging_search_logs($1)
+    list_dirs_pattern($1, cluster_var_log_t, cluster_var_log_t)
+    read_files_pattern($1, cluster_var_log_t, cluster_var_log_t)
+')
+
+######################################
+## <summary>
+##  Setattr cluster log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_setattr_log_cluster',`
+    gen_require(`
+        type cluster_var_log_t;
+    ')
+
+    setattr_files_pattern($1, cluster_var_log_t, cluster_var_log_t)
+')
+
+#####################################
+## <summary>
+##  Allow manage cluster tmp files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_manage_cluster_tmp_files',`
+    gen_require(`
+        type cluster_tmp_t;
+    ')
+
+    files_search_tmp($1)
+    manage_files_pattern($1, cluster_tmp_t, cluster_tmp_t)
+')
+
+#####################################
+## <summary>
+##  Allow the specified domain to read/write cluster's tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_rw_cluster_tmpfs',`
+    gen_require(`
+        type cluster_tmpfs_t;
+    ')
+
+    rw_files_pattern($1, cluster_tmpfs_t, cluster_tmpfs_t)
+')
+
+#####################################
+## <summary>
+##  Allow manage cluster tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_manage_cluster_tmpfs_files',`
+    gen_require(`
+        type rgmanager_tmpfs_t;
+    ')
+
+    fs_search_tmpfs($1)
+    manage_files_pattern($1, cluster_tmpfs_t, cluster_tmpfs_t)
+')
+
+#######################################
+## <summary>
+##  Execute cluster server in the cluster domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`rhcs_systemctl_cluster',`
+    gen_require(`
+        type cluster_t;
+        type cluster_unit_file_t;
+    ')
+
+    systemd_exec_systemctl($1)
+    allow $1 cluster_unit_file_t:file read_file_perms;
+    allow $1 cluster_unit_file_t:service manage_service_perms;
+
+    ps_process_pattern($1, cluster_t)
+')
+
+#####################################
+## <summary>
+##  All of the rules required to administrate
+##  an cluster environment
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  The role to be allowed to manage the rgmanager domain.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`rhcs_admin_cluster',`
+    gen_require(`
+        type cluster_t, cluster_initrc_exec_t, cluster_tmp_t;
+        type cluster_tmpfs_t, cluster_var_log_t, cluster_var_run_t;
+		type cluster_unit_file_t;
+    ')
+
+    allow $1 cluster_t:process signal_perms;
+    ps_process_pattern($1, cluster_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 cluster_t:process ptrace;
+    ')
+
+    init_labeled_script_domtrans($1, cluster_initrc_exec_t)
+    domain_system_change_exemption($1)
+    role_transition $2 cluster_initrc_exec_t system_r;
+    allow $2 system_r;
+
+    files_list_tmp($1)
+    admin_pattern($1, cluster_tmp_t)
+
+    admin_pattern($1, cluster_tmpfs_t)
+
+    logging_list_logs($1)
+    admin_pattern($1, cluster_var_log_t)
+
+    files_list_pids($1)
+    admin_pattern($1, cluster_var_run_t)
+
+    rhcs_systemctl_cluster($1)
+    admin_pattern($1, cluster_unit_file_t)
+    allow $1 cluster_unit_file_t:service all_service_perms;
+')
