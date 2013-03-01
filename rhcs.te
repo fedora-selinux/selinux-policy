@@ -34,6 +34,13 @@ gen_tunable(cluster_can_network_connect, false)
 ## </desc>
 gen_tunable(cluster_manage_all_files, false)
 
+## <desc>
+## <p>
+## Allow cluster administrative cluster domains memcheck-amd64- to use executable memory
+## </p>
+## </desc>
+gen_tunable(cluster_use_execmem, false)
+
 attribute cluster_domain;
 attribute cluster_log;
 attribute cluster_pid;
@@ -68,24 +75,26 @@ files_type(qdiskd_var_lib_t)
 # (rgmanager, corosync, hearbeat, cman, pacemaker)
 rhcs_domain_template(cluster)
 
-typealias cluster_tmpfs_t alias { corosync_tmpfs_t rgmanager_tmpfs_t };
+typealias cluster_t alias { corosync_t pacemaker_t rgmanager_t }
+typealias cluster_exec_t alias { corosync_exec_t pacemaker_exec_t rgmanager_exec_t }
+typealias cluster_tmpfs_t alias { corosync_tmpfs_t pacemaker_tmpfs_t rgmanager_tmpfs_t };
 typealias cluster_var_log_t alias { corosync_var_log_t rgmanager_var_log_t };
-typealias cluster_var_run_t alias { corosync_var_run_t rgmanager_var_run_t }
+typealias cluster_var_run_t alias { corosync_var_run_t pacemaker_var_run_t rgmanager_var_run_t }
 
 type cluster_initrc_exec_t;
-typealias cluster_initrc_exec_t alias { corosync_initrc_exec_t rgmanager_initrc_exec_t }
+typealias cluster_initrc_exec_t alias { corosync_initrc_exec_t pacemaker rgmanager_initrc_exec_t }
 init_script_file(cluster_initrc_exec_t)
 
 type cluster_tmp_t;
-typealias cluster_tmp_t alias { corosync_tmp_t rgmanager_tmp_t }
+typealias cluster_tmp_t alias { corosync_tmp_t pacemaker_tmp_t rgmanager_tmp_t }
 files_tmp_file(cluster_tmp_t)
 
 type cluster_var_lib_t;
-typealias cluster_var_lib_t alias { corosync_var_lib_t rgmanager_var_lib_t }
+typealias cluster_var_lib_t alias { corosync_var_lib_t pacemaker_var_lib_t rgmanager_var_lib_t }
 files_type(cluster_var_lib_t)
 
 type cluster_unit_file_t;
-typealias cluster_unit_file_t alias corosync_unit_file_t;
+typealias cluster_unit_file_t alias { corosync_unit_file_t pacemaker_unit_file_t };
 systemd_unit_file(cluster_unit_file_t)
 
 #####################################
@@ -116,6 +125,7 @@ optional_policy(`
 allow cluster_t self:capability { dac_override fowner setuid setgid sys_nice sys_admin sys_resource ipc_lock };
 # for hearbeat
 allow cluster_t self:capability { net_raw chown };
+allow cluster_t self:capability2 block_suspend;
 allow cluster_t self:process { setpgid setrlimit setsched signull };
 
 allow cluster_t self:tcp_socket create_stream_socket_perms;
