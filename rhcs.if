@@ -550,9 +550,9 @@ interface(`rhcs_domtrans_cluster',`
     domtrans_pattern($1, cluster_exec_t, cluster_t)
 ')
 
-######################################
+#####################################
 ## <summary>
-##  Connect to cluster over a unix stream socket.
+##  Execute cluster in the caller domain.
 ## </summary>
 ## <param name="domain">
 ##  <summary>
@@ -560,13 +560,51 @@ interface(`rhcs_domtrans_cluster',`
 ##  </summary>
 ## </param>
 #
-interface(`rhcs_stream_connect_cluster',`
+interface(`rhcs_exec_cluster',`
     gen_require(`
-        type cluster_t, cluster_var_run_t;
+        type cluster_exec_t;
     ')
 
-    files_search_pids($1)
-    stream_connect_pattern($1, cluster_var_run_t, cluster_var_run_t, cluster_t)
+    corecmd_search_bin($1)
+    can_exec($1, cluster_exec_t)
+')
+
+######################################
+## <summary>
+##  Read cluster log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_read_log_cluster',`
+    gen_require(`
+        type cluster_var_log_t;
+    ')
+
+    logging_search_logs($1)
+    list_dirs_pattern($1, cluster_var_log_t, cluster_var_log_t)
+    read_files_pattern($1, cluster_var_log_t, cluster_var_log_t)
+')
+
+######################################
+## <summary>
+##  Setattr cluster log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_setattr_log_cluster',`
+    gen_require(`
+        type cluster_var_log_t;
+    ')
+
+    setattr_files_pattern($1, cluster_var_log_t, cluster_var_log_t)
 ')
 
 #####################################
@@ -586,6 +624,24 @@ interface(`rhcs_manage_tmp_files_cluster',`
 
     files_search_tmp($1)
     manage_files_pattern($1, cluster_tmp_t, cluster_tmp_t)
+')
+
+#####################################
+## <summary>
+##  Allow the specified domain to read/write cluster's tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_rw_tmpfs_cluster',`
+    gen_require(`
+        type cluster_tmpfs_t;
+    ')
+
+    rw_files_pattern($1, cluster_tmpfs_t, cluster_tmpfs_t)
 ')
 
 #####################################
@@ -625,6 +681,29 @@ interface(`rhcs_rw_cluster_semaphores',`
     allow $1 rgmanager_t:sem rw_sem_perms;
 ')
 
+#######################################
+## <summary>
+##  Execute cluster server in the cluster domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`rhcs_systemctl_cluster',`
+    gen_require(`
+        type cluster_t;
+        type cluster_unit_file_t;
+    ')
+
+    systemd_exec_systemctl($1)
+    allow $1 cluster_unit_file_t:file read_file_perms;
+    allow $1 cluster_unit_file_t:service manage_service_perms;
+
+    ps_process_pattern($1, cluster_t)
+')
+
 #####################################
 ## <summary>
 ##  All of the rules required to administrate
@@ -646,6 +725,7 @@ interface(`rhcs_admin_cluster',`
     gen_require(`
         type cluster_t, cluster_initrc_exec_t, cluster_tmp_t;
         type cluster_tmpfs_t, cluster_var_log_t, cluster_var_run_t;
+		type cluster_unit_file_t;
     ')
 
     allow $1 cluster_t:process signal_perms;
@@ -670,4 +750,8 @@ interface(`rhcs_admin_cluster',`
 
     files_list_pids($1)
     admin_pattern($1, cluster_var_run_t)
+
+    rhcs_systemctl_cluster($1)
+    admin_pattern($1, cluster_unit_file_t)
+    allow $1 cluster_unit_file_t:service all_service_perms;
 ')

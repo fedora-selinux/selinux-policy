@@ -68,22 +68,25 @@ files_type(qdiskd_var_lib_t)
 # (rgmanager, corosync, hearbeat, cman, pacemaker)
 rhcs_domain_template(cluster)
 
-typealias cluster_tmpfs_t alias { rgmanager_tmpfs_t };
-typealias cluster_var_log_t alias { rgmanager_var_log_t };
-typealias cluster_var_run_t alias { rgmanager_var_run_t }
+typealias cluster_tmpfs_t alias { corosync_tmpfs_t rgmanager_tmpfs_t };
+typealias cluster_var_log_t alias { corosync_var_log_t rgmanager_var_log_t };
+typealias cluster_var_run_t alias { corosync_var_run_t rgmanager_var_run_t }
 
 type cluster_initrc_exec_t;
-typealias cluster_initrc_exec_t alias { rgmanager_initrc_exec_t }
+typealias cluster_initrc_exec_t alias { corosync_initrc_exec_t rgmanager_initrc_exec_t }
 init_script_file(cluster_initrc_exec_t)
 
 type cluster_tmp_t;
-typealias cluster_tmp_t alias { rgmanager_tmpfs_t }
+typealias cluster_tmp_t alias { corosync_tmp_t rgmanager_tmp_t }
 files_tmp_file(cluster_tmp_t)
 
 type cluster_var_lib_t;
-typealias cluster_var_lib_t alias { rgmanager_var_lib_t }
+typealias cluster_var_lib_t alias { corosync_var_lib_t rgmanager_var_lib_t }
 files_type(cluster_var_lib_t)
 
+type cluster_unit_file_t;
+typealias cluster_unit_file_t alias corosync_unit_file_t;
+systemd_unit_file(cluster_unit_file_t)
 
 #####################################
 #
@@ -102,22 +105,21 @@ optional_policy(`
 ')
 
 optional_policy(`
-	corosync_stream_connect(cluster_domain)
-')
-
-optional_policy(`
 	dbus_system_bus_client(cluster_domain)
 ')
-
 
 #####################################
 #
 # cluster domain local policy
 #
 
-allow cluster_t self:capability { dac_override net_raw sys_resource sys_admin ipc_lock };
+allow cluster_t self:capability { dac_override fowner setuid setgid sys_nice sys_admin sys_resource ipc_lock };
+# for hearbeat
+allow cluster_t self:capability { net_raw chown };
+allow cluster_t self:process { setpgid setrlimit setsched signull };
 
 allow cluster_t self:tcp_socket create_stream_socket_perms;
+allow cluster_t self:shm create_shm_perms;
 
 manage_dirs_pattern(cluster_t, cluster_tmp_t, cluster_tmp_t)
 manage_files_pattern(cluster_t, cluster_tmp_t, cluster_tmp_t)
@@ -130,6 +132,8 @@ manage_sock_files_pattern(cluster_t, cluster_var_lib_t,cluster_var_lib_t)
 manage_fifo_files_pattern(cluster_t, cluster_var_lib_t,cluster_var_lib_t)
 files_var_lib_filetrans(cluster_t,cluster_var_lib_t, { file dir fifo_file sock_file })
 
+can_exec(cluster_t, cluster_exec_t)
+
 kernel_kill(cluster_t)
 kernel_read_all_sysctls(cluster_t)
 kernel_read_system_state(cluster_t)
@@ -140,10 +144,22 @@ kernel_search_network_state(cluster_t)
 corecmd_exec_bin(cluster_t)
 corecmd_exec_shell(cluster_t)
 
+corenet_all_recvfrom_unlabeled(cluster_t)
+corenet_all_recvfrom_netlabel(cluster_t)
+corenet_udp_sendrecv_generic_if(cluster_t)
+corenet_udp_sendrecv_generic_node(cluster_t)
+corenet_udp_bind_generic_node(cluster_t)
+
+corenet_sendrecv_netsupport_server_packets(cluster_t)
+corenet_udp_bind_netsupport_port(cluster_t)
+corenet_udp_sendrecv_netsupport_port(cluster_t)
+
 # need to write to /dev/misc/dlm-contro
 dev_rw_dlm_control(cluster_t)
 dev_setattr_dlm_control(cluster_t)
 dev_read_sysfs(cluster_t)
+dev_read_rand(cluster_t)
+dev_read_urand(cluster_t)
 
 domain_read_all_domains_state(cluster_t)
 
@@ -154,13 +170,20 @@ storage_raw_read_fixed_disk(cluster_t)
 
 term_getattr_pty_fs(cluster_t)
 
+files_manage_mounttab(cluster_t)
 # needed by resources scripts
 files_read_non_security_files(cluster_t)
 auth_dontaudit_getattr_shadow(cluster_t)
 
 init_domtrans_script(cluster_t)
 init_initrc_domain(cluster_t)
+init_read_script_state(cluster_t)
+init_rw_script_tmp_files(cluster_t)
+init_manage_script_status_files(cluster_t)
 
+userdom_read_user_tmp_files(cluster_t)
+userdom_delete_user_tmpfs_files(cluster_t)
+userdom_rw_user_tmpfs_files(cluster_t)
 userdom_kill_all_users(cluster_t)
 
 tunable_policy(`cluster_can_network_connect',`
@@ -176,6 +199,15 @@ tunable_policy(`cluster_manage_all_files',`
 	files_manage_mnt_symlinks(cluster_t)
 	files_manage_isid_type_files(cluster_t)
 	files_manage_isid_type_dirs(cluster_t)
+	fs_manage_tmpfs_files(cluster_t)
+')
+
+optional_policy(`
+    ccs_read_config(cluster_t)
+')
+
+optional_policy(`
+    cmirrord_rw_shm(cluster_t)
 ')
 
 optional_policy(`
@@ -183,16 +215,15 @@ optional_policy(`
 ')
 
 optional_policy(`
-    dbus_system_bus_client(cluster_t)
+    lvm_domtrans(cluster_t)
+	lvm_rw_clvmd_tmpfs_files(cluster_t)
+    lvm_delete_clvmd_tmpfs_files(cluster_t)
 ')
 
 optional_policy(`
     fstools_domtrans(cluster_t)
 ')
 
-optional_policy(`
-    rhcs_stream_connect_groupd(cluster_t)
-')
 
 optional_policy(`
     hostname_exec(cluster_t)
@@ -201,11 +232,6 @@ optional_policy(`
 optional_policy(`
     ccs_manage_config(cluster_t)
     ccs_stream_connect(cluster_t)
-    rhcs_stream_connect_gfs_controld(cluster_t)
-')
-
-optional_policy(`
-    lvm_domtrans(cluster_t)
 ')
 
 optional_policy(`
@@ -228,6 +254,14 @@ optional_policy(`
 
 optional_policy(`
     postgresql_signal(cluster_t)
+')
+
+optional_policy(`
+	rhcs_getattr_fenced(cluster_t)
+	rhcs_rw_cluster_shm(cluster_t)
+    rhcs_rw_cluster_semaphores(cluster_t)
+    rhcs_stream_connect_cluster(cluster_t)
+    rhcs_relabel_cluster_lib_files(cluster_t)
 ')
 
 optional_policy(`
@@ -268,6 +302,10 @@ optional_policy(`
 
 optional_policy(`
     unconfined_domain(cluster_t)
+')
+
+optional_policy(`
+    wdmd_rw_tmpfs(cluster_t)
 ')
 
 optional_policy(`
