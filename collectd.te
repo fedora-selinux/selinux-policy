@@ -31,6 +31,9 @@ systemd_unit_file(collectd_unit_file_t)
 
 apache_content_template(collectd)
 
+type httpd_collectd_script_tmp_t;
+files_tmp_file(httpd_collectd_script_tmp_t)
+
 ########################################
 #
 # Local policy
@@ -41,6 +44,7 @@ allow collectd_t self:process { getsched setsched signal };
 allow collectd_t self:fifo_file rw_fifo_file_perms;
 allow collectd_t self:packet_socket create_socket_perms;
 allow collectd_t self:unix_stream_socket { accept listen };
+allow collectd_t self:netlink_tcpdiag_socket create_socket_perms;
 
 manage_dirs_pattern(collectd_t, collectd_var_lib_t, collectd_var_lib_t)
 manage_files_pattern(collectd_t, collectd_var_lib_t, collectd_var_lib_t)
@@ -80,14 +84,17 @@ optional_policy(`
 
 ########################################
 #
-# Web local policy
+# Web collectd local policy
 #
 
-optional_policy(`
-	read_files_pattern(httpd_collectd_script_t, collectd_var_lib_t, collectd_var_lib_t)
-	list_dirs_pattern(httpd_collectd_script_t, collectd_var_lib_t, collectd_var_lib_t)
-	miscfiles_setattr_fonts_cache_dirs(httpd_collectd_script_t)
-	
-	auth_read_passwd(httpd_collectd_script_t)
-')
 
+files_search_var_lib(httpd_collectd_script_t)	
+read_files_pattern(httpd_collectd_script_t, collectd_var_lib_t, collectd_var_lib_t)
+list_dirs_pattern(httpd_collectd_script_t, collectd_var_lib_t, collectd_var_lib_t)
+miscfiles_setattr_fonts_cache_dirs(httpd_collectd_script_t)
+
+manage_dirs_pattern(httpd_collectd_script_t_t, httpd_collectd_script_t_tmp_t, httpd_collectd_script_t_tmp_t)
+manage_files_pattern(httpd_collectd_script_t_t, httpd_collectd_script_t_tmp_t, httpd_collectd_script_t_tmp_t)
+files_tmp_filetrans(httpd_collectd_script_t_t, httpd_collectd_script_t_tmp_t, { file dir })	
+
+auth_read_passwd(httpd_collectd_script_t)
