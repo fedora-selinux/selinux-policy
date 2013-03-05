@@ -232,7 +232,7 @@ optional_policy(`
 #
 
 allow systemd_passwd_agent_t self:capability { chown sys_tty_config dac_override };
-allow systemd_passwd_agent_t self:process { setfscreate setsockcreate signal };
+allow systemd_passwd_agent_t self:process { setsockcreate };
 allow systemd_passwd_agent_t self:unix_dgram_socket create_socket_perms;
 
 manage_dirs_pattern(systemd_passwd_agent_t, systemd_passwd_var_run_t, systemd_passwd_var_run_t);
@@ -352,9 +352,6 @@ miscfiles_filetrans_named_content(systemd_tmpfiles_t)
 miscfiles_manage_man_pages(systemd_tmpfiles_t)
 miscfiles_relabel_man_pages(systemd_tmpfiles_t)
 miscfiles_delete_man_pages(systemd_tmpfiles_t)
-
-seutil_read_config(systemd_tmpfiles_t)
-seutil_read_file_contexts(systemd_tmpfiles_t)
 
 ifdef(`distro_redhat',`
 	userdom_list_user_home_content(systemd_tmpfiles_t)
@@ -486,9 +483,6 @@ allow systemd_localed_t self:unix_dgram_socket create_socket_perms;
 
 dev_write_kmsg(systemd_localed_t)
 
-seutil_read_config(systemd_localed_t)
-seutil_read_file_contexts(systemd_localed_t)
-
 logging_stream_connect_syslog(systemd_localed_t)
 logging_send_syslog_msg(systemd_localed_t)
 
@@ -536,7 +530,7 @@ optional_policy(`
 #
 
 allow systemd_timedated_t self:capability { sys_nice sys_time dac_override };
-allow systemd_timedated_t self:process { getattr getsched signal setfscreate };
+allow systemd_timedated_t self:process { getattr getsched setfscreate };
 allow systemd_timedated_t self:fifo_file rw_fifo_file_perms;
 allow systemd_timedated_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_timedated_t self:unix_dgram_socket create_socket_perms;
@@ -568,8 +562,6 @@ logging_send_syslog_msg(systemd_timedated_t)
 
 miscfiles_manage_localization(systemd_timedated_t)
 miscfiles_etc_filetrans_localization(systemd_timedated_t)
-
-seutil_read_file_contexts(systemd_timedated_t)
 
 userdom_read_all_users_state(systemd_timedated_t)
 
@@ -614,3 +606,38 @@ optional_policy(`
 	policykit_read_lib(systemd_timedated_t)
 	policykit_read_reload(systemd_timedated_t)
 ')
+
+########################################
+#
+# systemd_sysctl domains local policy
+#
+allow systemd_sysctl_t self:capability net_admin;
+allow systemd_sysctl_t self:unix_dgram_socket create_socket_perms;
+
+kernel_dgram_send(systemd_sysctl_t)
+kernel_rw_all_sysctls(systemd_sysctl_t)
+
+files_read_system_conf_files(systemd_sysctl_t)
+
+dev_write_kmsg(systemd_sysctl_t)
+
+domain_use_interactive_fds(systemd_sysctl_t)
+
+init_stream_connect(systemd_sysctl_t)
+
+########################################
+#
+# Common rules for systemd domains
+#
+
+allow systemd_domain self:process { setfscreate signal_perms };
+files_read_etc_files(systemd_domain)
+files_read_etc_runtime_files(systemd_domain)
+files_read_usr_files(systemd_domain)
+
+init_search_pid_dirs(systemd_domain)
+
+logging_stream_connect_syslog(systemd_domain)
+
+seutil_read_config(systemd_domain)
+seutil_read_file_contexts(systemd_domain)
