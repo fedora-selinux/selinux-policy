@@ -752,6 +752,25 @@ interface(`systemd_manage_random_seed',`
 	files_var_lib_filetrans($1, random_seed_t, file, "random_seed")
 ')
 
+########################################
+## <summary>
+##	Allow process to read hostname config file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`systemd_hostnamed_read_config',`
+	gen_require(`
+		type hostname_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 hostname_etc_t:file read_file_perms;
+')
 
 ########################################
 ## <summary>
@@ -767,11 +786,14 @@ interface(`systemd_filetrans_named_content',`
 	gen_require(`
 		type systemd_passwd_var_run_t;
 		type systemd_logind_var_run_t;
+		type hostname_etc_t;
 	')
 
 	files_pid_filetrans($1, systemd_logind_var_run_t, file, "nologin")
 	init_named_pid_filetrans($1, systemd_passwd_var_run_t, dir, "ask-password-block")
 	init_named_pid_filetrans($1, systemd_passwd_var_run_t, dir, "ask-password")
+	files_etc_filetrans(hostname_t, hostname_etc_t, file, "hostname" )
+	files_etc_filetrans(hostname_t, hostname_etc_t, file, "machine-info" )
 ')
 
 ########################################

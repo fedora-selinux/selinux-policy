@@ -72,6 +72,9 @@ type systemd_hostnamed_t, systemd_domain;
 type systemd_hostnamed_exec_t;
 init_daemon_domain(systemd_hostnamed_t, systemd_hostnamed_exec_t)
 
+type hostname_etc_t;
+files_config_file(hostname_etc_t)
+
 type systemd_timedated_t, systemd_domain;
 type systemd_timedated_exec_t;
 init_daemon_domain(systemd_timedated_t, systemd_timedated_exec_t)
@@ -500,12 +503,16 @@ optional_policy(`
 #
 # Hostnamed policy
 #
-
-dontaudit systemd_hostnamed_t self:capability sys_ptrace;
+dontaudit systemd_hostnamed_t self:capability { sys_admin sys_ptrace };
 
 allow systemd_hostnamed_t self:fifo_file rw_fifo_file_perms;
 allow systemd_hostnamed_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_hostnamed_t self:unix_dgram_socket create_socket_perms;
+
+manage_files_pattern(systemd_hostnamed_t, hostname_etc_t, hostname_etc_t)
+manage_lnk_files_pattern(systemd_hostnamed_t, hostname_etc_t, hostname_etc_t)
+files_etc_filetrans(systemd_hostnamed_t, hostname_etc_t, file, "hostname" )
+files_etc_filetrans(systemd_hostnamed_t, hostname_etc_t, file, "machine-info" )
 
 kernel_dgram_send(systemd_hostnamed_t)
 
@@ -518,6 +525,9 @@ init_stream_connect(systemd_hostnamed_t)
 
 logging_stream_connect_syslog(systemd_hostnamed_t)
 logging_send_syslog_msg(systemd_hostnamed_t)
+
+userdom_read_all_users_state(systemd_hostnamed_t)
+userdom_dbus_send_all_users(systemd_hostnamed_t)
 
 optional_policy(`
         dbus_system_bus_client(systemd_hostnamed_t)
