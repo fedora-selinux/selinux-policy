@@ -64,6 +64,9 @@ type openshift_cgroup_read_t;
 type openshift_cgroup_read_exec_t;
 application_domain(openshift_cgroup_read_t, openshift_cgroup_read_exec_t)
 
+type openshift_cgroup_read_tmp_t, openshift_file_type;
+files_tmp_file(openshift_cgroup_read_tmp_t)
+
 type openshift_cron_t;
 type openshift_cron_exec_t;
 domain_type(openshift_cron_t)
@@ -369,6 +372,10 @@ allow openshift_cgroup_read_t self:fifo_file rw_fifo_file_perms;
 allow openshift_cgroup_read_t self:unix_stream_socket create_stream_socket_perms;
 allow openshift_cgroup_read_t openshift_initrc_t:fifo_file rw_inherited_fifo_file_perms;
 
+manage_dirs_pattern(openshift_cgroup_read_t, openshift_cgroup_read_tmp_t, openshift_cgroup_read_tmp_t)
+manage_files_pattern(openshift_cgroup_read_t, openshift_cgroup_read_tmp_t, openshift_cgroup_read_tmp_t)
+files_tmp_filetrans(openshift_cgroup_read_t, openshift_cgroup_read_tmp_t, { file dir })
+
 kernel_read_system_state(openshift_cgroup_read_t)
 
 miscfiles_read_localization(openshift_cgroup_read_t)
@@ -378,11 +385,11 @@ optional_policy(`
 ')
 
 corecmd_exec_bin(openshift_cgroup_read_t)
+corecmd_exec_shell(openshift_cgroup_read_t)
 
 dev_read_urand(openshift_cgroup_read_t)
 
 domain_use_interactive_fds(openshift_cgroup_read_t)
-
 
 fs_dontaudit_rw_anon_inodefs_files(openshift_cgroup_read_t)
 
@@ -395,6 +402,7 @@ role system_r types openshift_cgroup_read_t;
 
 allow openshift_domain openshift_cgroup_read_t:process { getattr signal signull sigkill };
 
+fs_list_cgroup_dirs(openshift_cgroup_read_t)
 fs_read_cgroup_files(openshift_cgroup_read_t)
 
 allow openshift_cgroup_read_t openshift_var_lib_t:dir list_dir_perms;
