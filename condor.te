@@ -60,6 +60,9 @@ condor_domain_template(startd)
 # Global local policy
 #
 
+allow condor_domain self:capability dac_override;
+allow condor_domain self:capability2 block_suspend;
+
 allow condor_domain self:process signal_perms;
 allow condor_domain self:fifo_file rw_fifo_file_perms;
 allow condor_domain self:tcp_socket create_stream_socket_perms;
@@ -124,13 +127,17 @@ optional_policy(`
 # Master local policy
 #
 
-allow condor_master_t self:capability { setuid setgid dac_override sys_ptrace };
+allow condor_master_t self:capability { setuid setgid sys_ptrace };
 
 allow condor_master_t condor_domain:process { sigkill signal };
 
 manage_dirs_pattern(condor_master_t, condor_master_tmp_t, condor_master_tmp_t)
 manage_files_pattern(condor_master_t, condor_master_tmp_t, condor_master_tmp_t)
 files_tmp_filetrans(condor_master_t, condor_master_tmp_t, { file dir })
+
+can_exec(condor_master_t, condor_master_exec_t)
+
+kernel_read_system_state(condor_master_tmp_t)
 
 corenet_udp_sendrecv_generic_if(condor_master_t)
 corenet_udp_sendrecv_generic_node(condor_master_t)
@@ -148,6 +155,8 @@ corenet_tcp_connect_amqp_port(condor_master_t)
 corenet_tcp_sendrecv_amqp_port(condor_master_t)
 
 domain_read_all_domains_state(condor_master_t)
+
+auth_read_passwd(condor_master_t)
 
 optional_policy(`
 	mta_send_mail(condor_master_t)
@@ -199,6 +208,8 @@ allow condor_schedd_t condor_master_t:tcp_socket rw_stream_socket_perms;
 allow condor_schedd_t condor_master_t:udp_socket getattr;
 
 allow condor_schedd_t condor_var_lock_t:dir manage_file_perms;
+
+allow condor_schedd_t condor_master_tmp_t:dir getattr;  
 
 domtrans_pattern(condor_schedd_t, condor_procd_exec_t, condor_procd_t)
 domtrans_pattern(condor_schedd_t, condor_startd_exec_t, condor_startd_t)
