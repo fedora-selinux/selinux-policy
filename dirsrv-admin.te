@@ -30,6 +30,7 @@ role system_r types dirsrvadmin_unconfined_script_t;
 #
 # Local policy for the daemon
 #
+
 allow dirsrvadmin_t self:fifo_file rw_fifo_file_perms;
 allow dirsrvadmin_t self:capability { dac_read_search dac_override sys_tty_config sys_resource };
 allow dirsrvadmin_t self:process { setrlimit signal_perms };
@@ -51,7 +52,6 @@ libs_exec_ld_so(dirsrvadmin_t)
 
 logging_search_logs(dirsrvadmin_t)
 
-
 # Needed for stop and restart scripts
 dirsrv_read_var_run(dirsrvadmin_t)
 
@@ -72,7 +72,7 @@ optional_policy(`
 	apache_content_template(dirsrvadmin)
 
 	allow httpd_dirsrvadmin_script_t self:process { getsched getpgid };
-	allow httpd_dirsrvadmin_script_t self:capability { setuid net_bind_service setgid chown sys_nice kill dac_read_search dac_override };
+	allow httpd_dirsrvadmin_script_t self:capability { fowner fsetid setuid net_bind_service setgid chown sys_nice kill dac_read_search dac_override };
 	allow httpd_dirsrvadmin_script_t self:tcp_socket create_stream_socket_perms;
 	allow httpd_dirsrvadmin_script_t self:udp_socket create_socket_perms;
 	allow httpd_dirsrvadmin_script_t self:unix_dgram_socket create_socket_perms;
@@ -85,7 +85,12 @@ optional_policy(`
 
 	kernel_read_kernel_sysctls(httpd_dirsrvadmin_script_t)
 
+
+	corenet_tcp_bind_generic_node(httpd_dirsrvadmin_script_t)
+	corenet_udp_bind_generic_node(httpd_dirsrvadmin_script_t)
 	corenet_all_recvfrom_netlabel(httpd_dirsrvadmin_script_t)
+
+	corenet_tcp_bind_http_port(httpd_dirsrvadmin_script_t)
 	corenet_tcp_connect_generic_port(httpd_dirsrvadmin_script_t)
 	corenet_tcp_connect_ldap_port(httpd_dirsrvadmin_script_t)
 	corenet_tcp_connect_http_port(httpd_dirsrvadmin_script_t)
@@ -97,6 +102,13 @@ optional_policy(`
 	manage_files_pattern(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
 	manage_dirs_pattern(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, dirsrvadmin_tmp_t)
 	files_tmp_filetrans(httpd_dirsrvadmin_script_t, dirsrvadmin_tmp_t, { file dir })
+
+	optional_policy(`
+		apache_read_modules(httpd_dirsrvadmin_script_t)
+		apache_read_config(httpd_dirsrvadmin_script_t)
+		apache_signal(httpd_dirsrvadmin_script_t)
+		apache_signull(httpd_dirsrvadmin_script_t)
+	')
 
 	optional_policy(`
 		# The CGI scripts must be able to manage dirsrv-admin
