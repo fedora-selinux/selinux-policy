@@ -50,6 +50,8 @@ allow mock_t self:fifo_file manage_fifo_file_perms;
 allow mock_t self:unix_stream_socket create_stream_socket_perms;
 allow mock_t self:unix_dgram_socket create_socket_perms;
 
+allow mock_t mock_build_t:process { siginh noatsecure rlimitinh };
+
 manage_dirs_pattern(mock_t, mock_cache_t, mock_cache_t)
 manage_files_pattern(mock_t, mock_cache_t, mock_cache_t)
 manage_lnk_files_pattern(mock_t, mock_cache_t, mock_cache_t)
@@ -80,16 +82,13 @@ kernel_read_kernel_sysctls(mock_t)
 kernel_request_load_module(mock_t)
 kernel_dontaudit_setattr_proc_dirs(mock_t)
 kernel_read_fs_sysctls(mock_t)
-
 # we run mount in mock_t
 kernel_mount_proc(mock_t)
 kernel_unmount_proc(mock_t)
-dev_mount_sysfs_fs(mock_t)
-dev_unmount_sysfs_fs(mock_t)
+
 fs_mount_tmpfs(mock_t)
 fs_unmount_tmpfs(mock_t)
-term_mount_pty_fs(mock_t)
-term_unmount_pty_fs(mock_t)
+fs_unmount_xattr_fs(mock_t)
 
 corecmd_exec_bin(mock_t)
 corecmd_exec_shell(mock_t)
@@ -103,21 +102,26 @@ corenet_tcp_connect_all_ephemeral_ports(mock_t)
 dev_read_urand(mock_t)
 dev_rw_sysfs(mock_t)
 dev_setattr_sysfs_dirs(mock_t)
+dev_mount_sysfs_fs(mock_t)
+dev_unmount_sysfs_fs(mock_t)
 
 domain_read_all_domains_state(mock_t)
 domain_use_interactive_fds(mock_t)
 
 files_read_etc_runtime_files(mock_t)
 files_dontaudit_list_boot(mock_t)
+files_list_isid_type_dirs(mock_t)
 
 fs_getattr_all_fs(mock_t)
-fs_search_all(mock_t)
 fs_manage_cgroup_dirs(mock_t)
-files_list_isid_type_dirs(mock_t)
+fs_search_all(mock_t)
+fs_setattr_tmpfs_dirs(mock_t)
 	
 selinux_get_enforce_mode(mock_t)
 
 term_search_ptys(mock_t)
+term_mount_pty_fs(mock_t)
+term_unmount_pty_fs(mock_t)
 
 auth_use_nsswitch(mock_t)
 
@@ -163,6 +167,9 @@ optional_policy(`
 optional_policy(`
 	rpm_exec(mock_t)
     rpm_manage_cache(mock_t)
+    rpm_manage_db(mock_t)
+    rpm_manage_tmp_files(mock_t)
+    rpm_read_log(mock_t)
 ')
 
 optional_policy(`
