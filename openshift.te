@@ -124,7 +124,11 @@ dontaudit openshift_domain openshift_initrc_t:socket_class_set { read write };
 #
 # Policy for all openshift domains
 #
-allow openshift_domain self:process all_process_perms;
+allow openshift_domain self:process ~ptrace;
+tunable_policy(`deny_ptrace',`',`
+	allow openshift_domain self:process ptrace;
+')
+
 allow openshift_domain self:msg all_msg_perms;
 allow openshift_domain self:msgq create_msgq_perms;
 allow openshift_domain self:shm create_shm_perms;
@@ -341,7 +345,9 @@ dontaudit openshift_domain openshift_user_domain:key view;
 dontaudit openshift_domain openshift_user_domain:process signull;
 dontaudit openshift_domain openshift_user_domain:socket_class_set { read write };
 
-allow openshift_user_domain openshift_domain:process ptrace;
+tunable_policy(`deny_ptrace',`',`
+	allow openshift_user_domain openshift_domain:process ptrace;
+')
 
 mta_signal_user_agent(openshift_user_domain)
 
