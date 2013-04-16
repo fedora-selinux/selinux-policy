@@ -952,3 +952,26 @@ interface(`ssh_use_ptys',`
 
 	allow $1 sshd_devpts_t:chr_file rw_inherited_chr_file_perms;
 ')
+
+########################################
+## <summary>
+##	Execute sshd server in the sshd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ssh_systemctl',`
+	gen_require(`
+		type sshd_t;
+		type sshd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	allow $1 sshd_unit_file_t:file manage_file_perms;
+	allow $1 sshd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, sshd_t)
+')
