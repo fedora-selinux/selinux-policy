@@ -16,13 +16,17 @@ files_tmp_file(realmd_tmp_t)
 type realmd_var_cache_t;
 files_type(realmd_var_cache_t)
 
+type realmd_var_lib_t;
+files_type(realmd_var_lib_t)
+
 ########################################
 #
 # realmd local policy
 #
 
-allow realmd_t self:capability sys_nice;
+allow realmd_t self:capability { block_suspend sys_nice };
 allow realmd_t self:process setsched;
+allow realmd_t self:key manage_key_perms;
 
 manage_dirs_pattern(realmd_t, realmd_tmp_t, realmd_tmp_t)
 manage_files_pattern(realmd_t, realmd_tmp_t, realmd_tmp_t)
@@ -31,7 +35,12 @@ files_tmp_filetrans(realmd_t, realmd_tmp_t, { dir file })
 manage_files_pattern(realmd_t, realmd_var_cache_t, realmd_var_cache_t)
 manage_dirs_pattern(realmd_t, realmd_var_cache_t, realmd_var_cache_t)
 
+manage_dirs_pattern(realmd_t, realmd_var_lib_t, realmd_var_lib_t)
+manage_files_pattern(realmd_t, realmd_var_lib_t, realmd_var_lib_t)
+files_var_lib_filetrans(realmd_t, realmd_var_lib_t, dir)
+
 kernel_read_system_state(realmd_t)
+kernel_read_network_state(realmd_t)
 
 corecmd_exec_bin(realmd_t)
 corecmd_exec_shell(realmd_t)
@@ -45,11 +54,19 @@ domain_use_interactive_fds(realmd_t)
 dev_read_rand(realmd_t)
 dev_read_urand(realmd_t)
 
+files_manage_etc_files(realmd_t)
+
 fs_getattr_all_fs(realmd_t)
 
 auth_use_nsswitch(realmd_t)
 
+logging_manage_generic_logs(realmd_t)
 logging_send_syslog_msg(realmd_t)
+
+miscfiles_manage_generic_cert_files(realmd_t)
+
+seutil_domtrans_setfiles(realmd_t)
+seutil_read_file_contexts(realmd_t)
 
 sysnet_dns_name_resolve(realmd_t)
 systemd_exec_systemctl(realmd_t)
@@ -80,6 +97,17 @@ optional_policy(`
 optional_policy(`
 	kerberos_use(realmd_t)
 	kerberos_rw_keytab(realmd_t)
+	kerberos_rw_config(realmd_t)
+	kerberos_filetrans_named_content(realmd_t)
+')
+
+optional_policy(`
+	ntp_domtrans_ntpdate(realmd_t)
+')
+
+optional_policy(`
+	ssh_domtrans(realmd_t)
+	ssh_systemctl(realmd_t)
 ')
 
 optional_policy(`
@@ -118,11 +146,14 @@ optional_policy(`
 	xserver_read_state_xdm(realmd_t)
 ')
 
+optional_policy(`
+	unconfined_domain(realmd_t)
+')
+
 #####################################
 #
 # realmd consolehelper local policy
 #
-
 
 optional_policy(`
     userhelper_console_role_template(realmd, system_r, realmd_t)
@@ -132,5 +163,3 @@ optional_policy(`
 
 	unconfined_domain_noaudit(realmd_consolehelper_t)
 ')
-	
-
