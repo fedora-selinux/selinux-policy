@@ -80,6 +80,13 @@ gen_tunable(httpd_can_network_connect_cobbler, false)
 
 ## <desc>
 ## <p>
+## Allow HTTPD scripts and modules to server cobbler files.
+## </p>
+## </desc>
+gen_tunable(httpd_serve_cobbler_files, false)
+
+## <desc>
+## <p>
 ## Allow HTTPD to connect to port 80 for graceful shutdown
 ## </p>
 ## </desc>
@@ -809,6 +816,19 @@ tunable_policy(`httpd_tty_comm',`
 	userdom_dontaudit_use_user_terminals(httpd_suexec_t)
 ')
 
+
+optional_policy(`
+	cobbler_list_config(httpd_t)
+	cobbler_read_config(httpd_t)
+
+    tunable_policy(`httpd_serve_cobbler_files',`
+        cobbler_manage_lib_files(httpd_t)
+',`
+	    cobbler_read_lib_files(httpd_t)
+	    cobbler_search_lib(httpd_t)
+    ')
+')
+
 optional_policy(`
 	# Support for ABRT retrace server
 	# mod_wsgi
@@ -825,12 +845,6 @@ optional_policy(`
 	ccs_read_config(httpd_t)
 ')
 
-optional_policy(`
-	cobbler_list_config(httpd_t)
-	cobbler_read_config(httpd_t)
-	cobbler_read_lib_files(httpd_t)
-	cobbler_search_lib(httpd_t)
-')
 
 optional_policy(`
 	cron_system_entry(httpd_t, httpd_exec_t)
