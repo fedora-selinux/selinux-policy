@@ -55,6 +55,13 @@ gen_tunable(xdm_exec_bootloader, false)
 gen_tunable(xdm_sysadm_login, false)
 
 ## <desc>
+##  <p>
+##  Allow the graphical login program to create files in HOME dirs as xdm_home_t.
+##  </p>
+## </desc>
+gen_tunable(xdm_write_home, false)
+
+## <desc>
 ##	<p>
 ##	Support X userspace object manager
 ##	</p>
@@ -670,7 +677,108 @@ userdom_manage_user_tmp_dirs(xdm_t)
 userdom_manage_user_tmp_files(xdm_t)
 userdom_manage_user_tmp_sockets(xdm_t)
 userdom_manage_tmpfs_role(system_r, xdm_t)
-userdom_home_manager(xdm_t)
+
+#userdom_home_manager(xdm_t)
+tunable_policy(`xdm_write_home',`
+    userdom_user_home_dir_filetrans(xdm_t, xdm_home_t, file)
+',`
+    userdom_user_home_dir_filetrans_user_home_content(xdm_t, { dir file lnk_file fifo_file sock_file })
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+    fs_list_auto_mountpoints(xdm_t)
+    fs_manage_nfs_dirs(xdm_t)
+    fs_manage_nfs_files(xdm_t)
+    fs_manage_nfs_symlinks(xdm_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+    fs_manage_cifs_dirs(xdm_t)
+    fs_manage_cifs_files(xdm_t)
+    fs_manage_cifs_symlinks(xdm_t)
+')
+
+tunable_policy(`use_fusefs_home_dirs',`
+    fs_manage_fusefs_dirs(xdm_t)
+    fs_manage_fusefs_files(xdm_t)
+    fs_manage_fusefs_symlinks(xdm_t)
+')
+
+tunable_policy(`use_ecryptfs_home_dirs',`
+	fs_manage_ecryptfs_dirs(xdm_t)
+	fs_manage_ecryptfs_files(xdm_t)
+')
+
+### filename transitions ###
+userdom_filetrans_generic_home_content(xdm_t)
+
+optional_policy(`
+	gnome_config_filetrans(xdm_t, home_cert_t, dir, "certificates")
+')
+
+optional_policy(`
+	apache_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	auth_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	gnome_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	gpg_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	irc_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	kerberos_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	mozilla_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	mta_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	pulseaudio_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	spamassassin_filetrans_home_content(xdm_t)
+	spamassassin_filetrans_admin_home_content(xdm_t)
+')
+
+optional_policy(`
+	ssh_filetrans_admin_home_content(xdm_t)
+	ssh_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	telepathy_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	thumb_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+	tvtime_filetrans_home_content(xdm_t)
+')
+
+optional_policy(`
+    virt_filetrans_home_content(xdm_t)
+')
+
+### end of filename transitions ###
 
 application_signal(xdm_t)
 
@@ -799,7 +907,7 @@ optional_policy(`
 	gnome_exec_keyringd(xdm_t)
 	gnome_manage_config(xdm_t)
 	gnome_manage_gconf_home_files(xdm_t)
-	gnome_filetrans_home_content(xdm_t)
+	#gnome_filetrans_home_content(xdm_t)
 	gnome_read_config(xdm_t)
 	gnome_read_usr_config(xdm_t)
 	gnome_read_gconf_config(xdm_t)
@@ -1442,3 +1550,4 @@ optional_policy(`
 	domtrans_pattern(xdm_t, xdm_unconfined_exec_t, xdm_unconfined_t)
 	unconfined_domain(xdm_unconfined_t)
 ')
+
