@@ -24,6 +24,9 @@ application_domain(chrome_sandbox_nacl_t, chrome_sandbox_nacl_exec_t)
 role system_r types chrome_sandbox_nacl_t;
 ubac_constrained(chrome_sandbox_nacl_t)
 
+type chrome_sandbox_home_t;
+userdom_user_home_content(chrome_sandbox_home_t)
+
 ########################################
 #
 # chrome_sandbox local policy
@@ -41,12 +44,17 @@ allow chrome_sandbox_t self:msgq create_msgq_perms;
 allow chrome_sandbox_t self:netlink_route_socket r_netlink_socket_perms;
 dontaudit chrome_sandbox_t self:memprotect mmap_zero;
 
+manage_dirs_pattern(chrome_sandbox_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+manage_files_pattern(chrome_sandbox_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+manage_lnk_files_pattern(chrome_sandbox_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+
 manage_dirs_pattern(chrome_sandbox_t, chrome_sandbox_tmp_t, chrome_sandbox_tmp_t)
 manage_files_pattern(chrome_sandbox_t, chrome_sandbox_tmp_t, chrome_sandbox_tmp_t)
 files_tmp_filetrans(chrome_sandbox_t, chrome_sandbox_tmp_t, { dir file })
 
 manage_files_pattern(chrome_sandbox_t, chrome_sandbox_tmpfs_t, chrome_sandbox_tmpfs_t)
-fs_tmpfs_filetrans(chrome_sandbox_t, chrome_sandbox_tmpfs_t, file)
+fs_tmpfs_filetrans(chrome_sandbox_t, chrome_sandbox_tmpfs_t, { file dir })
+userdom_tmp_filetrans_user_tmp(chrome_sandbox_t, chrome_sandbox_tmpfs_t, { dir file })
 
 kernel_read_system_state(chrome_sandbox_t)
 kernel_read_kernel_sysctls(chrome_sandbox_t)
@@ -103,6 +111,9 @@ userdom_manage_home_certs(chrome_sandbox_t)
 optional_policy(`
 	gnome_rw_inherited_config(chrome_sandbox_t)
 	gnome_read_home_config(chrome_sandbox_t)
+	gnome_cache_filetrans(chrome_sandbox_t, chrome_sandbox_home_t, dir, "chromium")
+	gnome_cache_filetrans(chrome_sandbox_t, chrome_sandbox_home_t, dir, "chrome")
+
 ')
 
 optional_policy(`
@@ -178,6 +189,10 @@ dontaudit chrome_sandbox_nacl_t self:memprotect mmap_zero;
 
 domtrans_pattern(chrome_sandbox_t, chrome_sandbox_nacl_exec_t, chrome_sandbox_nacl_t)
 ps_process_pattern(chrome_sandbox_t, chrome_sandbox_nacl_t)
+
+manage_dirs_pattern(chrome_sandbox_nacl_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+manage_files_pattern(chrome_sandbox_nacl_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+manage_lnk_files_pattern(chrome_sandbox_nacl_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
 
 kernel_read_state(chrome_sandbox_nacl_t)
 kernel_read_system_state(chrome_sandbox_nacl_t)
