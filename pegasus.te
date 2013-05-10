@@ -30,16 +30,56 @@ type pegasus_var_run_t;
 files_pid_file(pegasus_var_run_t)
 
 # pegasus openlmi providers
-#pegasus_openlmi_domain_template(account)
+pegasus_openlmi_domain_template(account)
 
 #######################################
 #
 # pegasus openlmi providers local policy
 #
 
+allow pegasus_openlmi_domain self:fifo_file rw_fifo_file_perms;
+
+list_dirs_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
+read_files_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
+
 corecmd_exec_bin(pegasus_openlmi_domain)
 
 sysnet_read_config(pegasus_openlmi_domain)
+
+optional_policy(`
+    pegasus_stream_connect(pegasus_openlmi_domain)
+')
+
+######################################
+#
+# pegasus openlmi account local policy
+#
+
+allow pegasus_openlmi_account_t self:capability { setuid chown setgid dac_override };
+allow pegasus_openlmi_account_t self:process setfscreate;
+
+auth_manage_passwd(pegasus_openlmi_account_t)
+auth_manage_shadow(pegasus_openlmi_account_t)
+auth_relabel_shadow(pegasus_openlmi_account_t)
+auth_etc_filetrans_shadow(pegasus_openlmi_account_t)
+
+init_rw_utmp(pegasus_openlmi_account_t)
+
+logging_send_syslog_msg(pegasus_openlmi_account_t)
+
+seutil_read_config(pegasus_openlmi_account_t)
+seutil_read_file_contexts(pegasus_openlmi_account_t)
+seutil_read_default_contexts(pegasus_openlmi_account_t)
+
+# Add/remove user home directories
+userdom_home_filetrans_user_home_dir(pegasus_openlmi_account_t)
+userdom_manage_home_role(system_r, pegasus_openlmi_account_t)
+userdom_delete_all_user_home_content(pegasus_openlmi_account_t)
+
+optional_policy(`
+    # run userdel
+    usermanage_domtrans_useradd(pegasus_openlmi_account_t)
+')
 
 ########################################
 #
