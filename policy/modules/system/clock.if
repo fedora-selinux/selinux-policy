@@ -120,7 +120,7 @@ interface(`clock_rw_adjtime',`
 
 ########################################
 ## <summary>
-##	Allow domain to create clock drift adjustments.
+##	Manage clock drift adjustments.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -128,11 +128,29 @@ interface(`clock_rw_adjtime',`
 ##	</summary>
 ## </param>
 #
-interface(`clock_create_adjtime',`
+interface(`clock_manage_adjtime',`
 	gen_require(`
 		type adjtime_t;
 	')
 
-    create_files_pattern($1, adjtime_t, adjtime_t)
+	allow $1 adjtime_t:file manage_file_perms;
 	files_list_etc($1)
+')
+
+########################################
+## <summary>
+##	Transition to systemd clock content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`clock_filetrans_named_content',`
+	gen_require(`
+		type adjtime_t;
+	')
+
+	files_etc_filetrans($1, adjtime_t, file, "adjtime" )
 ')
