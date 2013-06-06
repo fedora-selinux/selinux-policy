@@ -21,6 +21,43 @@ interface(`quantum_domtrans',`
 
 ########################################
 ## <summary>
+##	Allow read/write quantum pipes
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`quantum_rw_inherited_pipes',`
+	gen_require(`
+		type quantum_t;
+	')
+
+	allow $1 quantum_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Send sigchld to quantum.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`quantum_sigchld',`
+	gen_require(`
+		type quantum_t;
+	')
+
+    allow $1 quantum_t:process sigchld;
+')
+
+########################################
+## <summary>
 ##	Read quantum's log files.
 ## </summary>
 ## <param name="domain">
@@ -173,9 +210,10 @@ interface(`quantum_rw_fifo_file',`
 	allow $1 quantum_t:fifo_file rw_inherited_fifo_file_perms;
 ')
 
-########################################
+#####################################
 ## <summary>
-##	Allow domain to send sigchld to quantum process.
+##	Connect to quantum over a unix domain
+##	stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -183,13 +221,15 @@ interface(`quantum_rw_fifo_file',`
 ##	</summary>
 ## </param>
 #
-interface(`quantum_sigchld',`
+interface(`quantum_stream_connect',`
 	gen_require(`
-		type quantum_t;
+		type quantum_var_lib_t;
 	')
 
-	allow $1 quantum_t:process sigchld;
+	files_search_pids($1)
+	stream_connect_pattern($1, quantum_var_lib_t, quantum_var_lib_t, quantum_t )
 ')
+
 ########################################
 ## <summary>
 ##	Execute quantum server in the quantum domain.
