@@ -9,6 +9,19 @@ attribute cloudform_domain;
 cloudform_domain_template(deltacloudd)
 cloudform_domain_template(iwhd)
 cloudform_domain_template(mongod)
+cloudform_domain_template(cloud_init)
+
+type cloud_init_tmp_t;
+files_tmp_file(cloud_init_tmp_t)
+
+type cloud_init_unit_file_t;
+systemd_unit_file(cloud_init_unit_file_t)
+
+type cloud_var_lib_t;
+files_type(cloud_var_lib_t)
+
+type cloud_log_t;
+logging_log_file(cloud_log_t)
 
 type deltacloudd_log_t;
 logging_log_file(deltacloudd_log_t)
@@ -61,6 +74,93 @@ dev_read_sysfs(cloudform_domain)
 auth_read_passwd(cloudform_domain)
 
 miscfiles_read_certs(cloudform_domain)
+
+#################################
+#
+# cloud-init local policy
+#
+
+allow cloud_init_t self:capability { fowner chown fsetid dac_override };
+
+allow cloud_init_t self:udp_socket create_socket_perms;
+
+manage_files_pattern(cloud_init_t, cloud_init_tmp_t, cloud_init_tmp_t)
+manage_dirs_pattern(cloud_init_t, cloud_init_tmp_t, cloud_init_tmp_t)
+files_tmp_filetrans(cloud_init_t, cloud_init_tmp_t, { file dir })
+
+manage_dirs_pattern(cloud_init_t, cloud_var_lib_t, cloud_var_lib_t)
+manage_files_pattern(cloud_init_t, cloud_var_lib_t, cloud_var_lib_t)
+manage_lnk_files_pattern(cloud_init_t, cloud_var_lib_t, cloud_var_lib_t)
+
+manage_files_pattern(cloud_init_t, cloud_log_t, cloud_log_t)
+logging_log_filetrans(cloud_init_t, cloud_log_t, { file })
+
+kernel_read_network_state(cloud_init_t)
+
+corenet_tcp_connect_http_port(cloud_init_t)
+
+corecmd_exec_bin(cloud_init_t)
+corecmd_exec_shell(cloud_init_t)
+
+fs_getattr_all_fs(cloud_init_t)
+
+storage_raw_read_fixed_disk(cloud_init_t)
+
+libs_exec_ldconfig(cloud_init_t)
+
+logging_send_syslog_msg(cloud_init_t)
+
+miscfiles_read_localization(cloud_init_t)
+
+selinux_validate_context(cloud_init_t)
+
+systemd_dbus_chat_hostnamed(cloud_init_t)
+systemd_exec_systemctl(cloud_init_t)
+systemd_start_all_services(cloud_init_t)
+
+usermanage_domtrans_passwd(cloud_init_t)
+
+optional_policy(`
+    dbus_system_bus_client(cloud_init_t)
+')
+
+optional_policy(`
+    dmidecode_domtrans(cloud_init_t)
+')
+
+optional_policy(`
+    fstools_domtrans(cloud_init_t)
+')
+
+optional_policy(`
+    hostname_exec(cloud_init_t)
+')
+
+optional_policy(`
+    mount_domtrans(cloud_init_t)
+')
+
+optional_policy(`
+    # it check file context and run restorecon
+    seutil_read_file_contexts(cloud_init_t)
+    seutil_domtrans_setfiles(cloud_init_t)
+')
+
+optional_policy(`
+    ssh_exec_keygen(cloud_init_t)
+    ssh_read_user_home_files(cloud_init_t)
+')
+
+optional_policy(`
+    sysnet_domtrans_ifconfig(cloud_init_t)
+    sysnet_read_dhcpc_state(cloud_init_t)
+    sysnet_dns_name_resolve(cloud_init_t)
+')
+
+optional_policy(`
+    unconfined_domain(cloud_init_t)
+')
+
 
 ########################################
 #
