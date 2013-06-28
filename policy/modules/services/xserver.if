@@ -18,124 +18,33 @@
 #
 interface(`xserver_restricted_role',`
 	gen_require(`
-		type xserver_t, xserver_exec_t, xserver_tmp_t, xserver_tmpfs_t;
-		type user_fonts_t, user_fonts_cache_t, user_fonts_config_t, xdm_tmp_t;
-		type iceauth_t, iceauth_exec_t, iceauth_home_t;
-		type xauth_t, xauth_exec_t, xauth_home_t;
-		class dbus send_msg;
+		type xserver_t, xauth_t, iceauth_t;
+		attribute x_userdomain;
 	')
 
 	role $1 types { xserver_t xauth_t iceauth_t };
-
-	# Xserver read/write client shm
-	allow xserver_t $2:fd use;
-	allow xserver_t $2:shm rw_shm_perms;
-
-	allow xserver_t $2:process { getpgid signal };
-
-	allow xserver_t $2:shm rw_shm_perms;
-
-	allow $2 user_fonts_t:dir list_dir_perms;
-	allow $2 user_fonts_t:file read_file_perms;
-	allow $2 user_fonts_t:lnk_file read_lnk_file_perms;
-
-	allow $2 user_fonts_config_t:dir list_dir_perms;
-	allow $2 user_fonts_config_t:file read_file_perms;
-
-	manage_dirs_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
-	manage_files_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
-
-	stream_connect_pattern($2, xserver_tmp_t, xserver_tmp_t, xserver_t)
-	allow $2 xserver_tmp_t:sock_file delete_sock_file_perms;
-	dontaudit $2 xdm_tmp_t:sock_file setattr_sock_file_perms;
-	files_search_tmp($2)
-
-	# Communicate via System V shared memory.
-	allow $2 xserver_t:shm r_shm_perms;
-	allow $2 xserver_tmpfs_t:file read_file_perms;
-
-	# allow ps to show iceauth
-	ps_process_pattern($2, iceauth_t)
-
-	domtrans_pattern($2, iceauth_exec_t, iceauth_t)
-
-	allow $2 iceauth_home_t:file read_file_perms;
-
-	domtrans_pattern($2, xauth_exec_t, xauth_t)
-
-	allow $2 xauth_t:process signal;
-
-	# allow ps to show xauth
-	ps_process_pattern($2, xauth_t)
-	allow $2 xserver_t:process signal;
-
-	allow $2 xauth_home_t:file read_file_perms;
-
-	# for when /tmp/.X11-unix is created by the system
-	allow $2 xdm_t:fd use;
-	allow $2 xdm_t:fifo_file rw_inherited_fifo_file_perms;
-	allow $2 xdm_tmp_t:dir search_dir_perms;
-	allow $2 xdm_tmp_t:sock_file rw_inherited_sock_file_perms;
-	dontaudit $2 xdm_t:tcp_socket { read write };
-	dontaudit $2 xdm_tmp_t:dir setattr_dir_perms;
-
-	allow $2 xdm_t:dbus send_msg;
-	allow xdm_t  $2:dbus send_msg;
-
-	# Client read xserver shm
-	allow $2 xserver_t:fd use;
-	allow $2 xserver_tmpfs_t:file read_file_perms;
-
-	# Read /tmp/.X0-lock
-	allow $2 xserver_tmp_t:file read_inherited_file_perms;
-
-	dev_rw_xserver_misc($2)
-	dev_rw_power_management($2)
-	dev_read_input($2)
-	dev_read_misc($2)
-	dev_write_misc($2)
-	# open office is looking for the following
-	dev_getattr_agp_dev($2)
-
-	# GNOME checks for usb and other devices:
-	dev_rw_usbfs($2)
-
-	miscfiles_read_fonts($2)
-	miscfiles_setattr_fonts_cache_dirs($2)
-	miscfiles_read_hwdata($2)
-
-	xserver_common_x_domain_template(user, $2)
-	xserver_domtrans($2)
-	#xserver_unconfined($2)
-	xserver_xsession_entry_type($2)
-	xserver_dontaudit_write_log($2)
-	xserver_stream_connect_xdm($2)
-	# certain apps want to read xdm.pid file
-	xserver_read_xdm_pid($2)
-	# gnome-session creates socket under /tmp/.ICE-unix/
-	xserver_create_xdm_tmp_sockets($2)
-	# Needed for escd, remove if we get escd policy
-	xserver_manage_xdm_tmp_files($2)
-	xserver_read_xdm_etc_files($2)
-	xserver_xdm_append_log($2)
-
-	term_use_virtio_console($2)
+	typeattribute $2 x_userdomain, dridomain;
 
 	modutils_run_insmod(xserver_t, $1)
+	xserver_dri_domain($2)
+')
 
-	# Client write xserver shm
-	tunable_policy(`xserver_clients_write_xshm',`
-		allow $2 xserver_t:shm rw_shm_perms;
-		allow $2 xserver_tmpfs_t:file rw_file_perms;
+########################################
+## <summary>
+##	Domain wants to use direct io devices
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_dri_domain',`
+	gen_require(`
+		attribute dridomain;
 	')
 
-	tunable_policy(`selinuxuser_direct_dri_enabled',`
-		dev_rw_dri($2)
-	')
-
-	optional_policy(`
-		gnome_read_gconf_config($2)
-	')
+	typeattribute $1 dridomain;
 ')
 
 ########################################
