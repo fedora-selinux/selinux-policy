@@ -37,7 +37,7 @@ role fail2ban_client_roles types fail2ban_client_t;
 #
 
 allow fail2ban_t self:capability { dac_read_search dac_override sys_tty_config };
-allow fail2ban_t self:process signal;
+allow fail2ban_t self:process { setsched signal };
 allow fail2ban_t self:fifo_file rw_fifo_file_perms;
 allow fail2ban_t self:unix_stream_socket { accept connectto listen };
 allow fail2ban_t self:tcp_socket { accept listen };
@@ -100,6 +100,15 @@ optional_policy(`
 ')
 
 optional_policy(`
+	dbus_system_bus_client(fail2ban_t)
+	dbus_connect_system_bus(fail2ban_t)
+
+	optional_policy(`
+		firewalld_dbus_chat(fail2ban_t)
+	')
+')
+
+optional_policy(`
 	ftp_read_log(fail2ban_t)
 ')
 
@@ -113,6 +122,10 @@ optional_policy(`
 
 optional_policy(`
 	libs_exec_ldconfig(fail2ban_t)
+')
+
+optional_policy(`
+	rpm_exec(fail2ban_t)
 ')
 
 optional_policy(`
@@ -135,6 +148,9 @@ stream_connect_pattern(fail2ban_client_t, fail2ban_var_run_t, fail2ban_var_run_t
 kernel_read_system_state(fail2ban_client_t)
 
 corecmd_exec_bin(fail2ban_client_t)
+
+dev_read_urand(fail2ban_client_t)
+dev_read_rand(fail2ban_client_t)
 
 domain_use_interactive_fds(fail2ban_client_t)
 
