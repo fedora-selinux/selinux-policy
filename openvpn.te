@@ -6,6 +6,13 @@ policy_module(openvpn, 1.11.3)
 #
 
 ## <desc>
+## <p>
+## Allow openvpn to run unconfined scripts
+## </p>
+## </desc>
+gen_tunable(openvpn_run_unconfined, false)
+
+## <desc>
 ##	<p>
 ##	Determine whether openvpn can
 ##	read generic user home content files.
@@ -170,4 +177,24 @@ optional_policy(`
 
 optional_policy(`
 	unconfined_attach_tun_iface(openvpn_t)
+')
+
+type openvpn_unconfined_script_t;
+type openvpn_unconfined_script_exec_t;
+domain_type(openvpn_unconfined_script_t)
+domain_entry_file(openvpn_unconfined_script_t, openvpn_unconfined_script_exec_t)
+corecmd_shell_entry_type(openvpn_unconfined_script_t)
+role system_r types openvpn_unconfined_script_t;
+
+allow openvpn_t openvpn_unconfined_script_exec_t:dir search_dir_perms;
+allow openvpn_t openvpn_unconfined_script_exec_t:file ioctl;
+
+optional_policy(`
+	unconfined_domain(openvpn_unconfined_script_t)
+')
+
+tunable_policy(`openvpn_run_unconfined',`
+		domtrans_pattern(openvpn_t, openvpn_unconfined_script_exec_t, openvpn_unconfined_script_t)
+',`
+	can_exec(openvpn_t, openvpn_unconfined_script_exec_t)
 ')
