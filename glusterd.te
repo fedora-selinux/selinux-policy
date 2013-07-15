@@ -55,8 +55,8 @@ files_type(glusterd_var_lib_t)
 # Local policy
 #
 
-allow glusterd_t self:capability { sys_admin sys_resource dac_override chown dac_read_search fowner };
-allow glusterd_t self:process { setrlimit signal };
+allow glusterd_t self:capability { sys_admin sys_resource dac_override chown dac_read_search fowner setuid };
+allow glusterd_t self:process { getcap setcap setrlimit signal };
 allow glusterd_t self:fifo_file rw_fifo_file_perms;
 allow glusterd_t self:tcp_socket { accept listen };
 allow glusterd_t self:unix_stream_socket { accept listen connectto };
@@ -102,10 +102,18 @@ corenet_udp_sendrecv_all_ports(glusterd_t)
 corenet_tcp_bind_generic_node(glusterd_t)
 corenet_udp_bind_generic_node(glusterd_t)
 
-# Too coarse?
+corenet_tcp_connect_gluster_port(glusterd_t)
+corenet_tcp_bind_gluster_port(glusterd_t)
+
+# replacement for rpc.mountd
 corenet_sendrecv_all_server_packets(glusterd_t)
 corenet_tcp_bind_all_reserved_ports(glusterd_t)
 corenet_udp_bind_all_rpc_ports(glusterd_t)
+corenet_tcp_bind_all_rpc_ports(glusterd_t)
+corenet_tcp_bind_nfs_port(glusterd_t)
+corenet_udp_bind_nfs_port(glusterd_t)
+corenet_udp_bind_mountd_port(glusterd_t)
+corenet_tcp_bind_mountd_port(glusterd_t)
 corenet_udp_bind_ipp_port(glusterd_t)
 
 corenet_sendrecv_all_client_packets(glusterd_t)
@@ -143,4 +151,8 @@ tunable_policy(`gluster_export_all_rw',`
 	fs_manage_noxattr_fs_files(glusterd_t) 
 	files_manage_non_security_dirs(glusterd_t)
 	files_manage_non_security_files(glusterd_t)
+')
+
+optional_policy(`
+    rpc_domtrans_rpcd(glusterd_t)
 ')
