@@ -72,16 +72,18 @@ role system_r types setkey_t;
 # ipsec Local policy
 #
 
-allow ipsec_t self:capability { net_admin dac_override dac_read_search setpcap sys_nice };
+allow ipsec_t self:capability { net_admin dac_override dac_read_search setpcap sys_nice new_raw setuid };
 dontaudit ipsec_t self:capability sys_tty_config;
 allow ipsec_t self:process { getcap setcap getsched signal setsched };
 allow ipsec_t self:tcp_socket create_stream_socket_perms;
 allow ipsec_t self:udp_socket create_socket_perms;
+allow ipsec_t self:packet_socket create_socket_perms;
 allow ipsec_t self:key_socket create_socket_perms;
 allow ipsec_t self:fifo_file read_fifo_file_perms;
 allow ipsec_t self:netlink_xfrm_socket { create_netlink_socket_perms nlmsg_write };
 allow ipsec_t self:netlink_selinux_socket create_socket_perms;
 allow ipsec_t self:unix_stream_socket { create_stream_socket_perms connectto };
+allow ipsec_t self:netlink_route_socket { create_netlink_socket_perms write };
 
 allow ipsec_t ipsec_initrc_exec_t:file read_file_perms;
 
@@ -115,7 +117,7 @@ allow ipsec_mgmt_t ipsec_t:unix_stream_socket { read write };
 allow ipsec_mgmt_t ipsec_t:process { rlimitinh sigchld };
 
 kernel_read_kernel_sysctls(ipsec_t)
-kernel_read_net_sysctls(ipsec_t)
+kernel_rw_net_sysctls(ipsec_t)
 kernel_list_proc(ipsec_t)
 kernel_read_proc_symlinks(ipsec_t)
 # allow pluto to access /proc/net/ipsec_eroute;
@@ -141,6 +143,7 @@ corenet_tcp_bind_reserved_port(ipsec_t)
 corenet_tcp_bind_isakmp_port(ipsec_t)
 corenet_udp_bind_isakmp_port(ipsec_t)
 corenet_udp_bind_ipsecnat_port(ipsec_t)
+corenet_udp_bind_dhcpc_port(ipsec_t)
 corenet_sendrecv_generic_server_packets(ipsec_t)
 corenet_sendrecv_isakmp_server_packets(ipsec_t)
 corenet_tcp_connect_http_port(ipsec_t)
@@ -363,7 +366,7 @@ optional_policy(`
 #
 
 allow racoon_t self:capability { net_admin net_bind_service };
-allow racoon_t self:netlink_route_socket create_netlink_socket_perms;
+allow racoon_t self:netlink_route_socket { create_netlink_socket_perms };
 allow racoon_t self:unix_dgram_socket { connect create ioctl write };
 allow racoon_t self:netlink_selinux_socket { bind create read };
 allow racoon_t self:udp_socket create_socket_perms;
