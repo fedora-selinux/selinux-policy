@@ -198,7 +198,7 @@ files_associate_tmp(xconsole_device_t)
 type xdm_unconfined_exec_t;
 application_executable_file(xdm_unconfined_exec_t)
 
-type xdm_t;
+type xdm_t alias xdm_dbusd_t;
 type xdm_exec_t;
 auth_login_pgm_domain(xdm_t)
 init_domain(xdm_t, xdm_exec_t)
@@ -660,6 +660,8 @@ init_dbus_chat(xdm_t)
 init_pid_filetrans(xdm_t, xdm_var_run_t, dir, "multi-session-x")
 init_status(xdm_t)
 
+application_exec(xdm_t)
+
 libs_exec_lib_files(xdm_t)
 libs_exec_ldconfig(xdm_t)
 
@@ -860,24 +862,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# Use dbus to start other processes as xdm_t
-	dbus_role_template(xdm, system_r, xdm_t)
-	dbus_system_bus_client(xdm_dbusd_t)
 	dbus_system_bus_client(xdm_t)
-
-	application_dontaudit_exec(xdm_dbusd_t)
-	#fixes for xfce4-notifyd
-	allow xdm_dbusd_t self:unix_stream_socket connectto;
-	allow xdm_dbusd_t xserver_t:unix_stream_socket connectto;
-
-
-	dontaudit xdm_dbusd_t xdm_var_lib_t:dir search_dir_perms;
-	xserver_xdm_append_log(xdm_dbusd_t)
-	xserver_read_xdm_pid(xdm_dbusd_t)
-	
-	miscfiles_read_fonts(xdm_dbusd_t)
-
-	corecmd_bin_entry_type(xdm_t)
 
 	optional_policy(`
 		bluetooth_dbus_chat(xdm_t)
