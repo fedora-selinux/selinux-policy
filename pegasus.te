@@ -32,6 +32,13 @@ files_pid_file(pegasus_var_run_t)
 # pegasus openlmi providers
 pegasus_openlmi_domain_template(account)
 pegasus_openlmi_domain_template(logicalfile)
+pegasus_openlmi_domain_template(networking)
+pegasus_openlmi_domain_template(service)
+
+pegasus_openlmi_domain_template(storage)
+type pegasus_openlmi_storage_tmp_t;
+files_tmp_file(pegasus_openlmi_storage_tmp_t)
+
 pegasus_openlmi_domain_template(unconfined)
 
 #######################################
@@ -39,12 +46,17 @@ pegasus_openlmi_domain_template(unconfined)
 # pegasus openlmi providers local policy
 #
 
+allow pegasus_openlmi_domain self:capability { setuid setgid };
+
 allow pegasus_openlmi_domain self:fifo_file rw_fifo_file_perms;
 
 list_dirs_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
-read_files_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
+rw_files_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
 
 corecmd_exec_bin(pegasus_openlmi_domain)
+corecmd_exec_shell(pegasus_openlmi_domain)
+
+auth_read_passwd(pegasus_openlmi_domain)
 
 sysnet_read_config(pegasus_openlmi_domain)
 
@@ -57,7 +69,7 @@ optional_policy(`
 # pegasus openlmi account local policy
 #
 
-allow pegasus_openlmi_account_t self:capability { setuid chown setgid dac_override };
+allow pegasus_openlmi_account_t self:capability { chown dac_override };
 allow pegasus_openlmi_account_t self:process setfscreate;
 
 auth_manage_passwd(pegasus_openlmi_account_t)
@@ -88,7 +100,7 @@ optional_policy(`
 # pegasus openlmi logicalfile local policy
 #
 
-allow pegasus_openlmi_logicalfile_t self:capability { setuid setgid dac_override };
+allow pegasus_openlmi_logicalfile_t self:capability { dac_override };
 files_manage_non_security_dirs(pegasus_openlmi_logicalfile_t)
 files_manage_non_security_files(pegasus_openlmi_logicalfile_t)
 
@@ -112,6 +124,75 @@ optional_policy(`
     # it can delete/create empty dirs
     # so we want to have unconfined_domain attribute for filename rules
     unconfined_domain(pegasus_openlmi_logicalfile_t)
+')
+
+######################################
+#
+# pegasus openlmi networking local policy
+#
+
+allow pegasus_openlmi_networking_t self:capability { net_admin };
+
+allow pegasus_openlmi_networking_t self:netlink_route_socket r_netlink_socket_perms;;
+allow pegasus_openlmi_networking_t self:udp_socket create_socket_perms;
+
+dev_rw_sysfs(pegasus_openlmi_networking_t)
+dev_read_urand(pegasus_openlmi_networking_t)
+
+optional_policy(`
+    dbus_system_bus_client(pegasus_openlmi_networking_t)
+
+    optional_policy(`
+        networkmanager_dbus_chat(pegasus_openlmi_networking_t)
+    ')
+')
+
+######################################
+#
+# pegasus openlmi service local policy
+#
+
+
+init_disable_services(pegasus_openlmi_service_t)
+init_enable_services(pegasus_openlmi_service_t)
+init_reload_services(pegasus_openlmi_service_t)
+init_exec(pegasus_openlmi_service_t)
+
+systemd_config_all_services(pegasus_openlmi_service_t)
+systemd_manage_all_unit_files(pegasus_openlmi_service_t)
+systemd_manage_all_unit_lnk_files(pegasus_openlmi_service_t)
+
+allow pegasus_openlmi_service_t self:udp_socket create_socket_perms;
+
+optional_policy(`
+    dbus_system_bus_client(pegasus_openlmi_service_t)
+')
+
+######################################
+#
+# pegasus openlmi storage local policy
+#
+
+manage_files_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t)
+manage_dirs_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t)
+files_tmp_filetrans(pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t, { file dir})
+
+storage_rw_inherited_fixed_disk_dev(pegasus_openlmi_networking_t)
+
+modutils_domtrans_insmod(pegasus_openlmi_storage_t)
+
+udev_domtrans(pegasus_openlmi_storage_t)
+
+optional_policy(`
+    lvm_domtrans(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    mount_domtrans(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    raid_domtrans_mdadm(pegasus_openlmi_storage_t)   
 ')
 
 ######################################
@@ -260,7 +341,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	rpm_exec(pegasus_t)
+	rpm_domtrans(pegasus_t)
 ')
 
 optional_policy(`
