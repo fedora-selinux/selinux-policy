@@ -33,6 +33,11 @@ files_pid_file(pegasus_var_run_t)
 pegasus_openlmi_domain_template(account)
 pegasus_openlmi_domain_template(logicalfile)
 pegasus_openlmi_domain_template(networking)
+
+pegasus_openlmi_domain_template(storage)
+type pegasus_openlmi_storage_tmp_t;
+files_tmp_file(pegasus_openlmi_storage_tmp_t)
+
 pegasus_openlmi_domain_template(unconfined)
 
 #######################################
@@ -142,6 +147,34 @@ optional_policy(`
         networkmanager_dbus_chat(pegasus_openlmi_networking_t)
     ')
 ')
+
+######################################
+#
+# pegasus openlmi storage local policy
+#
+
+manage_files_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t)
+manage_dirs_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t)
+files_tmp_filetrans(pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t, { file dir})
+
+storage_rw_inherited_fixed_disk_dev(pegasus_openlmi_networking_t)
+
+modutils_domtrans_insmod(pegasus_openlmi_storage_t)
+
+udev_domtrans(pegasus_openlmi_storage_t)
+
+optional_policy(`
+    lvm_domtrans(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    mount_domtrans(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    raid_domtrans_mdadm(pegasus_openlmi_storage_t)   
+')
+
 ######################################
 #
 # pegasus openlmi unconfined local policy
