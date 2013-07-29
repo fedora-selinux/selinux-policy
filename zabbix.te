@@ -52,11 +52,10 @@ allow zabbix_t self:sem create_sem_perms;
 allow zabbix_t self:shm create_shm_perms;
 allow zabbix_t self:tcp_socket create_stream_socket_perms;
 
-allow zabbix_t zabbix_log_t:dir setattr_dir_perms;
-append_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
-create_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
-setattr_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
-logging_log_filetrans(zabbix_t, zabbix_log_t, file)
+manage_dirs_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
+manage_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
+manage_lnk_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
+logging_log_filetrans(zabbix_t, zabbix_log_t, { dir file })
 
 manage_dirs_pattern(zabbix_t, zabbix_tmp_t, zabbix_tmp_t)
 manage_files_pattern(zabbix_t, zabbix_tmp_t, zabbix_tmp_t)
@@ -136,10 +135,7 @@ allow zabbix_agent_t self:shm create_shm_perms;
 allow zabbix_agent_t self:tcp_socket { accept listen };
 allow zabbix_agent_t self:unix_stream_socket create_stream_socket_perms;
 
-append_files_pattern(zabbix_agent_t, zabbix_log_t, zabbix_log_t)
-create_files_pattern(zabbix_agent_t, zabbix_log_t, zabbix_log_t)
-setattr_files_pattern(zabbix_agent_t, zabbix_log_t, zabbix_log_t)
-filetrans_pattern(zabbix_agent_t, zabbix_log_t, zabbix_log_t, file)
+manage_files_pattern(zabbix_agent_t, zabbix_log_t, zabbix_log_t)
 
 rw_files_pattern(zabbix_agent_t, zabbix_tmpfs_t, zabbix_tmpfs_t)
 fs_tmpfs_filetrans(zabbix_agent_t, zabbix_tmpfs_t, file)
@@ -150,6 +146,8 @@ files_pid_filetrans(zabbix_agent_t, zabbix_var_run_t, file)
 kernel_read_all_sysctls(zabbix_agent_t)
 kernel_read_system_state(zabbix_agent_t)
 
+corecmd_exec_shell(zabbix_agent_t)
+corecmd_exec_bin(zabbix_agent_t)
 corecmd_read_all_executables(zabbix_agent_t)
 
 corenet_all_recvfrom_unlabeled(zabbix_agent_t)
@@ -185,7 +183,11 @@ init_read_utmp(zabbix_agent_t)
 
 logging_search_logs(zabbix_agent_t)
 
-
 sysnet_dns_name_resolve(zabbix_agent_t)
 
 zabbix_tcp_connect(zabbix_agent_t)
+
+optional_policy(`
+	hostname_exec(zabbix_agent_t)
+')
+
