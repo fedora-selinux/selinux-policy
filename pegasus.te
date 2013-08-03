@@ -41,6 +41,9 @@ pegasus_openlmi_domain_template(storage)
 type pegasus_openlmi_storage_tmp_t;
 files_tmp_file(pegasus_openlmi_storage_tmp_t)
 
+type pegasus_openlmi_storage_lib_t;
+files_type(pegasus_openlmi_storage_lib_t)
+
 pegasus_openlmi_domain_template(system)
 typealias pegasus_openlmi_system_t alias pegasus_openlmi_networking_t;
 pegasus_openlmi_domain_template(unconfined)
@@ -53,6 +56,7 @@ pegasus_openlmi_domain_template(unconfined)
 allow pegasus_openlmi_domain self:capability { setuid setgid };
 
 allow pegasus_openlmi_domain self:fifo_file rw_fifo_file_perms;
+allow pegasus_openlmi_domain self:udp_socket create_socket_perms;
 
 list_dirs_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
 rw_files_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
@@ -131,6 +135,7 @@ optional_policy(`
     # so we want to have unconfined_domain attribute for filename rules
     unconfined_domain(pegasus_openlmi_logicalfile_t)
 ')
+
 ######################################
 #
 # pegasus openlmi networking local policy
@@ -152,7 +157,6 @@ optional_policy(`
 allow pegasus_openlmi_system_t self:capability { net_admin };
 
 allow pegasus_openlmi_system_t self:netlink_route_socket r_netlink_socket_perms;;
-allow pegasus_openlmi_system_t self:udp_socket create_socket_perms;
 
 dev_rw_sysfs(pegasus_openlmi_system_t)
 dev_read_urand(pegasus_openlmi_system_t)
@@ -190,15 +194,35 @@ optional_policy(`
 # pegasus openlmi storage local policy
 #
 
+
+manage_files_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_lib_t, pegasus_openlmi_storage_lib_t)
+manage_dirs_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_lib_t, pegasus_openlmi_storage_lib_t)
+files_var_lib_filetrans(pegasus_openlmi_storage_t, pegasus_openlmi_storage_lib_t, pegasus_openlmi_storage_lib_t)
+
 manage_files_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t)
 manage_dirs_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t)
 files_tmp_filetrans(pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t, { file dir})
 
-storage_rw_inherited_fixed_disk_dev(pegasus_openlmi_networking_t)
+kernel_read_all_sysctls(pegasus_openlmi_storage_t)
+
+dev_read_rand(pegasus_openlmi_storage_t)
+dev_read_urand(pegasus_openlmi_storage_t)
+
+dev_rw_lvm_control(pegasus_openlmi_storage_t)
+
+selinux_validate_context(pegasus_openlmi_storage_t)
+
+seutil_read_file_contexts(pegasus_openlmi_storage_t)
+
+storage_rw_inherited_fixed_disk_dev(pegasus_openlmi_storage_t)
 
 modutils_domtrans_insmod(pegasus_openlmi_storage_t)
 
 udev_domtrans(pegasus_openlmi_storage_t)
+
+optional_policy(`
+    dmidecode_domtrans(pegasus_openlmi_storage_t)  
+')
 
 optional_policy(`
     lvm_domtrans(pegasus_openlmi_storage_t)
