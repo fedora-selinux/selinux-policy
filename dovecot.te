@@ -1,4 +1,4 @@
-policy_module(dovecot, 1.16.0)
+policy_module(dovecot, 1.16.1)
 
 ########################################
 #
@@ -37,6 +37,9 @@ files_config_file(dovecot_etc_t)
 
 type dovecot_initrc_exec_t;
 init_script_file(dovecot_initrc_exec_t)
+
+type dovecot_keytab_t;
+files_type(dovecot_keytab_t)
 
 type dovecot_passwd_t;
 files_type(dovecot_passwd_t)
@@ -98,6 +101,8 @@ allow dovecot_t self:unix_stream_socket { accept connectto listen };
 allow dovecot_t dovecot_cert_t:dir list_dir_perms;
 allow dovecot_t dovecot_cert_t:file read_file_perms;
 allow dovecot_t dovecot_cert_t:lnk_file read_lnk_file_perms;
+
+allow dovecot_t dovecot_keytab_t:file read_file_perms;
 
 manage_dirs_pattern(dovecot_t, dovecot_tmp_t, dovecot_tmp_t)
 manage_files_pattern(dovecot_t, dovecot_tmp_t, dovecot_tmp_t)
@@ -182,9 +187,10 @@ tunable_policy(`use_samba_home_dirs',`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(dovecot, dovecot_t)
 	kerberos_manage_host_rcache(dovecot_t)
+	kerberos_read_keytab(dovecot_t)
 	kerberos_tmp_filetrans_host_rcache(dovecot_t, file, "imap_0")
+	kerberos_use(dovecot_t)
 ')
 
 optional_policy(`

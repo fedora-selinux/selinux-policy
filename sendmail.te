@@ -1,4 +1,4 @@
-policy_module(sendmail, 1.12.0)
+policy_module(sendmail, 1.12.1)
 
 ########################################
 #
@@ -12,6 +12,9 @@ roleattribute system_r sendmail_unconfined_roles;
 
 type sendmail_initrc_exec_t;
 init_script_file(sendmail_initrc_exec_t)
+
+type sendmail_keytab_t;
+files_type(sendmail_keytab_t)
 
 type sendmail_log_t;
 logging_log_file(sendmail_log_t)
@@ -42,6 +45,8 @@ allow sendmail_t self:process { setsched setpgid setrlimit signal signull };
 allow sendmail_t self:fifo_file rw_fifo_file_perms;
 allow sendmail_t self:unix_stream_socket { accept listen };
 allow sendmail_t self:tcp_socket { accept listen };
+
+allow sendmail_t sendmail_keytab_t:file read_file_perms;
 
 allow sendmail_t sendmail_log_t:dir setattr_dir_perms;
 append_files_pattern(sendmail_t, sendmail_log_t, sendmail_log_t)
@@ -154,7 +159,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(sendmail, sendmail_t)
+	kerberos_read_keytab(sendmail_t)
+	kerberos_use(sendmail_t)
 ')
 
 optional_policy(`

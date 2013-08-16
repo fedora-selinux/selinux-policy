@@ -1,4 +1,4 @@
-policy_module(ftp, 1.15.0)
+policy_module(ftp, 1.15.1)
 
 ########################################
 #
@@ -124,6 +124,9 @@ files_config_file(ftpd_etc_t)
 type ftpd_initrc_exec_t;
 init_script_file(ftpd_initrc_exec_t)
 
+type ftpd_keytab_t;
+files_type(ftpd_keytab_t)
+
 type ftpd_lock_t;
 files_lock_file(ftpd_lock_t)
 
@@ -175,6 +178,8 @@ allow ftpd_t self:shm create_shm_perms;
 allow ftpd_t self:key manage_key_perms;
 
 allow ftpd_t ftpd_etc_t:file read_file_perms;
+
+allow ftpd_t ftpd_keytab_t:file read_file_perms;
 
 allow ftpd_t ftpd_lock_t:file manage_file_perms;
 files_lock_filetrans(ftpd_t, ftpd_lock_t, file)
@@ -359,8 +364,9 @@ optional_policy(`
 optional_policy(`
 	selinux_validate_context(ftpd_t)
 
-	kerberos_keytab_template(ftpd, ftpd_t)
+	kerberos_read_keytab(ftpd_t)
 	kerberos_tmp_filetrans_host_rcache(ftpd_t, file, "host_0")
+	kerberos_use(ftpd_t)
 ')
 
 optional_policy(`

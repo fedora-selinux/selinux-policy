@@ -1,4 +1,4 @@
-policy_module(postfix, 1.15.0)
+policy_module(postfix, 1.15.1)
 
 ########################################
 #
@@ -35,6 +35,9 @@ files_config_file(postfix_etc_t)
 
 type postfix_exec_t;
 application_executable_file(postfix_exec_t)
+
+type postfix_keytab_t;
+files_type(postfix_keytab_t)
 
 postfix_server_domain_template(local)
 mta_mailserver_delivery(postfix_local_t)
@@ -209,6 +212,8 @@ allow postfix_master_t postfix_etc_t:file rw_file_perms;
 allow postfix_master_t postfix_data_t:dir manage_dir_perms;
 allow postfix_master_t postfix_data_t:file manage_file_perms;
 
+allow postfix_master_t postfix_keytab_t:file read_file_perms;
+
 allow postfix_master_t postfix_map_exec_t:file { mmap_file_perms ioctl lock };
 
 allow postfix_master_t { postfix_postdrop_exec_t postfix_postqueue_exec_t }:file getattr_file_perms;
@@ -314,7 +319,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(postfix, postfix_t)
+	kerberos_read_keytab(postfix_master_t)
+	kerberos_use(postfix_master_t)
 ')
 
 optional_policy(`

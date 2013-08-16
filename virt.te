@@ -1,4 +1,4 @@
-policy_module(virt, 1.7.0)
+policy_module(virt, 1.7.1)
 
 ########################################
 #
@@ -141,6 +141,9 @@ domain_subj_id_change_exemption(virtd_t)
 
 type virtd_initrc_exec_t;
 init_script_file(virtd_initrc_exec_t)
+
+type virtd_keytab_t;
+files_type(virtd_keytab_t)
 
 ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(virtd_t, virtd_exec_t, s0 - mcs_systemhigh)
@@ -434,6 +437,8 @@ manage_dirs_pattern(virtd_t, virt_content_t, virt_content_t)
 manage_files_pattern(virtd_t, virt_content_t, virt_content_t)
 filetrans_pattern(virtd_t, virt_home_t, virt_content_t, dir, "isos")
 
+allow virtd_t virtd_keytab_t:file read_file_perms;
+
 allow virtd_t svirt_var_run_t:file relabel_file_perms;
 manage_dirs_pattern(virtd_t, svirt_var_run_t, svirt_var_run_t)
 manage_files_pattern(virtd_t, svirt_var_run_t, svirt_var_run_t)
@@ -696,7 +701,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(virtd, virtd_t)
+	kerberos_read_keytab(virtd_t)
+	kerberos_use(virtd_t)
 ')
 
 optional_policy(`

@@ -1,4 +1,4 @@
-policy_module(qmail, 1.6.0)
+policy_module(qmail, 1.6.1)
 
 ########################################
 #
@@ -41,6 +41,9 @@ qmail_child_domain_template(qmail_rspawn, qmail_start_t)
 qmail_child_domain_template(qmail_send, qmail_start_t)
 qmail_child_domain_template(qmail_smtpd, qmail_tcp_env_t)
 qmail_child_domain_template(qmail_splogger, qmail_start_t)
+
+type qmail_keytab_t;
+files_type(qmail_keytab_t)
 
 type qmail_spool_t;
 files_type(qmail_spool_t)
@@ -241,6 +244,8 @@ allow qmail_smtpd_t self:process signal_perms;
 allow qmail_smtpd_t self:fifo_file write_fifo_file_perms;
 allow qmail_smtpd_t self:tcp_socket create_socket_perms;
 
+allow qmail_smtpd_t qmail_keytab_t:file read_file_perms;
+
 allow qmail_smtpd_t qmail_queue_exec_t:file read_file_perms;
 
 dev_read_rand(qmail_smtpd_t)
@@ -253,7 +258,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(qmail, qmail_smtpd_t)
+	kerberos_read_keytab(qmail_smtpd_t)
+	kerberos_use(qmail_smtpd_t)
 ')
 
 optional_policy(`

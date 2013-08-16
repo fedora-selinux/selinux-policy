@@ -1,4 +1,4 @@
-policy_module(cron, 2.6.0)
+policy_module(cron, 2.6.1)
 
 gen_require(`
 	class passwd rootok;
@@ -701,22 +701,22 @@ optional_policy(`
 # Unconfined local policy
 #
 
+type unconfined_cronjob_t;
+domain_type(unconfined_cronjob_t)
+domain_cron_exemption_target(unconfined_cronjob_t)
+
+dontaudit crond_t unconfined_cronjob_t:process { noatsecure siginh rlimitinh };
+
+tunable_policy(`cron_userdomain_transition',`
+	dontaudit crond_t unconfined_cronjob_t:process transition;
+	dontaudit crond_t unconfined_cronjob_t:fd use;
+	dontaudit crond_t unconfined_cronjob_t:key manage_key_perms;
+',`
+	allow crond_t unconfined_cronjob_t:process transition;
+	allow crond_t unconfined_cronjob_t:fd use;
+	allow crond_t unconfined_cronjob_t:key manage_key_perms;
+')
+
 optional_policy(`
-	type unconfined_cronjob_t;
-	domain_type(unconfined_cronjob_t)
-	domain_cron_exemption_target(unconfined_cronjob_t)
-
-	dontaudit crond_t unconfined_cronjob_t:process { noatsecure siginh rlimitinh };
-
 	unconfined_domain(unconfined_cronjob_t)
-
-	tunable_policy(`cron_userdomain_transition',`
-		dontaudit crond_t unconfined_cronjob_t:process transition;
-		dontaudit crond_t unconfined_cronjob_t:fd use;
-		dontaudit crond_t unconfined_cronjob_t:key manage_key_perms;
-	',`
-		allow crond_t unconfined_cronjob_t:process transition;
-		allow crond_t unconfined_cronjob_t:fd use;
-		allow crond_t unconfined_cronjob_t:key manage_key_perms;
-	')
 ')

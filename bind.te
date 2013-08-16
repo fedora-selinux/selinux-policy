@@ -1,4 +1,4 @@
-policy_module(bind, 1.13.0)
+policy_module(bind, 1.13.1)
 
 ########################################
 #
@@ -44,6 +44,9 @@ files_type(named_cache_t)
 type named_initrc_exec_t;
 init_script_file(named_initrc_exec_t)
 
+type named_keytab_t;
+files_type(named_keytab_t)
+
 type named_log_t;
 logging_log_file(named_log_t)
 
@@ -84,7 +87,7 @@ read_lnk_files_pattern(named_t, named_conf_t, named_conf_t)
 manage_files_pattern(named_t, named_cache_t, named_cache_t)
 manage_lnk_files_pattern(named_t, named_cache_t, named_cache_t)
 
-can_exec(named_t, named_exec_t)
+allow named_t named_keytab_t:file read_file_perms;
 
 append_files_pattern(named_t, named_log_t, named_log_t)
 create_files_pattern(named_t, named_log_t, named_log_t)
@@ -99,6 +102,8 @@ manage_dirs_pattern(named_t, named_var_run_t, named_var_run_t)
 manage_files_pattern(named_t, named_var_run_t, named_var_run_t)
 manage_sock_files_pattern(named_t, named_var_run_t, named_var_run_t)
 files_pid_filetrans(named_t, named_var_run_t, { dir file sock_file })
+
+can_exec(named_t, named_exec_t)
 
 allow named_t named_zone_t:dir list_dir_perms;
 read_files_pattern(named_t, named_zone_t, named_zone_t)
@@ -182,7 +187,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(named, named_t)
+	kerberos_read_keytab(named_t)
+	kerberos_use(named_t)
 ')
 
 optional_policy(`

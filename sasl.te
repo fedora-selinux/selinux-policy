@@ -1,4 +1,4 @@
-policy_module(sasl, 1.15.0)
+policy_module(sasl, 1.15.1)
 
 ########################################
 #
@@ -20,6 +20,9 @@ init_daemon_domain(saslauthd_t, saslauthd_exec_t)
 type saslauthd_initrc_exec_t;
 init_script_file(saslauthd_initrc_exec_t)
 
+type saslauthd_keytab_t;
+files_type(saslauthd_keytab_t)
+
 type saslauthd_var_run_t;
 files_pid_file(saslauthd_var_run_t)
 
@@ -33,6 +36,8 @@ dontaudit saslauthd_t self:capability sys_tty_config;
 allow saslauthd_t self:process { setsched signal_perms };
 allow saslauthd_t self:fifo_file rw_fifo_file_perms;
 allow saslauthd_t self:unix_stream_socket { accept listen };
+
+allow saslauthd_t saslauthd_keytab_t:file read_file_perms;
 
 manage_dirs_pattern(saslauthd_t, saslauthd_var_run_t, saslauthd_var_run_t)
 manage_files_pattern(saslauthd_t, saslauthd_var_run_t, saslauthd_var_run_t)
@@ -92,9 +97,10 @@ tunable_policy(`allow_saslauthd_read_shadow',`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(saslauthd, saslauthd_t)
+	kerberos_read_keytab(saslauthd_t)
 	kerberos_manage_host_rcache(saslauthd_t)
 	kerberos_tmp_filetrans_host_rcache(saslauthd_t, file, "host_0")
+	kerberos_use(saslauthd_t)
 ')
 
 optional_policy(`

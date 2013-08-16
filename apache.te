@@ -1,4 +1,4 @@
-policy_module(apache, 2.7.0)
+policy_module(apache, 2.7.1)
 
 ########################################
 #
@@ -283,6 +283,9 @@ role httpd_helper_roles types httpd_helper_t;
 type httpd_initrc_exec_t;
 init_script_file(httpd_initrc_exec_t)
 
+type httpd_keytab_t;
+files_type(httpd_keytab_t)
+
 type httpd_lock_t;
 files_lock_file(httpd_lock_t)
 
@@ -390,6 +393,8 @@ files_var_filetrans(httpd_t, httpd_cache_t, dir)
 allow httpd_t httpd_config_t:dir list_dir_perms;
 read_files_pattern(httpd_t, httpd_config_t, httpd_config_t)
 read_lnk_files_pattern(httpd_t, httpd_config_t, httpd_config_t)
+
+allow httpd_t httpd_keytab_t:file read_file_perms;
 
 allow httpd_t httpd_lock_t:file manage_file_perms;
 files_lock_filetrans(httpd_t, httpd_lock_t, file)
@@ -781,10 +786,11 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(httpd, httpd_t)
 	kerberos_manage_host_rcache(httpd_t)
+	kerberos_read_keytab(httpd_t)
 	kerberos_tmp_filetrans_host_rcache(httpd_t, file, "HTTP_23")
 	kerberos_tmp_filetrans_host_rcache(httpd_t, file, "HTTP_48")
+	kerberos_use(httpd_t)
 ')
 
 optional_policy(`
