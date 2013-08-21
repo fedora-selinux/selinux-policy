@@ -11,6 +11,7 @@ policy_module(nova, 1.0.0)
 #
 
 attribute nova_domain;
+attribute nova_sudo_domain;
 
 nova_domain_template(ajax)
 nova_domain_template(api)
@@ -23,6 +24,12 @@ nova_domain_template(objectstore)
 nova_domain_template(scheduler)
 nova_domain_template(vncproxy)
 nova_domain_template(volume)
+
+typeattribute nova_api_t nova_sudo_domain;
+typeattribute nova_cert_t nova_sudo_domain;
+typeattribute nova_console_t nova_sudo_domain;
+typeattribute nova_network_t nova_sudo_domain;
+typeattribute nova_volume_t nova_sudo_domain;
 
 type nova_log_t;
 logging_log_file(nova_log_t)
@@ -54,6 +61,8 @@ manage_files_pattern(nova_domain, nova_var_run_t, nova_var_run_t)
 
 corenet_tcp_connect_amqp_port(nova_domain)
 corenet_tcp_connect_mysqld_port(nova_domain)
+
+kernel_read_network_state(nova_domain)
 
 corecmd_exec_bin(nova_domain)
 corecmd_exec_shell(nova_domain)
@@ -106,15 +115,6 @@ auth_read_passwd(nova_api_t)
 logging_send_syslog_msg(nova_api_t)
 
 miscfiles_read_certs(nova_api_t)
-
-ifdef(`hide_broken_symptoms',`
-	optional_policy(`
-		sudo_exec(nova_api_t)
-		allow nova_api_t self:capability { setuid sys_resource setgid };
-		allow nova_api_t self:process { setsched setrlimit };
-		logging_send_audit_msgs(nova_api_t)
-	')
-')
 
 optional_policy(`
 	iptables_domtrans(nova_api_t)
@@ -227,15 +227,6 @@ libs_exec_ldconfig(nova_network_t)
 
 logging_send_syslog_msg(nova_network_t)
 
-ifdef(`hide_broken_symptoms',`
-    optional_policy(`
-        sudo_exec(nova_network_t)
-        allow nova_network_t self:capability { setuid sys_resource setgid };
-        allow nova_network_t self:process { setsched setrlimit };
-        logging_send_audit_msgs(nova_network_t)
-    ')
-')
-
 optional_policy(`
 	brctl_domtrans(nova_network_t)
 ')
@@ -309,20 +300,21 @@ optional_policy(`
 	lvm_domtrans(nova_volume_t)
 ')
 
-ifdef(`hide_broken_symptoms',`
-	require {
-		type sudo_exec_t;
-	}
-
-	allow nova_volume_t sudo_exec_t:file { read execute open execute_no_trans };
-
-	allow nova_volume_t self:capability { setuid sys_resource setgid audit_write };
-	allow nova_volume_t self:process { setsched setrlimit };
-
-	logging_send_audit_msgs(nova_volume_t)
-
-')
-
 #optional_policy(`
 #    unconfined_domain(nova_volume_t)
 #')
+
+#######################################
+#
+# nova sudo domain local policy
+#
+
+ifdef(`hide_broken_symptoms',`
+	optional_policy(`
+		sudo_exec(nova_sudo_domain)
+        allow nova_sudo_domain self:capability { setuid sys_resource setgid audit_write };
+		allow nova_sudo_domain self:process { setsched setrlimit };
+		logging_send_audit_msgs(nova_sudo_domain)
+	')
+')
+
