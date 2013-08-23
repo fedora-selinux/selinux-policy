@@ -15,6 +15,14 @@ policy_module(abrt, 1.4.0)
 gen_tunable(abrt_anon_write, false)
 
 ## <desc>
+## <p>
+## Allow abrt-handle-upload to modify public files
+## used for public file transfer services in /var/spool/abrt-upload/.
+## </p>
+## </desc>
+gen_tunable(abrt_upload_watch_anon_write, true)
+
+## <desc>
 ##	<p>
 ##	Determine whether ABRT can run in
 ##	the abrt_handle_event_t domain to
@@ -86,6 +94,10 @@ files_type(abrt_retrace_spool_t)
 type abrt_watch_log_t, abrt_domain;
 type abrt_watch_log_exec_t;
 init_daemon_domain(abrt_watch_log_t, abrt_watch_log_exec_t)
+
+# Support for abrt-upload-watch
+abrt_basic_types_template(abrt_upload_watch)
+init_daemon_domain(abrt_upload_watch_t, abrt_upload_watch_exec_t)
 
 ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(abrt_t, abrt_exec_t, s0 - mcs_systemhigh)
@@ -400,6 +412,17 @@ domtrans_pattern(abrt_watch_log_t, abrt_dump_oops_exec_t, abrt_dump_oops_t)
 corecmd_exec_bin(abrt_watch_log_t)
 
 logging_read_all_logs(abrt_watch_log_t)
+
+#######################################
+#
+# abrt-upload-watch local policy
+#
+
+corecmd_exec_bin(abrt_upload_watch_t)
+
+tunable_policy(`abrt_upload_watch_anon_write',`
+	miscfiles_manage_public_files(abrt_upload_watch_t)
+')
 
 #######################################
 #
