@@ -34,6 +34,9 @@ files_tmp_file(condor_startd_tmp_t)
 type condor_startd_tmpfs_t;
 files_tmpfs_file(condor_startd_tmpfs_t)
 
+type condor_etc_rw_t;
+files_config_file(condor_etc_rw_t)
+
 type condor_log_t;
 logging_log_file(condor_log_t)
 
@@ -70,10 +73,10 @@ allow condor_domain self:udp_socket create_socket_perms;
 allow condor_domain self:unix_stream_socket create_stream_socket_perms;
 allow condor_domain self:netlink_route_socket r_netlink_socket_perms;
 
+rw_files_pattern(condor_domain, condor_etc_rw_t, condor_etc_rw_t)
+
 manage_dirs_pattern(condor_domain, condor_log_t, condor_log_t)
-append_files_pattern(condor_domain, condor_log_t, condor_log_t)
-create_files_pattern(condor_domain, condor_log_t, condor_log_t)
-getattr_files_pattern(condor_domain, condor_log_t, condor_log_t)
+manage_files_pattern(condor_domain, condor_log_t, condor_log_t)
 logging_log_filetrans(condor_domain, condor_log_t, { dir file })
 
 manage_dirs_pattern(condor_domain, condor_var_lib_t, condor_var_lib_t)
@@ -95,8 +98,6 @@ allow condor_domain condor_master_t:tcp_socket getattr;
 kernel_read_kernel_sysctls(condor_domain)
 kernel_read_network_state(condor_domain)
 
-
-
 corecmd_exec_bin(condor_domain)
 corecmd_exec_shell(condor_domain)
 
@@ -114,6 +115,8 @@ dev_read_sysfs(condor_domain)
 dev_read_urand(condor_domain)
 
 auth_read_passwd(condor_domain)
+
+sysnet_dns_name_resolve(condor_domain)
 
 tunable_policy(`condor_tcp_network_connect',`
 	corenet_sendrecv_all_client_packets(condor_domain)
@@ -140,6 +143,8 @@ files_tmp_filetrans(condor_master_t, condor_master_tmp_t, { file dir })
 
 can_exec(condor_master_t, condor_master_exec_t)
 
+kernel_read_system_state(condor_master_t)
+
 corenet_udp_sendrecv_generic_if(condor_master_t)
 corenet_udp_sendrecv_generic_node(condor_master_t)
 corenet_tcp_bind_generic_node(condor_master_t)
@@ -157,7 +162,9 @@ corenet_tcp_sendrecv_amqp_port(condor_master_t)
 
 domain_read_all_domains_state(condor_master_t)
 
-auth_read_passwd(condor_master_t)
+auth_use_nsswitch(condor_master_t)
+
+logging_send_syslog_msg(condor_master_t)
 
 optional_policy(`
 	mta_send_mail(condor_master_t)
@@ -196,7 +203,8 @@ corenet_tcp_connect_all_ephemeral_ports(condor_negotiator_t)
 
 allow condor_procd_t self:capability { fowner chown kill dac_override sys_ptrace };
 
-allow condor_procd_t condor_startd_t:process sigkill;
+allow condor_procd_t condor_domain:process sigkill;
+
 
 domain_read_all_domains_state(condor_procd_t)
 
