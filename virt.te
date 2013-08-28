@@ -201,7 +201,7 @@ application_executable_file(virt_qemu_ga_unconfined_exec_t)
 #
 # Declarations
 #
-attribute svirt_lxc_domain;
+attribute svirt_sandbox_domain;
 
 type virtd_lxc_t;
 type virtd_lxc_exec_t;
@@ -812,7 +812,7 @@ allow virsh_t self:fifo_file rw_fifo_file_perms;
 allow virsh_t self:unix_stream_socket { create_stream_socket_perms connectto };
 allow virsh_t self:tcp_socket create_stream_socket_perms;
 
-ps_process_pattern(virsh_t, svirt_lxc_domain)
+ps_process_pattern(virsh_t, svirt_sandbox_domain)
 
 can_exec(virsh_t, virsh_exec_t)
 virt_domtrans(virsh_t)
@@ -835,7 +835,7 @@ manage_chr_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
 manage_lnk_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
 manage_sock_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
 manage_fifo_files_pattern(virsh_t, svirt_lxc_file_t, svirt_lxc_file_t)
-virt_transition_svirt_lxc(virsh_t, system_r)
+virt_transition_svirt_sandbox(virsh_t, system_r)
 
 manage_dirs_pattern(virsh_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
 manage_files_pattern(virsh_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
@@ -968,7 +968,7 @@ allow virtd_lxc_t self:fifo_file rw_fifo_file_perms;
 allow virtd_lxc_t self:netlink_route_socket rw_netlink_socket_perms;
 allow virtd_lxc_t self:unix_stream_socket { connectto create_stream_socket_perms };
 allow virtd_lxc_t self:packet_socket create_socket_perms;
-ps_process_pattern(virtd_lxc_t, svirt_lxc_domain)
+ps_process_pattern(virtd_lxc_t, svirt_sandbox_domain)
 allow virtd_t virtd_lxc_t:unix_stream_socket create_stream_socket_perms;
 
 files_entrypoint_all_files(virtd_lxc_t)
@@ -1085,112 +1085,116 @@ optional_policy(`
 
 ########################################
 #
-# virt_lxc_domain local policy
+# svirt_sandbox_domain local policy
 #
-allow svirt_lxc_domain self:key manage_key_perms;
-allow svirt_lxc_domain self:process { getattr signal_perms getsched getpgid getcap setsched setcap setpgid setrlimit };
-allow svirt_lxc_domain self:fifo_file manage_file_perms;
-allow svirt_lxc_domain self:sem create_sem_perms;
-allow svirt_lxc_domain self:shm create_shm_perms;
-allow svirt_lxc_domain self:msgq create_msgq_perms;
-allow svirt_lxc_domain self:unix_stream_socket { create_stream_socket_perms connectto };
-allow svirt_lxc_domain self:unix_dgram_socket { sendto create_socket_perms };
+allow svirt_sandbox_domain self:key manage_key_perms;
+allow svirt_sandbox_domain self:process { getattr signal_perms getsched getpgid getcap setsched setcap setpgid setrlimit };
+allow svirt_sandbox_domain self:fifo_file manage_file_perms;
+allow svirt_sandbox_domain self:sem create_sem_perms;
+allow svirt_sandbox_domain self:shm create_shm_perms;
+allow svirt_sandbox_domain self:msgq create_msgq_perms;
+allow svirt_sandbox_domain self:unix_stream_socket { create_stream_socket_perms connectto };
+allow svirt_sandbox_domain self:unix_dgram_socket { sendto create_socket_perms };
 
 
-allow virtd_t svirt_lxc_domain:unix_stream_socket { create_stream_socket_perms connectto };
-allow virtd_t svirt_lxc_domain:process { signal_perms getattr };
-allow virtd_lxc_t svirt_lxc_domain:process { getattr getsched setsched setrlimit transition signal_perms };
+allow virtd_t svirt_sandbox_domain:unix_stream_socket { create_stream_socket_perms connectto };
+allow virtd_t svirt_sandbox_domain:process { signal_perms getattr };
+allow virtd_lxc_t svirt_sandbox_domain:process { getattr getsched setsched setrlimit transition signal_perms };
 
-allow svirt_lxc_domain virtd_lxc_t:process sigchld;
-allow svirt_lxc_domain virtd_lxc_t:fd use;
-allow svirt_lxc_domain virt_lxc_var_run_t:dir list_dir_perms;
-allow svirt_lxc_domain virt_lxc_var_run_t:file read_file_perms;
-allow svirt_lxc_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
+allow svirt_sandbox_domain virtd_lxc_t:process sigchld;
+allow svirt_sandbox_domain virtd_lxc_t:fd use;
+allow svirt_sandbox_domain virt_lxc_var_run_t:dir list_dir_perms;
+allow svirt_sandbox_domain virt_lxc_var_run_t:file read_file_perms;
+allow svirt_sandbox_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
 
-manage_dirs_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
-manage_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
-manage_lnk_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
-manage_sock_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
-manage_fifo_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
-rw_chr_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
-rw_blk_files_pattern(svirt_lxc_domain, svirt_lxc_file_t, svirt_lxc_file_t)
-can_exec(svirt_lxc_domain, svirt_lxc_file_t)
-allow svirt_lxc_net_t svirt_lxc_file_t:dir mounton;
-allow svirt_lxc_net_t svirt_lxc_file_t:filesystem getattr;
+manage_dirs_pattern(svirt_sandbox_domain, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_files_pattern(svirt_sandbox_domain, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_lnk_files_pattern(svirt_sandbox_domain, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_sock_files_pattern(svirt_sandbox_domain, svirt_lxc_file_t, svirt_lxc_file_t)
+manage_fifo_files_pattern(svirt_sandbox_domain, svirt_lxc_file_t, svirt_lxc_file_t)
+rw_chr_files_pattern(svirt_sandbox_domain, svirt_lxc_file_t, svirt_lxc_file_t)
+rw_blk_files_pattern(svirt_sandbox_domain, svirt_lxc_file_t, svirt_lxc_file_t)
+can_exec(svirt_sandbox_domain, svirt_lxc_file_t)
+allow svirt_sandbox_domain svirt_lxc_file_t:dir mounton;
+allow svirt_sandbox_domain svirt_lxc_file_t:filesystem getattr;
 
-kernel_getattr_proc(svirt_lxc_domain)
-kernel_list_all_proc(svirt_lxc_domain)
-kernel_read_all_sysctls(svirt_lxc_domain)
-kernel_rw_net_sysctls(svirt_lxc_domain)
-kernel_dontaudit_search_kernel_sysctl(svirt_lxc_domain)
+kernel_getattr_proc(svirt_sandbox_domain)
+kernel_list_all_proc(svirt_sandbox_domain)
+kernel_read_all_sysctls(svirt_sandbox_domain)
+kernel_rw_net_sysctls(svirt_sandbox_domain)
+kernel_dontaudit_search_kernel_sysctl(svirt_sandbox_domain)
 
-corecmd_exec_all_executables(svirt_lxc_domain)
+corecmd_exec_all_executables(svirt_sandbox_domain)
 
-files_dontaudit_getattr_all_dirs(svirt_lxc_domain)
-files_dontaudit_getattr_all_files(svirt_lxc_domain)
-files_dontaudit_getattr_all_symlinks(svirt_lxc_domain)
-files_dontaudit_getattr_all_pipes(svirt_lxc_domain)
-files_dontaudit_getattr_all_sockets(svirt_lxc_domain)
-files_dontaudit_list_all_mountpoints(svirt_lxc_domain)
-files_dontaudit_write_etc_runtime_files(svirt_lxc_domain)
-files_entrypoint_all_files(svirt_lxc_domain)
-files_list_var(svirt_lxc_domain)
-files_list_var_lib(svirt_lxc_domain)
-files_search_all(svirt_lxc_domain)
-files_read_config_files(svirt_lxc_domain)
-files_read_usr_symlinks(svirt_lxc_domain)
-files_search_locks(svirt_lxc_domain)
+files_dontaudit_getattr_all_dirs(svirt_sandbox_domain)
+files_dontaudit_getattr_all_files(svirt_sandbox_domain)
+files_dontaudit_getattr_all_symlinks(svirt_sandbox_domain)
+files_dontaudit_getattr_all_pipes(svirt_sandbox_domain)
+files_dontaudit_getattr_all_sockets(svirt_sandbox_domain)
+files_dontaudit_list_all_mountpoints(svirt_sandbox_domain)
+files_dontaudit_write_etc_runtime_files(svirt_sandbox_domain)
+files_entrypoint_all_files(svirt_sandbox_domain)
+files_list_var(svirt_sandbox_domain)
+files_list_var_lib(svirt_sandbox_domain)
+files_search_all(svirt_sandbox_domain)
+files_read_config_files(svirt_sandbox_domain)
+files_read_usr_symlinks(svirt_sandbox_domain)
+files_search_locks(svirt_sandbox_domain)
 
-fs_getattr_all_fs(svirt_lxc_domain)
-fs_list_inotifyfs(svirt_lxc_domain)
-fs_rw_inherited_tmpfs_files(svirt_lxc_domain)
-fs_read_fusefs_files(svirt_lxc_net_t)
+fs_getattr_all_fs(svirt_sandbox_domain)
+fs_list_inotifyfs(svirt_sandbox_domain)
+fs_rw_inherited_tmpfs_files(svirt_sandbox_domain)
+fs_read_fusefs_files(svirt_sandbox_domain)
 
-auth_dontaudit_read_passwd(svirt_lxc_domain)
-auth_dontaudit_read_login_records(svirt_lxc_domain)
-auth_dontaudit_write_login_records(svirt_lxc_domain)
-auth_search_pam_console_data(svirt_lxc_domain)
+auth_dontaudit_read_passwd(svirt_sandbox_domain)
+auth_dontaudit_read_login_records(svirt_sandbox_domain)
+auth_dontaudit_write_login_records(svirt_sandbox_domain)
+auth_search_pam_console_data(svirt_sandbox_domain)
 
-clock_read_adjtime(svirt_lxc_domain)
+clock_read_adjtime(svirt_sandbox_domain)
 
-init_read_utmp(svirt_lxc_domain)
-init_dontaudit_write_utmp(svirt_lxc_domain)
+init_read_utmp(svirt_sandbox_domain)
+init_dontaudit_write_utmp(svirt_sandbox_domain)
 
-libs_dontaudit_setattr_lib_files(svirt_lxc_domain)
+libs_dontaudit_setattr_lib_files(svirt_sandbox_domain)
 
-miscfiles_dontaudit_access_check_cert(svirt_lxc_domain)
-miscfiles_dontaudit_setattr_fonts_cache_dirs(svirt_lxc_domain)
-miscfiles_read_fonts(svirt_lxc_domain)
-miscfiles_read_hwdata(svirt_lxc_domain)
+miscfiles_dontaudit_access_check_cert(svirt_sandbox_domain)
+miscfiles_dontaudit_setattr_fonts_cache_dirs(svirt_sandbox_domain)
+miscfiles_read_fonts(svirt_sandbox_domain)
+miscfiles_read_hwdata(svirt_sandbox_domain)
 
-systemd_read_unit_files(svirt_lxc_domain)
+systemd_read_unit_files(svirt_sandbox_domain)
 
-userdom_use_inherited_user_terminals(svirt_lxc_domain)
-userdom_dontaudit_append_inherited_admin_home_file(svirt_lxc_domain)
-userdom_dontaudit_read_inherited_admin_home_files(svirt_lxc_domain)
+userdom_use_inherited_user_terminals(svirt_sandbox_domain)
+userdom_dontaudit_append_inherited_admin_home_file(svirt_sandbox_domain)
+userdom_dontaudit_read_inherited_admin_home_files(svirt_sandbox_domain)
 
 optional_policy(`
-	apache_exec_modules(svirt_lxc_domain)
-	apache_read_sys_content(svirt_lxc_domain)
+	apache_exec_modules(svirt_sandbox_domain)
+	apache_read_sys_content(svirt_sandbox_domain)
 ')
 
 optional_policy(`
-	mta_dontaudit_read_spool_symlinks(svirt_lxc_domain)
+	mta_dontaudit_read_spool_symlinks(svirt_sandbox_domain)
 ')
 
 optional_policy(`
-	ssh_use_ptys(svirt_lxc_net_t)
+	ssh_use_ptys(svirt_sandbox_domain)
 ')
 
 optional_policy(`
-	udev_read_pid_files(svirt_lxc_domain)
+	udev_read_pid_files(svirt_sandbox_domain)
 ')
 
 optional_policy(`
-	userhelper_dontaudit_write_config(svirt_lxc_domain)
+	userhelper_dontaudit_write_config(svirt_sandbox_domain)
 ')
 
-virt_lxc_domain_template(svirt_lxc_net)
+########################################
+#
+# svirt_lxc_net_t local policy
+#
+virt_sandbox_domain_template(svirt_lxc_net)
 
 allow svirt_lxc_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid net_raw net_admin net_bind_service sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
 dontaudit svirt_lxc_net_t self:capability2 block_suspend;
@@ -1237,6 +1241,59 @@ rpm_read_db(svirt_lxc_net_t)
 logging_send_audit_msgs(svirt_lxc_net_t)
 
 userdom_use_user_ptys(svirt_lxc_net_t)
+
+
+########################################
+#
+# svirt_lxc_net_t local policy
+#
+virt_sandbox_domain_template(svirt_qemu_net)
+
+allow svirt_qemu_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid net_raw net_admin net_bind_service sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
+dontaudit svirt_qemu_net_t self:capability2 block_suspend;
+allow svirt_qemu_net_t self:process { execstack execmem };
+allow svirt_qemu_net_t self:netlink_socket create_socket_perms;
+allow svirt_qemu_net_t self:udp_socket create_socket_perms;
+allow svirt_qemu_net_t self:tcp_socket create_stream_socket_perms;
+allow svirt_qemu_net_t self:netlink_route_socket create_netlink_socket_perms;
+allow svirt_qemu_net_t self:packet_socket create_socket_perms;
+allow svirt_qemu_net_t self:socket create_socket_perms;
+allow svirt_qemu_net_t self:rawip_socket create_socket_perms;
+allow svirt_qemu_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
+allow svirt_qemu_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+kernel_read_network_state(svirt_qemu_net_t)
+kernel_read_irq_sysctls(svirt_qemu_net_t)
+
+dev_read_sysfs(svirt_qemu_net_t)
+dev_getattr_mtrr_dev(svirt_qemu_net_t)
+dev_read_rand(svirt_qemu_net_t)
+dev_read_urand(svirt_qemu_net_t)
+
+corenet_tcp_bind_generic_node(svirt_qemu_net_t)
+corenet_udp_bind_generic_node(svirt_qemu_net_t)
+corenet_tcp_sendrecv_all_ports(svirt_qemu_net_t)
+corenet_udp_sendrecv_all_ports(svirt_qemu_net_t)
+corenet_udp_bind_all_ports(svirt_qemu_net_t)
+corenet_tcp_bind_all_ports(svirt_qemu_net_t)
+corenet_tcp_connect_all_ports(svirt_qemu_net_t)
+
+files_read_kernel_modules(svirt_qemu_net_t)
+
+fs_noxattr_type(svirt_lxc_file_t)
+fs_mount_cgroup(svirt_qemu_net_t)
+fs_manage_cgroup_dirs(svirt_qemu_net_t)
+fs_manage_cgroup_files(svirt_qemu_net_t)
+
+term_pty(svirt_lxc_file_t)
+
+auth_use_nsswitch(svirt_qemu_net_t)
+
+rpm_read_db(svirt_qemu_net_t)
+
+logging_send_audit_msgs(svirt_qemu_net_t)
+
+userdom_use_user_ptys(svirt_qemu_net_t)
 
 ########################################
 #
