@@ -477,3 +477,26 @@ interface(`ipsec_run_setkey',`
 	ipsec_domtrans_setkey($1)
 	role $2 types setkey_t;
 ')
+
+#######################################
+## <summary>
+##  Execute strongswan in the ipsec_mgmt domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`ipsec_mgmt_systemctl',`
+    gen_require(`
+        type ipsec_mgmt_unit_file_t;
+        type ipsec_mgmt_t;
+    ')
+
+    systemd_exec_systemctl($1)
+    allow $1 ipsec_mgmt_unit_file_t:file read_file_perms;
+    allow $1 ipsec_mgmt_unit_file_t:service manage_service_perms;
+
+    ps_process_pattern($1, ipsec_mgmt_t)
+')

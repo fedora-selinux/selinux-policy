@@ -1,4 +1,4 @@
-policy_module(ipsec, 1.13.0)
+policy_module(ipsec, 1.13.3)
 
 ########################################
 #
@@ -47,6 +47,9 @@ type ipsec_mgmt_exec_t;
 init_system_domain(ipsec_mgmt_t, ipsec_mgmt_exec_t)
 corecmd_shell_entry_type(ipsec_mgmt_t)
 role system_r types ipsec_mgmt_t;
+
+type ipsec_mgmt_unit_file_t;
+systemd_unit_file(ipsec_mgmt_unit_file_t)
 
 type ipsec_mgmt_lock_t;
 files_lock_file(ipsec_mgmt_lock_t)
@@ -185,6 +188,10 @@ userdom_dontaudit_use_unpriv_user_fds(ipsec_t)
 userdom_dontaudit_search_user_home_dirs(ipsec_t)
 
 optional_policy(`
+    iptables_domtrans(ipsec_t)
+')
+
+optional_policy(`
 	seutil_sigchld_newrole(ipsec_t)
 ')
 
@@ -216,15 +223,15 @@ files_tmp_filetrans(ipsec_mgmt_t, ipsec_tmp_t, { dir file })
 manage_files_pattern(ipsec_mgmt_t, ipsec_log_t, ipsec_log_t)
 logging_log_filetrans(ipsec_mgmt_t, ipsec_log_t, file)
 
-allow ipsec_mgmt_t ipsec_mgmt_var_run_t:file manage_file_perms;
-files_pid_filetrans(ipsec_mgmt_t, ipsec_mgmt_var_run_t, file)
+manage_files_pattern(ipsec_mgmt_t, ipsec_mgmt_var_run_t, ipsec_mgmt_var_run_t)
+files_pid_filetrans(ipsec_mgmt_t, ipsec_mgmt_var_run_t, { file })
 
 manage_files_pattern(ipsec_mgmt_t, ipsec_var_run_t, ipsec_var_run_t)
 manage_dirs_pattern(ipsec_mgmt_t, ipsec_var_run_t, ipsec_var_run_t)
 manage_lnk_files_pattern(ipsec_mgmt_t, ipsec_var_run_t, ipsec_var_run_t)
 
 allow ipsec_mgmt_t ipsec_var_run_t:sock_file manage_sock_file_perms;
-files_pid_filetrans(ipsec_mgmt_t, ipsec_var_run_t, sock_file)
+files_pid_filetrans(ipsec_mgmt_t, ipsec_var_run_t, { dir sock_file })
 
 # _realsetup needs to be able to cat /var/run/pluto.pid,
 # run ps on that pid, and delete the file
@@ -357,7 +364,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	nscd_socket_use(ipsec_mgmt_t)
+	nscd_use(ipsec_mgmt_t)
 ')
 
 ########################################
