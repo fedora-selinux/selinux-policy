@@ -13,6 +13,9 @@ type sosreport_exec_t;
 application_domain(sosreport_t, sosreport_exec_t)
 role sosreport_roles types sosreport_t;
 
+type sosreport_var_run_t;
+files_pid_file(sosreport_var_run_t)
+
 type sosreport_tmp_t;
 files_tmp_file(sosreport_tmp_t)
 
@@ -29,6 +32,7 @@ optional_policy(`
 #
 
 allow sosreport_t self:capability { kill net_admin net_raw setuid sys_admin sys_nice dac_override };
+dontaudit sosreport_t self:capability sys_ptrace;
 allow sosreport_t self:process { setsched signull };
 allow sosreport_t self:fifo_file rw_fifo_file_perms;
 allow sosreport_t self:tcp_socket { accept listen };
@@ -42,6 +46,12 @@ files_tmp_filetrans(sosreport_t, sosreport_tmp_t, { file dir })
 
 manage_files_pattern(sosreport_t, sosreport_tmpfs_t, sosreport_tmpfs_t)
 fs_tmpfs_filetrans(sosreport_t, sosreport_tmpfs_t, file)
+
+manage_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_dirs_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_sock_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_lnk_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+files_pid_filetrans(sosreport_t, sosreport_var_run_t, { file dir sock_file })
 
 kernel_read_network_state(sosreport_t)
 kernel_read_all_sysctls(sosreport_t)
@@ -58,6 +68,7 @@ dev_read_rand(sosreport_t)
 dev_read_urand(sosreport_t)
 dev_read_raw_memory(sosreport_t)
 dev_read_sysfs(sosreport_t)
+dev_rw_generic_usb_dev(sosreport_t)
 
 domain_getattr_all_domains(sosreport_t)
 domain_read_all_domains_state(sosreport_t)
@@ -65,6 +76,8 @@ domain_getattr_all_sockets(sosreport_t)
 domain_getattr_all_pipes(sosreport_t)
 
 files_getattr_all_sockets(sosreport_t)
+files_getattr_all_files(sosreport_t)
+files_getattr_all_pipes(sosreport_t)
 files_exec_etc_files(sosreport_t)
 files_list_all(sosreport_t)
 files_read_config_files(sosreport_t)
@@ -84,6 +97,8 @@ fs_list_inotifyfs(sosreport_t)
 storage_dontaudit_read_fixed_disk(sosreport_t)
 storage_dontaudit_read_removable_device(sosreport_t)
 
+term_use_generic_ptys(sosreport_t)
+
 auth_use_nsswitch(sosreport_t)
 
 init_domtrans_script(sosreport_t)
@@ -100,6 +115,7 @@ modutils_read_module_deps(sosreport_t)
 optional_policy(`
 	abrt_manage_pid_files(sosreport_t)
 	abrt_manage_cache(sosreport_t)
+	abrt_stream_connect(sosreport_t)
 ')
 
 optional_policy(`
