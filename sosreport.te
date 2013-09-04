@@ -19,6 +19,9 @@ files_tmp_file(sosreport_tmp_t)
 type sosreport_tmpfs_t;
 files_tmpfs_file(sosreport_tmpfs_t)
 
+type sosreport_var_run_t;
+files_pid_file(sosreport_var_run_t)
+
 optional_policy(`
 	pulseaudio_tmpfs_content(sosreport_tmpfs_t)
 ')
@@ -29,6 +32,7 @@ optional_policy(`
 #
 
 allow sosreport_t self:capability { kill net_admin net_raw setuid sys_admin sys_nice dac_override };
+dontaudit sosreport_t self:capability { sys_ptrace };
 allow sosreport_t self:process { setsched signull };
 allow sosreport_t self:fifo_file rw_fifo_file_perms;
 allow sosreport_t self:tcp_socket { accept listen };
@@ -41,6 +45,12 @@ manage_files_pattern(sosreport_t, sosreport_tmp_t, sosreport_tmp_t)
 manage_lnk_files_pattern(sosreport_t, sosreport_tmp_t, sosreport_tmp_t)
 files_root_filetrans(sosreport_t, sosreport_tmp_t, file, ".ismount-test-file")
 files_tmp_filetrans(sosreport_t, sosreport_tmp_t, { file dir })
+
+manage_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_dirs_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_sock_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_lnk_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+files_pid_filetrans(sosreport_t, sosreport_var_run_t, { file dir sock_file })
 
 manage_files_pattern(sosreport_t, sosreport_tmpfs_t, sosreport_tmpfs_t)
 fs_tmpfs_filetrans(sosreport_t, sosreport_tmpfs_t, file)
@@ -60,6 +70,7 @@ dev_read_rand(sosreport_t)
 dev_read_urand(sosreport_t)
 dev_read_raw_memory(sosreport_t)
 dev_read_sysfs(sosreport_t)
+dev_rw_generic_usb_dev(sosreport_t)
 dev_getattr_all_chr_files(sosreport_t)
 dev_getattr_all_blk_files(sosreport_t)
 
@@ -69,6 +80,8 @@ domain_getattr_all_sockets(sosreport_t)
 domain_getattr_all_pipes(sosreport_t)
 
 files_getattr_all_sockets(sosreport_t)
+files_getattr_all_files(sosreport_t)
+files_getattr_all_pipes(sosreport_t)
 files_exec_etc_files(sosreport_t)
 files_list_all(sosreport_t)
 files_read_config_files(sosreport_t)
@@ -90,6 +103,7 @@ storage_dontaudit_read_removable_device(sosreport_t)
 
 term_getattr_pty_fs(sosreport_t)
 term_getattr_all_ptys(sosreport_t)
+term_use_generic_ptys(sosreport_t)
 
 # some config files do not have configfile attribute
 # sosreport needs to read various files on system
@@ -111,6 +125,7 @@ sysnet_read_config(sosreport_t)
 optional_policy(`
 	abrt_manage_pid_files(sosreport_t)
 	abrt_manage_cache(sosreport_t)
+	abrt_stream_connect(sosreport_t)
 ')
 
 optional_policy(`
