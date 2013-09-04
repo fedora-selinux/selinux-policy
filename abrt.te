@@ -108,6 +108,9 @@ init_daemon_domain(abrt_watch_log_t, abrt_watch_log_exec_t)
 abrt_basic_types_template(abrt_upload_watch)
 init_daemon_domain(abrt_upload_watch_t, abrt_upload_watch_exec_t)
 
+type abrt_upload_watch_tmp_t;
+files_tmp_file(abrt_upload_watch_tmp_t)
+
 ########################################
 #
 # abrt local policy
@@ -495,10 +498,28 @@ logging_send_syslog_msg(abrt_watch_log_t)
 # abrt-upload-watch local policy
 #
 
+allow abrt_upload_watch_t self:capability dac_override;
+
+manage_files_pattern(abrt_upload_watch_t, abrt_upload_watch_tmp_t, abrt_upload_watch_tmp_t)
+manage_dirs_pattern(abrt_upload_watch_t, abrt_upload_watch_tmp_t, abrt_upload_watch_tmp_t)
+files_tmp_filetrans(abrt_upload_watch_t, abrt_upload_watch_tmp_t, {file dir})
+
+read_files_pattern(abrt_upload_watch_t, abrt_etc_t, abrt_etc_t)
+
+manage_dirs_pattern(abrt_upload_watch_tmp_t, abrt_var_cache_t, abrt_var_cache_t)
+
 corecmd_exec_bin(abrt_upload_watch_t)
+
+dev_read_urand(abrt_upload_watch_t)
+
+auth_read_passwd(abrt_upload_watch_t)
 
 tunable_policy(`abrt_upload_watch_anon_write',`
     miscfiles_manage_public_files(abrt_upload_watch_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(abrt_upload_watch_t)
 ')
 
 #######################################
