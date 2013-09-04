@@ -166,14 +166,6 @@ template(`su_role_template',`
 	role $2 types $1_su_t;
 
 	allow $3 $1_su_t:process signal;
-
-	allow $1_su_t self:capability { audit_control audit_write setuid setgid net_bind_service chown dac_override fowner sys_nice sys_resource };
-	dontaudit $1_su_t self:capability sys_tty_config;
-	allow $1_su_t self:process { setexec setsched setrlimit };
-	allow $1_su_t self:fifo_file rw_fifo_file_perms;
-	allow $1_su_t self:netlink_audit_socket { nlmsg_relay create_netlink_socket_perms };
-	allow $1_su_t self:key { search write };
-
 	allow $1_su_t $3:key search;
 
 	# Transition from the user domain to this domain.
@@ -188,120 +180,12 @@ template(`su_role_template',`
 	allow $3 $1_su_t:process sigchld;
 
 	kernel_read_system_state($1_su_t)
-	kernel_read_kernel_sysctls($1_su_t)
-	kernel_search_key($1_su_t)
-	kernel_link_key($1_su_t)
 
-	# for SSP
-	dev_read_urand($1_su_t)
-
-	fs_search_auto_mountpoints($1_su_t)
-
-	# needed for pam_rootok
-	selinux_compute_access_vector($1_su_t)
-
-	auth_domtrans_chk_passwd($1_su_t)
-	auth_dontaudit_read_shadow($1_su_t)
 	auth_use_pam($1_su_t)
-	auth_rw_faillog($1_su_t)
-
-	corecmd_search_bin($1_su_t)
-
-	domain_use_interactive_fds($1_su_t)
-
-	files_read_etc_files($1_su_t)
-	files_read_etc_runtime_files($1_su_t)
-	files_search_var_lib($1_su_t)
-	files_dontaudit_getattr_tmp_dirs($1_su_t)
-
-	init_dontaudit_use_fds($1_su_t)
-	# Write to utmp.
-	init_rw_utmp($1_su_t)
 
 	mls_file_write_all_levels($1_su_t)
 
 	logging_send_syslog_msg($1_su_t)
-
-
-	userdom_use_user_terminals($1_su_t)
-	userdom_search_user_home_dirs($1_su_t)
-	userdom_search_admin_dir($1_su_t)
-
-	ifdef(`distro_redhat',`
-		# RHEL5 and possibly newer releases incl. Fedora
-		auth_domtrans_upd_passwd($1_su_t)
-
-		optional_policy(`
-			locallogin_search_keys($1_su_t)
-		')
-	')
-
-	ifdef(`distro_rhel4',`
-		domain_role_change_exemption($1_su_t)
-		domain_subj_id_change_exemption($1_su_t)
-		domain_obj_id_change_exemption($1_su_t)
-
-		selinux_get_fs_mount($1_su_t)
-		selinux_validate_context($1_su_t)
-		selinux_compute_create_context($1_su_t)
-		selinux_compute_relabel_context($1_su_t)
-		selinux_compute_user_contexts($1_su_t)
-
-		# Relabel ttys and ptys.
-		term_relabel_all_ttys($1_su_t)
-		term_relabel_all_ptys($1_su_t)
-		# Close and re-open ttys and ptys to get the fd into the correct domain.
-		term_use_all_ttys($1_su_t)
-		term_use_all_ptys($1_su_t)
-
-		seutil_read_config($1_su_t)
-		seutil_read_default_contexts($1_su_t)
-
-		if(secure_mode) {
-			# Only allow transitions to unprivileged user domains.
-			userdom_spec_domtrans_unpriv_users($1_su_t)
-		} else {
-			# Allow transitions to all user domains
-			userdom_spec_domtrans_all_users($1_su_t)
-		}
-
-		optional_policy(`
-			unconfined_domtrans($1_su_t)
-			unconfined_signal($1_su_t)
-		')
-	')
-
-	tunable_policy(`polyinstantiation_enabled',`
-		fs_mount_xattr_fs($1_su_t)
-		fs_unmount_xattr_fs($1_su_t)
-	')
-
-	tunable_policy(`use_nfs_home_dirs',`
-		fs_search_nfs($1_su_t)
-	')
-
-	tunable_policy(`use_samba_home_dirs',`
-		fs_search_cifs($1_su_t)
-	')
-
-	optional_policy(`
-		cron_read_pipes($1_su_t)
-	')
-
-	optional_policy(`
-		kerberos_use($1_su_t)
-	')
-
-	optional_policy(`
-		# used when the password has expired
-		usermanage_read_crack_db($1_su_t)
-	')
-
-	# Modify .Xauthority file (via xauth program).
-	optional_policy(`
-		xserver_user_home_dir_filetrans_user_xauth($1_su_t)
-		xserver_domtrans_xauth($1_su_t)
-	')
 ')
 
 #######################################
