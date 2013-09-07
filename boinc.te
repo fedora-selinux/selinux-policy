@@ -5,6 +5,13 @@ policy_module(boinc, 1.0.0)
 # Declarations
 #
 
+## <desc>
+##	<p>
+##	Allow boinc_domain execmem/execstack.
+##	</p>
+##</desc>
+gen_tunable(boinc_execmem, true)
+
 attribute boinc_domain;
 
 type boinc_t, boinc_domain;
@@ -47,7 +54,6 @@ files_type(boinc_project_var_lib_t)
 allow boinc_domain self:fifo_file rw_fifo_file_perms;
 allow boinc_domain self:process signal;
 allow boinc_domain self:sem create_sem_perms;
-allow boinc_domain self:process execmem;
 
 manage_dirs_pattern(boinc_domain, boinc_var_lib_t, boinc_var_lib_t)
 manage_files_pattern(boinc_domain, boinc_var_lib_t, boinc_var_lib_t)
@@ -68,6 +74,10 @@ files_read_etc_runtime_files(boinc_domain)
 fs_getattr_all_fs(boinc_domain)
 
 miscfiles_read_fonts(boinc_domain)
+
+tunable_policy(`boinc_execmem',`
+    allow boinc_domain self:process { execstack execmem };
+')
 
 optional_policy(`
 	sysnet_dns_name_resolve(boinc_domain)
