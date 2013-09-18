@@ -1,4 +1,4 @@
-policy_module(cvs, 1.10.1)
+policy_module(cvs, 1.10.2)
 
 ########################################
 #
@@ -16,6 +16,7 @@ gen_tunable(allow_cvs_read_shadow, false)
 type cvs_t;
 type cvs_exec_t;
 inetd_tcp_service_domain(cvs_t, cvs_exec_t)
+init_daemon_domain(cvs_t, cvs_exec_t)
 application_executable_file(cvs_exec_t)
 
 type cvs_data_t; # customizable
@@ -42,6 +43,7 @@ allow cvs_t self:capability { setuid setgid };
 allow cvs_t self:process signal_perms;
 allow cvs_t self:fifo_file rw_fifo_file_perms;
 allow cvs_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
+allow cvs_t self:tcp_socket { accept listen };
 
 manage_dirs_pattern(cvs_t, cvs_data_t, cvs_data_t)
 manage_files_pattern(cvs_t, cvs_data_t, cvs_data_t)
@@ -60,7 +62,14 @@ kernel_read_kernel_sysctls(cvs_t)
 kernel_read_system_state(cvs_t)
 kernel_read_network_state(cvs_t)
 
+corenet_all_recvfrom_unlabeled(cvs_t)
+corenet_all_recvfrom_netlabel(cvs_t)
+corenet_tcp_sendrecv_generic_if(cvs_t)
+corenet_tcp_sendrecv_generic_node(cvs_t)
+
+corenet_sendrecv_cvs_server_packets(cvs_t)
 corenet_tcp_bind_cvs_port(cvs_t)
+corenet_tcp_sendrecv_cvs_port(cvs_t)
 
 corecmd_exec_bin(cvs_t)
 corecmd_exec_shell(cvs_t)
