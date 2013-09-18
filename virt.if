@@ -778,62 +778,6 @@ interface(`virt_stream_connect_sandbox',`
 	ps_process_pattern(svirt_sandbox_domain, $1)
 ')
 
-
-########################################
-## <summary>
-##	All of the rules required to administrate
-##	an virt environment
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
-## <rolecap/>
-#
-interface(`virt_admin',`
-	gen_require(`
-		type virtd_t, virtd_initrc_exec_t;
-		attribute virt_domain;
-		type virtd_lxc_t;
-		type virtd_unit_file_t;
-	')
-
-	allow $1 virtd_t:process signal_perms;
-	ps_process_pattern($1, virtd_t)
-	tunable_policy(`deny_ptrace',`',`
-		allow $1 virtd_t:process ptrace;
-		allow $1 virtd_lxc_t:process ptrace;
-	')
-
-	allow $1 virtd_lxc_t:process signal_perms;
-	ps_process_pattern($1, virtd_lxc_t)
-
-	init_labeled_script_domtrans($1, virtd_initrc_exec_t)
-	domain_system_change_exemption($1)
-	role_transition $2 virtd_initrc_exec_t system_r;
-	allow $2 system_r;
-
-	virt_manage_pid_files($1)
-
-	virt_manage_lib_files($1)
-
-	virt_manage_log($1)
-
-	virt_manage_images($1)
-
-	allow $1 virt_domain:process signal_perms;
-
-	virt_systemctl($1)
-	admin_pattern($1, virtd_unit_file_t)
-	allow $1 virtd_unit_file_t:service all_service_perms;
-')
-
 ########################################
 ## <summary>
 ##	Execute qemu in the svirt domain, and
@@ -1181,4 +1125,57 @@ interface(`virt_rw_svirt_dev',`
 	')
 
 	allow $1 svirt_image_t:chr_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an virt environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`virt_admin',`
+	gen_require(`
+		attribute virt_domain;
+		attribute virt_system_domain;
+		attribute svirt_file_type;
+		attribute virt_file_type;
+		type virtd_initrc_exec_t;
+	')
+
+	allow $1 virt_system_domain:process signal_perms;
+	allow $1 virt_domain:process signal_perms;
+	ps_process_pattern($1, virt_system_domain)
+	ps_process_pattern($1, virt_domain)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 virt_system_domain:process ptrace;
+		allow $1 virt_domain:process ptrace;
+	')
+
+	init_labeled_script_domtrans($1, virtd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 virtd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	allow $1 virt_domain:process signal_perms;
+
+	admin_pattern($1, virt_file_type)
+	admin_pattern($1, svirt_file_type)
+
+	virt_systemctl($1)
+	allow $1 virtd_unit_file_t:service all_service_perms;
+
+	virt_stream_connect_sandbox($1)
+	virt_stream_connect_svirt($1)
+	virt_stream_connect($1)
 ')
