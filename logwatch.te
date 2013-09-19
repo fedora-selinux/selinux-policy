@@ -1,4 +1,4 @@
-policy_module(logwatch, 1.12.0)
+policy_module(logwatch, 1.12.1)
 
 #################################
 #
@@ -6,11 +6,12 @@ policy_module(logwatch, 1.12.0)
 #
 
 ## <desc>
-## <p>
-## Allow epylog to send mail
-## </p>
+##	<p>
+##	Determine whether logwatch can connect
+##	to mail over the network.
+##	</p>
 ## </desc>
-gen_tunable(logwatch_can_sendmail, false)
+gen_tunable(logwatch_can_network_connect_mail, false)
 
 type logwatch_t;
 type logwatch_exec_t;
@@ -110,11 +111,20 @@ userdom_dontaudit_search_user_home_dirs(logwatch_t)
 mta_sendmail_domtrans(logwatch_t, logwatch_mail_t)
 mta_getattr_spool(logwatch_t)
 
-tunable_policy(`logwatch_can_sendmail',`
-    corenet_tcp_connect_smtp_port(logwatch_t)
-    corenet_sendrecv_smtp_client_packets(logwatch_t)
-    corenet_tcp_connect_pop_port(logwatch_t)
-    corenet_sendrecv_pop_client_packets(logwatch_t)
+tunable_policy(`logwatch_can_network_connect_mail',`
+	corenet_all_recvfrom_unlabeled(logwatch_t)
+	corenet_all_recvfrom_netlabel(logwatch_t)
+	corenet_tcp_sendrecv_generic_if(logwatch_t)
+	corenet_tcp_sendrecv_generic_node(logwatch_t)
+	corenet_tcp_bind_generic_node(logwatch_t)
+
+	corenet_sendrecv_smtp_client_packets(logwatch_t)
+	corenet_tcp_connect_smtp_port(logwatch_t)
+	corenet_tcp_sendrecv_smtp_port(logwatch_t)
+
+	corenet_sendrecv_pop_client_packets(logwatch_t)
+	corenet_tcp_connect_pop_port(logwatch_t)
+	corenet_tcp_sendrecv_pop_port(logwatch_t)
 ')
 
 tunable_policy(`use_nfs_home_dirs',`
