@@ -1,21 +1,32 @@
-
-## <summary>policy for hypervkvp</summary>
+## <summary>HyperV key value pair (KVP).</summary>
 
 ########################################
 ## <summary>
-##	Execute TEMPLATE in the hypervkvp domin.
+##	All of the rules required to
+##	administrate an hypervkvp environment.
 ## </summary>
 ## <param name="domain">
-## <summary>
-##	Domain allowed to transition.
-## </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
 #
-interface(`hypervkvp_domtrans',`
+interface(`hypervkvp_admin',`
 	gen_require(`
-		type hypervkvp_t, hypervkvp_exec_t;
+		type hypervkvpd_t, hypervkvpd_initrc_exec_t;
 	')
 
-	corecmd_search_bin($1)
-	domtrans_pattern($1, hypervkvp_exec_t, hypervkvp_t)
+	allow $1 hypervkvpd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, hypervkvpd_t)
+
+	init_labeled_script_domtrans($1, hypervkvpd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 hypervkvpd_initrc_exec_t system_r;
+	allow $2 system_r;
 ')
