@@ -422,6 +422,7 @@ optional_policy(`
 
 allow system_cronjob_t self:capability { dac_override dac_read_search chown setgid setuid fowner net_bind_service fsetid sys_nice };
 allow system_cronjob_t self:process { signal_perms getsched setsched };
+allow system_cronjob_t self:fd use;
 allow system_cronjob_t self:fifo_file rw_fifo_file_perms;
 allow system_cronjob_t self:passwd rootok;
 
@@ -452,6 +453,8 @@ allow system_cronjob_t crond_t:process sigchld;
 
 allow system_cronjob_t cron_spool_t:dir list_dir_perms;
 allow system_cronjob_t cron_spool_t:file rw_file_perms;
+
+allow system_cronjob_t crond_tmp_t:file { read write };
 
 kernel_read_kernel_sysctls(system_cronjob_t)
 kernel_read_network_state(system_cronjob_t)
@@ -500,8 +503,9 @@ files_create_boot_flag(system_cronjob_t)
 
 mls_file_read_to_clearance(system_cronjob_t)
 
-init_use_script_fds(system_cronjob_t)
 init_domtrans_script(system_cronjob_t)
+init_read_utmp(system_cronjob_t)
+init_use_script_fds(system_cronjob_t)
 
 auth_use_nsswitch(system_cronjob_t)
 
@@ -551,6 +555,11 @@ optional_policy(`
 	optional_policy(`
 		networkmanager_dbus_chat(system_cronjob_t)
 	')
+')
+
+optional_policy(`
+	devicekit_read_pid_files(system_cronjob_t)
+	devicekit_append_inherited_log_files(system_cronjob_t)
 ')
 
 optional_policy(`
