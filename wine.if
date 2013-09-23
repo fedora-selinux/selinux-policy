@@ -84,16 +84,15 @@ template(`wine_role',`
 template(`wine_role_template',`
 	gen_require(`
 		type wine_t;
+		attribute wine_domain;
 		type wine_exec_t;
 	')
 
-	type $1_wine_t;
+	type $1_wine_t, wine_domain;
 	domain_type($1_wine_t)
 	domain_entry_file($1_wine_t, wine_exec_t)
 	ubac_constrained($1_wine_t)
 	role $2 types $1_wine_t;
-
-	allow $1_wine_t self:process { execmem execstack };
 	allow $3 $1_wine_t:process { getattr noatsecure signal_perms };
 	domtrans_pattern($3, wine_exec_t, $1_wine_t)
 	corecmd_bin_domtrans($1_wine_t, $1_t)
@@ -102,14 +101,6 @@ template(`wine_role_template',`
 	userdom_manage_tmpfs_role($2, $1_wine_t)
 
 	domain_mmap_low($1_wine_t)
-
-	tunable_policy(`wine_mmap_zero_ignore',`
-		dontaudit $1_wine_t self:memprotect mmap_zero;
-	')
-
-	tunable_policy(`wine_mmap_zero_ignore',`
-		dontaudit $1_wine_t self:memprotect mmap_zero;
-	')
 
 	optional_policy(`
 		xserver_role($1_r, $1_wine_t)
