@@ -5,6 +5,13 @@ policy_module(zarafa, 1.1.0)
 # Declarations
 #
 
+## <desc>
+##  <p>
+## Allow zarafa domains to setrlimit/sys_rouserce.
+##  </p>
+## </desc>
+gen_tunable(zarafa_setrlimit, false)
+
 attribute zarafa_domain;
 
 zarafa_domain_template(deliver)
@@ -181,10 +188,15 @@ corenet_tcp_bind_http_cache_port(zarafa_ical_t)
 
 # bad permission on /etc/zarafa
 allow zarafa_domain self:capability { kill dac_override chown setgid setuid };
-allow zarafa_domain self:process { signal_perms setrlimit };
+allow zarafa_domain self:process { signal_perms };
 allow zarafa_domain self:fifo_file rw_fifo_file_perms;
 allow zarafa_domain self:tcp_socket create_stream_socket_perms;
 allow zarafa_domain self:unix_stream_socket create_stream_socket_perms;
+
+tunable_policy(`zarafa_setrlimit',`
+    allow zarafa_domain self:capability sys_resource;
+    allow zarafa_domain self:process setrlimit;
+')
 
 stream_connect_pattern(zarafa_domain, zarafa_server_var_run_t, zarafa_server_var_run_t, zarafa_server_t)
 
