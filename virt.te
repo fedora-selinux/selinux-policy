@@ -8,6 +8,8 @@ attribute virsh_transition_domain;
 attribute virt_ptynode;
 attribute virt_system_domain;
 attribute virt_domain;
+attribute svirt_lxc_domain;
+attribute svirt_qemu_domain;
 attribute virt_image_type;
 attribute virt_tmpfs_type;
 attribute svirt_file_type;
@@ -289,6 +291,7 @@ manage_dirs_pattern(virtd_t, virt_content_t, virt_content_t)
 manage_files_pattern(virtd_t, virt_content_t, virt_content_t)
 
 allow virtd_t virt_domain:process { getattr getsched setsched transition signal signull sigkill };
+allow virtd_t svirt_sandbox_domain:process { getattr getsched setsched transition signal signull sigkill };
 allow virt_domain virtd_t:fd use;
 dontaudit virt_domain virtd_t:unix_stream_socket { read write };
 allow virtd_t virt_domain:unix_stream_socket { connectto create_stream_socket_perms };
@@ -1115,8 +1118,6 @@ allow virtd_lxc_t svirt_sandbox_domain:process { getattr getsched setsched setrl
 
 allow svirt_sandbox_domain virtd_lxc_t:process sigchld;
 allow svirt_sandbox_domain virtd_lxc_t:fd use;
-allow svirt_sandbox_domain virt_lxc_var_run_t:dir list_dir_perms;
-allow svirt_sandbox_domain virt_lxc_var_run_t:file read_file_perms;
 allow svirt_sandbox_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
 
 manage_dirs_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
@@ -1221,6 +1222,9 @@ allow svirt_lxc_net_t self:rawip_socket create_socket_perms;
 allow svirt_lxc_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
 allow svirt_lxc_net_t self:netlink_kobject_uevent_socket create_socket_perms;
 
+allow svirt_lxc_net_t virt_lxc_var_run_t:dir list_dir_perms;
+allow svirt_lxc_net_t virt_lxc_var_run_t:file read_file_perms;
+
 kernel_read_network_state(svirt_lxc_net_t)
 kernel_read_irq_sysctls(svirt_lxc_net_t)
 
@@ -1273,6 +1277,18 @@ allow svirt_qemu_net_t self:socket create_socket_perms;
 allow svirt_qemu_net_t self:rawip_socket create_socket_perms;
 allow svirt_qemu_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
 allow svirt_qemu_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+term_use_generic_ptys(svirt_qemu_net_t)
+term_use_ptmx(svirt_qemu_net_t)
+
+dev_rw_kvm(svirt_qemu_net_t)
+
+manage_sock_files_pattern(svirt_qemu_net_t, qemu_var_run_t, qemu_var_run_t)
+
+list_dirs_pattern(svirt_qemu_net_t, virt_content_t, virt_content_t)
+read_files_pattern(svirt_qemu_net_t, virt_content_t, virt_content_t)
+
+append_files_pattern(svirt_qemu_net_t, virt_log_t, virt_log_t)
 
 kernel_read_network_state(svirt_qemu_net_t)
 kernel_read_irq_sysctls(svirt_qemu_net_t)
