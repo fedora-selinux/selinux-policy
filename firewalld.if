@@ -2,6 +2,25 @@
 
 ########################################
 ## <summary>
+##	Read firewalld configuration files.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`firewalld_read_config_files',`
+	gen_require(`
+		type firewalld_etc_rw_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, firewalld_etc_rw_t, firewalld_etc_rw_t)
+')
+
+########################################
+## <summary>
 ##	Send and receive messages from
 ##	firewalld over dbus.
 ## </summary>
@@ -19,6 +38,25 @@ interface(`firewalld_dbus_chat',`
 
 	allow $1 firewalld_t:dbus send_msg;
 	allow firewalld_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read, snd
+##	write firewalld temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`firewalld_dontaudit_rw_tmp_files',`
+	gen_require(`
+		type firewalld_tmp_t;
+	')
+
+	dontaudit $1 firewalld_tmp_t:file { read write };
 ')
 
 ########################################
