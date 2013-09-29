@@ -18,6 +18,9 @@ files_config_file(firewalld_etc_rw_t)
 type firewalld_var_log_t;
 logging_log_file(firewalld_var_log_t)
 
+type firewalld_tmp_t;
+files_tmp_file(firewalld_tmp_t)
+
 type firewalld_var_run_t;
 files_pid_file(firewalld_var_run_t)
 
@@ -26,6 +29,7 @@ files_pid_file(firewalld_var_run_t)
 # Local policy
 #
 
+allow firewalld_t self:capability { dac_override net_admin };
 dontaudit firewalld_t self:capability sys_tty_config;
 allow firewalld_t self:fifo_file rw_fifo_file_perms;
 allow firewalld_t self:unix_stream_socket { accept listen };
@@ -40,11 +44,16 @@ allow firewalld_t firewalld_var_log_t:file read_file_perms;
 allow firewalld_t firewalld_var_log_t:file setattr_file_perms;
 logging_log_filetrans(firewalld_t, firewalld_var_log_t, file)
 
+manage_files_pattern(firewalld_t, firewalld_tmp_t, firewalld_tmp_t)
+files_tmp_filetrans(firewalld_t, firewalld_tmp_t, file)
+allow firewalld_t firewalld_tmp_t:file mmap_file_perms;
+
 manage_files_pattern(firewalld_t, firewalld_var_run_t, firewalld_var_run_t)
 files_pid_filetrans(firewalld_t, firewalld_var_run_t, file)
 
 kernel_read_network_state(firewalld_t)
 kernel_read_system_state(firewalld_t)
+kernel_rw_net_sysctls(firewalld_t)
 
 corecmd_exec_bin(firewalld_t)
 corecmd_exec_shell(firewalld_t)
