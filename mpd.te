@@ -166,17 +166,26 @@ auth_use_nsswitch(mpd_t)
 
 logging_send_syslog_msg(mpd_t)
 
-userdom_read_home_audio_files(mpd_t)
-userdom_read_user_tmpfs_files(mpd_t)
 userdom_home_reader(mpd_t)
 
 tunable_policy(`mpd_enable_homedirs',`
-	userdom_search_user_home_dirs(mpd_t)
+	userdom_stream_connect(mpd_t)
+	userdom_read_home_audio_files(mpd_t)
+	userdom_list_user_tmp(mpd_t)
+	userdom_read_user_tmpfs_files(mpd_t)
+	userdom_dontaudit_setattr_user_tmp(mpd_t)
+')
+
+optional_policy(`
+	tunable_policy(`mpd_enable_homedirs',`
+		pulseaudio_read_home_files(mpd_t)
+	')
 ')
 
 tunable_policy(`mpd_enable_homedirs && use_nfs_home_dirs',`
 	fs_read_nfs_files(mpd_t)
 	fs_read_nfs_symlinks(mpd_t)
+
 ')
 
 tunable_policy(`mpd_enable_homedirs && use_samba_home_dirs',`
