@@ -12,6 +12,7 @@ attribute virt_image_type;
 attribute virt_tmpfs_type;
 attribute svirt_file_type;
 attribute virt_file_type;
+attribute sandbox_net_domain;
 
 type svirt_tmp_t, svirt_file_type;
 files_tmp_file(svirt_tmp_t)
@@ -1209,38 +1210,24 @@ optional_policy(`
 # svirt_lxc_net_t local policy
 #
 virt_sandbox_domain_template(svirt_lxc_net)
+typeattribute svirt_lxc_net_t, sandbox_net_domain;
 
-allow svirt_lxc_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid net_raw net_admin net_bind_service sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
+allow svirt_lxc_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
 dontaudit svirt_lxc_net_t self:capability2 block_suspend;
 allow svirt_lxc_net_t self:process { execstack execmem };
 allow svirt_lxc_net_t self:netlink_socket create_socket_perms;
-allow svirt_lxc_net_t self:udp_socket create_socket_perms;
-allow svirt_lxc_net_t self:tcp_socket create_stream_socket_perms;
-allow svirt_lxc_net_t self:netlink_route_socket create_netlink_socket_perms;
-allow svirt_lxc_net_t self:packet_socket create_socket_perms;
-allow svirt_lxc_net_t self:socket create_socket_perms;
-allow svirt_lxc_net_t self:rawip_socket create_socket_perms;
 allow svirt_lxc_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
 allow svirt_lxc_net_t self:netlink_kobject_uevent_socket create_socket_perms;
 
 allow svirt_lxc_net_t virt_lxc_var_run_t:dir list_dir_perms;
 allow svirt_lxc_net_t virt_lxc_var_run_t:file read_file_perms;
 
-kernel_read_network_state(svirt_lxc_net_t)
 kernel_read_irq_sysctls(svirt_lxc_net_t)
 
 dev_read_sysfs(svirt_lxc_net_t)
 dev_getattr_mtrr_dev(svirt_lxc_net_t)
 dev_read_rand(svirt_lxc_net_t)
 dev_read_urand(svirt_lxc_net_t)
-
-corenet_tcp_bind_generic_node(svirt_lxc_net_t)
-corenet_udp_bind_generic_node(svirt_lxc_net_t)
-corenet_tcp_sendrecv_all_ports(svirt_lxc_net_t)
-corenet_udp_sendrecv_all_ports(svirt_lxc_net_t)
-corenet_udp_bind_all_ports(svirt_lxc_net_t)
-corenet_tcp_bind_all_ports(svirt_lxc_net_t)
-corenet_tcp_connect_all_ports(svirt_lxc_net_t)
 
 files_read_kernel_modules(svirt_lxc_net_t)
 
@@ -1259,23 +1246,17 @@ logging_send_audit_msgs(svirt_lxc_net_t)
 
 userdom_use_user_ptys(svirt_lxc_net_t)
 
-
 ########################################
 #
 # svirt_lxc_net_t local policy
 #
 virt_sandbox_domain_template(svirt_qemu_net)
+typeattribute svirt_qemu_net_t, sandbox_net_domain;
 
-allow svirt_qemu_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid net_raw net_admin net_bind_service sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
+allow svirt_qemu_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
 dontaudit svirt_qemu_net_t self:capability2 block_suspend;
 allow svirt_qemu_net_t self:process { execstack execmem };
 allow svirt_qemu_net_t self:netlink_socket create_socket_perms;
-allow svirt_qemu_net_t self:udp_socket create_socket_perms;
-allow svirt_qemu_net_t self:tcp_socket create_stream_socket_perms;
-allow svirt_qemu_net_t self:netlink_route_socket create_netlink_socket_perms;
-allow svirt_qemu_net_t self:packet_socket create_socket_perms;
-allow svirt_qemu_net_t self:socket create_socket_perms;
-allow svirt_qemu_net_t self:rawip_socket create_socket_perms;
 allow svirt_qemu_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
 allow svirt_qemu_net_t self:netlink_kobject_uevent_socket create_socket_perms;
 
@@ -1291,21 +1272,12 @@ read_files_pattern(svirt_qemu_net_t, virt_content_t, virt_content_t)
 
 append_files_pattern(svirt_qemu_net_t, virt_log_t, virt_log_t)
 
-kernel_read_network_state(svirt_qemu_net_t)
 kernel_read_irq_sysctls(svirt_qemu_net_t)
 
 dev_read_sysfs(svirt_qemu_net_t)
 dev_getattr_mtrr_dev(svirt_qemu_net_t)
 dev_read_rand(svirt_qemu_net_t)
 dev_read_urand(svirt_qemu_net_t)
-
-corenet_tcp_bind_generic_node(svirt_qemu_net_t)
-corenet_udp_bind_generic_node(svirt_qemu_net_t)
-corenet_tcp_sendrecv_all_ports(svirt_qemu_net_t)
-corenet_udp_sendrecv_all_ports(svirt_qemu_net_t)
-corenet_udp_bind_all_ports(svirt_qemu_net_t)
-corenet_tcp_bind_all_ports(svirt_qemu_net_t)
-corenet_tcp_connect_all_ports(svirt_qemu_net_t)
 
 files_read_kernel_modules(svirt_qemu_net_t)
 
@@ -1497,3 +1469,73 @@ tunable_policy(`virt_transition_userdomain',`
 	userdom_transition(virtd_t)
 	userdom_transition(virtd_lxc_t)
 ')
+
+########################################
+#
+# svirt_lxc_net_t local policy
+#
+virt_sandbox_domain_template(svirt_kvm_net)
+typeattribute svirt_kvm_net_t, sandbox_net_domain;
+
+allow svirt_kvm_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
+dontaudit svirt_kvm_net_t self:capability2 block_suspend;
+allow svirt_kvm_net_t self:netlink_socket create_socket_perms;
+allow svirt_kvm_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
+allow svirt_kvm_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+term_use_generic_ptys(svirt_kvm_net_t)
+term_use_ptmx(svirt_kvm_net_t)
+
+dev_rw_kvm(svirt_kvm_net_t)
+
+manage_sock_files_pattern(svirt_kvm_net_t, kvm_var_run_t, kvm_var_run_t)
+
+list_dirs_pattern(svirt_kvm_net_t, virt_content_t, virt_content_t)
+read_files_pattern(svirt_kvm_net_t, virt_content_t, virt_content_t)
+
+append_files_pattern(svirt_kvm_net_t, virt_log_t, virt_log_t)
+
+kernel_read_network_state(svirt_kvm_net_t)
+kernel_read_irq_sysctls(svirt_kvm_net_t)
+
+dev_read_sysfs(svirt_kvm_net_t)
+dev_getattr_mtrr_dev(svirt_kvm_net_t)
+dev_read_rand(svirt_kvm_net_t)
+dev_read_urand(svirt_kvm_net_t)
+
+files_read_kernel_modules(svirt_kvm_net_t)
+
+fs_noxattr_type(svirt_sandbox_file_t)
+fs_mount_cgroup(svirt_kvm_net_t)
+fs_manage_cgroup_dirs(svirt_kvm_net_t)
+fs_manage_cgroup_files(svirt_kvm_net_t)
+
+term_pty(svirt_sandbox_file_t)
+
+auth_use_nsswitch(svirt_kvm_net_t)
+
+rpm_read_db(svirt_kvm_net_t)
+
+logging_send_audit_msgs(svirt_kvm_net_t)
+
+userdom_use_user_ptys(svirt_kvm_net_t)
+
+kernel_read_network_state(sandbox_net_domain)
+
+allow sandbox_net_domain self:capability { net_raw net_admin net_bind_service };
+
+allow sandbox_net_domain self:udp_socket create_socket_perms;
+allow sandbox_net_domain self:tcp_socket create_stream_socket_perms;
+allow sandbox_net_domain self:netlink_route_socket create_netlink_socket_perms;
+allow sandbox_net_domain self:packet_socket create_socket_perms;
+allow sandbox_net_domain self:socket create_socket_perms;
+allow sandbox_net_domain self:rawip_socket create_socket_perms;
+
+corenet_tcp_bind_generic_node(sandbox_net_domain)
+corenet_udp_bind_generic_node(sandbox_net_domain)
+corenet_tcp_sendrecv_all_ports(sandbox_net_domain)
+corenet_udp_sendrecv_all_ports(sandbox_net_domain)
+corenet_udp_bind_all_ports(sandbox_net_domain)
+corenet_tcp_bind_all_ports(sandbox_net_domain)
+corenet_tcp_connect_all_ports(sandbox_net_domain)
+
