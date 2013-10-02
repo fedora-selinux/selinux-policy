@@ -1008,6 +1008,7 @@ interface(`systemd_filetrans_named_content',`
 		type systemd_passwd_var_run_t;
 		type systemd_logind_var_run_t;
 		type hostname_etc_t;
+		type systemd_home_t;
 	')
 
 	files_pid_filetrans($1, systemd_logind_var_run_t, file, "nologin")
@@ -1015,6 +1016,49 @@ interface(`systemd_filetrans_named_content',`
 	init_named_pid_filetrans($1, systemd_passwd_var_run_t, dir, "ask-password")
 	files_etc_filetrans($1, hostname_etc_t, file, "hostname" )
 	files_etc_filetrans($1, hostname_etc_t, file, "machine-info" )
+
+	optional_polciy (`
+		gnome_data_filetrans($1, systemd_home_t, dir, "systemd")
+	')
+')
+
+########################################
+## <summary>
+##	read systemd homedir content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_read_home_content',`
+	gen_require(`
+		type systemd_home_t;
+	')
+
+	gnome_search_gconf_data_dir($1)
+	read_files_pattern($1, systemd_home_t, systemd_home_t)
+	read_lnk_files_pattern($1, systemd_home_t, systemd_home_t)
+')
+
+
+########################################
+## <summary>
+##	Transition to systemd named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_filetrans_home_content',`
+	gen_require(`
+		type systemd_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, systemd_home_t, file, ".k5login")
 ')
 
 ########################################
