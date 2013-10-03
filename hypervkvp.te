@@ -5,7 +5,9 @@ policy_module(hypervkvp, 1.0.0)
 # Declarations
 #
 
-type hypervkvp_t;
+attribute hyperv_domain;
+
+type hypervkvp_t, hyperv_domain;
 type hypervkvp_exec_t;
 init_daemon_domain(hypervkvp_t, hypervkvp_exec_t)
 
@@ -18,15 +20,29 @@ systemd_unit_file(hypervkvp_unit_file_t)
 type hypervkvp_var_lib_t;
 files_type(hypervkvp_var_lib_t)
 
+type hypervvssd_t, hyperv_domain;
+type hypervvssd_exec_t;
+init_daemon_domain(hypervvssd_t, hypervvssd_exec_t)
+
+type hypervvssd_unit_file_t;
+systemd_unit_file(hypervvssd_unit_file_t)
+
+########################################
+#
+# hyperv domain local policy
+#
+
+allow hyperv_domain self:fifo_file rw_fifo_file_perms;
+allow hypervkv_domain self:unix_stream_socket create_stream_socket_perms;
+
+
 ########################################
 #
 # hypervkvp local policy
 #
-#
+
 allow hypervkvp_t self:capability net_admin;
 allow hypervkvp_t self:netlink_socket create_socket_perms;
-allow hypervkvp_t self:fifo_file rw_fifo_file_perms;
-allow hypervkvp_t self:unix_stream_socket create_stream_socket_perms;
 
 manage_dirs_pattern(hypervkvp_t, hypervkvp_var_lib_t, hypervkvp_var_lib_t)
 manage_files_pattern(hypervkvp_t, hypervkvp_var_lib_t, hypervkvp_var_lib_t)
@@ -34,6 +50,11 @@ files_var_lib_filetrans(hypervkvp_t, hypervkvp_var_lib_t, dir)
 
 logging_send_syslog_msg(hypervkvp_t)
 
-miscfiles_read_localization(hypervkvp_t)
-
 sysnet_dns_name_resolve(hypervkvp_t)
+
+########################################
+#
+# hypervvssd local policy
+#
+
+logging_send_syslog_msg(hypervvssd_t)
