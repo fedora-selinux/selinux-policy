@@ -34,6 +34,9 @@ pegasus_openlmi_domain_template(admin)
 typealias pegasus_openlmi_admin_t alias pegasus_openlmi_service_t;
 
 pegasus_openlmi_domain_template(account)
+domain_obj_id_change_exemption(pegasus_openlmi_account_t)
+domain_system_change_exemption(pegasus_openlmi_account_t)
+
 pegasus_openlmi_domain_template(logicalfile)
 pegasus_openlmi_domain_template(services)
 
@@ -79,7 +82,7 @@ optional_policy(`
 # pegasus openlmi account local policy
 #
 
-allow pegasus_openlmi_account_t self:capability { chown dac_override };
+allow pegasus_openlmi_account_t self:capability { chown dac_override fowner fsetid };
 allow pegasus_openlmi_account_t self:process setfscreate;
 
 auth_manage_passwd(pegasus_openlmi_account_t)
@@ -87,7 +90,12 @@ auth_manage_shadow(pegasus_openlmi_account_t)
 auth_relabel_shadow(pegasus_openlmi_account_t)
 auth_etc_filetrans_shadow(pegasus_openlmi_account_t)
 
+logging_send_audit_msgs(pegasus_openlmi_account_t)
+logging_send_syslog_msg(pegasus_openlmi_account_t)
+
 init_rw_utmp(pegasus_openlmi_account_t)
+
+seutil_semanage_policy(pegasus_openlmi_account_t)
 
 logging_send_syslog_msg(pegasus_openlmi_account_t)
 
@@ -194,7 +202,7 @@ optional_policy(`
 # pegasus openlmi storage local policy
 #
 
-allow pegasus_openlmi_storage_t self:capability sys_admin;
+allow pegasus_openlmi_storage_t self:capability { sys_admin sys_rawio };
 
 manage_files_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_lib_t, pegasus_openlmi_storage_lib_t)
 manage_dirs_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_lib_t, pegasus_openlmi_storage_lib_t)
@@ -210,6 +218,7 @@ dev_read_rand(pegasus_openlmi_storage_t)
 dev_read_urand(pegasus_openlmi_storage_t)
 
 dev_rw_lvm_control(pegasus_openlmi_storage_t)
+dev_rw_sysfs(pegasus_openlmi_storage_t)
 
 selinux_validate_context(pegasus_openlmi_storage_t)
 
@@ -217,12 +226,19 @@ seutil_read_file_contexts(pegasus_openlmi_storage_t)
 
 storage_rw_inherited_fixed_disk_dev(pegasus_openlmi_storage_t)
 
+fs_getattr_all_fs(pegasus_openlmi_storage_t)
+
 modutils_domtrans_insmod(pegasus_openlmi_storage_t)
 
 udev_domtrans(pegasus_openlmi_storage_t)
+udev_read_pid_files(pegasus_openlmi_storage_t)
 
 optional_policy(`
     dmidecode_domtrans(pegasus_openlmi_storage_t)  
+')
+
+optional_policy(`
+    fstools_domtrans(pegasus_openlmi_storage_t)
 ')
 
 optional_policy(`
@@ -235,6 +251,8 @@ optional_policy(`
 
 optional_policy(`
     raid_domtrans_mdadm(pegasus_openlmi_storage_t)   
+    raid_filetrans_named_content(pegasus_openlmi_storage_t)
+    raid_manage_conf_files(pegasus_openlmi_storage_t)
 ')
 
 ######################################
