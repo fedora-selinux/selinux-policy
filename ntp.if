@@ -100,6 +100,25 @@ interface(`ntp_initrc_domtrans',`
 
 ########################################
 ## <summary>
+##	Read ntp drift files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ntp_read_drift_files',`
+	gen_require(`
+		type ntp_drift_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, ntp_drift_t, ntp_drift_t)
+')
+
+########################################
+## <summary>
 ##	Read and write ntpd shared memory.
 ## </summary>
 ## <param name="domain">
@@ -153,13 +172,16 @@ interface(`ntp_admin',`
 	allow $2 system_r;
 
 	files_list_etc($1)
-	admin_pattern($1, { ntpd_key_t ntp_conf_t ntp_drift_t })
+	admin_pattern($1, { ntpd_key_t ntp_conf_t })
 
 	logging_list_logs($1)
 	admin_pattern($1, ntpd_log_t)
 
 	files_list_tmp($1)
 	admin_pattern($1, ntpd_tmp_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, ntp_drift_t)
 
 	files_list_pids($1)
 	admin_pattern($1, ntpd_var_run_t)
