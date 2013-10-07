@@ -55,7 +55,8 @@ files_type(glusterd_var_lib_t)
 # Local policy
 #
 
-allow glusterd_t self:capability { sys_admin sys_resource dac_override chown dac_read_search fowner setuid net_admin };
+allow glusterd_t self:capability { sys_admin sys_resource dac_override chown dac_read_search fowner fsetid kill setgid setuid net_admin };
+
 allow glusterd_t self:capability2 block_suspend;
 allow glusterd_t self:process { getcap setcap setrlimit signal_perms };
 allow glusterd_t self:fifo_file rw_fifo_file_perms;
@@ -84,6 +85,7 @@ files_pid_filetrans(glusterd_t, glusterd_var_run_t, { dir file sock_file })
 
 manage_dirs_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
 manage_files_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
+#manage_sock_files_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
 files_var_lib_filetrans(glusterd_t, glusterd_var_lib_t, dir)
 
 can_exec(glusterd_t, glusterd_exec_t)
@@ -123,6 +125,7 @@ corenet_udp_bind_ipp_port(glusterd_t)
 
 corenet_sendrecv_all_client_packets(glusterd_t)
 corenet_tcp_connect_all_unreserved_ports(glusterd_t)
+corenet_tcp_connect_ssh_port(glusterd_t)
 
 dev_read_sysfs(glusterd_t)
 dev_read_urand(glusterd_t)
@@ -143,6 +146,7 @@ auth_use_nsswitch(glusterd_t)
 fs_getattr_all_fs(glusterd_t)
 
 logging_send_syslog_msg(glusterd_t)
+libs_exec_ldconfig(glusterd_t)
 
 miscfiles_read_localization(glusterd_t)
 miscfiles_read_public_files(glusterd_t)
@@ -150,6 +154,7 @@ miscfiles_read_public_files(glusterd_t)
 userdom_manage_user_home_dirs(glusterd_t)
 userdom_filetrans_home_content(glusterd_t)
 
+mount_domtrans(glusterd_t)
 tunable_policy(`gluster_anon_write',`
 	miscfiles_manage_public_files(glusterd_t)
 ') 
@@ -167,4 +172,13 @@ tunable_policy(`gluster_export_all_rw',`
 
 optional_policy(`
     rpc_domtrans_rpcd(glusterd_t)
+    rpc_kill_rpcd(glusterd_t)
+')
+
+optional_policy(`
+	rsync_exec(glusterd_t)
+')
+
+optional_policy(`
+	ssh_exec(glusterd_t)
 ')
