@@ -23,6 +23,7 @@ gen_tunable(zoneminder_anon_write, false)
 
 gen_require(`
     class passwd rootok;
+    class passwd passwd;
     ')
 
 type zoneminder_t;
@@ -59,6 +60,7 @@ allow zoneminder_t self:process { signal_perms setpgid };
 allow zoneminder_t self:shm create_shm_perms;
 allow zoneminder_t self:fifo_file rw_fifo_file_perms;
 allow zoneminder_t self:unix_stream_socket { create_stream_socket_perms connectto };
+allow zoneminder_t self:netlink_selinux_socket create_socket_perms;
 
 manage_dirs_pattern(zoneminder_t, zoneminder_log_t, zoneminder_log_t)
 manage_files_pattern(zoneminder_t, zoneminder_log_t, zoneminder_log_t)
@@ -102,6 +104,7 @@ dev_read_video_dev(zoneminder_t)
 dev_write_video_dev(zoneminder_t)
 
 auth_use_nsswitch(zoneminder_t)
+#auth_read_shadow(zoneminder_t)     need to debug zmpkg.pl to see why is needed this rule.
 
 logging_send_syslog_msg(zoneminder_t)
 logging_send_audit_msgs(zoneminder_t)
@@ -116,9 +119,11 @@ tunable_policy(`zoneminder_run_sudo',`
     allow zoneminder_t self:capability { setuid setgid sys_resource };
     allow zoneminder_t self:process { setrlimit setsched };
     allow zoneminder_t self:key write;
-    allow zoneminder_t self:passwd rootok;
+    allow zoneminder_t self:passwd { passwd rootok };
 
     auth_rw_lastlog(zoneminder_t)
+    auth_rw_faillog(zoneminder_t)
+    auth_exec_chkpwd(zoneminder_t)
 
     selinux_compute_access_vector(zoneminder_t)
 
@@ -142,6 +147,14 @@ optional_policy(`
 ')
 optional_policy(`
 	mysql_stream_connect(zoneminder_t)
+')
+
+optional_policy(`
+    fprintd_dbus_chat(zoneminder_t)
+')
+
+optional_policy(`
+    motion_manage_all_files(zoneminder_t)
 ')
 
 ########################################
