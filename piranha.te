@@ -13,6 +13,7 @@ policy_module(piranha, 1.0.0)
 gen_tunable(piranha_lvs_can_network_connect, false)
 
 attribute piranha_domain;
+attribute piranha_tmpfs;
 
 piranha_domain_template(fos)
 
@@ -24,9 +25,6 @@ type piranha_pulse_initrc_exec_t;
 init_script_file(piranha_pulse_initrc_exec_t)
 
 piranha_domain_template(web)
-
-type piranha_web_tmpfs_t;
-files_tmpfs_file(piranha_web_tmpfs_t)
 
 type piranha_web_conf_t;
 files_config_file(piranha_web_conf_t)
@@ -89,10 +87,6 @@ manage_dirs_pattern(piranha_web_t, piranha_web_tmp_t, piranha_web_tmp_t)
 manage_files_pattern(piranha_web_t, piranha_web_tmp_t, piranha_web_tmp_t)
 files_tmp_filetrans(piranha_web_t, piranha_web_tmp_t, { file dir })
 
-manage_dirs_pattern(piranha_web_t, piranha_web_tmpfs_t, piranha_web_tmpfs_t)
-manage_files_pattern(piranha_web_t, piranha_web_tmpfs_t, piranha_web_tmpfs_t)
-fs_tmpfs_filetrans(piranha_web_t, piranha_web_tmpfs_t, { dir file })
-
 piranha_pulse_initrc_domtrans(piranha_web_t)
 
 kernel_read_kernel_sysctls(piranha_web_t)
@@ -141,6 +135,9 @@ allow piranha_lvs_t self:capability { net_raw sys_nice };
 allow piranha_lvs_t self:process signal;
 allow piranha_lvs_t self:unix_dgram_socket create_socket_perms;
 allow piranha_lvs_t self:rawip_socket create_socket_perms;
+
+manage_files_pattern(piranha_lvs_t, piranha_pulse_tmpfs_t,piranha_pulse_tmpfs_t)
+manage_dirs_pattern(piranha_lvs_t, piranha_pulse_tmpfs_t,piranha_pulse_tmpfs_t)
 
 kernel_read_kernel_sysctls(piranha_lvs_t)
 
@@ -274,6 +271,9 @@ allow piranha_domain self:udp_socket create_socket_perms;
 allow piranha_domain self:unix_stream_socket create_stream_socket_perms;
 
 read_files_pattern(piranha_domain, piranha_etc_rw_t, piranha_etc_rw_t)
+
+manage_files_pattern(piranha_pulse_t, piranha_tmpfs,piranha_tmpfs)
+manage_dirs_pattern(piranha_pulse_t, piranha_tmpfs ,piranha_tmpfs)
 
 kernel_read_network_state(piranha_domain)
 
