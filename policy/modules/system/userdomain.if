@@ -1452,6 +1452,8 @@ template(`userdom_unpriv_user_template', `
 template(`userdom_admin_user_template',`
 	gen_require(`
 		attribute admindomain;
+		attribute confiend_admindomain;
+
 		class passwd { passwd chfn chsh rootok crontab };
 	')
 
@@ -1468,6 +1470,7 @@ template(`userdom_admin_user_template',`
 	role system_r types $1_t;
 
 	typeattribute $1_t admindomain;
+	typeattribute $1_t confined_admindomain;
 
 	ifdef(`direct_sysadm_daemon',`
 		domain_system_change_exemption($1_t)
@@ -1637,7 +1640,7 @@ template(`userdom_admin_user_template',`
 ##	</summary>
 ## </param>
 #
-template(`userdom_security_admin_template',`
+template(`userdom_security_admin',`
 	allow $1 self:capability { dac_read_search dac_override };
 
 	corecmd_exec_shell($1)
@@ -5784,4 +5787,44 @@ interface(`userdom_dontaudit_access_check_user_content',`
 	')
 
 	dontaudit $1 user_home_type:dir_file_class_set audit_access;
+')
+
+#######################################
+## <summary>
+##	The template containing the most basic rules common to confined admin.
+## </summary>
+## <desc>
+##	<p>
+##	The template containing the most basic rules common to all users.
+##	</p>
+##	<p>
+##	This template creates a user domain, types, and
+##	rules for the user's tty and pty.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <rolebase/>
+#
+template(`userdom_confined_admin_template',`
+
+	gen_require(`
+		attribute confined_admindomain;
+		attribute userdomain;
+		type user_devpts_t, user_tty_device_t;
+		class context contains;
+	')
+
+	type $1_t, userdomain, confined_admindomain;
+	role $1_r;
+	role $1_r types $1_t;
+	domain_type($1_t)
+	domain_user_exemption_target($1_t)
+	ubac_constrained($1_t)
+
+	auth_use_nsswitch($1_t)
 ')
