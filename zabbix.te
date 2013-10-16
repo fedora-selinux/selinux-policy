@@ -13,14 +13,16 @@ policy_module(zabbix, 1.5.3)
 ## </desc>
 gen_tunable(zabbix_can_network, false)
 
-type zabbix_t;
+attribute zabbix_domain;
+
+type zabbix_t, zabbix_domain;
 type zabbix_exec_t;
 init_daemon_domain(zabbix_t, zabbix_exec_t)
 
 type zabbix_initrc_exec_t;
 init_script_file(zabbix_initrc_exec_t)
 
-type zabbix_agent_t;
+type zabbix_agent_t, zabbix_domain;
 type zabbix_agent_exec_t;
 init_daemon_domain(zabbix_agent_t, zabbix_agent_exec_t)
 
@@ -41,16 +43,35 @@ files_pid_file(zabbix_var_run_t)
 
 ########################################
 #
+# zabbix domain local policy
+#
+
+allow zabbix_domain self:capability { setuid setgid };
+allow zabbix_domain self:process { setpgid setsched getsched signal_perms };
+allow zabbix_domain self:fifo_file rw_fifo_file_perms;
+allow zabbix_domain self:sem create_sem_perms;
+allow zabbix_domain self:shm create_shm_perms;
+allow zabbix_domain self:tcp_socket { accept listen };
+allow zabbix_domain self:unix_stream_socket create_stream_socket_perms;
+
+kernel_read_all_sysctls(zabbix_domain)
+
+corenet_tcp_sendrecv_generic_if(zabbix_domain)
+corenet_tcp_sendrecv_generic_node(zabbix_domain)
+corenet_tcp_bind_generic_node(zabbix_domain)
+
+corecmd_exec_shell(zabbix_domain)
+corecmd_exec_bin(zabbix_domain)
+
+dev_read_sysfs(zabbix_domain)
+dev_read_urand(zabbix_domain)
+
+########################################
+#
 # Local policy
 #
 
-allow zabbix_t self:capability { dac_read_search dac_override setuid setgid };
-allow zabbix_t self:process { setsched signal_perms };
-allow zabbix_t self:fifo_file rw_fifo_file_perms;
-allow zabbix_t self:unix_stream_socket create_stream_socket_perms;
-allow zabbix_t self:sem create_sem_perms;
-allow zabbix_t self:shm create_shm_perms;
-allow zabbix_t self:tcp_socket create_stream_socket_perms;
+allow zabbix_t self:capability { dac_read_search dac_override };
 
 manage_dirs_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
 manage_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
@@ -69,13 +90,9 @@ manage_files_pattern(zabbix_t, zabbix_var_run_t, zabbix_var_run_t)
 files_pid_filetrans(zabbix_t, zabbix_var_run_t, { dir file })
 
 kernel_read_system_state(zabbix_t)
-kernel_read_kernel_sysctls(zabbix_t)
 
 corenet_all_recvfrom_unlabeled(zabbix_t)
 corenet_all_recvfrom_netlabel(zabbix_t)
-corenet_tcp_sendrecv_generic_if(zabbix_t)
-corenet_tcp_sendrecv_generic_node(zabbix_t)
-corenet_tcp_bind_generic_node(zabbix_t)
 
 corenet_sendrecv_ftp_client_packets(zabbix_t)
 corenet_tcp_connect_ftp_port(zabbix_t)
@@ -88,11 +105,6 @@ corenet_tcp_sendrecv_http_port(zabbix_t)
 corenet_sendrecv_zabbix_server_packets(zabbix_t)
 corenet_tcp_bind_zabbix_port(zabbix_t)
 corenet_tcp_sendrecv_zabbix_port(zabbix_t)
-
-corecmd_exec_bin(zabbix_t)
-corecmd_exec_shell(zabbix_t)
-
-dev_read_urand(zabbix_t)
 
 auth_use_nsswitch(zabbix_t)
 
@@ -127,14 +139,6 @@ optional_policy(`
 # Agent local policy
 #
 
-allow zabbix_agent_t self:capability { setuid setgid };
-allow zabbix_agent_t self:process { setpgid setsched getsched signal };
-allow zabbix_agent_t self:fifo_file rw_fifo_file_perms;
-allow zabbix_agent_t self:sem create_sem_perms;
-allow zabbix_agent_t self:shm create_shm_perms;
-allow zabbix_agent_t self:tcp_socket { accept listen };
-allow zabbix_agent_t self:unix_stream_socket create_stream_socket_perms;
-
 manage_files_pattern(zabbix_agent_t, zabbix_log_t, zabbix_log_t)
 
 rw_files_pattern(zabbix_agent_t, zabbix_tmpfs_t, zabbix_tmpfs_t)
@@ -143,18 +147,12 @@ fs_tmpfs_filetrans(zabbix_agent_t, zabbix_tmpfs_t, file)
 manage_files_pattern(zabbix_agent_t, zabbix_var_run_t, zabbix_var_run_t)
 files_pid_filetrans(zabbix_agent_t, zabbix_var_run_t, file)
 
-kernel_read_all_sysctls(zabbix_agent_t)
 kernel_read_system_state(zabbix_agent_t)
-
-corecmd_exec_shell(zabbix_agent_t)
-corecmd_exec_bin(zabbix_agent_t)
-corecmd_read_all_executables(zabbix_agent_t)
 
 corenet_all_recvfrom_unlabeled(zabbix_agent_t)
 corenet_all_recvfrom_netlabel(zabbix_agent_t)
-corenet_tcp_sendrecv_generic_if(zabbix_agent_t)
-corenet_tcp_sendrecv_generic_node(zabbix_agent_t)
-corenet_tcp_bind_generic_node(zabbix_agent_t)
+
+corecmd_read_all_executables(zabbix_agent_t)
 
 corenet_sendrecv_zabbix_agent_server_packets(zabbix_agent_t)
 corenet_tcp_bind_zabbix_agent_port(zabbix_agent_t)
