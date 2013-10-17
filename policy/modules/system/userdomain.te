@@ -43,6 +43,7 @@ gen_tunable(selinuxuser_use_ssh_chroot, false)
 
 attribute admindomain;
 attribute login_userdomain;
+attribute confined_admindomain;
 
 # all user domains
 attribute userdomain;
@@ -305,4 +306,136 @@ optional_policy(`
 optional_policy(`
 	xserver_filetrans_home_content(userdom_filetrans_type)
 	xserver_filetrans_admin_home_content(userdom_filetrans_type)
+')
+
+############################################################
+# Local Policy Confined Admin
+#
+gen_require(`
+	class context contains;
+')
+
+corecmd_shell_entry_type(confined_admindomain)
+corecmd_bin_entry_type(confined_admindomain)
+
+term_user_pty(confined_admindomain, user_devpts_t)
+term_user_tty(confined_admindomain, user_tty_device_t)
+term_dontaudit_getattr_generic_ptys(confined_admindomain)
+
+allow confined_admindomain self:process { signal_perms getsched setsched share getpgid setpgid getcap setcap getsession getattr };
+tunable_policy(`deny_ptrace',`',`
+	allow confined_admindomain self:process ptrace;
+')
+allow confined_admindomain self:fd use;
+allow confined_admindomain self:key manage_key_perms;
+
+allow confined_admindomain self:fifo_file rw_fifo_file_perms;
+allow confined_admindomain self:unix_dgram_socket { create_socket_perms sendto };
+allow confined_admindomain self:unix_stream_socket { create_stream_socket_perms connectto };
+allow confined_admindomain self:shm create_shm_perms;
+allow confined_admindomain self:sem create_sem_perms;
+allow confined_admindomain self:msgq create_msgq_perms;
+allow confined_admindomain self:msg { send receive };
+allow confined_admindomain self:context contains;
+dontaudit confined_admindomain self:socket create;
+
+allow confined_admindomain user_devpts_t:chr_file { setattr rw_chr_file_perms };
+term_create_pty(confined_admindomain, user_devpts_t)
+# avoid annoying messages on terminal hangup on role change
+dontaudit confined_admindomain user_devpts_t:chr_file ioctl;
+
+allow confined_admindomain user_tty_device_t:chr_file { setattr rw_chr_file_perms };
+# avoid annoying messages on terminal hangup on role change
+dontaudit confined_admindomain user_tty_device_t:chr_file ioctl;
+
+application_exec_all(confined_admindomain)
+
+kernel_read_kernel_sysctls(confined_admindomain)
+kernel_read_all_sysctls(confined_admindomain)
+kernel_dontaudit_list_unlabeled(confined_admindomain)
+kernel_dontaudit_getattr_unlabeled_files(confined_admindomain)
+kernel_dontaudit_getattr_unlabeled_symlinks(confined_admindomain)
+kernel_dontaudit_getattr_unlabeled_pipes(confined_admindomain)
+kernel_dontaudit_getattr_unlabeled_sockets(confined_admindomain)
+kernel_dontaudit_getattr_unlabeled_blk_files(confined_admindomain)
+kernel_dontaudit_getattr_unlabeled_chr_files(confined_admindomain)
+kernel_dontaudit_list_proc(confined_admindomain)
+
+dev_dontaudit_getattr_all_blk_files(confined_admindomain)
+dev_dontaudit_getattr_all_chr_files(confined_admindomain)
+dev_getattr_mtrr_dev(confined_admindomain)
+
+# When the user domain runs ps, there will be a number of access
+# denials when ps tries to search /proc. Do not audit these denials.
+domain_dontaudit_read_all_domains_state(confined_admindomain)
+domain_dontaudit_getattr_all_domains(confined_admindomain)
+domain_dontaudit_getsession_all_domains(confined_admindomain)
+dev_dontaudit_all_access_check(confined_admindomain)
+
+files_read_etc_files(confined_admindomain)
+files_list_mnt(confined_admindomain)
+files_list_var(confined_admindomain)
+files_read_mnt_files(confined_admindomain)
+files_dontaudit_all_access_check(confined_admindomain)
+files_read_etc_runtime_files(confined_admindomain)
+files_read_usr_files(confined_admindomain)
+files_read_usr_src_files(confined_admindomain)
+# Read directories and files with the readable_t type.
+# This type is a general type for "world"-readable files.
+files_list_world_readable(confined_admindomain)
+files_read_world_readable_files(confined_admindomain)
+files_read_world_readable_symlinks(confined_admindomain)
+files_read_world_readable_pipes(confined_admindomain)
+files_read_world_readable_sockets(confined_admindomain)
+# old broswer_domain():
+files_dontaudit_getattr_all_dirs(confined_admindomain)
+files_dontaudit_list_non_security(confined_admindomain)
+files_dontaudit_getattr_all_files(confined_admindomain)
+files_dontaudit_getattr_non_security_symlinks(confined_admindomain)
+files_dontaudit_getattr_non_security_pipes(confined_admindomain)
+files_dontaudit_getattr_non_security_sockets(confined_admindomain)
+files_dontaudit_setattr_etc_runtime_files(confined_admindomain)
+
+files_exec_usr_files(confined_admindomain)
+
+fs_list_cgroup_dirs(confined_admindomain)
+fs_dontaudit_rw_cgroup_files(confined_admindomain)
+
+storage_rw_fuse(confined_admindomain)
+
+init_stream_connect(confined_admindomain)
+# The library functions always try to open read-write first,
+# then fall back to read-only if it fails. 
+init_dontaudit_rw_utmp(confined_admindomain)
+
+libs_exec_ld_so(confined_admindomain)
+
+miscfiles_read_generic_certs(confined_admindomain)
+
+miscfiles_read_all_certs(confined_admindomain)
+miscfiles_read_public_files(confined_admindomain)
+
+systemd_dbus_chat_logind(confined_admindomain)
+systemd_read_logind_sessions_files(confined_admindomain)
+systemd_write_inhibit_pipes(confined_admindomain)
+systemd_write_inherited_logind_sessions_pipes(confined_admindomain)
+systemd_login_read_pid_files(confined_admindomain)
+tunable_policy(`deny_execmem',`', `
+	# Allow loading DSOs that require executable stack.
+	allow confined_admindomain self:process execmem;
+')
+
+tunable_policy(`selinuxuser_execstack',`
+	# Allow making the stack executable via mprotect.
+	allow confined_admindomain self:process execstack;
+')
+
+optional_policy(`
+	fs_list_cgroup_dirs(confined_admindomain)
+')
+	
+optional_policy(`
+	ssh_rw_stream_sockets(confined_admindomain)
+	ssh_delete_tmp(confined_admindomain)
+	ssh_signal(confined_admindomain)
 ')
