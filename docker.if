@@ -1,0 +1,202 @@
+
+## <summary>policy for docker</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the docker domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`docker_domtrans',`
+	gen_require(`
+		type docker_t, docker_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, docker_exec_t, docker_t)
+')
+
+########################################
+## <summary>
+##	Search docker lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`docker_search_lib',`
+	gen_require(`
+		type docker_var_lib_t;
+	')
+
+	allow $1 docker_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read docker lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`docker_read_lib_files',`
+	gen_require(`
+		type docker_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, docker_var_lib_t, docker_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage docker lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`docker_manage_lib_files',`
+	gen_require(`
+		type docker_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, docker_var_lib_t, docker_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage docker lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`docker_manage_lib_dirs',`
+	gen_require(`
+		type docker_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, docker_var_lib_t, docker_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read docker PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`docker_read_pid_files',`
+	gen_require(`
+		type docker_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, docker_var_run_t, docker_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute docker server in the docker domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`docker_systemctl',`
+	gen_require(`
+		type docker_t;
+		type docker_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 docker_unit_file_t:file read_file_perms;
+	allow $1 docker_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, docker_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an docker environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`docker_admin',`
+	gen_require(`
+		type docker_t;
+		type docker_var_lib_t;
+		type docker_var_run_t;
+	type docker_unit_file_t;
+	')
+
+	allow $1 docker_t:process { ptrace signal_perms };
+	ps_process_pattern($1, docker_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, docker_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, docker_var_run_t)
+
+	docker_systemctl($1)
+	admin_pattern($1, docker_unit_file_t)
+	allow $1 docker_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+########################################
+## <summary>
+##	Read and write docker shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`docker_rw_sem',`
+	gen_require(`
+		type docker_t;
+	')
+
+	allow $1 docker_t:sem rw_sem_perms;
+')

@@ -1,0 +1,130 @@
+policy_module(docker, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type docker_t;
+type docker_exec_t;
+init_daemon_domain(docker_t, docker_exec_t)
+
+type docker_var_lib_t;
+files_type(docker_var_lib_t)
+
+type docker_log_t;
+logging_log_file(docker_log_t)
+
+type docker_tmp_t;
+files_tmp_file(docker_tmp_t)
+
+type docker_var_run_t;
+files_pid_file(docker_var_run_t)
+
+type docker_unit_file_t;
+systemd_unit_file(docker_unit_file_t)
+
+########################################
+#
+# docker local policy
+#
+allow docker_t self:capability { chown fowner fsetid mknod net_admin };
+allow docker_t self:process signal_perms;
+allow docker_t self:fifo_file rw_fifo_file_perms;
+allow docker_t self:unix_stream_socket create_stream_socket_perms;
+allow docker_t self:capability2 block_suspend;
+
+manage_dirs_pattern(docker_t, docker_log_t, docker_log_t)
+manage_files_pattern(docker_t, docker_log_t, docker_log_t)
+manage_lnk_files_pattern(docker_t, docker_log_t, docker_log_t)
+logging_log_filetrans(docker_t, docker_log_t, { dir file lnk_file })
+
+manage_dirs_pattern(docker_t, docker_tmp_t, docker_tmp_t)
+manage_files_pattern(docker_t, docker_tmp_t, docker_tmp_t)
+manage_lnk_files_pattern(docker_t, docker_tmp_t, docker_tmp_t)
+files_tmp_filetrans(docker_t, docker_tmp_t, { dir file lnk_file })
+
+manage_dirs_pattern(docker_t, docker_var_lib_t, docker_var_lib_t)
+manage_chr_files_pattern(docker_t, docker_var_lib_t, docker_var_lib_t)
+manage_blk_files_pattern(docker_t, docker_var_lib_t, docker_var_lib_t)
+manage_files_pattern(docker_t, docker_var_lib_t, docker_var_lib_t)
+manage_lnk_files_pattern(docker_t, docker_var_lib_t, docker_var_lib_t)
+files_var_lib_filetrans(docker_t, docker_var_lib_t, { dir file lnk_file })
+
+manage_dirs_pattern(docker_t, docker_var_run_t, docker_var_run_t)
+manage_files_pattern(docker_t, docker_var_run_t, docker_var_run_t)
+manage_sock_files_pattern(docker_t, docker_var_run_t, docker_var_run_t)
+manage_lnk_files_pattern(docker_t, docker_var_run_t, docker_var_run_t)
+files_pid_filetrans(docker_t, docker_var_run_t, { dir file lnk_file sock_file })
+
+kernel_read_system_state(docker_t)
+kernel_read_network_state(docker_t)
+kernel_read_all_sysctls(docker_t)
+
+domain_use_interactive_fds(docker_t)
+
+corecmd_exec_bin(docker_t)
+corecmd_exec_shell(docker_t)
+
+corenet_tcp_bind_generic_node(docker_t)
+
+files_read_etc_files(docker_t)
+
+fs_read_cgroup_files(docker_t)
+
+auth_use_nsswitch(docker_t)
+
+miscfiles_read_localization(docker_t)
+
+mount_domtrans(docker_t)
+
+sysnet_dns_name_resolve(docker_t)
+
+optional_policy(`
+	fstools_domtrans(docker_t)
+')
+
+optional_policy(`
+	iptables_domtrans(docker_t)
+')
+
+#
+# lxc rules
+#
+
+allow docker_t self:capability { sys_admin sys_boot dac_override setpcap sys_ptrace };
+allow docker_t self:process setsched;
+allow docker_t self:netlink_route_socket nlmsg_write;
+allow docker_t self:unix_dgram_socket create_socket_perms;
+
+allow docker_t docker_var_lib_t:dir mounton;
+
+kernel_setsched(docker_t)
+
+dev_getattr_all_blk_files(docker_t)
+dev_read_urand(docker_t)
+
+files_manage_isid_type_dirs(docker_t)
+files_manage_isid_type_files(docker_t)
+files_manage_isid_type_symlinks(docker_t)
+files_manage_isid_type_chr_files(docker_t)
+files_exec_isid_files(docker_t)
+files_mounton_isid(docker_t)
+files_mounton_non_security(docker_t)
+
+fs_mount_all_fs(docker_t)
+fs_unmount_all_fs(docker_t)
+fs_remount_all_fs(docker_t)
+fs_manage_cgroup_dirs(docker_t)
+fs_manage_cgroup_files(docker_t)
+
+term_use_generic_ptys(docker_t)
+term_use_ptmx(docker_t)
+term_getattr_pty_fs(docker_t)
+
+dev_read_lvm_control(docker_t)
+
+gen_require(`
+type lvm_t;
+')
+docker_rw_sem(lvm_t)
