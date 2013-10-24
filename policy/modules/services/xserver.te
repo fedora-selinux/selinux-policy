@@ -68,6 +68,13 @@ gen_tunable(xserver_object_manager, false)
 ## </desc>
 gen_tunable(selinuxuser_direct_dri_enabled, false)
 
+## <desc>
+##  <p>
+##  Allow the graphical login program to create files in HOME dirs as xdm_home_t.
+##  </p>
+## </desc>
+gen_tunable(xdm_write_home, false)
+
 attribute xdmhomewriter;
 attribute x_userdomain;
 attribute x_domain;
@@ -440,8 +447,6 @@ manage_files_pattern(xdm_t, xkb_var_lib_t, xkb_var_lib_t)
 
 manage_dirs_pattern(xdm_t, xdm_home_t, xdm_home_t)
 manage_files_pattern(xdm_t, xdm_home_t, xdm_home_t)
-userdom_user_home_dir_filetrans(xdm_t, xdm_home_t, file)
-userdom_admin_home_dir_filetrans(xdm_t, xdm_home_t, file)
 xserver_filetrans_home_content(xdm_t)
 xserver_filetrans_admin_home_content(xdm_t)
 
@@ -698,6 +703,12 @@ ifndef(`distro_redhat',`
 
 ifdef(`distro_rhel4',`
 	allow xdm_t self:process { execheap execmem };
+')
+
+tunable_policy(`xdm_write_home',`
+    userdom_user_home_dir_filetrans(xdm_t, xdm_home_t, file)
+',`
+    userdom_user_home_dir_filetrans_user_home_content(xdm_t, { dir file lnk_file fifo_file sock_file })
 ')
 
 tunable_policy(`use_nfs_home_dirs',`
