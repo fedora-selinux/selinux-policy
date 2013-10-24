@@ -5829,3 +5829,100 @@ template(`userdom_confined_admin_template',`
 
 	auth_use_nsswitch($1_t)
 ')
+
+########################################
+## <summary>
+##	Allow user to run as a secadm
+## </summary>
+## <desc>
+##	<p>
+##	Create objects in a user home directory
+##	with an automatic type transition to
+##	a specified private type.
+##	</p>
+##	<p>
+##	This is a templated interface, and should only
+##	be called from a per-userdomain template.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role  of the object to create.
+##	</summary>
+## </param>
+#
+template(`userdom_security_admin_template',`
+	allow $1 self:capability { dac_read_search dac_override };
+
+	corecmd_exec_shell($1)
+
+	domain_obj_id_change_exemption($1)
+
+	dev_relabel_all_dev_nodes($1)
+
+	files_create_boot_flag($1)
+	files_create_default_dir($1)
+	files_root_filetrans_default($1, dir)
+
+	# Necessary for managing /boot/efi
+	fs_manage_dos_files($1)
+
+	mls_process_read_up($1)
+	mls_file_read_all_levels($1)
+	mls_file_upgrade($1)
+	mls_file_downgrade($1)
+
+	selinux_set_enforce_mode($1)
+	selinux_set_all_booleans($1)
+	selinux_set_parameters($1)
+	selinux_read_policy($1)
+
+	files_relabel_all_files($1)
+
+	auth_relabel_shadow($1)
+
+	init_exec($1)
+
+	logging_send_syslog_msg($1)
+	logging_read_audit_log($1)
+	logging_read_generic_logs($1)
+	logging_read_audit_config($1)
+
+	seutil_manage_bin_policy($1)
+	seutil_manage_default_contexts($1)
+	seutil_manage_file_contexts($1)
+	seutil_manage_module_store($1)
+	seutil_manage_config($1)
+	seutil_manage_login_config($1)
+	seutil_run_checkpolicy($1,$2)
+	seutil_run_loadpolicy($1,$2)
+	seutil_run_semanage($1,$2)
+	seutil_run_setsebool($1,$2)
+	seutil_run_setfiles($1, $2)
+
+	optional_policy(`
+		aide_run($1,$2)
+	')
+
+	optional_policy(`
+		consoletype_exec($1)
+	')
+
+	optional_policy(`	
+		ipsec_run_setkey($1,$2)
+	')
+
+	optional_policy(`
+		netlabel_run_mgmt($1,$2)
+	')
+
+	optional_policy(`
+		samhain_run($1, $2)
+	')
+')
+
