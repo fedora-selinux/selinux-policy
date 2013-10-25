@@ -30,6 +30,13 @@ gen_tunable(daemons_use_tty, false)
 ## </desc>
 gen_tunable(daemons_dump_core, false)
 
+## <desc>
+## <p>
+## Enable cluster mode for daemons.
+## </p>
+## </desc>
+gen_tunable(daemons_enable_cluster_mode, false)
+
 # used for direct running of init scripts
 # by admin domains
 attribute direct_run_init;
@@ -1579,3 +1586,25 @@ ifdef(`direct_sysadm_daemon',`
     allow daemon direct_run_init:process sigchld;
     allow direct_run_init direct_init_entry:file { getattr open read execute };
 ')
+
+optional_policy(`
+    tunable_policy(`daemons_enable_cluster_mode',`
+        rhcs_manage_cluster_pid_files(daemon)
+        rhcs_manage_cluster_lib_files(daemon)
+        rhcs_rw_inherited_cluster_tmp_files(daemon)
+        rhcs_stream_connect_cluster_to(daemon,daemon)
+',`
+        rhcs_read_cluster_lib_files(daemon)
+        rhcs_read_cluster_pid_files(daemon)
+    ')
+    
+ ')
+
+optional_policy(`
+    tunable_policy(`daemons_enable_cluster_mode',`
+        #resource agents placed config files in /etc/cluster
+        ccs_manage_config(daemon)
+',`
+        ccs_read_config(daemon)
+    ')
+ ')
