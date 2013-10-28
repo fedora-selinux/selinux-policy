@@ -49,7 +49,7 @@ template(`rhcs_domain_template',`
 	manage_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
 	manage_fifo_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
 	manage_sock_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
-	files_pid_filetrans($1_t, $1_var_run_t, { dir file sock_file fifo_file })
+	files_pid_filetrans($1_t, $1_var_run_t, { file sock_file fifo_file })
 
 	auth_use_nsswitch($1_t)
 
@@ -432,6 +432,32 @@ interface(`rhcs_stream_connect_cluster',`
 	stream_connect_pattern($1, cluster_pid, cluster_pid, cluster_domain)
 ')
 
+#####################################
+## <summary>
+##	Connect to cluster domains over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_stream_connect_cluster_to',`
+	gen_require(`
+		attribute cluster_domain;
+		attribute cluster_pid;
+	')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, cluster_pid, cluster_pid, $2)
+')
+
 ######################################
 ## <summary>
 ##	Execute a domain transition to run qdiskd.
@@ -625,6 +651,24 @@ interface(`rhcs_setattr_log_cluster',`
 
 #####################################
 ## <summary>
+##  Allow the specified domain to read/write inherited cluster's tmpf files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_rw_inherited_cluster_tmp_files',`
+    gen_require(`
+        type cluster_tmp_t;
+    ')
+
+    allow $1 cluster_tmp_t:file rw_inherited_file_perms;
+')
+
+#####################################
+## <summary>
 ##  Allow manage cluster tmp files.
 ## </summary>
 ## <param name="domain">
@@ -678,6 +722,26 @@ interface(`rhcs_manage_cluster_tmpfs_files',`
     fs_search_tmpfs($1)
     manage_files_pattern($1, cluster_tmpfs_t, cluster_tmpfs_t)
 ')
+
+#####################################
+## <summary>
+##  Allow read cluster pid files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_read_cluster_pid_files',`
+       gen_require(`
+               type cluster_var_run_t;
+       ')
+
+       files_search_pids($1)
+       read_files_pattern($1, cluster_var_run_t, cluster_var_run_t)
+')
+
 
 #####################################
 ## <summary>
