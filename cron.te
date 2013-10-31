@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 policy_module(cron, 2.2.1)
+=======
+policy_module(cron, 2.6.3)
+>>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 
 gen_require(`
 	class passwd rootok;
@@ -367,6 +371,7 @@ optional_policy(`
 allow system_cronjob_t self:capability { dac_override dac_read_search chown setgid setuid fowner net_bind_service fsetid sys_nice };
 
 allow system_cronjob_t self:process { signal_perms getsched setsched };
+allow system_cronjob_t self:fd use;
 allow system_cronjob_t self:fifo_file rw_fifo_file_perms;
 allow system_cronjob_t self:passwd rootok;
 
@@ -430,6 +435,8 @@ manage_files_pattern(system_cronjob_t, system_cronjob_var_lib_t, system_cronjob_
 allow system_cronjob_t cron_spool_t:dir list_dir_perms;
 allow system_cronjob_t cron_spool_t:file rw_file_perms;
 
+allow system_cronjob_t crond_tmp_t:file { read write };
+
 kernel_read_kernel_sysctls(system_cronjob_t)
 kernel_read_network_state(system_cronjob_t)
 kernel_read_system_state(system_cronjob_t)
@@ -478,12 +485,19 @@ files_dontaudit_search_pids(system_cronjob_t)
 files_manage_generic_spool(system_cronjob_t)
 files_create_boot_flag(system_cronjob_t)
 
+<<<<<<< HEAD
 init_use_script_fds(system_cronjob_t)
 init_read_utmp(system_cronjob_t)
 init_dontaudit_rw_utmp(system_cronjob_t)
 # prelink tells init to restart it self, we either need to allow or dontaudit
 init_telinit(system_cronjob_t)
+=======
+mls_file_read_to_clearance(system_cronjob_t)
+
+>>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 init_domtrans_script(system_cronjob_t)
+init_read_utmp(system_cronjob_t)
+init_use_script_fds(system_cronjob_t)
 
 auth_use_nsswitch(system_cronjob_t)
 
@@ -545,6 +559,11 @@ optional_policy(`
 ')
 
 optional_policy(`
+	devicekit_read_pid_files(system_cronjob_t)
+	devicekit_append_inherited_log_files(system_cronjob_t)
+')
+
+optional_policy(`
 	exim_read_spool_files(system_cronjob_t)
 ')
 
@@ -585,6 +604,7 @@ optional_policy(`
 ')
 
 optional_policy(`
+<<<<<<< HEAD
 	postfix_read_config(system_cronjob_t)
 ')	
 
@@ -597,6 +617,8 @@ optional_policy(`
 ')
 
 optional_policy(`
+=======
+>>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 	samba_read_config(system_cronjob_t)
 	samba_read_log(system_cronjob_t)
 ')
@@ -734,6 +756,7 @@ optional_policy(`
 # Unconfined cronjobs local policy
 #
 
+<<<<<<< HEAD
 optional_policy(`
 	# Permit a transition from the crond_t domain to this domain.
 	# The transition is requested explicitly by the modified crond 
@@ -813,4 +836,24 @@ optional_policy(`
 optional_policy(`
 	openshift_dontaudit_rw_inherited_fifo_files(crontab_domain)
 	openshift_transition(system_cronjob_t)
+=======
+type unconfined_cronjob_t;
+domain_type(unconfined_cronjob_t)
+domain_cron_exemption_target(unconfined_cronjob_t)
+
+dontaudit crond_t unconfined_cronjob_t:process { noatsecure siginh rlimitinh };
+
+tunable_policy(`cron_userdomain_transition',`
+	dontaudit crond_t unconfined_cronjob_t:process transition;
+	dontaudit crond_t unconfined_cronjob_t:fd use;
+	dontaudit crond_t unconfined_cronjob_t:key manage_key_perms;
+',`
+	allow crond_t unconfined_cronjob_t:process transition;
+	allow crond_t unconfined_cronjob_t:fd use;
+	allow crond_t unconfined_cronjob_t:key manage_key_perms;
+')
+
+optional_policy(`
+	unconfined_domain(unconfined_cronjob_t)
+>>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 ')

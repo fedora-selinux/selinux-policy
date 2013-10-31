@@ -457,10 +457,43 @@ interface(`rpc_read_nfs_state_data',`
 #
 interface(`rpc_manage_nfs_state_data',`
 	gen_require(`
+<<<<<<< HEAD
 		type var_lib_nfs_t;
 	')
 
 	files_search_var_lib($1)
 	manage_files_pattern($1, var_lib_nfs_t, var_lib_nfs_t)
 	allow $1 var_lib_nfs_t:file relabel_file_perms;
+=======
+		attribute rpc_domain;
+		type nfsd_initrc_exec_t, rpcd_initrc_exec_t, exports_t;
+		type var_lib_nfs_t, rpcd_var_run_t, gssd_tmp_t;
+		type nfsd_ro_t, nfsd_rw_t, gssd_keytab_t;
+	')
+
+	allow $1 rpc_domain:process { ptrace signal_perms };
+	ps_process_pattern($1, rpc_domain)
+
+	init_labeled_script_domtrans($1, { nfsd_initrc_exec_t rpcd_initrc_exec_t })
+ 	domain_system_change_exemption($1)
+ 	role_transition $2 { nfsd_initrc_exec_t rpcd_initrc_exec_t } system_r;
+ 	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, { gssd_keytab_t exports_t })
+
+	files_list_var_lib($1)
+	admin_pattern($1, var_lib_nfs_t)
+
+	files_list_pids($1)
+	admin_pattern($1, rpcd_var_run_t)
+
+	files_list_all($1)
+	admin_pattern($1, { nfsd_ro_t nfsd_rw_t })
+
+	files_list_tmp($1)
+	admin_pattern($1, gssd_tmp_t)
+
+	fs_search_nfsd_fs($1)
+>>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 ')

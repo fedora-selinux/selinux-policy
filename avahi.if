@@ -21,6 +21,25 @@ interface(`avahi_domtrans',`
 
 ########################################
 ## <summary>
+##	Execute avahi init scripts in the
+##	init script domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`avahi_initrc_domtrans',`
+	gen_require(`
+		type avahi_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, avahi_initrc_exec_t)
+')
+
+########################################
+## <summary>
 ##	Send generic signals to avahi.
 ## </summary>
 ## <param name="domain">
@@ -116,6 +135,44 @@ interface(`avahi_stream_connect',`
 
 ########################################
 ## <summary>
+##	Create avahi pid directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`avahi_create_pid_dirs',`
+	gen_require(`
+		type avahi_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 avahi_var_run_t:dir create_dir_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, and write avahi pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`avahi_manage_pid_files',`
+	gen_require(`
+		type avahi_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, avahi_var_run_t, avahi_var_run_t)
+')
+
+########################################
+## <summary>
 ##	Do not audit attempts to search
 ##	avahi pid directories.
 ## </summary>
@@ -135,6 +192,7 @@ interface(`avahi_dontaudit_search_pid',`
 
 ########################################
 ## <summary>
+<<<<<<< HEAD
 ##	Execute avahi server in the avahi domain.
 ## </summary>
 ## <param name="domain">
@@ -154,6 +212,33 @@ interface(`avahi_systemctl',`
 	allow $1 avahi_unit_file_t:service manage_service_perms;
 
 	ps_process_pattern($1, avahi_t)
+=======
+##	Create specified objects in generic
+##	pid directories with the avahi pid file type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	Class of the object being created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`avahi_filetrans_pid',`
+	gen_require(`
+		type avahi_var_run_t;
+	')
+
+	files_pid_filetrans($1, avahi_var_run_t, $2, $3)
+>>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 ')
 
 ########################################
@@ -183,11 +268,15 @@ interface(`avahi_admin',`
 	allow $1 avahi_t:process signal_perms;
 	ps_process_pattern($1, avahi_t)
 
+<<<<<<< HEAD
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 avahi_t:process ptrace;
 	')
 
 	init_labeled_script_domtrans($1, avahi_initrc_exec_t)
+=======
+	avahi_initrc_domtrans($1)
+>>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 	domain_system_change_exemption($1)
 	role_transition $2 avahi_initrc_exec_t system_r;
 	allow $2 system_r;
