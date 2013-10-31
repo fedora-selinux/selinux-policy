@@ -1,4 +1,4 @@
-policy_module(udev, 1.15.4)
+policy_module(udev, 1.16.2)
 
 ########################################
 #
@@ -41,8 +41,13 @@ ifdef(`enable_mcs',`
 allow udev_t self:capability { chown dac_override dac_read_search fowner fsetid sys_admin mknod net_raw net_admin sys_nice sys_rawio sys_resource setuid setgid sys_nice };
 allow udev_t self:capability2 { block_suspend compromise_kernel };
 dontaudit udev_t self:capability sys_tty_config;
+<<<<<<< HEAD
 
 allow udev_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+=======
+allow udev_t self:capability2 block_suspend;
+allow udev_t self:process ~{ setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+>>>>>>> eb4512f6eb13792c76ff8d3e6f2df3a7155db577
 allow udev_t self:process { execmem setfscreate };
 allow udev_t self:fd use;
 allow udev_t self:fifo_file rw_fifo_file_perms;
@@ -67,9 +72,14 @@ can_exec(udev_t, udev_helper_exec_t)
 # read udev config
 allow udev_t udev_etc_t:file read_file_perms;
 
+<<<<<<< HEAD
 allow udev_t udev_tmp_t:dir manage_dir_perms;
 allow udev_t udev_tmp_t:file manage_file_perms;
 files_tmp_filetrans(udev_t, udev_tmp_t, { file dir })
+=======
+allow udev_t udev_tbl_t:file manage_file_perms;
+dev_filetrans(udev_t, udev_tbl_t, file)
+>>>>>>> eb4512f6eb13792c76ff8d3e6f2df3a7155db577
 
 list_dirs_pattern(udev_t, udev_rules_t, udev_rules_t)
 manage_files_pattern(udev_t, udev_rules_t, udev_rules_t)
@@ -79,10 +89,15 @@ manage_dirs_pattern(udev_t, udev_var_run_t, udev_var_run_t)
 manage_sock_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
 manage_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
 manage_lnk_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
+<<<<<<< HEAD
 files_pid_filetrans(udev_t, udev_var_run_t, { file dir })
 allow udev_t udev_var_run_t:file mounton;
 allow udev_t udev_var_run_t:lnk_file relabel_lnk_file_perms;
 dev_filetrans(udev_t, udev_var_run_t, { file lnk_file } )
+=======
+manage_sock_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
+files_pid_filetrans(udev_t, udev_var_run_t, dir, "udev")
+>>>>>>> eb4512f6eb13792c76ff8d3e6f2df3a7155db577
 
 kernel_load_module(udev_t)
 kernel_read_system_state(udev_t)
@@ -200,6 +215,21 @@ systemd_getattr_unit_files(udev_t)
 
 userdom_dontaudit_search_user_home_content(udev_t)
 
+ifdef(`distro_debian',`
+	files_pid_filetrans(udev_t, udev_var_run_t, dir, "xen-hotplug")
+
+	optional_policy(`
+		# for /usr/lib/avahi/avahi-daemon-check-dns.sh
+		kernel_read_vm_sysctls(udev_t)
+		corenet_udp_bind_generic_node(udev_t)
+		miscfiles_read_generic_certs(udev_t)
+		avahi_create_pid_dirs(udev_t)
+		avahi_initrc_domtrans(udev_t)
+		avahi_manage_pid_files(udev_t)
+		avahi_filetrans_pid(udev_t, dir, "avahi-daemon")
+	')
+')
+
 ifdef(`distro_gentoo',`
 	# during boot, init scripts use /dev/.rcsysinit
 	# existance to determine if we are in early booting
@@ -252,9 +282,16 @@ optional_policy(`
 
 optional_policy(`
 	dbus_system_bus_client(udev_t)
+<<<<<<< HEAD
 
 	optional_policy(`
 		systemd_dbus_chat_logind(udev_t)
+=======
+	dbus_use_system_bus_fds(udev_t)
+
+	optional_policy(`
+		consolekit_dbus_chat(udev_t)
+>>>>>>> eb4512f6eb13792c76ff8d3e6f2df3a7155db577
 	')
 ')
 
@@ -293,6 +330,10 @@ optional_policy(`
 	hotplug_read_config(udev_t)
 	# usb.agent searches /var/run/usb
 	hotplug_search_pids(udev_t)
+')
+
+optional_policy(`
+	lvm_domtrans(udev_t)
 ')
 
 optional_policy(`
