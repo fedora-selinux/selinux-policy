@@ -5,6 +5,13 @@ policy_module(kdumpgui, 1.1.0)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow s-c-kdump to run bootloader in bootloader_t.
+## </p>
+## </desc>
+gen_tunable(kdumpgui_run_bootloader, false)
+
 type kdumpgui_t;
 type kdumpgui_exec_t;
 init_daemon_domain(kdumpgui_t, kdumpgui_exec_t)
@@ -68,9 +75,14 @@ init_access_check(kdumpgui_t)
 userdom_dontaudit_search_admin_dir(kdumpgui_t)
 
 optional_policy(`
-	bootloader_exec(kdumpgui_t)
-	bootloader_manage_config(kdumpgui_t)
-')
+    tunable_policy(`kdumpgui_run_bootloader',`
+        bootloader_domtrans(kdumpgui_t)
+        #if s-c-kdump is involved
+        bootloader_manage_config(kdumpgui_t)
+    ',`
+        bootloader_exec(kdumpgui_t)
+        bootloader_manage_config(kdumpgui_t)
+    ')
 
 optional_policy(`
 	dbus_system_domain(kdumpgui_t, kdumpgui_exec_t)
