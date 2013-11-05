@@ -79,6 +79,7 @@ miscfiles_read_localization(docker_t)
 mount_domtrans(docker_t)
 
 sysnet_dns_name_resolve(docker_t)
+sysnet_exec_ifconfig(docker_t)
 
 optional_policy(`
 	fstools_domtrans(docker_t)
@@ -93,7 +94,7 @@ optional_policy(`
 #
 
 allow docker_t self:capability { sys_admin sys_boot dac_override setpcap sys_ptrace };
-allow docker_t self:process setsched;
+allow docker_t self:process { setsched signal_perms };
 allow docker_t self:netlink_route_socket nlmsg_write;
 allow docker_t self:unix_dgram_socket create_socket_perms;
 
@@ -103,6 +104,8 @@ kernel_setsched(docker_t)
 
 dev_getattr_all_blk_files(docker_t)
 dev_read_urand(docker_t)
+dev_read_lvm_control(docker_t)
+dev_read_sysfs(docker_t)
 
 files_manage_isid_type_dirs(docker_t)
 files_manage_isid_type_files(docker_t)
@@ -122,9 +125,6 @@ term_use_generic_ptys(docker_t)
 term_use_ptmx(docker_t)
 term_getattr_pty_fs(docker_t)
 
-dev_read_lvm_control(docker_t)
-
-gen_require(`
-type lvm_t;
+optional_policy(`
+	virt_read_config(docker_t)
 ')
-docker_rw_sem(lvm_t)
