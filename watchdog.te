@@ -21,6 +21,9 @@ logging_log_file(watchdog_log_t)
 type watchdog_var_run_t;
 files_pid_file(watchdog_var_run_t)
 
+type watchdog_unconfined_exec_t;
+application_executable_file(watchdog_unconfined_exec_t)
+
 ########################################
 #
 # Local policy
@@ -100,4 +103,29 @@ optional_policy(`
 
 optional_policy(`
 	udev_read_db(watchdog_t)
+')
+
+########################################
+#
+# watchdog_unconfined_script_t local policy
+#
+
+optional_policy(`
+	type watchdog_unconfined_t;
+	domain_type(watchdog_unconfined_t)
+
+	domain_entry_file(watchdog_unconfined_t, watchdog_unconfined_exec_t)
+	role system_r types watchdog_unconfined_t;
+
+	domtrans_pattern(watchdog_t, watchdog_unconfined_exec_t, watchdog_unconfined_t)
+
+	allow watchdog_t watchdog_unconfined_exec_t:dir search_dir_perms;
+	allow watchdog_t watchdog_unconfined_exec_t:dir read_file_perms;
+	allow watchdog_t watchdog_unconfined_exec_t:file ioctl;
+
+	init_domtrans_script(watchdog_unconfined_t)
+
+	optional_policy(`
+		unconfined_domain(watchdog_unconfined_t)
+	')
 ')
