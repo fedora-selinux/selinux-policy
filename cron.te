@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-policy_module(cron, 2.2.1)
-=======
 policy_module(cron, 2.6.3)
->>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 
 gen_require(`
 	class passwd rootok;
@@ -20,6 +16,15 @@ gen_require(`
 ##	</p>
 ## </desc>
 gen_tunable(cron_can_relabel, false)
+
+## <desc>
+##  <p>
+##  Determine whether crond can execute jobs
+##  in the user domain as opposed to the
+##  the generic cronjob domain.
+##  </p>
+## </desc>
+gen_tunable(cron_userdomain_transition, false)
 
 ## <desc>
 ##	<p>
@@ -106,10 +111,6 @@ files_lock_file(system_cronjob_lock_t)
 
 type system_cronjob_tmp_t alias system_crond_tmp_t;
 files_tmp_file(system_cronjob_tmp_t)
-
-type unconfined_cronjob_t;
-domain_type(unconfined_cronjob_t)
-domain_cron_exemption_target(unconfined_cronjob_t)
 
 # Type of user crontabs once moved to cron spool.
 type user_cron_spool_t, cron_spool_type;
@@ -390,8 +391,6 @@ files_pid_filetrans(system_cronjob_t, cron_var_run_t, file)
 
 allow system_cronjob_t system_cron_spool_t:file read_file_perms;
 
-mls_file_read_to_clearance(system_cronjob_t)
-
 # anacron forces the following
 manage_files_pattern(system_cronjob_t, system_cron_spool_t, system_cron_spool_t)
 
@@ -485,19 +484,14 @@ files_dontaudit_search_pids(system_cronjob_t)
 files_manage_generic_spool(system_cronjob_t)
 files_create_boot_flag(system_cronjob_t)
 
-<<<<<<< HEAD
+mls_file_read_to_clearance(system_cronjob_t)
+
+init_domtrans_script(system_cronjob_t)
 init_use_script_fds(system_cronjob_t)
 init_read_utmp(system_cronjob_t)
 init_dontaudit_rw_utmp(system_cronjob_t)
 # prelink tells init to restart it self, we either need to allow or dontaudit
 init_telinit(system_cronjob_t)
-=======
-mls_file_read_to_clearance(system_cronjob_t)
-
->>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
-init_domtrans_script(system_cronjob_t)
-init_read_utmp(system_cronjob_t)
-init_use_script_fds(system_cronjob_t)
 
 auth_use_nsswitch(system_cronjob_t)
 
@@ -604,7 +598,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-<<<<<<< HEAD
 	postfix_read_config(system_cronjob_t)
 ')	
 
@@ -617,8 +610,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-=======
->>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 	samba_read_config(system_cronjob_t)
 	samba_read_log(system_cronjob_t)
 ')
@@ -751,24 +742,6 @@ optional_policy(`
 	nis_use_ypbind(cronjob_t)
 ')
 
-########################################
-#
-# Unconfined cronjobs local policy
-#
-
-<<<<<<< HEAD
-optional_policy(`
-	# Permit a transition from the crond_t domain to this domain.
-	# The transition is requested explicitly by the modified crond 
-	# via setexeccon.  There is no way to set up an automatic
-	# transition, since crontabs are configuration files, not executables.
-	allow crond_t unconfined_cronjob_t:process transition;
-	dontaudit crond_t unconfined_cronjob_t:process { noatsecure siginh rlimitinh };
-	allow crond_t unconfined_cronjob_t:fd use;
-
-	unconfined_domain(unconfined_cronjob_t)
-')
-
 ##############################
 #
 # crontab common policy
@@ -836,7 +809,13 @@ optional_policy(`
 optional_policy(`
 	openshift_dontaudit_rw_inherited_fifo_files(crontab_domain)
 	openshift_transition(system_cronjob_t)
-=======
+')
+
+########################################
+#
+# Unconfined cronjobs local policy
+#
+
 type unconfined_cronjob_t;
 domain_type(unconfined_cronjob_t)
 domain_cron_exemption_target(unconfined_cronjob_t)
@@ -855,5 +834,4 @@ tunable_policy(`cron_userdomain_transition',`
 
 optional_policy(`
 	unconfined_domain(unconfined_cronjob_t)
->>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 ')
