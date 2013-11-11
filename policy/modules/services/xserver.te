@@ -421,7 +421,7 @@ tunable_policy(`deny_ptrace',`',`
 	allow xdm_t self:process ptrace;
 ')
 
-allow xdm_t self:process { setexec setpgid getattr getcap setcap getsched getsession setsched setrlimit signal_perms setkeycreate };
+allow xdm_t self:process { setexec setpgid getattr getcap setcap getsched getsession setsched setrlimit signal_perms setkeycreate transition };
 allow xdm_t self:fifo_file rw_fifo_file_perms;
 allow xdm_t self:shm create_shm_perms;
 allow xdm_t self:sem create_sem_perms;
@@ -430,9 +430,11 @@ allow xdm_t self:unix_dgram_socket { create_socket_perms sendto };
 allow xdm_t self:tcp_socket create_stream_socket_perms;
 allow xdm_t self:udp_socket create_socket_perms;
 allow xdm_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow xdm_t self:netlink_selinux_socket create_socket_perms;
 allow xdm_t self:socket create_socket_perms;
 allow xdm_t self:appletalk_socket create_socket_perms;
 allow xdm_t self:key { search link write };
+allow xdm_t self:dbus { send_msg acquire_svc };
 
 allow xdm_t xauth_home_t:file manage_file_perms;
 
@@ -574,6 +576,7 @@ dev_rw_input_dev(xdm_t)
 dev_setattr_apm_bios_dev(xdm_t)
 dev_rw_dri(xdm_t)
 dev_rw_agp(xdm_t)
+dev_rw_wireless(xdm_t)
 dev_getattr_xserver_misc_dev(xdm_t)
 dev_setattr_xserver_misc_dev(xdm_t)
 dev_rw_xserver_misc(xdm_t)
@@ -863,6 +866,7 @@ optional_policy(`
 
 optional_policy(`
 	dbus_system_bus_client(xdm_t)
+	dbus_connect_system_bus(xdm_t)
 
 	optional_policy(`
 		bluetooth_dbus_chat(xdm_t)
@@ -1034,7 +1038,7 @@ type_transition xserver_t xserver_t:x_colormap root_xcolormap_t;
 type_transition root_xdrawable_t input_xevent_t:x_event root_input_xevent_t;
 
 allow xserver_t { root_xdrawable_t x_domain }:x_drawable send;
-allow xserver_t input_xevent_t:x_event send;
+allow xserver_t xevent_type:x_event send;
 
 # setuid/setgid for the wrapper program to change UID
 # sys_rawio is for iopl access - should not be needed for frame-buffer
