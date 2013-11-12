@@ -34,7 +34,7 @@ interface(`rpc_stub',`
 #
 template(`rpc_domain_template',`
 	gen_require(`
-		type var_lib_nfs_t;
+        attribute rpc_domain;
 	')
 
 	########################################
@@ -42,9 +42,10 @@ template(`rpc_domain_template',`
 	# Declarations
 	#
 
-	type $1_t;
+	type $1_t, rpc_domain;
 	type $1_exec_t;
 	init_daemon_domain($1_t, $1_exec_t)
+
 	domain_use_interactive_fds($1_t)
 
 	####################################
@@ -52,76 +53,9 @@ template(`rpc_domain_template',`
 	# Local Policy
 	#
 
-	dontaudit $1_t self:capability { net_admin sys_tty_config };
-	allow $1_t self:capability net_bind_service;
-	allow $1_t self:process signal_perms;
-	allow $1_t self:unix_dgram_socket create_socket_perms;
-	allow $1_t self:unix_stream_socket create_stream_socket_perms;
-	allow $1_t self:tcp_socket create_stream_socket_perms;
-	allow $1_t self:udp_socket create_socket_perms;
-
-	manage_dirs_pattern($1_t, var_lib_nfs_t, var_lib_nfs_t)
-	manage_files_pattern($1_t, var_lib_nfs_t, var_lib_nfs_t)
-
-	kernel_list_proc($1_t)
-	kernel_read_proc_symlinks($1_t)
-	kernel_read_kernel_sysctls($1_t)
-	# bind to arbitary unused ports
-	kernel_rw_rpc_sysctls($1_t)
-
-	dev_read_sysfs($1_t)
-	dev_read_urand($1_t)
-	dev_read_rand($1_t)
-
-	corenet_all_recvfrom_netlabel($1_t)
-	corenet_tcp_sendrecv_generic_if($1_t)
-	corenet_udp_sendrecv_generic_if($1_t)
-	corenet_tcp_sendrecv_generic_node($1_t)
-	corenet_udp_sendrecv_generic_node($1_t)
-	corenet_tcp_sendrecv_all_ports($1_t)
-	corenet_udp_sendrecv_all_ports($1_t)
-	corenet_tcp_bind_generic_node($1_t)
-	corenet_udp_bind_generic_node($1_t)
-	corenet_tcp_bind_reserved_port($1_t)
-	corenet_tcp_connect_all_ports($1_t)
-	corenet_sendrecv_portmap_client_packets($1_t)
-	# do not log when it tries to bind to a port belonging to another domain
-	corenet_dontaudit_tcp_bind_all_ports($1_t)
-	corenet_dontaudit_udp_bind_all_ports($1_t)
-	# bind to arbitary unused ports
-	corenet_tcp_bind_generic_port($1_t)
-	corenet_udp_bind_generic_port($1_t)
-	corenet_tcp_bind_all_rpc_ports($1_t)
-	corenet_udp_bind_all_rpc_ports($1_t)
-	corenet_sendrecv_generic_server_packets($1_t)
-
-	fs_rw_rpc_named_pipes($1_t)
-	fs_search_auto_mountpoints($1_t)
-
-	files_read_etc_files($1_t)
-	files_read_etc_runtime_files($1_t)
-	files_search_var($1_t)
-	files_search_var_lib($1_t)
-	files_list_home($1_t)
-
 	auth_use_nsswitch($1_t)
 
 	logging_send_syslog_msg($1_t)
-
-
-	userdom_dontaudit_use_unpriv_user_fds($1_t)
-
-	optional_policy(`
-		rpcbind_stream_connect($1_t)
-	')
-
-	optional_policy(`
-		seutil_sigchld_newrole($1_t)
-	')
-
-	optional_policy(`
-		udev_read_db($1_t)
-	')
 ')
 
 ########################################
@@ -457,14 +391,33 @@ interface(`rpc_read_nfs_state_data',`
 #
 interface(`rpc_manage_nfs_state_data',`
 	gen_require(`
-<<<<<<< HEAD
 		type var_lib_nfs_t;
 	')
 
 	files_search_var_lib($1)
 	manage_files_pattern($1, var_lib_nfs_t, var_lib_nfs_t)
 	allow $1 var_lib_nfs_t:file relabel_file_perms;
-=======
+')
+
+#######################################
+## <summary>
+##  All of the rules required to
+##  administrate an rpc environment.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  Role allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`rpc_admin',`
+    gen_require(`
 		attribute rpc_domain;
 		type nfsd_initrc_exec_t, rpcd_initrc_exec_t, exports_t;
 		type var_lib_nfs_t, rpcd_var_run_t, gssd_tmp_t;
@@ -495,5 +448,4 @@ interface(`rpc_manage_nfs_state_data',`
 	admin_pattern($1, gssd_tmp_t)
 
 	fs_search_nfsd_fs($1)
->>>>>>> 7054491bc92b356a5e2e14207a4dcdd02539fb51
 ')
