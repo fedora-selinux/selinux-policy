@@ -62,6 +62,9 @@ systemd_unit_file(sshd_unit_file_t)
 type sshd_key_t;
 files_type(sshd_key_t)
 
+type sshd_keytab_t;
+files_type(sshd_keytab_t)
+
 type ssh_t;
 type ssh_exec_t;
 typealias ssh_t alias { user_ssh_t staff_ssh_t sysadm_ssh_t };
@@ -96,9 +99,6 @@ files_poly_parent(ssh_home_t)
 ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(sshd_t, sshd_exec_t, s0 - mcs_systemhigh)
 ')
-
-type sshd_keytab_t;
-files_type(sshd_keytab_t)
 
 ##############################
 #
@@ -263,17 +263,9 @@ optional_policy(`
 # so a tunnel can point to another ssh tunnel
 allow sshd_t self:netlink_route_socket r_netlink_socket_perms;
 allow sshd_t self:key { search link write };
-<<<<<<< HEAD
 allow sshd_t self:process setcurrent;
-=======
 
 allow sshd_t sshd_keytab_t:file read_file_perms;
-
-manage_dirs_pattern(sshd_t, sshd_tmp_t, sshd_tmp_t)
-manage_files_pattern(sshd_t, sshd_tmp_t, sshd_tmp_t)
-manage_sock_files_pattern(sshd_t, sshd_tmp_t, sshd_tmp_t)
-files_tmp_filetrans(sshd_t, sshd_tmp_t, { dir file sock_file })
->>>>>>> eb4512f6eb13792c76ff8d3e6f2df3a7155db577
 
 kernel_search_key(sshd_t)
 kernel_link_key(sshd_t)
@@ -294,7 +286,6 @@ corenet_tcp_bind_xserver_port(sshd_t)
 corenet_tcp_bind_vnc_port(sshd_t)
 corenet_sendrecv_xserver_server_packets(sshd_t)
 
-<<<<<<< HEAD
 auth_exec_login_program(sshd_t)
 
 userdom_read_user_home_content_files(sshd_t)
@@ -303,11 +294,6 @@ userdom_manage_tmp_role(system_r, sshd_t)
 userdom_spec_domtrans_unpriv_users(sshd_t)
 userdom_signal_unpriv_users(sshd_t)
 userdom_dyntransition_unpriv_users(sshd_t)
-=======
-ifdef(`distro_debian',`
-	allow sshd_t self:process { getcap setcap };
-')
->>>>>>> eb4512f6eb13792c76ff8d3e6f2df3a7155db577
 
 tunable_policy(`ssh_sysadm_login',`
 	# Relabel and access ptys created by sshd
@@ -334,7 +320,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(sshd, sshd_t)
+    kerberos_read_keytab(sshd_t)
+    kerberos_use(sshd_t)
 ')
 
 optional_policy(`
