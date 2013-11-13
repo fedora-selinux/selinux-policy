@@ -1,10 +1,20 @@
-policy_module(gpg, 2.6.0)
+policy_module(gpg, 2.8.0)
 
 ########################################
 #
 # Declarations
 #
 attribute gpgdomain;
+
+attribute_role gpg_roles;
+roleattribute system_r gpg_roles;
+
+attribute_role gpg_agent_roles;
+
+attribute_role gpg_helper_roles;
+roleattribute system_r gpg_helper_roles;
+
+attribute_role gpg_pinentry_roles;
 
 ## <desc>
 ## <p>
@@ -26,22 +36,20 @@ type gpg_t, gpgdomain;
 type gpg_exec_t;
 typealias gpg_t alias { user_gpg_t staff_gpg_t sysadm_gpg_t };
 typealias gpg_t alias { auditadm_gpg_t secadm_gpg_t };
-application_domain(gpg_t, gpg_exec_t)
-ubac_constrained(gpg_t)
-role system_r types gpg_t;
+userdom_user_application_domain(gpg_t, gpg_exec_t)
+role gpg_roles types gpg_t;
 
 type gpg_agent_t;
 type gpg_agent_exec_t;
 typealias gpg_agent_t alias { user_gpg_agent_t staff_gpg_agent_t sysadm_gpg_agent_t };
 typealias gpg_agent_t alias { auditadm_gpg_agent_t secadm_gpg_agent_t };
-application_domain(gpg_agent_t, gpg_agent_exec_t)
-ubac_constrained(gpg_agent_t)
+userdom_user_application_domain(gpg_agent_t, gpg_agent_exec_t)
+role gpg_agent_roles types gpg_agent_t;
 
 type gpg_agent_tmp_t;
 typealias gpg_agent_tmp_t alias { user_gpg_agent_tmp_t staff_gpg_agent_tmp_t sysadm_gpg_agent_tmp_t };
 typealias gpg_agent_tmp_t alias { auditadm_gpg_agent_tmp_t secadm_gpg_agent_tmp_t };
-files_tmp_file(gpg_agent_tmp_t)
-ubac_constrained(gpg_agent_tmp_t)
+userdom_user_tmp_file(gpg_agent_tmp_t)
 
 type gpg_secret_t;
 typealias gpg_secret_t alias { user_gpg_secret_t staff_gpg_secret_t sysadm_gpg_secret_t };
@@ -52,24 +60,25 @@ type gpg_helper_t;
 type gpg_helper_exec_t;
 typealias gpg_helper_t alias { user_gpg_helper_t staff_gpg_helper_t sysadm_gpg_helper_t };
 typealias gpg_helper_t alias { auditadm_gpg_helper_t secadm_gpg_helper_t };
-application_domain(gpg_helper_t, gpg_helper_exec_t)
-ubac_constrained(gpg_helper_t)
-role system_r types gpg_helper_t;
+userdom_user_application_domain(gpg_helper_t, gpg_helper_exec_t)
+role gpg_helper_roles types gpg_helper_t;
 
 type gpg_pinentry_t;
 type pinentry_exec_t;
 typealias gpg_pinentry_t alias { user_gpg_pinentry_t staff_gpg_pinentry_t sysadm_gpg_pinentry_t };
 typealias gpg_pinentry_t alias { auditadm_gpg_pinentry_t secadm_gpg_pinentry_t };
-application_domain(gpg_pinentry_t, pinentry_exec_t)
-ubac_constrained(gpg_pinentry_t)
+userdom_user_application_domain(gpg_pinentry_t, pinentry_exec_t)
+role gpg_pinentry_roles types gpg_pinentry_t;
 
 type gpg_pinentry_tmp_t;
-files_tmp_file(gpg_pinentry_tmp_t)
-ubac_constrained(gpg_pinentry_tmp_t)
+userdom_user_tmp_file(gpg_pinentry_tmp_t)
 
 type gpg_pinentry_tmpfs_t;
-files_tmpfs_file(gpg_pinentry_tmpfs_t)
-ubac_constrained(gpg_pinentry_tmpfs_t)
+userdom_user_tmpfs_file(gpg_pinentry_tmpfs_t)
+
+optional_policy(`
+    pulseaudio_tmpfs_content(gpg_pinentry_tmpfs_t)
+')
 
 type gpg_web_t;
 domain_type(gpg_web_t)
@@ -377,11 +386,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	pulseaudio_exec(gpg_pinentry_t)
-	pulseaudio_rw_home_files(gpg_pinentry_t)
-	pulseaudio_setattr_home_dir(gpg_pinentry_t)
+    pulseaudio_run(gpg_pinentry_t, gpg_pinentry_roles)
 	pulseaudio_stream_connect(gpg_pinentry_t)
-	pulseaudio_signull(gpg_pinentry_t)
 ')
 
 optional_policy(`

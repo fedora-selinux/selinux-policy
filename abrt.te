@@ -1,4 +1,4 @@
-policy_module(abrt, 1.2.0)
+policy_module(abrt, 1.4.1)
 
 ########################################
 #
@@ -14,22 +14,27 @@ policy_module(abrt, 1.2.0)
 gen_tunable(abrt_anon_write, false)
 
 ## <desc>
-## <p>
-## Allow abrt-handle-upload to modify public files
-## used for public file transfer services in /var/spool/abrt-upload/.
-## </p>
+##	<p>
+##	Determine whether abrt-handle-upload
+##	can modify public files used for public file
+##	transfer services in /var/spool/abrt-upload/.
+##	</p>
 ## </desc>
 gen_tunable(abrt_upload_watch_anon_write, true)
 
 ## <desc>
-##  <p>
-##  Allow ABRT to run in abrt_handle_event_t domain
-##  to handle ABRT event scripts
-##  </p>
+##	<p>
+##	Determine whether ABRT can run in
+##	the abrt_handle_event_t domain to
+##	handle ABRT event scripts.
+##	</p>
 ## </desc>
 gen_tunable(abrt_handle_event, false)
 
 attribute abrt_domain;
+
+attribute_role abrt_helper_roles;
+roleattribute system_r abrt_helper_roles;
 
 abrt_basic_types_template(abrt)
 init_daemon_domain(abrt_t, abrt_exec_t)
@@ -40,32 +45,26 @@ init_script_file(abrt_initrc_exec_t)
 type abrt_unit_file_t;
 systemd_unit_file(abrt_unit_file_t)
 
-# etc files
 type abrt_etc_t;
 files_config_file(abrt_etc_t)
 
-# log files
 type abrt_var_log_t;
 logging_log_file(abrt_var_log_t)
 
 type abrt_tmp_t;
 files_tmp_file(abrt_tmp_t)
 
-# var/cache files
 type abrt_var_cache_t;
 files_type(abrt_var_cache_t)
 files_tmp_file(abrt_var_cache_t)
 userdom_user_tmp_content(abrt_var_cache_t)
 
-# pid files
 type abrt_var_run_t;
 files_pid_file(abrt_var_run_t)
 
 abrt_basic_types_template(abrt_dump_oops)
 init_system_domain(abrt_dump_oops_t, abrt_dump_oops_exec_t)
 
-# type for abrt-handle-event to handle
-# ABRT event scripts
 abrt_basic_types_template(abrt_handle_event)
 application_domain(abrt_handle_event_t, abrt_handle_event_exec_t)
 role system_r types abrt_handle_event_t;
@@ -76,16 +75,8 @@ role system_r types abrt_handle_event_t;
 # to handle /var/cache/abrt
 abrt_basic_types_template(abrt_helper)
 application_domain(abrt_helper_t, abrt_helper_exec_t)
-role system_r types abrt_helper_t;
+role abrt_helper_roles types abrt_helper_t;
 
-ifdef(`enable_mcs',`
-	init_ranged_daemon_domain(abrt_t, abrt_exec_t, s0 - mcs_systemhigh)
-')
-
-#
-# Support for ABRT retrace server
-
-#
 abrt_basic_types_template(abrt_retrace_worker)
 application_domain(abrt_retrace_worker_t, abrt_retrace_worker_exec_t)
 role system_r types abrt_retrace_worker_t;
@@ -100,16 +91,19 @@ files_type(abrt_retrace_cache_t)
 type abrt_retrace_spool_t;
 files_spool_file(abrt_retrace_spool_t)
 
-# Support abrt-watch log
 abrt_basic_types_template(abrt_watch_log)
 init_daemon_domain(abrt_watch_log_t, abrt_watch_log_exec_t)
 
-# Support for abrt-upload-watch
 abrt_basic_types_template(abrt_upload_watch)
 init_daemon_domain(abrt_upload_watch_t, abrt_upload_watch_exec_t)
 
 type abrt_upload_watch_tmp_t;
 files_tmp_file(abrt_upload_watch_tmp_t)
+
+
+ifdef(`enable_mcs',`
+	init_ranged_daemon_domain(abrt_t, abrt_exec_t, s0 - mcs_systemhigh)
+')
 
 ########################################
 #
@@ -478,7 +472,7 @@ logging_send_syslog_msg(abrt_dump_oops_t)
 
 #######################################
 #
-# abrt_watch_log local policy
+# Watch log local policy
 #
 
 allow abrt_watch_log_t self:fifo_file rw_fifo_file_perms;
@@ -493,13 +487,13 @@ corecmd_exec_bin(abrt_watch_log_t)
 logging_read_all_logs(abrt_watch_log_t)
 logging_send_syslog_msg(abrt_watch_log_t)
 
-#optional_policy(`
-#	unconfined_domain(abrt_watch_log_t)
-#')
+tunable_policy(`abrt_upload_watch_anon_write',`
+	miscfiles_manage_public_files(abrt_upload_watch_t)
+')
 
 #######################################
 #
-# abrt-upload-watch local policy
+# Upload watch local policy
 #
 
 allow abrt_upload_watch_t self:capability dac_override;
@@ -531,7 +525,7 @@ optional_policy(`
 
 #######################################
 #
-# Local policy for all abrt domain
+# Global local policy
 #
 
 allow abrt_domain abrt_var_run_t:sock_file write_sock_file_perms;

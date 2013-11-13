@@ -1,4 +1,4 @@
-policy_module(sosreport, 1.2.2)
+policy_module(sosreport, 1.3.1)
 
 ########################################
 #
@@ -32,7 +32,7 @@ optional_policy(`
 #
 
 allow sosreport_t self:capability { kill net_admin net_raw setuid sys_admin sys_nice dac_override };
-dontaudit sosreport_t self:capability { sys_ptrace };
+dontaudit sosreport_t self:capability sys_ptrace;
 allow sosreport_t self:process { setsched signull };
 allow sosreport_t self:fifo_file rw_fifo_file_perms;
 allow sosreport_t self:tcp_socket { accept listen };
@@ -54,6 +54,12 @@ files_pid_filetrans(sosreport_t, sosreport_var_run_t, { file dir sock_file })
 
 manage_files_pattern(sosreport_t, sosreport_tmpfs_t, sosreport_tmpfs_t)
 fs_tmpfs_filetrans(sosreport_t, sosreport_tmpfs_t, file)
+
+manage_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_dirs_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_sock_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+manage_lnk_files_pattern(sosreport_t, sosreport_var_run_t, sosreport_var_run_t)
+files_pid_filetrans(sosreport_t, sosreport_var_run_t, { file dir sock_file })
 
 kernel_read_network_state(sosreport_t)
 kernel_read_all_sysctls(sosreport_t)
@@ -121,7 +127,6 @@ logging_read_all_logs(sosreport_t)
 logging_send_syslog_msg(sosreport_t)
 
 sysnet_read_config(sosreport_t)
-
 
 optional_policy(`
 	abrt_manage_pid_files(sosreport_t)

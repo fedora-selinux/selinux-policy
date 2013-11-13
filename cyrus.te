@@ -1,4 +1,4 @@
-policy_module(cyrus, 1.12.2)
+policy_module(cyrus, 1.13.1)
 
 ########################################
 #
@@ -11,6 +11,9 @@ init_daemon_domain(cyrus_t, cyrus_exec_t)
 
 type cyrus_initrc_exec_t;
 init_script_file(cyrus_initrc_exec_t)
+
+type cyrus_keytab_t;
+files_type(cyrus_keytab_t)
 
 type cyrus_tmp_t;
 files_tmp_file(cyrus_tmp_t)
@@ -40,6 +43,8 @@ allow cyrus_t self:msg { send receive };
 allow cyrus_t self:unix_dgram_socket sendto;
 allow cyrus_t self:unix_stream_socket { accept connectto listen };
 allow cyrus_t self:tcp_socket { accept listen };
+
+allow cyrus_t cyrus_keytab_t:file read_file_perms;
 
 manage_dirs_pattern(cyrus_t, cyrus_tmp_t, cyrus_tmp_t)
 manage_files_pattern(cyrus_t, cyrus_tmp_t, cyrus_tmp_t)
@@ -119,7 +124,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(cyrus, cyrus_t)
+	kerberos_read_keytab(cyrus_t)
+	kerberos_use(cyrus_t)
 ')
 
 optional_policy(`

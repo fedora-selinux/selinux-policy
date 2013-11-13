@@ -1,4 +1,4 @@
-policy_module(automount, 1.13.3)
+policy_module(automount, 1.14.1)
 
 ########################################
 #
@@ -12,8 +12,8 @@ init_daemon_domain(automount_t, automount_exec_t)
 type automount_initrc_exec_t;
 init_script_file(automount_initrc_exec_t)
 
-type automount_var_run_t;
-files_pid_file(automount_var_run_t)
+type automount_keytab_t;
+files_type(automount_keytab_t)
 
 type automount_lock_t;
 files_lock_file(automount_lock_t)
@@ -24,6 +24,9 @@ files_mountpoint(automount_tmp_t)
 
 type automount_unit_file_t;
 systemd_unit_file(automount_unit_file_t)
+
+type automount_var_run_t;
+files_pid_file(automount_var_run_t)
 
 ########################################
 #
@@ -39,6 +42,8 @@ allow automount_t self:tcp_socket { accept listen };
 allow automount_t self:rawip_socket create_socket_perms;
 
 can_exec(automount_t, automount_exec_t)
+
+allow automount_t automount_keytab_t:file read_file_perms;
 
 allow automount_t automount_lock_t:file manage_file_perms;
 files_lock_filetrans(automount_t, automount_lock_t, file)
@@ -148,8 +153,9 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(automount, automount_t)
 	kerberos_read_config(automount_t)
+	kerberos_read_keytab(automount_t)
+	kerberos_use(automount_t)
 	kerberos_dontaudit_write_config(automount_t)
 ')
 

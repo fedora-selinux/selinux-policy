@@ -1,4 +1,4 @@
-policy_module(tmpreaper, 1.6.3)
+policy_module(tmpreaper, 1.7.1)
 
 ########################################
 #
@@ -16,12 +16,16 @@ application_domain(tmpreaper_t, tmpreaper_exec_t)
 #
 
 allow tmpreaper_t self:capability { dac_override dac_read_search fowner };
+allow tmpreaper_t self:fifo_file rw_fifo_file_perms;
 
 kernel_list_unlabeled(tmpreaper_t)
 kernel_read_system_state(tmpreaper_t)
 kernel_delete_unlabeled(tmpreaper_t)
 
 dev_read_urand(tmpreaper_t)
+
+corecmd_exec_bin(tmpreaper_t)
+corecmd_exec_shell(tmpreaper_t)
 
 fs_getattr_xattr_fs(tmpreaper_t)
 fs_list_all(tmpreaper_t)
@@ -43,9 +47,15 @@ mls_file_write_all_levels(tmpreaper_t)
 
 auth_use_nsswitch(tmpreaper_t)
 
+init_use_inherited_script_ptys(tmpreaper_t)
+
 logging_send_syslog_msg(tmpreaper_t)
 
 miscfiles_delete_man_pages(tmpreaper_t)
+
+ifdef(`distro_debian',`
+	term_dontaudit_use_unallocated_ttys(tmpreaper_t)
+')
 
 ifdef(`distro_redhat',`
 	userdom_list_user_home_content(tmpreaper_t)
@@ -91,6 +101,10 @@ optional_policy(`
 	sandbox_delete_files(tmpreaper_t)
 	sandbox_delete_sock_files(tmpreaper_t)
 	sandbox_setattr_dirs(tmpreaper_t)
+')
+
+optional_policy(`
+	plymouthd_exec_plymouth(tmpreaper_t)
 ')
 
 optional_policy(`

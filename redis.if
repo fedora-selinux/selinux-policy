@@ -1,5 +1,4 @@
-
-## <summary>redis-server SELinux policy</summary>
+## <summary>Advanced key-value store</summary>
 
 ########################################
 ## <summary>
@@ -216,7 +215,6 @@ interface(`redis_systemctl',`
 	ps_process_pattern($1, redis_t)
 ')
 
-
 ########################################
 ## <summary>
 ##	All of the rules required to administrate
@@ -236,24 +234,20 @@ interface(`redis_systemctl',`
 #
 interface(`redis_admin',`
 	gen_require(`
-		type redis_t;
-		type redis_initrc_exec_t;
-		type redis_log_t;
-		type redis_var_lib_t;
-		type redis_var_run_t;
-	type redis_unit_file_t;
+		type redis_t, redis_initrc_exec_t, redis_var_lib_t;
+		type redis_log_t, redis_var_run_t, type redis_unit_file_t;
 	')
 
 	allow $1 redis_t:process { ptrace signal_perms };
 	ps_process_pattern($1, redis_t)
 
-	redis_initrc_domtrans($1)
+	init_labeled_script_domtrans($1, redis_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 redis_initrc_exec_t system_r;
 	allow $2 system_r;
 
 	logging_search_logs($1)
-	admin_pattern($1, redis_log_t)
+	admin_pattern($!, redis_log_t)
 
 	files_search_var_lib($1)
 	admin_pattern($1, redis_var_lib_t)
@@ -264,6 +258,7 @@ interface(`redis_admin',`
 	redis_systemctl($1)
 	admin_pattern($1, redis_unit_file_t)
 	allow $1 redis_unit_file_t:service all_service_perms;
+
 	optional_policy(`
 		systemd_passwd_agent_exec($1)
 		systemd_read_fifo_file_passwd_run($1)

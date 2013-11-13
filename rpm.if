@@ -739,3 +739,63 @@ interface(`rpm_transition_script',`
 	allow rpm_script_t $1:fifo_file rw_fifo_file_perms;
 	allow rpm_script_t $1:process sigchld;
 ')
+
+#######################################
+## <summary>
+##  All of the rules required to
+##  administrate an rpm environment.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  Role allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`rpm_admin',`
+    gen_require(`
+        type rpm_t, rpm_script_t, rpm_initrc_exec_t;
+        type rpm_var_cache_t, rpm_var_lib_t, rpm_lock_t;
+
+        type rpm_log_t, rpm_tmpfs_t, rpm_tmp_t;
+        type rpm_script_tmp_t, rpm_script_tmpfs_t, rpm_file_t;
+    ')
+
+    allow $1 { rpm_t rpm_script_t }:process { ptrace signal_perms };
+    ps_process_pattern($1, { rpm_t rpm_script_t })
+
+	init_labeled_script_domtrans($1, rpm_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 rpm_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	admin_pattern($1, rpm_file_t)
+
+	files_list_var($1)
+	admin_pattern($1, rpm_cache_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, { rpm_tmp_t rpm_script_tmp_t })
+
+	files_list_var_lib($1)
+	admin_pattern($1, rpm_var_lib_t)
+
+	files_search_locks($1)
+	admin_pattern($1, rpm_lock_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, rpm_log_t)
+
+	files_list_pids($1)
+	admin_pattern($1, rpm_var_run_t)
+
+	fs_search_tmpfs($1)
+	admin_pattern($1, { rpm_tmpfs_t rpm_script_tmpfs_t })
+
+	rpm_run($1, $2)
+')

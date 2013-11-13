@@ -1,4 +1,4 @@
-policy_module(cvs, 1.9.1)
+policy_module(cvs, 1.10.2)
 
 ########################################
 #
@@ -16,7 +16,7 @@ gen_tunable(cvs_read_shadow, false)
 type cvs_t;
 type cvs_exec_t;
 inetd_tcp_service_domain(cvs_t, cvs_exec_t)
-init_domain(cvs_t, cvs_exec_t)
+init_daemon_domain(cvs_t, cvs_exec_t)
 application_executable_file(cvs_exec_t)
 
 type cvs_data_t; # customizable
@@ -24,6 +24,9 @@ files_type(cvs_data_t)
 
 type cvs_initrc_exec_t;
 init_script_file(cvs_initrc_exec_t)
+
+type cvs_keytab_t;
+files_type(cvs_keytab_t)
 
 type cvs_tmp_t;
 files_tmp_file(cvs_tmp_t)
@@ -40,10 +43,13 @@ allow cvs_t self:capability { setuid setgid };
 allow cvs_t self:process signal_perms;
 allow cvs_t self:fifo_file rw_fifo_file_perms;
 allow cvs_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
+allow cvs_t self:tcp_socket { accept listen };
 
 manage_dirs_pattern(cvs_t, cvs_data_t, cvs_data_t)
 manage_files_pattern(cvs_t, cvs_data_t, cvs_data_t)
 manage_lnk_files_pattern(cvs_t, cvs_data_t, cvs_data_t)
+
+allow cvs_t cvs_keytab_t:file read_file_perms;
 
 manage_dirs_pattern(cvs_t, cvs_tmp_t, cvs_tmp_t)
 manage_files_pattern(cvs_t, cvs_tmp_t, cvs_tmp_t)
@@ -55,6 +61,15 @@ files_pid_filetrans(cvs_t, cvs_var_run_t, file)
 kernel_read_kernel_sysctls(cvs_t)
 kernel_read_system_state(cvs_t)
 kernel_read_network_state(cvs_t)
+
+corenet_all_recvfrom_unlabeled(cvs_t)
+corenet_all_recvfrom_netlabel(cvs_t)
+corenet_tcp_sendrecv_generic_if(cvs_t)
+corenet_tcp_sendrecv_generic_node(cvs_t)
+
+corenet_sendrecv_cvs_server_packets(cvs_t)
+corenet_tcp_bind_cvs_port(cvs_t)
+corenet_tcp_sendrecv_cvs_port(cvs_t)
 
 corecmd_exec_bin(cvs_t)
 corecmd_exec_shell(cvs_t)
@@ -97,8 +112,9 @@ tunable_policy(`cvs_read_shadow',`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(cvs, cvs_t)
 	kerberos_read_config(cvs_t)
+	kerberos_read_keytab(cvs_t)
+	kerberos_use(cvs_t)
 	kerberos_dontaudit_write_config(cvs_t)
 ')
 

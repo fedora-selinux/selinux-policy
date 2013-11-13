@@ -1,9 +1,20 @@
-policy_module(sendmail, 1.11.0)
+policy_module(sendmail, 1.12.1)
 
 ########################################
 #
 # Declarations
 #
+
+attribute_role sendmail_roles;
+
+attribute_role sendmail_unconfined_roles;
+roleattribute system_r sendmail_unconfined_roles;
+
+type sendmail_initrc_exec_t;
+init_script_file(sendmail_initrc_exec_t)
+
+type sendmail_keytab_t;
+files_type(sendmail_keytab_t)
 
 type sendmail_log_t;
 logging_log_file(sendmail_log_t)
@@ -18,9 +29,11 @@ type sendmail_t;
 mta_sendmail_mailserver(sendmail_t)
 mta_mailserver_delivery(sendmail_t)
 mta_mailserver_sender(sendmail_t)
+role sendmail_roles types sendmail_t;
 
-type sendmail_initrc_exec_t;
-init_script_file(sendmail_initrc_exec_t)
+type unconfined_sendmail_t;
+application_domain(unconfined_sendmail_t, sendmail_exec_t)
+role sendmail_unconfined_roles types unconfined_sendmail_t;
 
 ########################################
 #
@@ -37,8 +50,10 @@ allow sendmail_t self:unix_dgram_socket create_socket_perms;
 allow sendmail_t self:tcp_socket create_stream_socket_perms;
 allow sendmail_t self:udp_socket create_socket_perms;
 
-allow sendmail_t sendmail_log_t:dir setattr;
+allow sendmail_t sendmail_log_t:dir setattr_dir_perms;
 manage_files_pattern(sendmail_t, sendmail_log_t, sendmail_log_t)
+allow sendmail_t sendmail_keytab_t:file read_file_perms;
+
 logging_log_filetrans(sendmail_t, sendmail_log_t, { file dir })
 
 manage_dirs_pattern(sendmail_t, sendmail_tmp_t, sendmail_tmp_t)
@@ -148,7 +163,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(sendmail, sendmail_t)
+	kerberos_read_keytab(sendmail_t)
+	kerberos_use(sendmail_t)
 ')
 
 optional_policy(`
@@ -199,4 +215,16 @@ optional_policy(`
 
 optional_policy(`
 	uucp_domtrans_uux(sendmail_t)
+')
+
+########################################
+#
+# Unconfined local policy
+#
+
+optional_policy(`
+    mta_etc_filetrans_aliases(unconfined_sendmail_t, "aliases")
+    mta_etc_filetrans_aliases(unconfined_sendmail_t, "aliases.db")
+    mta_etc_filetrans_aliases(unconfined_sendmail_t, "aliasesdb-stamp")
+    unconfined_domain(unconfined_sendmail_t)
 ')

@@ -1,4 +1,4 @@
-policy_module(mta, 2.5.0)
+policy_module(mta, 2.7.3)
 
 ########################################
 #
@@ -50,7 +50,126 @@ userdom_user_tmp_file(user_mail_tmp_t)
 
 ########################################
 #
-# System mail local policy
+# Common base mail policy
+#
+
+allow user_mail_domain self:capability { setuid setgid chown };
+allow user_mail_domain self:process { signal_perms setrlimit };
+allow user_mail_domain self:fifo_file rw_fifo_file_perms;
+
+allow user_mail_domain mta_exec_type:file entrypoint;
+
+allow user_mail_domain mail_home_t:file { append_file_perms read_file_perms };
+
+manage_dirs_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
+manage_files_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
+manage_lnk_files_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
+userdom_user_home_dir_filetrans(user_mail_domain, mail_home_rw_t, dir, "Maildir")
+userdom_user_home_dir_filetrans(user_mail_domain, mail_home_rw_t, dir, ".maildir")
+
+read_files_pattern(user_mail_domain, { etc_mail_t etc_aliases_t }, { etc_mail_t etc_aliases_t })
+
+manage_files_pattern(user_mail_domain, { mqueue_spool_t mail_spool_t }, { mqueue_spool_t mail_spool_t })
+read_lnk_files_pattern(user_mail_domain, { mqueue_spool_t mail_spool_t }, { mqueue_spool_t mail_spool_t })
+
+allow user_mail_domain sendmail_exec_t:lnk_file read_lnk_file_perms;
+
+can_exec(user_mail_domain, { mta_exec_type sendmail_exec_t })
+
+kernel_read_crypto_sysctls(user_mail_domain)
+kernel_read_kernel_sysctls(user_mail_domain)
+kernel_read_network_state(user_mail_domain)
+kernel_request_load_module(user_mail_domain)
+
+corenet_tcp_sendrecv_generic_if(user_mail_domain)
+corenet_tcp_sendrecv_generic_node(user_mail_domain)
+
+corenet_sendrecv_all_client_packets(user_mail_domain)
+corenet_tcp_connect_all_ports(user_mail_domain)
+corenet_tcp_sendrecv_all_ports(user_mail_domain)
+
+corecmd_exec_bin(user_mail_domain)
+
+dev_read_urand(user_mail_domain)
+
+domain_use_interactive_fds(user_mail_domain)
+
+files_read_etc_runtime_files(user_mail_domain)
+files_read_usr_files(user_mail_domain)
+files_search_spool(user_mail_domain)
+files_dontaudit_search_pids(user_mail_domain)
+
+fs_getattr_all_fs(user_mail_domain)
+
+init_dontaudit_rw_utmp(user_mail_domain)
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_manage_cifs_dirs(user_mail_domain)
+	fs_manage_cifs_files(user_mail_domain)
+	fs_read_cifs_symlinks(user_mail_domain)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_manage_nfs_dirs(user_mail_domain)
+	fs_manage_nfs_files(user_mail_domain)
+	fs_read_nfs_symlinks(user_mail_domain)
+')
+
+optional_policy(`
+	antivirus_stream_connect(user_mail_domain)
+	antivirus_stream_connect(mta_user_agent)
+')
+
+optional_policy(`
+	courier_manage_spool_dirs(user_mail_domain)
+	courier_manage_spool_files(user_mail_domain)
+	courier_rw_spool_pipes(user_mail_domain)
+')
+
+optional_policy(`
+	exim_domtrans(user_mail_domain)
+	exim_manage_log(user_mail_domain)
+	exim_manage_spool_files(user_mail_domain)
+	exim_read_var_lib_files(user_mail_domain)
+')
+
+optional_policy(`
+	files_getattr_tmp_dirs(user_mail_domain)
+
+	postfix_exec_master(user_mail_domain)
+	postfix_read_config(user_mail_domain)
+	postfix_search_spool(user_mail_domain)
+	postfix_rw_inherited_master_pipes(user_mail_domain)
+
+	ifdef(`distro_redhat',`
+		postfix_config_filetrans(user_mail_domain, etc_aliases_t, { dir file lnk_file sock_file fifo_file })
+	')
+')
+
+optional_policy(`
+	openshift_rw_inherited_content(mta_user_agent)
+')
+
+optional_policy(`
+	procmail_exec(user_mail_domain)
+')
+
+optional_policy(`
+	qmail_domtrans_inject(user_mail_domain)
+')
+
+optional_policy(`
+	sendmail_manage_log(user_mail_domain)
+	sendmail_log_filetrans_sendmail_log(user_mail_domain, file)
+')
+
+optional_policy(`
+	uucp_manage_spool(user_mail_domain)
+')
+
+########################################
+#
+# System local policy
 #
 
 # newalias required this, not sure if it is needed in 'if' file
@@ -139,6 +258,7 @@ optional_policy(`
 	courier_manage_spool_dirs(system_mail_t)
 	courier_manage_spool_files(system_mail_t)
 	courier_rw_spool_pipes(system_mail_t)
+	courier_stream_connect_authdaemon(system_mail_t)
 ')
 
 optional_policy(`
@@ -146,6 +266,7 @@ optional_policy(`
 ')
 
 optional_policy(`
+	fail2ban_dontaudit_rw_stream_sockets(system_mail_t)
 	fail2ban_append_log(system_mail_t)
 	fail2ban_dontaudit_leaks(system_mail_t)
 	fail2ban_rw_inherited_tmp_files(system_mail_t)
@@ -268,6 +389,13 @@ optional_policy(`
 ')
 
 optional_policy(`
+	mailman_manage_data_files(mailserver_domain)
+	mailman_domtrans(mailserver_domain)
+	mailman_append_log(mailserver_domain)
+	mailman_read_log(mailserver_domain)
+')
+
+optional_policy(`
 	postfix_rw_inherited_master_pipes(mailserver_delivery)
 ')
 
@@ -322,128 +450,4 @@ optional_policy(`
 	postfix_list_spool(user_mail_t)
 ')
 
-########################################
-#
-# Comman user_mail_domain policy
-#
-
-allow user_mail_domain self:capability { setuid setgid chown };
-allow user_mail_domain self:process { signal_perms setrlimit };
-allow user_mail_domain self:tcp_socket create_socket_perms;
-allow user_mail_domain self:fifo_file rw_fifo_file_perms;
-allow user_mail_domain mta_exec_type:file entrypoint;
-
-append_files_pattern(user_mail_domain, mail_home_t, mail_home_t)
-read_files_pattern(user_mail_domain, mail_home_t, mail_home_t)
-
-manage_dirs_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
-manage_files_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
-
-read_files_pattern(user_mail_domain, etc_aliases_t, etc_aliases_t)
-
-can_exec(user_mail_domain, mta_exec_type)
-
-allow system_mail_t user_mail_domain:file read_file_perms;
-
-read_files_pattern(user_mail_domain, etc_mail_t, etc_mail_t)
-
-kernel_read_network_state(user_mail_domain)
-kernel_request_load_module(user_mail_domain)
-
-dev_read_urand(user_mail_domain)
-
-
-# Write to /var/spool/mail and /var/spool/mqueue.
-manage_files_pattern(user_mail_domain, mail_spool_t, mail_spool_t)
-manage_files_pattern(user_mail_domain, mqueue_spool_t, mqueue_spool_t)
-read_lnk_files_pattern(user_mail_domain, mail_spool_t, mail_spool_t)
-read_lnk_files_pattern(user_mail_domain, mqueue_spool_t, mqueue_spool_t)
-
-# re-exec itself
-can_exec(user_mail_domain, sendmail_exec_t)
-allow user_mail_domain sendmail_exec_t:lnk_file read_lnk_file_perms;
-
-kernel_read_kernel_sysctls(user_mail_domain)
-
-corenet_tcp_sendrecv_generic_if(user_mail_domain)
-corenet_tcp_sendrecv_generic_node(user_mail_domain)
-corenet_tcp_sendrecv_all_ports(user_mail_domain)
-corenet_tcp_connect_all_ports(user_mail_domain)
-corenet_tcp_connect_smtp_port(user_mail_domain)
-corenet_sendrecv_smtp_client_packets(user_mail_domain)
-
-corecmd_exec_bin(user_mail_domain)
-
-files_search_spool(user_mail_domain)
-# It wants to check for nscd
-files_dontaudit_search_pids(user_mail_domain)
-allow user_mail_domain etc_mail_t:dir search_dir_perms;
-
-files_read_etc_runtime_files(user_mail_domain)
-
-# Check available space.
-fs_getattr_xattr_fs(user_mail_domain)
-
-init_dontaudit_rw_utmp(user_mail_domain)
-
-optional_policy(`
-	courier_manage_spool_dirs(user_mail_domain)
-	courier_manage_spool_files(user_mail_domain)
-	courier_rw_spool_pipes(user_mail_domain)
-')
-
-optional_policy(`
-	exim_domtrans(user_mail_domain)
-	exim_manage_log(user_mail_domain)
-	exim_manage_spool_files(user_mail_domain)
-')
-
-optional_policy(`
-	# postfix needs this for newaliases
-	files_getattr_tmp_dirs(user_mail_domain)
-
-	postfix_exec_master(user_mail_domain)
-	postfix_read_config(user_mail_domain)
-	postfix_search_spool(user_mail_domain)
-	postfix_rw_inherited_master_pipes(user_mail_domain)
-
-	ifdef(`distro_redhat',`
-		# compatability for old default main.cf
-		postfix_config_filetrans(user_mail_domain, etc_aliases_t, { dir file lnk_file sock_file fifo_file })
-	')
-')
-
-optional_policy(`
-	openshift_rw_inherited_content(mta_user_agent)
-')
-
-optional_policy(`
-	procmail_exec(user_mail_domain)
-')
-
-optional_policy(`
-	qmail_domtrans_inject(user_mail_domain)
-')
-
-optional_policy(`
-	# Write to /var/log/sendmail.st
-	sendmail_manage_log(user_mail_domain)
-	sendmail_create_log(user_mail_domain)
-')
-
-optional_policy(`
-	uucp_manage_spool(user_mail_domain)
-')
-
-optional_policy(`
-	antivirus_stream_connect(user_mail_domain)
-	antivirus_stream_connect(mta_user_agent)
-')
-
-optional_policy(`
-	mailman_manage_data_files(mailserver_domain)
-	mailman_domtrans(mailserver_domain)
-	mailman_append_log(mailserver_domain)
-	mailman_read_log(mailserver_domain)
-')
 

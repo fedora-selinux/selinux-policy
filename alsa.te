@@ -1,4 +1,4 @@
-policy_module(alsa, 1.11.4)
+policy_module(alsa, 1.12.2)
 
 ########################################
 #
@@ -17,6 +17,9 @@ files_config_file(alsa_etc_rw_t)
 
 type alsa_tmp_t;
 files_tmp_file(alsa_tmp_t)
+
+type alsa_tmpfs_t;
+files_tmpfs_file(alsa_tmpfs_t)
 
 type alsa_var_lib_t;
 files_type(alsa_var_lib_t)
@@ -55,6 +58,9 @@ manage_files_pattern(alsa_t, alsa_tmp_t, alsa_tmp_t)
 files_tmp_filetrans(alsa_t, alsa_tmp_t, { dir file })
 userdom_user_tmp_filetrans(alsa_t, alsa_tmp_t, { dir file })
 
+allow alsa_t alsa_tmpfs_t:file manage_file_perms;
+fs_tmpfs_filetrans(alsa_t, alsa_tmpfs_t, file)
+
 manage_dirs_pattern(alsa_t, alsa_var_lib_t, alsa_var_lib_t)
 manage_files_pattern(alsa_t, alsa_var_lib_t, alsa_var_lib_t)
 
@@ -67,8 +73,10 @@ kernel_read_system_state(alsa_t)
 
 corecmd_exec_bin(alsa_t)
 
+dev_getattr_fs(alsa_t)
 dev_read_sound(alsa_t)
 dev_read_sysfs(alsa_t)
+dev_read_urand(alsa_t)
 dev_write_sound(alsa_t)
 
 files_search_var_lib(alsa_t)
@@ -86,6 +94,29 @@ logging_send_syslog_msg(alsa_t)
 userdom_manage_unpriv_user_semaphores(alsa_t)
 userdom_manage_unpriv_user_shared_mem(alsa_t)
 userdom_search_user_home_dirs(alsa_t)
+
+ifdef(`distro_debian',`
+	term_dontaudit_use_unallocated_ttys(alsa_t)
+
+	# Gnome 3.4 bug
+	dev_associate(alsa_tmpfs_t)
+
+	allow alsa_t self:capability kill;
+
+	manage_lnk_files_pattern(alsa_t, alsa_var_lib_t, alsa_var_lib_t)
+	files_root_filetrans(alsa_t, alsa_var_lib_t, dir, ".config")
+
+	fs_list_tmpfs(alsa_t)
+
+	optional_policy(`
+		dbus_read_lib_files(alsa_t)
+	')
+
+	optional_policy(`
+		pulseaudio_run(alsa_t, system_r)
+		pulseaudio_tmpfs_content(alsa_tmpfs_t)
+	')
+')
 
 optional_policy(`
 	hal_use_fds(alsa_t)

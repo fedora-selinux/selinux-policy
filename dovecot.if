@@ -155,14 +155,16 @@ interface(`dovecot_write_inherited_tmp_files',`
 #
 interface(`dovecot_admin',`
 	gen_require(`
-		type dovecot_t, dovecot_etc_t, dovecot_auth_tmp_t;
-		type dovecot_spool_t, dovecot_var_lib_t, dovecot_var_log_t;
-		type dovecot_var_run_t, dovecot_tmp_t, dovecot_keytab_t;
-		type dovecot_cert_t, dovecot_passwd_t, dovecot_initrc_exec_t;
+		type dovecot_t, dovecot_etc_t, dovecot_var_log_t;
+		type dovecot_spool_t, dovecot_var_lib_t, dovecot_initrc_exec_t;
+		type dovecot_var_run_t, dovecot_cert_t, dovecot_passwd_t;
+		type dovecot_tmp_t, dovecot_auth_tmp_t, dovecot_deliver_tmp_t;
+		type dovecot_keytab_t;
 	')
 
 	allow $1 dovecot_t:process signal_perms;
 	ps_process_pattern($1, dovecot_t)
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 dovecot_t:process ptrace;
 	')
@@ -173,7 +175,7 @@ interface(`dovecot_admin',`
 	allow $2 system_r;
 
 	files_list_etc($1)
-	admin_pattern($1, dovecot_etc_t)
+	admin_pattern($1, { dovecot_keytab_t dovecot_etc_t })
 
 	files_list_tmp($1)
 	admin_pattern($1, dovecot_auth_tmp_t)

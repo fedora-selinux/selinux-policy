@@ -1,4 +1,4 @@
-policy_module(ldap, 1.10.2)
+policy_module(ldap, 1.11.1)
 
 ########################################
 #
@@ -23,6 +23,9 @@ init_script_file(slapd_initrc_exec_t)
 
 type slapd_unit_file_t;
 systemd_unit_file(slapd_unit_file_t)
+
+type slapd_keytab_t;
+files_type(slapd_keytab_t)
 
 type slapd_lock_t;
 files_lock_file(slapd_lock_t)
@@ -62,6 +65,8 @@ manage_files_pattern(slapd_t, slapd_db_t, slapd_db_t)
 manage_lnk_files_pattern(slapd_t, slapd_db_t, slapd_db_t)
 
 allow slapd_t slapd_etc_t:file read_file_perms;
+
+allow slapd_t slapd_keytab_t:file read_file_perms;
 
 allow slapd_t slapd_lock_t:file manage_file_perms;
 files_lock_filetrans(slapd_t, slapd_lock_t, file)
@@ -125,10 +130,12 @@ userdom_dontaudit_use_unpriv_user_fds(slapd_t)
 userdom_dontaudit_search_user_home_dirs(slapd_t)
 
 optional_policy(`
-	kerberos_keytab_template(slapd, slapd_t)
+	kerberos_manage_host_rcache(slapd_t)
+	kerberos_read_keytab(slapd_t)
 	kerberos_tmp_filetrans_host_rcache(slapd_t, "ldapmap1_0")
 	kerberos_tmp_filetrans_host_rcache(slapd_t, "ldap_487")
 	kerberos_tmp_filetrans_host_rcache(slapd_t, "ldap_55")
+	kerberos_use(slapd_t)
 ')
 
 optional_policy(`

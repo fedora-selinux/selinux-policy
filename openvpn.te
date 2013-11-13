@@ -1,4 +1,4 @@
-policy_module(openvpn, 1.11.3)
+policy_module(openvpn, 1.12.2)
 
 ########################################
 #
@@ -21,10 +21,10 @@ gen_tunable(openvpn_run_unconfined, false)
 gen_tunable(openvpn_enable_homedirs, false)
 
 ## <desc>
-##  <p>
-##  Determine whether openvpn can
-##  connect to the TCP network.
-##  </p>
+##	<p>
+##	Determine whether openvpn can
+##	connect to the TCP network.
+##	</p>
 ## </desc>
 gen_tunable(openvpn_can_network_connect, false)
 
@@ -41,9 +41,6 @@ files_config_file(openvpn_etc_t)
 type openvpn_etc_rw_t;
 files_config_file(openvpn_etc_rw_t)
 
-type openvpn_tmp_t;
-files_tmp_file(openvpn_tmp_t)
-
 type openvpn_initrc_exec_t;
 init_script_file(openvpn_initrc_exec_t)
 
@@ -52,6 +49,9 @@ logging_log_file(openvpn_status_t)
 
 type openvpn_var_lib_t;
 files_type(openvpn_var_lib_t)
+
+type openvpn_tmp_t;
+files_tmp_file(openvpn_tmp_t)
 
 type openvpn_var_log_t;
 logging_log_file(openvpn_var_log_t)
@@ -88,6 +88,9 @@ files_tmp_filetrans(openvpn_t, openvpn_tmp_t, file)
 
 manage_files_pattern(openvpn_t, openvpn_var_lib_t, openvpn_var_lib_t)
 files_var_lib_filetrans(openvpn_t, openvpn_var_lib_t, { dir file })
+
+allow openvpn_t openvpn_tmp_t:file manage_file_perms;
+files_tmp_filetrans(openvpn_t, openvpn_tmp_t, file)
 
 manage_dirs_pattern(openvpn_t, openvpn_var_log_t, openvpn_var_log_t)
 manage_files_pattern(openvpn_t, openvpn_var_log_t, openvpn_var_log_t)
@@ -176,7 +179,9 @@ tunable_policy(`openvpn_enable_homedirs && use_samba_home_dirs',`
 ')
 
 tunable_policy(`openvpn_can_network_connect',`
-    corenet_tcp_connect_all_ports(openvpn_t)
+	corenet_sendrecv_all_client_packets(openvpn_t)
+	corenet_tcp_connect_all_ports(openvpn_t)
+	corenet_tcp_sendrecv_all_ports(openvpn_t)
 ')
 
 optional_policy(`

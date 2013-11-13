@@ -161,6 +161,25 @@ interface(`ntp_systemctl',`
 
 ########################################
 ## <summary>
+##	Read ntp drift files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ntp_read_drift_files',`
+	gen_require(`
+		type ntp_drift_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, ntp_drift_t, ntp_drift_t)
+')
+
+########################################
+## <summary>
 ##	Read and write ntpd shared memory.
 ## </summary>
 ## <param name="domain">
@@ -219,13 +238,14 @@ interface(`ntp_read_state',`
 #
 interface(`ntp_admin',`
 	gen_require(`
-		type ntpd_t, ntpd_tmp_t, ntpd_log_t;
+		type ntpd_t, ntpd_tmp_t, ntpd_log_t, ntp_drift_t;
 		type ntpd_key_t, ntpd_var_run_t, ntpd_initrc_exec_t;
 		type ntpd_unit_file_t;
 	')
 
 	allow $1 ntpd_t:process signal_perms;
 	ps_process_pattern($1, ntpd_t)
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 ntpd_t:process ptrace;
 	')
@@ -235,6 +255,7 @@ interface(`ntp_admin',`
 	role_transition $2 ntpd_initrc_exec_t system_r;
 	allow $2 system_r;
 
+	files_list_etc($1)
 	admin_pattern($1, ntpd_key_t)
 
 	logging_list_logs($1)
@@ -242,6 +263,9 @@ interface(`ntp_admin',`
 
 	files_list_tmp($1)
 	admin_pattern($1, ntpd_tmp_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, ntp_drift_t)
 
 	files_list_pids($1)
 	admin_pattern($1, ntpd_var_run_t)

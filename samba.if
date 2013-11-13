@@ -840,16 +840,17 @@ template(`samba_helper_template',`
 interface(`samba_admin',`
 	gen_require(`
 		type nmbd_t, nmbd_var_run_t, smbd_var_run_t;
-		type smbd_t, smbd_tmp_t, samba_secrets_t;
-		type samba_initrc_exec_t, samba_log_t, samba_var_t;
-		type samba_etc_t, samba_share_t, winbind_log_t;
-		type swat_var_run_t, swat_tmp_t, samba_unconfined_script_exec_t;
-		type winbind_var_run_t, winbind_tmp_t, samba_unconfined_script_t;
-		type samba_unit_file_t;
+		type smbd_t, smbd_tmp_t, smbd_spool_t;
+		type samba_log_t, samba_var_t, samba_secrets_t;
+		type samba_etc_t, samba_share_t, samba_initrc_exec_t;
+		type swat_var_run_t, swat_tmp_t, winbind_log_t;
+		type winbind_var_run_t, winbind_tmp_t;
+		type smbd_keytab_t, samba_unit_file_t;
 	')
 
 	allow $1 smbd_t:process signal_perms;
 	ps_process_pattern($1, smbd_t)
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 smbd_t:process ptrace;
 		allow $1 nmbd_t:process ptrace;
@@ -872,10 +873,8 @@ interface(`samba_admin',`
 	role_transition $2 samba_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	admin_pattern($1, nmbd_var_run_t)
-
-	admin_pattern($1, samba_etc_t)
 	files_list_etc($1)
+	admin_pattern($1, { samba_etc_t smbd_keytab_t })
 
 	admin_pattern($1, samba_log_t)
 	logging_list_logs($1)
