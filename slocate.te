@@ -1,4 +1,4 @@
-policy_module(slocate, 1.11.1)
+policy_module(slocate, 1.12.2)
 
 #################################
 #
@@ -12,24 +12,33 @@ init_system_domain(locate_t, locate_exec_t)
 type locate_var_lib_t;
 files_type(locate_var_lib_t)
 
+type locate_var_run_t;
+files_pid_file(locate_var_run_t)
+
 ########################################
 #
 # Local policy
 #
 
 allow locate_t self:capability { chown dac_read_search dac_override fowner fsetid };
-allow locate_t self:process { execmem execheap execstack signal };
+allow locate_t self:process { execmem execheap execstack signal setsched };
 allow locate_t self:fifo_file rw_fifo_file_perms;
 allow locate_t self:unix_stream_socket create_socket_perms;
 
 manage_dirs_pattern(locate_t, locate_var_lib_t, locate_var_lib_t)
 manage_files_pattern(locate_t, locate_var_lib_t, locate_var_lib_t)
 
+allow locate_t locate_var_run_t:file manage_file_perms;
+files_pid_filetrans(locate_t, locate_var_run_t, file, "mlocate.daily.lock")
+
+can_exec(locate_t, locate_exec_t)
+
 kernel_read_system_state(locate_t)
 kernel_dontaudit_search_network_state(locate_t)
 kernel_dontaudit_search_sysctl(locate_t)
 
 corecmd_exec_bin(locate_t)
+corecmd_exec_shell(locate_t)
 
 dev_getattr_all_blk_files(locate_t)
 dev_getattr_all_chr_files(locate_t)

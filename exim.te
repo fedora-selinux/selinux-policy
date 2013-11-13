@@ -1,4 +1,4 @@
-policy_module(exim, 1.5.4)
+policy_module(exim, 1.6.1)
 
 ########################################
 #
@@ -45,6 +45,12 @@ mta_agent_executable(exim_exec_t)
 type exim_initrc_exec_t;
 init_script_file(exim_initrc_exec_t)
 
+type exim_keytab_t;
+files_type(exim_keytab_t)
+
+type exim_var_lib_t;
+files_type(exim_var_lib_t)
+
 type exim_log_t;
 logging_log_file(exim_log_t)
 
@@ -57,6 +63,10 @@ files_tmp_file(exim_tmp_t)
 type exim_var_run_t;
 files_pid_file(exim_var_run_t)
 
+ifdef(`distro_debian',`
+	init_daemon_run_dir(exim_var_run_t, "exim4")
+')
+
 ########################################
 #
 # Local policy
@@ -67,6 +77,10 @@ allow exim_t self:process { setrlimit setpgid };
 allow exim_t self:fifo_file rw_fifo_file_perms;
 allow exim_t self:unix_stream_socket { accept listen };
 allow exim_t self:tcp_socket { accept listen };
+
+allow exim_t exim_keytab_t:file read_file_perms;
+
+manage_files_pattern(exim_t, exim_var_lib_t, exim_var_lib_t)
 
 append_files_pattern(exim_t, exim_log_t, exim_log_t)
 create_files_pattern(exim_t, exim_log_t, exim_log_t)
@@ -88,6 +102,7 @@ files_pid_filetrans(exim_t, exim_var_run_t, { dir file })
 
 can_exec(exim_t, exim_exec_t)
 
+kernel_read_crypto_sysctls(exim_t)
 kernel_read_kernel_sysctls(exim_t)
 kernel_read_network_state(exim_t)
 kernel_read_system_state(exim_t)
@@ -122,6 +137,7 @@ corenet_tcp_connect_spamd_port(exim_t)
 
 dev_read_rand(exim_t)
 dev_read_urand(exim_t)
+dev_read_sysfs(exim_t)
 
 domain_use_interactive_fds(exim_t)
 
@@ -175,6 +191,7 @@ optional_policy(`
 optional_policy(`
 	cron_read_pipes(exim_t)
 	cron_rw_system_job_pipes(exim_t)
+	cron_use_system_job_fds(exim_t)
 ')
 
 optional_policy(`
@@ -186,7 +203,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(exim, exim_t)
+	kerberos_read_keytab(exim_t)
+	kerberos_use(exim_t)
 ')
 
 optional_policy(`

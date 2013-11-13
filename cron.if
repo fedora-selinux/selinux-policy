@@ -68,26 +68,32 @@ interface(`cron_role',`
 	gen_require(`
 		type cronjob_t, crontab_t, crontab_exec_t;
 		type user_cron_spool_t, crond_t;
+        bool cron_userdomain_transition;
 	')
+
+    ##############################
+    #
+    # Declarations
+    #
 
 	role $1 types { cronjob_t crontab_t };
 
-	# cronjob shows up in user ps
-	ps_process_pattern($2, cronjob_t)
+    ##############################
+    #
+    # Local policy
+    #
 
 	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2, crontab_exec_t, crontab_t)
 
-	allow crond_t $2:process transition;
 	dontaudit crond_t $2:process { noatsecure siginh rlimitinh };
 	allow $2 crond_t:process sigchld;
 
-	# needs to be authorized SELinux context for cron
-	allow $2 user_cron_spool_t:file { getattr read write ioctl entrypoint };
+    allow $2 user_cron_spool_t:file { getattr read write ioctl };
 
 	# crontab shows up in user ps
-	ps_process_pattern($2, crontab_t)
 	allow $2 crontab_t:process signal_perms;
+	ps_process_pattern($2, crontab_t)
 
 	tunable_policy(`deny_ptrace',`',`
 		allow $2 crontab_t:process ptrace;
@@ -98,6 +104,30 @@ interface(`cron_role',`
 	#corecmd_shell_domtrans(crontab_t, $2)
 	corecmd_exec_bin(crontab_t)
 	corecmd_exec_shell(crontab_t)
+
+    tunable_policy(`cron_userdomain_transition',`
+        allow crond_t $2:process transition;
+        allow crond_t $2:fd use;
+        allow crond_t $2:key manage_key_perms;
+
+	    # needs to be authorized SELinux context for cron
+	    allow $2 user_cron_spool_t:file entrypoint;
+        allow $2 crond_t:fifo_file rw_fifo_file_perms;
+
+        allow $2 cronjob_t:process { signal_perms };
+
+        ps_process_pattern($2, cronjob_t)
+    ',`
+        dontaudit crond_t $2:process transition;
+        dontaudit crond_t $2:fd use;
+        dontaudit crond_t $2:key manage_key_perms;
+
+        dontaudit $2 user_cron_spool_t:file entrypoint;
+
+        dontaudit $2 crond_t:fifo_file rw_fifo_file_perms;
+
+        dontaudit $2 cronjob_t:process { signal_perms };
+    ')
 
 	optional_policy(`
 		gen_require(`
@@ -128,17 +158,66 @@ interface(`cron_role',`
 #
 interface(`cron_unconfined_role',`
 	gen_require(`
-		type unconfined_cronjob_t;
+		type unconfined_cronjob_t, crontab_t, crontab_exec_t;
+        type crond_t, user_cron_spool_t;
+        bool cron_userdomain_transition;
 	')
 
-	role $1 types unconfined_cronjob_t;
+    ##############################
+    #
+    # Declarations
+    #
+    
+    role $1 types { unconfined_cronjob_t crontab_t };
+
+    ##############################
+    #
+    # Local policy
+    #
+
+    domtrans_pattern($2, crontab_exec_t, crontab_t)
+
+    dontaudit crond_t $2:process { noatsecure siginh rlimitinh };
+
+    allow $2 crond_t:process sigchld;
+
+    allow $2 user_cron_spool_t:file { getattr read write ioctl };
+
+    allow $2 crontab_t:process { signal_perms };
+    ps_process_pattern($2, crontab_t)
+
+	tunable_policy(`deny_ptrace',`',`
+        allow $2 crontab_t:process ptrace;
+    ')
 
 	# cronjob shows up in user ps
 	ps_process_pattern($2, unconfined_cronjob_t)
 	allow $2 unconfined_cronjob_t:process signal_perms;
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $2 unconfined_cronjob_t:process ptrace;
 	')
+
+    corecmd_exec_bin(crontab_t)
+    corecmd_exec_shell(crontab_t)
+
+    tunable_policy(`cron_userdomain_transition',`
+        allow crond_t $2:process transition;
+        allow crond_t $2:fd use;
+        allow crond_t $2:key manage_key_perms;
+
+        allow $2 user_cron_spool_t:file entrypoint;
+
+        allow $2 crond_t:fifo_file rw_fifo_file_perms;
+    ',`
+        dontaudit crond_t $2:process transition;
+        dontaudit crond_t $2:fd use;
+        dontaudit crond_t $2:key manage_key_perms;
+
+        dontaudit $2 user_cron_spool_t:file entrypoint;
+
+        dontaudit $2 crond_t:fifo_file rw_fifo_file_perms;
+    ')
 
 	optional_policy(`
 		gen_require(`
@@ -171,39 +250,62 @@ interface(`cron_admin_role',`
 		type cronjob_t, crontab_exec_t, admin_crontab_t, admin_crontab_tmp_t;
 		type user_cron_spool_t, crond_t;
 		class passwd crontab;
+        bool cron_userdomain_transition;
 	')
+
+    ##############################
+    #
+    # Declarations
+    #
 
 	role $1 types { cronjob_t admin_crontab_t admin_crontab_tmp_t };
 
-	# cronjob shows up in user ps
-	ps_process_pattern($2, cronjob_t)
-
-	# Manipulate other users crontab.
-	allow $2 self:passwd crontab;
+    ##############################
+    #
+    # Local policy
+    #
 
 	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2, crontab_exec_t, admin_crontab_t)
 
+	dontaudit crond_t $2:process { noatsecure siginh rlimitinh };
+
+	allow $2 crond_t:process sigchld;
+
 	# crontab shows up in user ps
 	ps_process_pattern($2, admin_crontab_t)
 	allow $2 admin_crontab_t:process signal_perms;
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $2 admin_crontab_t:process ptrace;
 	')
 
-	allow $2 crond_t:process sigchld;
-	allow crond_t $2:process transition;
+	# Manipulate other users crontab.
+	allow $2 self:passwd crontab;
 
-	dontaudit crond_t $2:process { noatsecure siginh rlimitinh };
-
-	# needs to be authorized SELinux context for cron
-	allow $2 user_cron_spool_t:file entrypoint;
-
-	# Run helper programs as the user domain
-	#corecmd_bin_domtrans(admin_crontab_t, $2)
-	#corecmd_shell_domtrans(admin_crontab_t, $2)
 	corecmd_exec_bin(admin_crontab_t)
 	corecmd_exec_shell(admin_crontab_t)
+
+    tunable_policy(`cron_userdomain_transition',`
+        allow crond_t $2:process transition;
+        allow crond_t $2:fd use;
+        allow crond_t $2:key manage_key_perms;
+
+        allow $2 user_cron_spool_t:file entrypoint;
+
+        allow $2 crond_t:fifo_file rw_fifo_file_perms;
+
+        allow $2 cronjob_t:process { signal_perms };
+        ps_process_pattern($2, cronjob_t)
+    ',`
+        dontaudit crond_t $2:process transition;
+        dontaudit crond_t $2:fd use;
+        dontaudit crond_t $2:key manage_key_perms;
+
+        dontaudit $2 user_cron_spool_t:file entrypoint;
+        dontaudit $2 crond_t:fifo_file rw_fifo_file_perms;
+        dontaudit $2 cronjob_t:process { signal_perms };
+    ')
 
 	optional_policy(`
 		gen_require(`

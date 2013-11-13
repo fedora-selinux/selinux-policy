@@ -332,6 +332,26 @@ interface(`cupsd_systemctl',`
 
 ########################################
 ## <summary>
+##	Read the process state (/proc/pid) of cupsd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cups_read_state',`
+	gen_require(`
+		type cupsd_t;
+	')
+
+	allow $1 cupsd_t:dir search_dir_perms;
+	allow $1 cupsd_t:file read_file_perms;
+	allow $1 cupsd_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
 ##	All of the rules required to
 ##	administrate an cups environment.
 ## </summary>
@@ -419,23 +439,4 @@ interface(`cups_filetrans_named_content',`
 	files_etc_filetrans($1, cupsd_rw_etc_t, dir, "inf")
 	files_usr_filetrans($1, cupsd_rw_etc_t, dir, "inf")
 	corecmd_bin_filetrans($1, cupsd_rw_etc_t, dir, "inf")
-')
-
-########################################
-## <summary>
-##	Allow the domain to read cups state files in /proc.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`cups_read_state',`
-	gen_require(`
-		type cupsd_t;
-	')
-
-	kernel_search_proc($1)
-	ps_process_pattern($1, cupsd_t)
 ')

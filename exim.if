@@ -241,8 +241,46 @@ interface(`exim_manage_spool_files',`
 
 ########################################
 ## <summary>
-##	All of the rules required to administrate
-##	an exim environment.
+##	Read exim var lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`exim_read_var_lib_files',`
+	gen_require(`
+		type exim_var_lib_t;
+	')
+
+	read_files_pattern($1, exim_var_lib_t, exim_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Create, read, and write exim var lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`exim_manage_var_lib_files',`
+	gen_require(`
+		type exim_var_lib_t;
+	')
+
+	manage_files_pattern($1, exim_var_lib_t, exim_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an exim environment.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -257,8 +295,9 @@ interface(`exim_manage_spool_files',`
 #
 interface(`exim_admin',`
 	gen_require(`
-		type exim_t, exim_initrc_exec_t, exim_log_t;
-		type exim_tmp_t, exim_spool_t, exim_var_run_t;
+		type exim_t, exim_spool_t, exim_log_t;
+		type exim_var_run_t, exim_initrc_exec_t, exim_tmp_t;
+		type exim_keytab_t;
 	')
 
 	allow $1 exim_t:process signal_perms;
@@ -272,6 +311,9 @@ interface(`exim_admin',`
 	domain_system_change_exemption($1)
 	role_transition $2 exim_initrc_exec_t system_r;
 	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, exim_keytab_t)
 
 	files_search_spool($1)
 	admin_pattern($1, exim_spool_t)

@@ -1,4 +1,4 @@
-policy_module(mandb, 1.0.3)
+policy_module(mandb, 1.1.1)
 
 ########################################
 #
@@ -27,6 +27,7 @@ files_lock_file(mandb_lock_t)
 # Local policy
 #
 
+allow mandb_t self:capability { setuid setgid };
 allow mandb_t self:process { setsched signal };
 allow mandb_t self:fifo_file rw_fifo_file_perms;
 allow mandb_t self:unix_stream_socket create_stream_socket_perms;
@@ -43,9 +44,13 @@ allow mandb_t mandb_home_t:file read_file_perms;
 allow mandb_t mandb_lock_t:file manage_file_perms;
 files_lock_filetrans(mandb_t, mandb_lock_t, file)
 
+kernel_read_kernel_sysctls(mandb_t)
 kernel_read_system_state(mandb_t)
 
 corecmd_exec_bin(mandb_t)
+corecmd_exec_shell(mandb_t)
+
+dev_search_sysfs(mandb_t)
 
 domain_use_interactive_fds(mandb_t)
 
@@ -53,8 +58,21 @@ files_search_locks(mandb_t)
 
 miscfiles_manage_man_cache(mandb_t)
 miscfiles_setattr_man_pages(mandb_t)
+miscfiles_read_man_pages(mandb_t)
+
+ifdef(`distro_debian',`
+	optional_policy(`
+		apt_exec(mandb_t)
+		apt_read_db(mandb_t)
+	')
+
+	optional_policy(`
+		dpkg_exec(mandb_t)
+		dpkg_read_db(mandb_t)
+		userdom_dontaudit_search_user_home_dirs(mandb_t)
+	')
+')
 
 optional_policy(`
 	cron_system_entry(mandb_t, mandb_exec_t)
 ')
-

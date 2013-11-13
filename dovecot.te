@@ -1,4 +1,4 @@
-policy_module(dovecot, 1.14.0)
+policy_module(dovecot, 1.16.1)
 
 ########################################
 #
@@ -34,6 +34,9 @@ files_config_file(dovecot_etc_t)
 
 type dovecot_initrc_exec_t;
 init_script_file(dovecot_initrc_exec_t)
+
+type dovecot_keytab_t;
+files_type(dovecot_keytab_t)
 
 type dovecot_passwd_t;
 files_type(dovecot_passwd_t)
@@ -102,6 +105,8 @@ read_lnk_files_pattern(dovecot_t, dovecot_etc_t, dovecot_etc_t)
 files_search_etc(dovecot_t)
 
 can_exec(dovecot_t, dovecot_exec_t)
+
+allow dovecot_t dovecot_keytab_t:file read_file_perms;
 
 manage_dirs_pattern(dovecot_t, dovecot_tmp_t, dovecot_tmp_t)
 manage_files_pattern(dovecot_t, dovecot_tmp_t, dovecot_tmp_t)
@@ -178,8 +183,10 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(dovecot, dovecot_t)
+	kerberos_manage_host_rcache(dovecot_t)
+	kerberos_read_keytab(dovecot_t)
 	kerberos_tmp_filetrans_host_rcache(dovecot_t, "imap_0")
+	kerberos_use(dovecot_t)
 ')
 
 optional_policy(`

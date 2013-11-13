@@ -1,4 +1,4 @@
-policy_module(rlogin, 1.10.1)
+policy_module(rlogin, 1.11.3)
 
 ########################################
 #
@@ -9,12 +9,16 @@ type rlogind_t;
 type rlogind_exec_t;
 auth_login_pgm_domain(rlogind_t)
 inetd_service_domain(rlogind_t, rlogind_exec_t)
+init_daemon_domain(rlogind_t, rlogind_exec_t)
 
 type rlogind_devpts_t;
 term_login_pty(rlogind_devpts_t)
 
 type rlogind_home_t;
 userdom_user_home_content(rlogind_home_t)
+
+type rlogind_keytab_t;
+files_type(rlogind_keytab_t)
 
 type rlogind_tmp_t;
 files_tmp_file(rlogind_tmp_t)
@@ -39,6 +43,8 @@ term_create_pty(rlogind_t, rlogind_devpts_t)
 
 allow rlogind_t rlogind_home_t:file read_file_perms;
 
+allow rlogind_t rlogind_keytab_t:file read_file_perms;
+
 manage_dirs_pattern(rlogind_t, rlogind_tmp_t, rlogind_tmp_t)
 manage_files_pattern(rlogind_t, rlogind_tmp_t, rlogind_tmp_t)
 
@@ -53,13 +59,11 @@ kernel_read_network_state(rlogind_t)
 
 corenet_all_recvfrom_netlabel(rlogind_t)
 corenet_tcp_sendrecv_generic_if(rlogind_t)
-corenet_udp_sendrecv_generic_if(rlogind_t)
 corenet_tcp_sendrecv_generic_node(rlogind_t)
-corenet_udp_sendrecv_generic_node(rlogind_t)
-corenet_tcp_sendrecv_all_ports(rlogind_t)
-corenet_udp_sendrecv_all_ports(rlogind_t)
-corenet_tcp_bind_rlogin_port(rlogind_t)
+
+corenet_sendrecv_rlogind_server_packets(rlogind_t)
 corenet_tcp_bind_rlogind_port(rlogind_t)
+corenet_tcp_sendrecv_rlogind_port(rlogind_t)
 
 dev_read_urand(rlogind_t)
 
@@ -95,8 +99,10 @@ userdom_home_reader(rlogind_t)
 rlogin_read_home_content(rlogind_t)
 
 optional_policy(`
-	kerberos_keytab_template(rlogind, rlogind_t)
+	kerberos_read_keytab(rlogind_t)
 	kerberos_tmp_filetrans_host_rcache(rlogind_t, "host_0")
+	kerberos_manage_host_rcache(rlogind_t)
+	kerberos_use(rlogind_t)
 ')
 
 optional_policy(`

@@ -1,39 +1,23 @@
 ## <summary>GNU network object model environment (GNOME)</summary>
 
-###########################################################
+#######################################
 ## <summary>
-##  Role access for gnome
+##  Role access for gnome.  (Deprecated)
 ## </summary>
 ## <param name="role">
 ##  <summary>
-##  Role allowed access
+##  Role allowed access.
 ##  </summary>
 ## </param>
 ## <param name="domain">
 ##  <summary>
-##  User domain for the role
+##  User domain for the role.
 ##  </summary>
 ## </param>
 #
 interface(`gnome_role',`
-    gen_require(`
-        type gconfd_t, gconfd_exec_t;
-        type gconf_tmp_t;
+    refpolicywarn(`$0($*) has been deprecated')
     ')
-
-    role $1 types gconfd_t;
-
-    domain_auto_trans($2, gconfd_exec_t, gconfd_t)
-    allow gconfd_t $2:fd use;
-    allow gconfd_t $2:fifo_file write;
-    allow gconfd_t $2:unix_stream_socket connectto;
-
-    ps_process_pattern($2, gconfd_t)
-
-	#gnome_stream_connect_gconf_template($1, $2)
-	read_files_pattern($2, gconf_tmp_t, gconf_tmp_t)
-	allow $2 gconfd_t:unix_stream_socket connectto;
-')
 
 ######################################
 ## <summary>
@@ -56,41 +40,111 @@ interface(`gnome_role',`
 ## </param>
 #
 interface(`gnome_role_gkeyringd',`
-        gen_require(`
-                attribute gkeyringd_domain;
-                attribute gnomedomain;
-                type gnome_home_t;
-                type gkeyringd_exec_t, gkeyringd_tmp_t, gkeyringd_gnome_home_t;
-		class dbus send_msg;
-        ')
+    refpolicywarn(`$0($*) has been deprecated')
+')
+
+######################################
+## <summary>
+##  The role template for gnome.
+## </summary>
+## <param name="role_prefix">
+##  <summary>
+##  The prefix of the user domain (e.g., user
+##  is the prefix for user_t).
+##  </summary>
+## </param>
+## <param name="user_role">
+##  <summary>
+##  The role associated with the user domain.
+##  </summary>
+## </param>
+## <param name="user_domain">
+##  <summary>
+##  The type of the user domain.
+##  </summary>
+## </param>
+#
+template(`gnome_role_template',`
+    gen_require(`
+		attribute gnomedomain, gkeyringd_domain;
+		attribute_role gconfd_roles;
+		type gkeyringd_exec_t, gkeyring_gnome_home_t, gkeyring_tmp_t;
+		type gconfd_t, gconfd_exec_t, gconf_tmp_t;
+		type gconf_home_t;
+        class dbus send_msg;
+	')
+
+	########################################
+	#
+	# Gconf declarations
+	#
+
+	roleattribute $2 gconfd_roles;
+
+	########################################
+	#
+	# Gkeyringd declarations
+	#
 
 	type $1_gkeyringd_t, gnomedomain, gkeyringd_domain;
-	typealias $1_gkeyringd_t alias gkeyringd_$1_t;
-	application_domain($1_gkeyringd_t, gkeyringd_exec_t)
-	ubac_constrained($1_gkeyringd_t)
+	userdom_user_application_domain($1_gkeyringd_t, gkeyringd_exec_t)
 	domain_user_exemption_target($1_gkeyringd_t)
-
-	userdom_home_manager($1_gkeyringd_t)
 
 	role $2 types $1_gkeyringd_t;
 
+	########################################
+	#
+	# Gconf policy
+	#
+
+	domtrans_pattern($3, gconfd_exec_t, gconfd_t)
+
+	allow $3 { gconf_home_t gconf_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $3 { gconf_home_t gconf_tmp_t }:file { manage_file_perms relabel_file_perms };
+	userdom_user_home_dir_filetrans($3, gconf_home_t, dir, ".gconf")
+	userdom_user_home_dir_filetrans($3, gconf_home_t, dir, ".gconfd")
+
+	allow $3 gconfd_t:process { signal_perms };
+    allow $3 gconfd_t:unix_stream_socket connectto;
+	ps_process_pattern($3, gconfd_t)
+
+
+	########################################
+	#
+	# Gkeyringd policy
+	#
+
 	domtrans_pattern($3, gkeyringd_exec_t, $1_gkeyringd_t)
 
-	allow $3 gkeyringd_gnome_home_t:dir { relabel_dir_perms manage_dir_perms };
-	allow $3 gkeyringd_gnome_home_t:file { relabel_file_perms manage_file_perms };
+	allow $3 { gnome_home_t gkeyring_gnome_home_t gkeyring_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
+	allow $3 { gnome_home_t gkeyring_gnome_home_t }:file { relabel_file_perms manage_file_perms };
 
-	allow $3 gkeyringd_tmp_t:dir { relabel_dir_perms manage_dir_perms };
-	allow $3 gkeyringd_tmp_t:sock_file { relabel_sock_file_perms manage_sock_file_perms };
+	userdom_home_manager($1_gkeyringd_t)
+	
+    gnome_home_dir_filetrans($3, gnome_home_t, ".gnome")
+    gnome_home_dir_filetrans($3, gnome_home_t, ".gnome2")
+    gnome_home_dir_filetrans($3, gnome_home_t, ".gnome2_private")
+	gnome_home_dir_filetrans($3, gkeyring_gnome_home_t, "keyrings")
 
-	corecmd_bin_domtrans($1_gkeyringd_t, $1_t)
-	corecmd_shell_domtrans($1_gkeyringd_t, $1_t)
+	allow $3 gkeyring_tmp_t:sock_file { relabel_sock_file_perms manage_sock_file_perms };
+
+	ps_process_pattern($3, $1_gkeyringd_t)
+	allow $3 $1_gkeyringd_t:process signal_perms;
+	dontaudit $3 gkeyringd_exec_t:file entrypoint;
+
 	allow $1_gkeyringd_t $3:process sigkill;
 	allow $3 $1_gkeyringd_t:fd use;
 	allow $3 $1_gkeyringd_t:fifo_file rw_fifo_file_perms;
-	dontaudit $1_gkeyringd_t $3:unix_stream_socket { getattr read write };
 
+	dontaudit $1_gkeyringd_t $3:unix_stream_socket { getattr read write };
+	stream_connect_pattern($3, gkeyringd_tmp_t, gkeyringd_tmp_t, $1_gkeyringd_t)
 
 	kernel_read_system_state($1_gkeyringd_t)
+
+	corecmd_bin_domtrans($1_gkeyringd_t, $3)
+	corecmd_shell_domtrans($1_gkeyringd_t, $3)
+
+	gnome_stream_connect_gkeyringd($3)
 
 	ps_process_pattern($1_gkeyringd_t, $3)
 
@@ -98,16 +152,11 @@ interface(`gnome_role_gkeyringd',`
 
 	logging_send_syslog_msg($1_gkeyringd_t)
 
-	ps_process_pattern($3, $1_gkeyringd_t)
-	allow $3 $1_gkeyringd_t:process signal_perms;
-	dontaudit $3 gkeyringd_exec_t:file entrypoint;
-
-	stream_connect_pattern($3, gkeyringd_tmp_t, gkeyringd_tmp_t, $1_gkeyringd_t)
-
 	allow $1_gkeyringd_t $3:dbus send_msg;
 	allow $3 $1_gkeyringd_t:dbus send_msg;
+
 	optional_policy(`
-	       	dbus_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
+        dbus_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
 		dbus_session_bus_client($1_gkeyringd_t)
 		gnome_manage_generic_home_dirs($1_gkeyringd_t)
 		gnome_read_generic_data_home_files($1_gkeyringd_t)

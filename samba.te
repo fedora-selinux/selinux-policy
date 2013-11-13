@@ -1,4 +1,4 @@
-policy_module(samba, 1.15.0)
+policy_module(samba, 1.16.3)
 
 #################################
 #
@@ -124,6 +124,9 @@ role system_r types smbcontrol_t;
 type smbd_t;
 type smbd_exec_t;
 init_daemon_domain(smbd_t, smbd_exec_t)
+
+type smbd_keytab_t;
+files_type(smbd_keytab_t)
 
 type smbd_tmp_t;
 files_tmp_file(smbd_tmp_t)
@@ -274,6 +277,8 @@ allow smbd_t nmbd_var_run_t:file rw_file_perms;
 stream_connect_pattern(smbd_t, nmbd_var_run_t, nmbd_var_run_t, nmbd_t)
 
 allow smbd_t samba_etc_t:file { rw_file_perms setattr };
+
+allow smbd_t smbd_keytab_t:file read_file_perms;
 
 manage_dirs_pattern(smbd_t, samba_log_t, samba_log_t)
 manage_files_pattern(smbd_t, samba_log_t, samba_log_t)
@@ -455,8 +460,8 @@ optional_policy(`
 ')
 
 optional_policy(`
+	kerberos_read_keytab(smbd_t)
 	kerberos_use(smbd_t)
-	kerberos_keytab_template(smbd, smbd_t)
 ')
 
 optional_policy(`
@@ -619,16 +624,15 @@ allow smbcontrol_t smbd_t:process { signal signull };
 read_files_pattern(smbcontrol_t, smbd_var_run_t, smbd_var_run_t)
 allow smbcontrol_t winbind_t:process { signal signull };
 
-files_search_var_lib(smbcontrol_t)
-samba_read_config(smbcontrol_t)
 manage_files_pattern(smbcontrol_t, samba_var_t, samba_var_t)
+
+samba_read_config(smbcontrol_t)
 samba_search_var(smbcontrol_t)
 samba_read_winbind_pid(smbcontrol_t)
 
 domain_use_interactive_fds(smbcontrol_t)
 
 dev_read_urand(smbcontrol_t)
-
 
 term_use_console(smbcontrol_t)
 

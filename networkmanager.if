@@ -176,6 +176,26 @@ interface(`networkmanager_dbus_chat',`
 	allow NetworkManager_t $1:dbus send_msg;
 ')
 
+#######################################
+## <summary>
+##	Read metworkmanager process state files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_read_state',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:dir search_dir_perms;
+	allow $1 NetworkManager_t:file read_file_perms;
+	allow $1 NetworkManager_t:lnk_file read_lnk_file_perms;
+')
+
 ########################################
 ## <summary>
 ##	Do not audit attempts to send and
@@ -218,7 +238,27 @@ interface(`networkmanager_signal',`
 
 ########################################
 ## <summary>
-##	Read NetworkManager lib files.
+##	Create, read, and write
+##	networkmanager library files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_manage_lib_files',`
+	gen_require(`
+		type NetworkManager_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read networkmanager lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -293,6 +333,26 @@ interface(`networkmanager_manage_pid_files',`
 	manage_files_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t)
 ')
 
+####################################
+## <summary>
+##  Connect to networkmanager over
+##	a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`networkmanager_stream_connect',`
+	gen_require(`
+		type NetworkManager_t, NetworkManager_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t, NetworkManager_t)
+')
+
 ########################################
 ## <summary>
 ##	Execute NetworkManager in the NetworkManager domain, and
@@ -357,26 +417,6 @@ interface(`networkmanager_manage_lib',`
     ')
 
     manage_files_pattern($1, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
-')
-
-####################################
-## <summary>
-##  Connect to NM over a unix domain
-##  stream socket.
-## </summary>
-## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
-## </param>
-#
-interface(`networkmanager_stream_connect',`
-    gen_require(`
-        type NetworkManager_t, NetworkManager_var_run_t;
-    ')
-
-    files_search_pids($1)
-    stream_connect_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t, NetworkManager_t)
 ')
 
 #######################################

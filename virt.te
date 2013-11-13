@@ -4,6 +4,12 @@ policy_module(virt, 1.5.0)
 #
 # Declarations
 #
+
+gen_require(`
+    class passwd rootok;
+    class passwd passwd;
+    ')
+
 attribute virsh_transition_domain;
 attribute virt_ptynode;
 attribute virt_system_domain;
@@ -157,6 +163,9 @@ systemd_unit_file(virtd_unit_file_t)
 type virtd_initrc_exec_t, virt_file_type;
 init_script_file(virtd_initrc_exec_t)
 
+type virtd_keytab_t;
+files_type(virtd_keytab_t)
+
 type qemu_var_run_t, virt_file_type;
 typealias qemu_var_run_t alias svirt_var_run_t;
 files_pid_file(qemu_var_run_t)
@@ -290,6 +299,8 @@ manage_files_pattern(virtd_t, virt_cache_t, virt_cache_t)
 
 manage_dirs_pattern(virtd_t, virt_content_t, virt_content_t)
 manage_files_pattern(virtd_t, virt_content_t, virt_content_t)
+
+allow virtd_t virtd_keytab_t:file read_file_perms;
 
 allow virtd_t virt_domain:process { getattr getsched setsched transition signal signull sigkill };
 allow virtd_t svirt_sandbox_domain:process { getattr getsched setsched transition signal signull sigkill };
@@ -553,7 +564,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(virtd, virtd_t)
+    kerberos_read_keytab(virtd_t)
+    kerberos_use(virtd_t)
 ')
 
 optional_policy(`
@@ -602,6 +614,7 @@ optional_policy(`
 optional_policy(`
 	udev_domtrans(virtd_t)
 	udev_read_db(virtd_t)
+	udev_read_pid_files(virtd_t)
 ')
 
 optional_policy(`

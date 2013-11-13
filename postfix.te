@@ -1,4 +1,4 @@
-policy_module(postfix, 1.14.0)
+policy_module(postfix, 1.15.1)
 
 ########################################
 #
@@ -31,6 +31,9 @@ files_config_file(postfix_etc_t)
 
 type postfix_exec_t;
 application_executable_file(postfix_exec_t)
+
+type postfix_keytab_t;
+files_type(postfix_keytab_t)
 
 postfix_server_domain_template(local)
 mta_mailserver_delivery(postfix_local_t)
@@ -123,9 +126,9 @@ can_exec(postfix_master_t, postfix_exec_t)
 allow postfix_master_t postfix_data_t:dir manage_dir_perms;
 allow postfix_master_t postfix_data_t:file manage_file_perms;
 
-allow postfix_master_t postfix_map_exec_t:file { mmap_file_perms lock };
+allow postfix_master_t postfix_keytab_t:file read_file_perms;
 
-allow postfix_master_t postfix_postdrop_exec_t:file getattr_file_perms;
+allow postfix_master_t postfix_map_exec_t:file { mmap_file_perms ioctl lock };
 
 allow postfix_master_t postfix_postqueue_exec_t:file getattr_file_perms;
 
@@ -154,7 +157,13 @@ manage_dirs_pattern(postfix_master_t, postfix_spool_flush_t, postfix_spool_flush
 manage_files_pattern(postfix_master_t, postfix_spool_flush_t, postfix_spool_flush_t)
 manage_lnk_files_pattern(postfix_master_t, postfix_spool_flush_t, postfix_spool_flush_t)
 
-manage_files_pattern(postfix_master_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
+create_dirs_pattern(postfix_master_t, postfix_spool_t, postfix_spool_maildrop_t)
+delete_files_pattern(postfix_master_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
+rename_files_pattern(postfix_master_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
+setattr_dirs_pattern(postfix_master_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_spool_maildrop_t, dir, "defer")
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_spool_maildrop_t, dir, "deferred")
+filetrans_pattern(postfix_master_t, postfix_spool_t, postfix_spool_maildrop_t, dir, "maildrop")
 
 kernel_read_all_sysctls(postfix_master_t)
 
@@ -208,7 +217,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(postfix, postfix_t)
+	kerberos_read_keytab(postfix_master_t)
+	kerberos_use(postfix_master_t)
 ')
 
 optional_policy(`
@@ -626,6 +636,7 @@ allow postfix_smtp_t postfix_spool_t:file rw_file_perms;
 
 rw_files_pattern(postfix_smtp_t, postfix_spool_maildrop_t, postfix_spool_maildrop_t)
 
+corenet_tcp_bind_generic_node(postfix_smtp_t)
 # for spampd
 corenet_tcp_connect_spamd_port(postfix_master_t)
 
@@ -636,7 +647,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	   dovecot_stream_connect(postfix_smtp_t)
+    dovecot_stream_connect(postfix_smtp_t)
 ')
 
 optional_policy(`

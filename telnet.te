@@ -1,4 +1,4 @@
-policy_module(telnet, 1.10.2)
+policy_module(telnet, 1.11.3)
 
 ########################################
 #
@@ -8,9 +8,13 @@ policy_module(telnet, 1.10.2)
 type telnetd_t;
 type telnetd_exec_t;
 inetd_service_domain(telnetd_t, telnetd_exec_t)
+init_daemon_domain(telnetd_t, telnetd_exec_t)
 
 type telnetd_devpts_t;
 term_login_pty(telnetd_devpts_t)
+
+type telnetd_keytab_t;
+files_type(telnetd_keytab_t)
 
 type telnetd_tmp_t;
 files_tmp_file(telnetd_tmp_t)
@@ -35,6 +39,8 @@ allow telnetd_t telnetd_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_p
 
 term_create_pty(telnetd_t, telnetd_devpts_t)
 
+allow telnetd_t telnetd_keytab_t:file read_file_perms;
+
 manage_dirs_pattern(telnetd_t, telnetd_tmp_t, telnetd_tmp_t)
 manage_files_pattern(telnetd_t, telnetd_tmp_t, telnetd_tmp_t)
 
@@ -47,12 +53,11 @@ kernel_read_network_state(telnetd_t)
 
 corenet_all_recvfrom_netlabel(telnetd_t)
 corenet_tcp_sendrecv_generic_if(telnetd_t)
-corenet_udp_sendrecv_generic_if(telnetd_t)
 corenet_tcp_sendrecv_generic_node(telnetd_t)
-corenet_udp_sendrecv_generic_node(telnetd_t)
-corenet_tcp_sendrecv_all_ports(telnetd_t)
-corenet_udp_sendrecv_all_ports(telnetd_t)
+
+corenet_sendrecv_telnetd_server_packets(telnetd_t)
 corenet_tcp_bind_telnetd_port(telnetd_t)
+corenet_tcp_sendrecv_telnetd_port(telnetd_t)
 
 corecmd_search_bin(telnetd_t)
 
@@ -88,9 +93,10 @@ tunable_policy(`use_samba_home_dirs',`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(telnetd, telnetd_t)
+	kerberos_read_keytab(telnetd_t)
 	kerberos_tmp_filetrans_host_rcache(telnetd_t, "host_0")
 	kerberos_manage_host_rcache(telnetd_t)
+	kerberos_use(telnetd_t)
 ')
 
 optional_policy(`
