@@ -66,6 +66,25 @@ interface(`sysnet_run_dhcpc',`
 
 ########################################
 ## <summary>
+##	Do not audit attempts to read and
+##	write dhcpc udp socket descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dontaudit_rw_dhcpc_udp_sockets',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	dontaudit $1 dhcpc_t:udp_socket { read write };
+')
+
+########################################
+## <summary>
 ##	Do not audit attempts to use
 ##	the dhcp file descriptors.
 ## </summary>
@@ -344,7 +363,7 @@ interface(`sysnet_setattr_config',`
 	')
 
 	files_search_etc($1)
-	allow $1 net_conf_t:file setattr;
+	allow $1 net_conf_t:file setattr_file_perms;
 ')
 
 #######################################
@@ -423,6 +442,12 @@ interface(`sysnet_read_config',`
 
 	files_search_etc($1)
 	allow $1 net_conf_t:file read_file_perms;
+
+	ifdef(`distro_debian',`
+		files_search_pids($1)
+		allow $1 net_conf_t:dir list_dir_perms;
+		read_files_pattern($1, net_conf_t, net_conf_t)
+	')
 
 	ifdef(`distro_redhat',`
 		allow $1 net_conf_t:dir list_dir_perms;
@@ -561,6 +586,11 @@ interface(`sysnet_manage_config',`
 	')
 
 	allow $1 net_conf_t:file manage_file_perms;
+
+	ifdef(`distro_debian',`
+		files_search_pids($1)
+		manage_files_pattern($1, net_conf_t, net_conf_t)
+	')
 
 	ifdef(`distro_redhat',`
 		allow $1 net_conf_t:dir list_dir_perms;

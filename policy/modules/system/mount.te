@@ -1,18 +1,17 @@
-policy_module(mount, 1.15.1)
+policy_module(mount, 1.16.1)
 
 ########################################
 #
 # Declarations
 #
 
-#attribute_role mount_roles;
-#roleattribute system_r mount_roles;
+attribute_role mount_roles;
+roleattribute system_r mount_roles;
 
 type mount_t;
 type mount_exec_t;
 init_system_domain(mount_t, mount_exec_t)
-#role mount_roles types mount_t;
-role system_r types mount_t;
+role mount_roles types mount_t;
 
 type fusermount_exec_t;
 domain_entry_file(mount_t, fusermount_exec_t)
@@ -46,6 +45,12 @@ role system_r types mount_ecryptfs_t;
 type mount_ecryptfs_tmpfs_t;
 files_tmpfs_file(mount_ecryptfs_tmpfs_t)
 
+# causes problems with interfaces when
+# this is optionally declared in monolithic
+# policy--duplicate type declaration
+type unconfined_mount_t;
+application_domain(unconfined_mount_t, mount_exec_t)
+
 ########################################
 #
 # mount local policy
@@ -67,24 +72,24 @@ can_exec(mount_t, mount_exec_t)
 
 files_tmp_filetrans(mount_t, mount_tmp_t, { file dir })
 
-manage_dirs_pattern(mount_t,mount_var_run_t,mount_var_run_t)
-manage_files_pattern(mount_t,mount_var_run_t,mount_var_run_t)
-files_pid_filetrans(mount_t,mount_var_run_t,{ dir file })
-files_var_filetrans(mount_t,mount_var_run_t,dir)
+create_dirs_pattern(mount_t, mount_var_run_t, mount_var_run_t)
+create_files_pattern(mount_t, mount_var_run_t, mount_var_run_t)
+rw_files_pattern(mount_t, mount_var_run_t, mount_var_run_t)
+files_pid_filetrans(mount_t, mount_var_run_t, dir, "mount")
 dev_filetrans(mount_t, mount_var_run_t, dir)
 
-# In order to mount reiserfs_t
-kernel_dontaudit_getattr_core_if(mount_t)
-kernel_list_unlabeled(mount_t)
-kernel_mount_unlabeled(mount_t)
-kernel_unmount_unlabeled(mount_t)
+
 kernel_read_system_state(mount_t)
 kernel_read_network_state(mount_t)
 kernel_read_kernel_sysctls(mount_t)
 kernel_relabelfrom_unlabeled_fs(mount_t)
+kernel_list_unlabeled(mount_t)
 kernel_manage_debugfs(mount_t)
-kernel_setsched(mount_t)
+kernel_mount_unlabeled(mount_t)
+kernel_unmount_unlabeled(mount_t)
 kernel_use_fds(mount_t)
+kernel_setsched(mount_t)
+kernel_dontaudit_getattr_core_if(mount_t)
 kernel_dontaudit_write_debugfs_dirs(mount_t)
 kernel_dontaudit_write_proc_dirs(mount_t)
 # To load binfmt_misc kernel module
@@ -137,7 +142,7 @@ files_unmount_all_file_type_fs(mount_t)
 files_read_isid_type_files(mount_t)
 # For reading cert files
 files_read_usr_files(mount_t)
-files_list_mnt(mount_t)
+files_list_all_mountpoints(mount_t)
 files_dontaudit_write_all_mountpoints(mount_t)
 files_dontaudit_setattr_all_mountpoints(mount_t)
 
@@ -302,28 +307,25 @@ optional_policy(`
 
 # Needed for mount crypt https://bugzilla.redhat.com/show_bug.cgi?id=418711
 optional_policy(`
-#	lvm_run(mount_t, mount_roles)
-	lvm_domtrans(mount_t)
+	lvm_run(mount_t, mount_roles)
 ')
 
 optional_policy(`
-	#modutils_run_insmod(mount_t, mount_roles)
-	modutils_domtrans_insmod(mount_t)
+	modutils_run_insmod(mount_t, mount_roles)
 	modutils_read_module_deps(mount_t)
 ')
 
 optional_policy(`
-	fstools_domtrans(mount_t)
-	#fstools_run(mount_t, mount_roles)
+	fstools_run(mount_t, mount_roles)
 ')
 
 optional_policy(`
 	rhcs_stream_connect_gfs_controld(mount_t)
 ')
 
-#optional_policy(`
-#	rpc_run_rpcd(mount_t, mount_roles)
-#')
+optional_policy(`
+	rpc_run_rpcd(mount_t, mount_roles)
+')
 
 optional_policy(`
 	puppet_rw_tmp(mount_t)
@@ -337,8 +339,7 @@ optional_policy(`
 
 optional_policy(`
 	samba_read_config(mount_t)
-	samba_domtrans_smbmount(mount_t)
-	#samba_run_smbmount(mount_t, mount_roles)
+	samba_run_smbmount(mount_t, mount_roles)
 ')
 
 optional_policy(`
@@ -351,7 +352,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	userhelper_exec_console(mount_t)
+	userhelper_exec_consolehelper(mount_t)
 ')
 
 optional_policy(`
@@ -393,9 +394,7 @@ corenet_tcp_bind_all_rpc_ports(showmount_t)
 corenet_udp_bind_all_rpc_ports(showmount_t)
 corenet_tcp_connect_all_ports(showmount_t)
 
-files_read_etc_files(showmount_t)
 files_read_etc_runtime_files(showmount_t)
-
 
 sysnet_dns_name_resolve(showmount_t)
 
@@ -426,3 +425,13 @@ fs_read_ecryptfs_symlinks(mount_ecryptfs_t)
 fs_read_ecryptfs_files(mount_ecryptfs_t)
 
 auth_use_nsswitch(mount_ecryptfs_t)
+
+########################################
+#
+# Unconfined mount local policy
+#
+
+optional_policy(`
+    files_etc_filetrans_etc_runtime(unconfined_mount_t, file)
+    unconfined_domain(unconfined_mount_t)
+')

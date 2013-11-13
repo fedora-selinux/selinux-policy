@@ -1,4 +1,4 @@
-policy_module(ssh, 2.3.3)
+policy_module(ssh, 2.4.2)
 
 ########################################
 #
@@ -61,6 +61,9 @@ systemd_unit_file(sshd_unit_file_t)
 
 type sshd_key_t;
 files_type(sshd_key_t)
+
+type sshd_keytab_t;
+files_type(sshd_keytab_t)
 
 type ssh_t;
 type ssh_exec_t;
@@ -262,6 +265,8 @@ allow sshd_t self:netlink_route_socket r_netlink_socket_perms;
 allow sshd_t self:key { search link write };
 allow sshd_t self:process setcurrent;
 
+allow sshd_t sshd_keytab_t:file read_file_perms;
+
 kernel_search_key(sshd_t)
 kernel_link_key(sshd_t)
 
@@ -315,10 +320,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	kerberos_keytab_template(sshd, sshd_t)
-')
-
-optional_policy(`
 	ftp_dyntrans_sftpd(sshd_t)
 	ftp_dyntrans_anon_sftpd(sshd_t)
 ')
@@ -332,7 +333,16 @@ optional_policy(`
 ')
 
 optional_policy(`
+	kerberos_read_keytab(sshd_t)
+	kerberos_use(sshd_t)
+')
+
+optional_policy(`
     lvm_domtrans(sshd_t)
+')
+
+optional_policy(`
+	munin_read_var_lib_files(sshd_t)
 ')
 
 optional_policy(`
@@ -341,10 +351,6 @@ optional_policy(`
 
 optional_policy(`
 	oddjob_domtrans_mkhomedir(sshd_t)
-')
-
-optional_policy(`
-	munin_read_var_lib_files(sshd_t)
 ')
 
 optional_policy(`

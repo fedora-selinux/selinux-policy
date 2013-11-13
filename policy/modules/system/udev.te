@@ -1,4 +1,4 @@
-policy_module(udev, 1.15.4)
+policy_module(udev, 1.16.2)
 
 ########################################
 #
@@ -41,7 +41,6 @@ ifdef(`enable_mcs',`
 allow udev_t self:capability { chown dac_override dac_read_search fowner fsetid sys_admin mknod net_raw net_admin sys_nice sys_rawio sys_resource setuid setgid sys_nice };
 allow udev_t self:capability2 { block_suspend compromise_kernel };
 dontaudit udev_t self:capability sys_tty_config;
-
 allow udev_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
 allow udev_t self:process { execmem setfscreate };
 allow udev_t self:fd use;
@@ -76,10 +75,10 @@ manage_files_pattern(udev_t, udev_rules_t, udev_rules_t)
 manage_lnk_files_pattern(udev_t, udev_rules_t, udev_rules_t)
 
 manage_dirs_pattern(udev_t, udev_var_run_t, udev_var_run_t)
-manage_sock_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
 manage_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
 manage_lnk_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
-files_pid_filetrans(udev_t, udev_var_run_t, { file dir })
+manage_sock_files_pattern(udev_t, udev_var_run_t, udev_var_run_t)
+files_pid_filetrans(udev_t, udev_var_run_t, dir, "udev")
 allow udev_t udev_var_run_t:file mounton;
 allow udev_t udev_var_run_t:lnk_file relabel_lnk_file_perms;
 dev_filetrans(udev_t, udev_var_run_t, { file lnk_file } )
@@ -201,6 +200,21 @@ systemd_getattr_unit_files(udev_t)
 
 userdom_dontaudit_search_user_home_content(udev_t)
 
+ifdef(`distro_debian',`
+	files_pid_filetrans(udev_t, udev_var_run_t, dir, "xen-hotplug")
+
+	optional_policy(`
+		# for /usr/lib/avahi/avahi-daemon-check-dns.sh
+		kernel_read_vm_sysctls(udev_t)
+		corenet_udp_bind_generic_node(udev_t)
+		miscfiles_read_generic_certs(udev_t)
+		avahi_create_pid_dirs(udev_t)
+		avahi_initrc_domtrans(udev_t)
+		avahi_manage_pid_files(udev_t)
+		avahi_filetrans_pid(udev_t, dir, "avahi-daemon")
+	')
+')
+
 ifdef(`distro_gentoo',`
 	# during boot, init scripts use /dev/.rcsysinit
 	# existance to determine if we are in early booting
@@ -253,10 +267,11 @@ optional_policy(`
 
 optional_policy(`
 	dbus_system_bus_client(udev_t)
+	dbus_use_system_bus_fds(udev_t)
 
 	optional_policy(`
 		systemd_dbus_chat_logind(udev_t)
-	')
+    ')
 ')
 
 optional_policy(`
@@ -294,6 +309,10 @@ optional_policy(`
 	hotplug_read_config(udev_t)
 	# usb.agent searches /var/run/usb
 	hotplug_search_pids(udev_t)
+')
+
+optional_policy(`
+	lvm_domtrans(udev_t)
 ')
 
 optional_policy(`

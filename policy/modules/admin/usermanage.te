@@ -1,22 +1,22 @@
-policy_module(usermanage, 1.18.1)
+policy_module(usermanage, 1.19.0)
 
 ########################################
 #
 # Declarations
 #
 
-#attribute_role chfn_roles;
-#role system_r types chfn_t;
+attribute_role chfn_roles;
+role system_r types chfn_t;
 
-#attribute_role groupadd_roles;
+attribute_role groupadd_roles;
 
-#attribute_role passwd_roles;
-#roleattribute system_r passwd_roles;
+attribute_role passwd_roles;
+roleattribute system_r passwd_roles;
 
-#attribute_role sysadm_passwd_roles;
-#roleattribute system_r sysadm_passwd_roles;
+attribute_role sysadm_passwd_roles;
+roleattribute system_r sysadm_passwd_roles;
 
-#attribute_role useradd_roles;
+attribute_role useradd_roles;
 
 type admin_passwd_exec_t;
 files_type(admin_passwd_exec_t)
@@ -25,7 +25,7 @@ type chfn_t;
 type chfn_exec_t;
 domain_obj_id_change_exemption(chfn_t)
 application_domain(chfn_t, chfn_exec_t)
-#role chfn_roles types chfn_t;
+role chfn_roles types chfn_t;
 role system_r types chfn_t;
 
 type crack_t;
@@ -43,7 +43,7 @@ type groupadd_t;
 type groupadd_exec_t;
 domain_obj_id_change_exemption(groupadd_t)
 init_system_domain(groupadd_t, groupadd_exec_t)
-#role groupadd_roles types groupadd_t;
+role groupadd_roles types groupadd_t;
 
 
 type passwd_t;
@@ -51,14 +51,12 @@ type passwd_exec_t;
 domain_obj_id_change_exemption(passwd_t)
 domain_system_change_exemption(passwd_t)
 application_domain(passwd_t, passwd_exec_t)
-#role passwd_roles types passwd_t;
-role system_r types passwd_t;
+role passwd_roles types passwd_t;
 
 type sysadm_passwd_t;
 domain_obj_id_change_exemption(sysadm_passwd_t)
 application_domain(sysadm_passwd_t, admin_passwd_exec_t)
-#role sysadm_passwd_roles types sysadm_passwd_t;
-role system_r types sysadm_passwd_t;
+role sysadm_passwd_roles types sysadm_passwd_t;
 
 type sysadm_passwd_tmp_t;
 files_tmp_file(sysadm_passwd_tmp_t)
@@ -68,8 +66,7 @@ type useradd_exec_t;
 domain_obj_id_change_exemption(useradd_t)
 domain_system_change_exemption(useradd_t)
 init_system_domain(useradd_t, useradd_exec_t)
-#role useradd_roles types useradd_t;
-role system_r types useradd_t;
+role useradd_roles types useradd_t;
 
 type useradd_var_run_t;
 files_pid_file(useradd_var_run_t)
@@ -118,7 +115,7 @@ dev_dontaudit_getattr_all(chfn_t)
 
 auth_manage_passwd(chfn_t)
 auth_use_pam(chfn_t)
-#auth_run_chk_passwd(chfn_t, chfn_roles)
+auth_run_chk_passwd(chfn_t, chfn_roles)
 #auth_dontaudit_read_shadow(chfn_t)
 #auth_use_nsswitch(chfn_t)
 
@@ -137,8 +134,9 @@ files_dontaudit_search_home(chfn_t)
 init_dontaudit_rw_utmp(chfn_t)
 init_dontaudit_getattr_initctl(chfn_t)
 
-
 logging_send_syslog_msg(chfn_t)
+
+seutil_read_file_contexts(chfn_t)
 
 userdom_manage_user_tmp_files(chfn_t)
 userdom_tmp_filetrans_user_tmp(chfn_t, { file })
@@ -149,14 +147,18 @@ userdom_use_unpriv_users_fds(chfn_t)
 userdom_dontaudit_search_user_home_content(chfn_t)
 
 optional_policy(`
-	rssh_exec(chfn_t)
+	nscd_run(chfn_t, chfn_roles)
 ')
 
+optional_policy(`
+	rssh_exec(chfn_t)
+')
 
 optional_policy(`
 	# allow to exec tmux
 	screen_exec(chfn_t)
 ')
+
 
 ########################################
 #
@@ -255,8 +257,7 @@ logging_send_audit_msgs(groupadd_t)
 logging_send_syslog_msg(groupadd_t)
 
 
-#auth_run_chk_passwd(groupadd_t, groupadd_roles)
-auth_domtrans_chk_passwd(groupadd_t)
+auth_run_chk_passwd(groupadd_t, groupadd_roles)
 auth_rw_lastlog(groupadd_t)
 auth_use_nsswitch(groupadd_t)
 auth_manage_passwd(groupadd_t)
@@ -279,8 +280,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-#	nscd_run(groupadd_t, groupadd_roles)
-	nscd_domtrans(groupadd_t)
+	nscd_run(groupadd_t, groupadd_roles)
 ')
 
 optional_policy(`
@@ -339,18 +339,12 @@ selinux_compute_user_contexts(passwd_t)
 term_use_all_inherited_terms(passwd_t)
 term_getattr_all_ptys(passwd_t)
 
+auth_run_chk_passwd(passwd_t, passwd_roles)
 auth_manage_passwd(passwd_t)
 auth_manage_shadow(passwd_t)
 auth_relabel_shadow(passwd_t)
 auth_etc_filetrans_shadow(passwd_t)
 auth_use_pam(passwd_t)
-
-#auth_run_chk_passwd(passwd_t, passwd_roles)
-#auth_manage_passwd(passwd_t)
-#auth_manage_shadow(passwd_t)
-#auth_relabel_shadow(passwd_t)
-#auth_etc_filetrans_shadow(passwd_t)
-#auth_use_nsswitch(passwd_t)
 
 # allow checking if a shell is executable
 corecmd_check_exec_shell(passwd_t)
@@ -398,8 +392,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	#nscd_run(passwd_t, passwd_roles)
-	nscd_domtrans(passwd_t)
+	nscd_run(passwd_t, passwd_roles)
 ')
 
 ########################################
@@ -480,8 +473,7 @@ userdom_use_unpriv_users_fds(sysadm_passwd_t)
 userdom_dontaudit_search_user_home_content(sysadm_passwd_t)
 
 optional_policy(`
-	nscd_domtrans(sysadm_passwd_t)
-	#nscd_run(sysadm_passwd_t, sysadm_passwd_roles)
+	nscd_run(sysadm_passwd_t, sysadm_passwd_roles)
 ')
 
 ########################################
@@ -538,8 +530,7 @@ mls_process_read_to_clearance(useradd_t)
 term_use_all_inherited_terms(useradd_t)
 term_getattr_all_ptys(useradd_t)
 
-#auth_run_chk_passwd(useradd_t, useradd_roles)
-auth_domtrans_chk_passwd(useradd_t)
+auth_run_chk_passwd(useradd_t, useradd_roles)
 auth_rw_lastlog(useradd_t)
 auth_rw_faillog(useradd_t)
 auth_use_nsswitch(useradd_t)
@@ -566,15 +557,11 @@ seutil_manage_default_contexts(useradd_t)
 seutil_read_config(useradd_t)
 seutil_read_file_contexts(useradd_t)
 seutil_read_default_contexts(useradd_t)
-seutil_domtrans_semanage(useradd_t)
-seutil_domtrans_setfiles(useradd_t)
-seutil_domtrans_loadpolicy(useradd_t)
-#seutil_manage_bin_policy(useradd_t)
-#seutil_manage_module_store(useradd_t)
 seutil_get_semanage_trans_lock(useradd_t)
 seutil_get_semanage_read_lock(useradd_t)
-#seutil_run_semanage(useradd_t, useradd_roles)
-#seutil_run_setfiles(useradd_t, useradd_roles)
+seutil_run_semanage(useradd_t, useradd_roles)
+seutil_run_setfiles(useradd_t, useradd_roles)
+seutil_run_loadpolicy(useradd_t, useradd_roles)
 
 userdom_use_unpriv_users_fds(useradd_t)
 # Add/remove user home directories
@@ -596,8 +583,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	nscd_domtrans(useradd_t)
-#	nscd_run(useradd_t, useradd_roles)
+	nscd_run(useradd_t, useradd_roles)
 ')
 
 optional_policy(`
