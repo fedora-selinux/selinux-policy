@@ -802,11 +802,12 @@ interface(`postfix_domtrans_user_mail_handler',`
 #
 interface(`postfix_admin',`
 	gen_require(`
-		attribute postfix_domain, postfix_spool_type, postfix_server_tmp_content;
-		type postfix_initrc_exec_t, postfix_prng_t, postfix_etc_t;
-		type postfix_data_t, postfix_var_run_t, postfix_public_t;
-		type postfix_private_t, postfix_map_tmp_t, postfix_exec_t;
-		type postfix_keytab_t, postfix_bounce_t;
+		attribute postfix_spool_type;
+		type postfix_bounce_t, postfix_cleanup_t, postfix_local_t;
+		type postfix_master_t, postfix_pickup_t, postfix_qmgr_t;
+		type postfix_initrc_exec_t, postfix_data_t, postfix_etc_t;
+		type postfix_map_tmp_t, postfix_prng_t, postfix_public_t;
+		type postfix_smtpd_t, postfix_var_run_t;
 	')
 
 	allow $1 postfix_bounce_t:process signal_perms;
@@ -817,7 +818,6 @@ interface(`postfix_admin',`
 
 	allow $1 postfix_cleanup_t:process signal_perms;
 	ps_process_pattern($1, postfix_cleanup_t)
-
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 postfix_cleanup_t:process ptrace;
 		allow $1 postfix_local_t:process ptrace;
@@ -851,8 +851,7 @@ interface(`postfix_admin',`
 	role_transition $2 postfix_initrc_exec_t system_r;
 	allow $2 system_r;
 
-	files_search_etc($1)
-	admin_pattern($1, { postfix_prng_t postfix_etc_t postfix_exec_t postfix_keytab_t })
+	admin_pattern($1, postfix_data_t) 
 
 	files_list_etc($1)
 	admin_pattern($1, postfix_etc_t)
