@@ -41,6 +41,29 @@ interface(`zebra_stream_connect',`
 	stream_connect_pattern($1, zebra_var_run_t, zebra_var_run_t, zebra_t)
 ')
 
+#######################################
+## <summary>
+##  Execute zebra services in the zebra domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`zebra_systemctl',`
+    gen_require(`
+        type zebra_t;
+        type zebra_unit_file_t;
+    ')
+
+        systemd_exec_systemctl($1)
+        allow $1 zebra_unit_file_t:file read_file_perms;
+        allow $1 zebra_unit_file_t:service manage_service_perms;
+
+        ps_process_pattern($1, zebra_t)
+')
+
 ########################################
 ## <summary>
 ##	All of the rules required to administrate
@@ -66,6 +89,7 @@ interface(`zebra_admin',`
 
 	allow $1 zebra_t:process signal_perms;
 	ps_process_pattern($1, zebra_t)
+
 	tunable_policy(`deny_ptrace',`',`
 		allow $1 zebra_t:process ptrace;
 	')
@@ -86,4 +110,8 @@ interface(`zebra_admin',`
 
 	files_list_pids($1)
 	admin_pattern($1, zebra_var_run_t)
+
+    zebra_systemctl($1)
+    admin_pattern($1, zebra_unit_file_t)
+    allow $1 zebra_unit_file_t:service all_service_perms;
 ')
