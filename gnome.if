@@ -68,11 +68,10 @@ template(`gnome_role_template',`
     gen_require(`
 		attribute gnomedomain, gkeyringd_domain;
 		attribute_role gconfd_roles;
-		type gkeyringd_exec_t, gkeyring_tmp_t;
-		attribute gnome_home_type;
+		type gkeyringd_exec_t, gkeyring_gnome_home_t, gkeyring_tmp_t;
 		type gconfd_t, gconfd_exec_t, gconf_tmp_t;
 		type gconf_home_t;
-		class dbus send_msg;
+        class dbus send_msg;
 	')
 
 	########################################
@@ -117,8 +116,8 @@ template(`gnome_role_template',`
 
 	domtrans_pattern($3, gkeyringd_exec_t, $1_gkeyringd_t)
 
-	allow $3 { gnome_home_type gkeyring_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
-	allow $3 gnome_home_type :file { relabel_file_perms manage_file_perms };
+	allow $3 { gnome_home_t gkeyring_gnome_home_t gkeyring_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
+	allow $3 { gnome_home_t gkeyring_gnome_home_t }:file { relabel_file_perms manage_file_perms };
 
 	userdom_home_manager($1_gkeyringd_t)
 	
@@ -157,7 +156,7 @@ template(`gnome_role_template',`
 	allow $3 $1_gkeyringd_t:dbus send_msg;
 
 	optional_policy(`
-	        dbus_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
+        dbus_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
 		dbus_session_bus_client($1_gkeyringd_t)
 		gnome_manage_generic_home_dirs($1_gkeyringd_t)
 		gnome_read_generic_data_home_files($1_gkeyringd_t)
