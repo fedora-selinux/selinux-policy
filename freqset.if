@@ -1,0 +1,76 @@
+
+## <summary>policy for freqset</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the freqset domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`freqset_domtrans',`
+	gen_require(`
+		type freqset_t, freqset_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, freqset_exec_t, freqset_t)
+')
+
+########################################
+## <summary>
+##	Execute freqset in the freqset domain, and
+##	allow the specified role the freqset domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the freqset domain.
+##	</summary>
+## </param>
+#
+interface(`freqset_run',`
+	gen_require(`
+		type freqset_t;
+		attribute_role freqset_roles;
+	')
+
+	freqset_domtrans($1)
+	roleattribute $2 freqset_roles;
+')
+
+########################################
+## <summary>
+##	Role access for freqset
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`freqset_role',`
+	gen_require(`
+		type freqset_t;
+		attribute_role freqset_roles;
+	')
+
+	roleattribute $1 freqset_roles;
+
+	freqset_domtrans($2)
+
+	ps_process_pattern($2, freqset_t)
+	allow $2 freqset_t:process { signull signal sigkill };
+')
