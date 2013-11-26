@@ -5847,6 +5847,22 @@ template(`userdom_confined_admin_template',`
 	ubac_constrained($1_t)
 
 	auth_use_nsswitch($1_t)
+
+	ifelse(`$1',`unconfined',`',`
+		gen_tunable($1_exec_content, true)
+
+		tunable_policy(`$1_exec_content',`
+			userdom_exec_user_tmp_files($1_usertype)
+			userdom_exec_user_home_content_files($1_usertype)
+		')
+		tunable_policy(`$1_exec_content && use_nfs_home_dirs',`
+                        fs_exec_nfs_files($1_usertype)
+		')
+
+		tunable_policy(`$1_exec_content && use_samba_home_dirs',`
+			fs_exec_cifs_files($1_usertype)
+		')
+	')
 ')
 
 ########################################
