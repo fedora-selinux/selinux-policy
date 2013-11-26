@@ -15,6 +15,14 @@ files_pid_file(lsmd_var_run_t)
 type lsmd_unit_file_t;
 systemd_unit_file(lsmd_unit_file_t)
 
+type lsmd_plugin_t;
+type lsmd_plugin_exec_t;
+application_domain(lsmd_plugin_t, lsmd_plugin_exec_t)
+role system_r types lsmd_plugin_t;
+
+type lsmd_plugin_tmp_t;
+files_tmp_file(lsmd_plugin_tmp_t)
+
 ########################################
 #
 # lsmd local policy
@@ -32,3 +40,24 @@ files_pid_filetrans(lsmd_t, lsmd_var_run_t, { dir file sock_file })
 corecmd_exec_bin(lsmd_t)
 
 logging_send_syslog_msg(lsmd_t)
+
+########################################
+#
+# Local lsmd plugin policy
+#
+
+domtrans_pattern(lsmd_t, lsmd_plugin_exec_t, lsmd_plugin_t)
+
+allow lsmd_t lsmd_plugin_exec_t:file read_file_perms;
+
+manage_files_pattern(lsmd_plugin_t, lsmd_plugin_tmp_t, lsmd_plugin_tmp_t)
+manage_dirs_pattern(lsmd_plugin_t, lsmd_plugin_tmp_t, lsmd_plugin_tmp_t)
+files_tmp_filetrans(lsmd_plugin_t, lsmd_plugin_tmp_t, { file dir })
+
+kernel_read_system_state(lsmd_plugin_t)
+
+dev_read_urand(lsmd_plugin_t)
+
+corecmd_exec_bin(lsmd_plugin_t)
+
+sysnet_read_config(lsmd_plugin_t)
