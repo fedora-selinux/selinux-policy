@@ -68,7 +68,8 @@ template(`gnome_role_template',`
     gen_require(`
 		attribute gnomedomain, gkeyringd_domain;
 		attribute_role gconfd_roles;
-		type gkeyringd_exec_t, gkeyring_gnome_home_t, gkeyring_tmp_t;
+        type gnome_home_t;
+		type gkeyringd_exec_t, gkeyringd_gnome_home_t, gkeyringd_tmp_t;
 		type gconfd_t, gconfd_exec_t, gconf_tmp_t;
 		type gconf_home_t;
         class dbus send_msg;
@@ -101,8 +102,6 @@ template(`gnome_role_template',`
 
 	allow $3 { gconf_home_t gconf_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
 	allow $3 { gconf_home_t gconf_tmp_t }:file { manage_file_perms relabel_file_perms };
-	userdom_user_home_dir_filetrans($3, gconf_home_t, dir, ".gconf")
-	userdom_user_home_dir_filetrans($3, gconf_home_t, dir, ".gconfd")
 
 	allow $3 gconfd_t:process { signal_perms };
     allow $3 gconfd_t:unix_stream_socket connectto;
@@ -116,17 +115,12 @@ template(`gnome_role_template',`
 
 	domtrans_pattern($3, gkeyringd_exec_t, $1_gkeyringd_t)
 
-	allow $3 { gnome_home_t gkeyring_gnome_home_t gkeyring_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
-	allow $3 { gnome_home_t gkeyring_gnome_home_t }:file { relabel_file_perms manage_file_perms };
+	allow $3 { gnome_home_t gkeyringd_gnome_home_t gkeyringd_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
+	allow $3 { gnome_home_t gkeyringd_gnome_home_t }:file { relabel_file_perms manage_file_perms };
 
 	userdom_home_manager($1_gkeyringd_t)
-	
-    gnome_home_dir_filetrans($3, gnome_home_t, ".gnome")
-    gnome_home_dir_filetrans($3, gnome_home_t, ".gnome2")
-    gnome_home_dir_filetrans($3, gnome_home_t, ".gnome2_private")
-	gnome_home_dir_filetrans($3, gkeyring_gnome_home_t, "keyrings")
 
-	allow $3 gkeyring_tmp_t:sock_file { relabel_sock_file_perms manage_sock_file_perms };
+	allow $3 gkeyringd_tmp_t:sock_file { relabel_sock_file_perms manage_sock_file_perms };
 
 	ps_process_pattern($3, $1_gkeyringd_t)
 	allow $3 $1_gkeyringd_t:process signal_perms;
@@ -157,7 +151,6 @@ template(`gnome_role_template',`
 
 	optional_policy(`
         dbus_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
-		dbus_session_bus_client($1_gkeyringd_t)
 		gnome_manage_generic_home_dirs($1_gkeyringd_t)
 		gnome_read_generic_data_home_files($1_gkeyringd_t)
 		gnome_read_generic_data_home_dirs($1_gkeyringd_t)
