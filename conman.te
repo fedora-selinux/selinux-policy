@@ -1,0 +1,40 @@
+policy_module(conman, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type conman_t;
+type conman_exec_t;
+init_daemon_domain(conman_t, conman_exec_t)
+
+type conman_log_t;
+logging_log_file(conman_log_t)
+
+type conman_unit_file_t;
+systemd_unit_file(conman_unit_file_t)
+
+########################################
+#
+# conman local policy
+#
+allow conman_t self:process { fork setrlimit signal_perms };
+allow conman_t self:capability { sys_tty_config };
+allow conman_t self:fifo_file rw_fifo_file_perms;
+allow conman_t self:unix_stream_socket create_stream_socket_perms;
+allow conman_t self:tcp_socket { listen create_socket_perms };
+
+manage_dirs_pattern(conman_t, conman_log_t, conman_log_t)
+manage_files_pattern(conman_t, conman_log_t, conman_log_t)
+logging_log_filetrans(conman_t, conman_log_t, { dir })
+
+auth_read_passwd(conman_t)
+
+corenet_tcp_bind_generic_port(conman_t)
+corenet_tcp_bind_generic_node(conman_t)
+
+corecmd_exec_bin(conman_t)
+
+logging_send_syslog_msg(conman_t)
+
