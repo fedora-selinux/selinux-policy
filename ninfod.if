@@ -3,7 +3,7 @@
 
 ########################################
 ## <summary>
-##	Execute TEMPLATE in the ninfod domin.
+##	Execute ninfod in the ninfod domin.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -36,7 +36,7 @@ interface(`ninfod_systemctl',`
 	')
 
 	systemd_exec_systemctl($1)
-        systemd_read_fifo_file_passwd_run($1)
+    systemd_read_fifo_file_passwd_run($1)
 	allow $1 ninfod_unit_file_t:file read_file_perms;
 	allow $1 ninfod_unit_file_t:service manage_service_perms;
 
@@ -59,11 +59,15 @@ interface(`ninfod_systemctl',`
 interface(`ninfod_admin',`
 	gen_require(`
 		type ninfod_t;
-	type ninfod_unit_file_t;
+	    type ninfod_unit_file_t;
 	')
 
-	allow $1 ninfod_t:process { ptrace signal_perms };
+	allow $1 ninfod_t:process { signal_perms };
 	ps_process_pattern($1, ninfod_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 ninfod_t:process ptrace;
+    ')
 
 	ninfod_systemctl($1)
 	admin_pattern($1, ninfod_unit_file_t)
