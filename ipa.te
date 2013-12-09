@@ -1,0 +1,33 @@
+policy_module(ipa, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute ipa_domain;
+
+type ipa_otpd_t, ipa_domain;
+type ipa_otpd_exec_t;
+init_daemon_domain(ipa_otpd_t, ipa_otpd_exec_t)
+
+type ipa_otpd_unit_file_t;
+systemd_unit_file(ipa_otpd_unit_file_t)
+
+########################################
+#
+# ipa_otpd local policy
+#
+
+allow ipa_otpd_t self:fifo_file rw_fifo_file_perms;
+allow ipa_otpd_t self:unix_stream_socket create_stream_socket_perms;
+
+corenet_tcp_connect_radius_port(ipa_otpd_t)
+
+optional_policy(`
+    dirsrv_stream_connect(ipa_otpd_t)
+')
+
+optional_policy(`
+	kerberos_use(ipa_otpd_t)
+')
