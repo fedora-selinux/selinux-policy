@@ -101,6 +101,20 @@ gen_tunable(virt_use_xserver, false)
 ## </desc>
 gen_tunable(virt_use_usb, true)
 
+## <desc>
+## <p>
+## Allow sandbox containers to use netlink system calls
+## </p>
+## </desc>
+gen_tunable(virt_sandbox_use_netlink, false)
+
+## <desc>
+## <p>
+## Allow sandbox containers to send audit messages
+## </p>
+## </desc>
+gen_tunable(virt_sandbox_use_audit, false)
+
 virt_domain_template(svirt)
 role system_r types svirt_t;
 typealias svirt_t alias qemu_t;
@@ -1238,9 +1252,12 @@ typeattribute svirt_lxc_net_t sandbox_net_domain;
 allow svirt_lxc_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
 dontaudit svirt_lxc_net_t self:capability2 block_suspend;
 allow svirt_lxc_net_t self:process { execstack execmem };
-allow svirt_lxc_net_t self:netlink_socket create_socket_perms;
-allow svirt_lxc_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
-allow svirt_lxc_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+tunable_policy(`virt_sandbox_use_netlink',`
+	allow svirt_lxc_net_t self:netlink_socket create_socket_perms;
+	allow svirt_lxc_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
+	allow svirt_lxc_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+')
 
 allow svirt_lxc_net_t virt_lxc_var_run_t:dir list_dir_perms;
 allow svirt_lxc_net_t virt_lxc_var_run_t:file read_file_perms;
@@ -1265,7 +1282,9 @@ auth_use_nsswitch(svirt_lxc_net_t)
 
 rpm_read_db(svirt_lxc_net_t)
 
-logging_send_audit_msgs(svirt_lxc_net_t)
+tunable_policy(`virt_sandbox_use_audit',`
+	logging_send_audit_msgs(svirt_lxc_net_t)
+')
 
 userdom_use_user_ptys(svirt_lxc_net_t)
 
@@ -1279,9 +1298,12 @@ typeattribute svirt_qemu_net_t sandbox_net_domain;
 allow svirt_qemu_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
 dontaudit svirt_qemu_net_t self:capability2 block_suspend;
 allow svirt_qemu_net_t self:process { execstack execmem };
-allow svirt_qemu_net_t self:netlink_socket create_socket_perms;
-allow svirt_qemu_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
-allow svirt_qemu_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+tunable_policy(`virt_sandbox_use_netlink',`
+	allow svirt_qemu_net_t self:netlink_socket create_socket_perms;
+	allow svirt_qemu_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
+	allow svirt_qemu_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+')
 
 manage_dirs_pattern(sandbox_net_domain, svirt_home_t, svirt_home_t)
 manage_files_pattern(sandbox_net_domain, svirt_home_t, svirt_home_t)
@@ -1322,7 +1344,9 @@ auth_use_nsswitch(svirt_qemu_net_t)
 
 rpm_read_db(svirt_qemu_net_t)
 
-logging_send_audit_msgs(svirt_qemu_net_t)
+tunable_policy(`virt_sandbox_use_audit',`
+	logging_send_audit_msgs(svirt_qemu_net_t)
+')
 
 userdom_use_user_ptys(svirt_qemu_net_t)
 
@@ -1509,9 +1533,12 @@ typeattribute svirt_kvm_net_t sandbox_net_domain;
 
 allow svirt_kvm_net_t self:capability { kill setuid setgid sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid sys_chroot sys_admin sys_nice sys_ptrace sys_resource setpcap };
 dontaudit svirt_kvm_net_t self:capability2 block_suspend;
-allow svirt_kvm_net_t self:netlink_socket create_socket_perms;
-allow svirt_kvm_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
-allow svirt_kvm_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+tunable_policy(`virt_sandbox_use_netlink',`
+	allow svirt_kvm_net_t self:netlink_socket create_socket_perms;
+	allow svirt_kvm_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
+	allow svirt_kvm_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+')
 
 term_use_generic_ptys(svirt_kvm_net_t)
 term_use_ptmx(svirt_kvm_net_t)
@@ -1546,7 +1573,9 @@ auth_use_nsswitch(svirt_kvm_net_t)
 
 rpm_read_db(svirt_kvm_net_t)
 
-logging_send_audit_msgs(svirt_kvm_net_t)
+tunable_policy(`virt_sandbox_use_audit',`
+	logging_send_audit_msgs(svirt_kvm_net_t)
+')
 
 userdom_use_user_ptys(svirt_kvm_net_t)
 
