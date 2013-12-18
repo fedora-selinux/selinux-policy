@@ -1016,7 +1016,7 @@ allow virtd_lxc_t virt_image_type:dir mounton;
 manage_files_pattern(virtd_lxc_t, virt_image_t, virt_image_t)
 
 domtrans_pattern(virtd_t, virtd_lxc_exec_t, virtd_lxc_t)
-allow virtd_t virtd_lxc_t:process { getattr signal signull sigkill };
+allow virtd_t virtd_lxc_t:process { getattr noatsecure signal_perms };
 
 allow virtd_lxc_t virt_var_run_t:dir search_dir_perms;
 manage_dirs_pattern(virtd_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
@@ -1112,6 +1112,10 @@ optional_policy(`
 	optional_policy(`
 		hal_dbus_chat(virtd_lxc_t)
 	')
+')
+
+optional_policy(`
+	docker_exec_lib(virtd_lxc_t)
 ')
 
 optional_policy(`
@@ -1220,6 +1224,11 @@ optional_policy(`
 ')
 
 optional_policy(`
+	docker_read_lib_files(svirt_sandbox_domain)
+	docker_lib_filetrans(svirt_sandbox_domain,svirt_sandbox_file_t, sock_file)
+')
+
+optional_policy(`
 	mta_dontaudit_read_spool_symlinks(svirt_sandbox_domain)
 ')
 
@@ -1250,6 +1259,8 @@ tunable_policy(`virt_sandbox_use_netlink',`
 	allow svirt_lxc_net_t self:netlink_socket create_socket_perms;
 	allow svirt_lxc_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
 	allow svirt_lxc_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+', `
+	logging_dontaudit_send_audit_msgs(svirt_lxc_net_t)
 ')
 
 allow svirt_lxc_net_t virt_lxc_var_run_t:dir list_dir_perms;
