@@ -1,0 +1,50 @@
+policy_module(speech-dispatcher, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type speech-dispatcher_t;
+type speech-dispatcher_exec_t;
+init_daemon_domain(speech-dispatcher_t, speech-dispatcher_exec_t)
+
+type speech-dispatcher_log_t;
+logging_log_file(speech-dispatcher_log_t)
+
+type speech-dispatcher_unit_file_t;
+systemd_unit_file(speech-dispatcher_unit_file_t)
+
+type speech-dispatcher_tmp_t;
+files_tmp_file(speech-dispatcher_tmp_t)
+
+type speech-dispatcher_tmpfs_t;
+files_tmpfs_file(speech-dispatcher_tmpfs_t)
+
+########################################
+#
+# speech-dispatcher local policy
+#
+allow speech-dispatcher_t self:process { fork signal_perms };
+allow speech-dispatcher_t self:fifo_file rw_fifo_file_perms;
+allow speech-dispatcher_t self:unix_stream_socket create_stream_socket_perms;
+allow speech-dispatcher_t self:tcp_socket create_socket_perms;
+
+manage_dirs_pattern(speech-dispatcher_t, speech-dispatcher_log_t, speech-dispatcher_log_t)
+manage_files_pattern(speech-dispatcher_t, speech-dispatcher_log_t, speech-dispatcher_log_t)
+logging_log_filetrans(speech-dispatcher_t, speech-dispatcher_log_t, { dir })
+
+manage_files_pattern(speech-dispatcher_t, speech-dispatcher_tmp_t, speech-dispatcher_tmp_t)
+files_tmp_filetrans(speech-dispatcher_t, speech-dispatcher_tmp_t, { file })
+
+manage_files_pattern(speech-dispatcher_t, speech-dispatcher_tmpfs_t, speech-dispatcher_tmpfs_t)
+fs_tmpfs_filetrans(speech-dispatcher_t, speech-dispatcher_tmpfs_t, { file })
+
+kernel_read_system_state(speech-dispatcher_t)
+
+auth_read_passwd(speech-dispatcher_t)
+
+corenet_tcp_connect_pdps_port(speech-dispatcher_t)
+
+dev_read_urand(speech-dispatcher_t)
+
