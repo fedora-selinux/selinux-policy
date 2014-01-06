@@ -5,8 +5,8 @@ policy_module(mojomojo, 1.1.0)
 # Declarations
 #
 
-type httpd_mojomojo_tmp_t;
-files_tmp_file(httpd_mojomojo_tmp_t)
+type mojomojo_tmp_t alias httpd_mojomojo_tmp_t;
+files_tmp_file(mojomojo_tmp_t)
 
 ########################################
 #
@@ -15,31 +15,30 @@ files_tmp_file(httpd_mojomojo_tmp_t)
 
 optional_policy(`
 	apache_content_template(mojomojo)
+	apache_content_alias_template(mojomojo, mojomojo)
 
-	allow httpd_mojomojo_script_t httpd_t:unix_stream_socket rw_stream_socket_perms;
+	manage_dirs_pattern(mojomojo_script_t, mojomojo_tmp_t, mojomojo_tmp_t)
+	manage_files_pattern(mojomojo_script_t, mojomojo_tmp_t, mojomojo_tmp_t)
+	files_tmp_filetrans(mojomojo_script_t, mojomojo_tmp_t, { file dir })
 
-	manage_dirs_pattern(httpd_mojomojo_script_t, httpd_mojomojo_tmp_t, httpd_mojomojo_tmp_t)
-	manage_files_pattern(httpd_mojomojo_script_t, httpd_mojomojo_tmp_t, httpd_mojomojo_tmp_t)
-	files_tmp_filetrans(httpd_mojomojo_script_t, httpd_mojomojo_tmp_t, { file dir })
+	corenet_tcp_connect_postgresql_port(mojomojo_script_t)
+	corenet_tcp_connect_mysqld_port(mojomojo_script_t)
+	corenet_tcp_connect_smtp_port(mojomojo_script_t)
+	corenet_sendrecv_postgresql_client_packets(mojomojo_script_t)
+	corenet_sendrecv_mysqld_client_packets(mojomojo_script_t)
+	corenet_sendrecv_smtp_client_packets(mojomojo_script_t)
 
-	corenet_tcp_connect_postgresql_port(httpd_mojomojo_script_t)
-	corenet_tcp_connect_mysqld_port(httpd_mojomojo_script_t)
-	corenet_tcp_connect_smtp_port(httpd_mojomojo_script_t)
-	corenet_sendrecv_postgresql_client_packets(httpd_mojomojo_script_t)
-	corenet_sendrecv_mysqld_client_packets(httpd_mojomojo_script_t)
-	corenet_sendrecv_smtp_client_packets(httpd_mojomojo_script_t)
+	files_search_var_lib(mojomojo_script_t)
 
-	files_search_var_lib(httpd_mojomojo_script_t)
+	sysnet_dns_name_resolve(mojomojo_script_t)
 
-	sysnet_dns_name_resolve(httpd_mojomojo_script_t)
-
-	mta_send_mail(httpd_mojomojo_script_t)
+	mta_send_mail(mojomojo_script_t)
 
 	optional_policy(`
-		mysql_stream_connect(httpd_mojomojo_script_t)
+		mysql_stream_connect(mojomojo_script_t)
 	')
 
 	optional_policy(`
-		postgresql_stream_connect(httpd_mojomojo_script_t)
+		postgresql_stream_connect(mojomojo_script_t)
 	')
 ')
