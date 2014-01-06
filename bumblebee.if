@@ -1,9 +1,8 @@
-
 ## <summary>policy for bumblebee</summary>
 
 ########################################
 ## <summary>
-##	Execute TEMPLATE in the bumblebee domin.
+##	Execute bumblebee in the bumblebee domin.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -19,6 +18,7 @@ interface(`bumblebee_domtrans',`
 	corecmd_search_bin($1)
 	domtrans_pattern($1, bumblebee_exec_t, bumblebee_t)
 ')
+
 ########################################
 ## <summary>
 ##	Read bumblebee PID files.
@@ -55,7 +55,7 @@ interface(`bumblebee_systemctl',`
 	')
 
 	systemd_exec_systemctl($1)
-        systemd_read_fifo_file_passwd_run($1)
+    systemd_read_fifo_file_passwd_run($1)
 	allow $1 bumblebee_unit_file_t:file read_file_perms;
 	allow $1 bumblebee_unit_file_t:service manage_service_perms;
 
@@ -91,11 +91,6 @@ interface(`bumblebee_stream_connect',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-## <param name="role">
-##	<summary>
-##	Role allowed access.
-##	</summary>
-## </param>
 ## <rolecap/>
 #
 interface(`bumblebee_admin',`
@@ -105,8 +100,12 @@ interface(`bumblebee_admin',`
 		type bumblebee_unit_file_t;
 	')
 
-	allow $1 bumblebee_t:process { ptrace signal_perms };
+	allow $1 bumblebee_t:process { signal_perms };
 	ps_process_pattern($1, bumblebee_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 bumblebee_t:process ptrace;
+    ')
 
 	files_search_pids($1)
 	admin_pattern($1, bumblebee_var_run_t)

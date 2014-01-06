@@ -29,11 +29,12 @@ application_executable_file(watchdog_unconfined_exec_t)
 # Local policy
 #
 
-allow watchdog_t self:capability { sys_admin net_admin sys_boot ipc_lock sys_pacct sys_nice sys_resource };
+allow watchdog_t self:capability { sys_admin net_admin sys_boot ipc_lock sys_pacct sys_nice sys_resource net_raw };
 dontaudit watchdog_t self:capability sys_tty_config;
 allow watchdog_t self:process { setsched signal_perms };
 allow watchdog_t self:fifo_file rw_fifo_file_perms;
 allow watchdog_t self:tcp_socket { accept listen };
+allow watchdog_t self:rawip_socket create_socket_perms;
 
 manage_files_pattern(watchdog_t, watchdog_cache_t, watchdog_cache_t)
 manage_dirs_pattern(watchdog_t, watchdog_cache_t, watchdog_cache_t)
@@ -45,6 +46,7 @@ logging_log_filetrans(watchdog_t, watchdog_log_t,{dir file})
 manage_files_pattern(watchdog_t, watchdog_var_run_t, watchdog_var_run_t)
 files_pid_filetrans(watchdog_t, watchdog_var_run_t, file)
 
+kernel_read_network_state(watchdog_t)
 kernel_read_system_state(watchdog_t)
 kernel_read_kernel_sysctls(watchdog_t)
 kernel_unmount_proc(watchdog_t)
@@ -89,6 +91,10 @@ sysnet_dns_name_resolve(watchdog_t)
 
 userdom_dontaudit_use_unpriv_user_fds(watchdog_t)
 userdom_dontaudit_search_user_home_dirs(watchdog_t)
+
+optional_policy(`
+    cron_system_entry(watchdog_t, watchdog_exec_t)
+')
 
 optional_policy(`
 	mta_send_mail(watchdog_t)

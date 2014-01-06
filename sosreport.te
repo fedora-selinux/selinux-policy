@@ -33,7 +33,7 @@ optional_policy(`
 
 allow sosreport_t self:capability { kill net_admin net_raw setuid sys_admin sys_nice dac_override };
 dontaudit sosreport_t self:capability sys_ptrace;
-allow sosreport_t self:process { setpgid setsched signull };
+allow sosreport_t self:process { setpgid setsched signal_perms };
 allow sosreport_t self:fifo_file rw_fifo_file_perms;
 allow sosreport_t self:tcp_socket { accept listen };
 allow sosreport_t self:unix_stream_socket { accept listen };
@@ -66,6 +66,7 @@ kernel_read_all_sysctls(sosreport_t)
 kernel_read_software_raid_state(sosreport_t)
 kernel_search_debugfs(sosreport_t)
 kernel_read_messages(sosreport_t)
+kernel_request_load_module(sosreport_t)
 
 corenet_all_recvfrom_netlabel(sosreport_t)
 corenet_tcp_sendrecv_generic_if(sosreport_t)
@@ -131,6 +132,8 @@ auth_dontaudit_read_shadow(sosreport_t)
 
 init_domtrans_script(sosreport_t)
 init_getattr_initctl(sosreport_t)
+init_status(sosreport_t)
+init_stream_connect(sosreport_t)
 
 libs_domtrans_ldconfig(sosreport_t)
 
@@ -158,6 +161,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+    lvm_dontaudit_access_check_lock(sosreport_t)
+')
+
+optional_policy(`
 	# needed by modinfo
 	modutils_read_module_deps(sosreport_t)
 ')
@@ -172,6 +179,10 @@ optional_policy(`
 	optional_policy(`
 		hal_dbus_chat(sosreport_t)
 	')
+
+    optional_policy(`
+        rpm_dbus_chat(sosreport_t)
+    ')
 ')
 
 optional_policy(`
@@ -187,9 +198,25 @@ optional_policy(`
 ')
 
 optional_policy(`
-	rpm_exec(sosreport_t)
-	rpm_dontaudit_manage_db(sosreport_t)
-	rpm_read_db(sosreport_t)
+    rhsmcertd_manage_lib_files(sosreport_t)
+')
+
+optional_policy(`
+    rpm_dontaudit_manage_db(sosreport_t)
+    rpm_manage_cache(sosreport_t)
+    rpm_manage_log(sosreport_t)
+    rpm_manage_pid_files(sosreport_t)
+    rpm_named_filetrans_log_files(sosreport_t)
+    rpm_read_db(sosreport_t)
+    rpm_signull(sosreport_t)
+')
+
+optional_policy(`
+    setroubleshoot_signull(sosreport_t)
+')
+
+optional_policy(`
+    unconfined_signull(sosreport_t)
 ')
 
 optional_policy(`

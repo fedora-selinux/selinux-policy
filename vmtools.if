@@ -1,0 +1,78 @@
+## <summary>VMware Tools daemon</summary>
+
+########################################
+## <summary>
+##	Execute vmtools in the vmtools domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`vmtools_domtrans',`
+	gen_require(`
+		type vmtools_t, vmtools_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, vmtools_exec_t, vmtools_t)
+')
+########################################
+## <summary>
+##	Execute vmtools server in the vmtools domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`vmtools_systemctl',`
+	gen_require(`
+		type vmtools_t;
+		type vmtools_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 vmtools_unit_file_t:file read_file_perms;
+	allow $1 vmtools_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, vmtools_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an vmtools environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`vmtools_admin',`
+	gen_require(`
+		type vmtools_t;
+		type vmtools_unit_file_t;
+	')
+
+	allow $1 vmtools_t:process { signal_perms };
+	ps_process_pattern($1, vmtools_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 ninfod_t:process ptrace;
+	')
+
+	vmtools_systemctl($1)
+	admin_pattern($1, vmtools_unit_file_t)
+	allow $1 vmtools_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

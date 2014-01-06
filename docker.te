@@ -94,18 +94,25 @@ optional_policy(`
 #
 
 allow docker_t self:capability { sys_admin sys_boot dac_override setpcap sys_ptrace };
-allow docker_t self:process { setsched signal_perms };
-allow docker_t self:netlink_route_socket nlmsg_write;
+allow docker_t self:process { setpgid setsched signal_perms };
+allow docker_t self:netlink_route_socket rw_netlink_socket_perms;;
+allow docker_t self:netlink_audit_socket create_netlink_socket_perms;
 allow docker_t self:unix_dgram_socket create_socket_perms;
+allow docker_t self:unix_stream_socket { create_stream_socket_perms connectto };
 
 allow docker_t docker_var_lib_t:dir mounton;
+allow docker_t docker_var_lib_t:chr_file mounton;
+can_exec(docker_t, docker_var_lib_t)
 
 kernel_setsched(docker_t)
+kernel_get_sysvipc_info(docker_t)
 
 dev_getattr_all_blk_files(docker_t)
+dev_getattr_sysfs_fs(docker_t)
 dev_read_urand(docker_t)
 dev_read_lvm_control(docker_t)
 dev_read_sysfs(docker_t)
+dev_rw_lvm_control(docker_t)
 
 files_manage_isid_type_dirs(docker_t)
 files_manage_isid_type_files(docker_t)
@@ -128,6 +135,11 @@ term_getattr_pty_fs(docker_t)
 modutils_domtrans_insmod(docker_t)
 
 optional_policy(`
+	udev_read_db(docker_t)
+')
+
+optional_policy(`
 	virt_read_config(docker_t)
 	virt_exec(docker_t)
 ')
+

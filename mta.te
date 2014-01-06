@@ -64,8 +64,6 @@ allow user_mail_domain mail_home_t:file { append_file_perms read_file_perms };
 manage_dirs_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
 manage_files_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
 manage_lnk_files_pattern(user_mail_domain, mail_home_rw_t, mail_home_rw_t)
-userdom_user_home_dir_filetrans(user_mail_domain, mail_home_rw_t, dir, "Maildir")
-userdom_user_home_dir_filetrans(user_mail_domain, mail_home_rw_t, dir, ".maildir")
 
 read_files_pattern(user_mail_domain, { etc_mail_t etc_aliases_t }, { etc_mail_t etc_aliases_t })
 
@@ -148,6 +146,7 @@ optional_policy(`
 
 optional_policy(`
 	openshift_rw_inherited_content(mta_user_agent)
+	openshift_dontaudit_rw_inherited_fifo_files(mta_user_agent)
 ')
 
 optional_policy(`
@@ -166,6 +165,9 @@ optional_policy(`
 optional_policy(`
 	uucp_manage_spool(user_mail_domain)
 ')
+
+mta_filetrans_admin_home_content(user_mail_domain)
+mta_filetrans_home_content(user_mail_domain)
 
 ########################################
 #
@@ -203,7 +205,6 @@ manage_files_pattern(system_mail_t, mail_home_rw_t, mail_home_rw_t)
 
 allow system_mail_t mail_home_t:file manage_file_perms;
 userdom_admin_home_dir_filetrans(system_mail_t, mail_home_t, file)
-
 
 logging_append_all_logs(system_mail_t)
 
@@ -302,6 +303,10 @@ optional_policy(`
 	files_etc_filetrans(system_mail_t, etc_aliases_t, { file lnk_file sock_file fifo_file })
 
 	domain_use_interactive_fds(system_mail_t)
+')
+
+optional_policy(`
+	postfix_domtrans_postdrop(system_mail_t)
 ')
 
 optional_policy(`

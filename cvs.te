@@ -34,16 +34,22 @@ files_tmp_file(cvs_tmp_t)
 type cvs_var_run_t;
 files_pid_file(cvs_var_run_t)
 
+type cvs_home_t;
+userdom_user_home_content(cvs_home_t)
+
 ########################################
 #
 # Local policy
 #
 
-allow cvs_t self:capability { setuid setgid };
+allow cvs_t self:capability { dac_override dac_read_search setuid setgid };
 allow cvs_t self:process signal_perms;
 allow cvs_t self:fifo_file rw_fifo_file_perms;
 allow cvs_t self:netlink_tcpdiag_socket r_netlink_socket_perms;
 allow cvs_t self:tcp_socket { accept listen };
+
+userdom_search_user_home_dirs(cvs_t)
+allow cvs_t cvs_home_t:file read_file_perms;
 
 manage_dirs_pattern(cvs_t, cvs_data_t, cvs_data_t)
 manage_files_pattern(cvs_t, cvs_data_t, cvs_data_t)
@@ -101,8 +107,6 @@ logging_send_syslog_msg(cvs_t)
 logging_send_audit_msgs(cvs_t)
 
 mta_send_mail(cvs_t)
-
-userdom_dontaudit_search_user_home_dirs(cvs_t)
 
 # cjp: typeattribute doesnt work in conditionals yet
 auth_can_read_shadow_passwords(cvs_t)
