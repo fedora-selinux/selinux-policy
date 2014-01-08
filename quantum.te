@@ -29,7 +29,7 @@ systemd_unit_file(neutron_unit_file_t)
 # Local policy
 #
 
-allow neutron_t self:capability { setgid setuid sys_resource };
+allow neutron_t self:capability { setgid setuid sys_resource net_admin sys_admin };
 allow neutron_t self:process { setsched setrlimit };
 allow neutron_t self:fifo_file rw_fifo_file_perms;
 allow neutron_t self:key manage_key_perms;
@@ -53,6 +53,8 @@ can_exec(neutron_t, neutron_tmp_t)
 
 kernel_read_kernel_sysctls(neutron_t)
 kernel_read_system_state(neutron_t)
+kernel_read_network_state(neutron_t)
+kernel_request_load_module(neutron_t)
 
 corecmd_exec_shell(neutron_t)
 corecmd_exec_bin(neutron_t)
@@ -69,8 +71,12 @@ corenet_tcp_connect_keystone_port(neutron_t)
 corenet_tcp_connect_amqp_port(neutron_t)
 corenet_tcp_connect_mysqld_port(neutron_t)
 
-dev_list_sysfs(neutron_t)
+domain_named_filetrans(neutron_t)
+
+dev_read_sysfs(neutron_t)
 dev_read_urand(neutron_t)
+dev_mounton_sysfs(neutron_t)
+dev_mount_sysfs_fs(neutron_t)
 
 auth_use_nsswitch(neutron_t)
 
@@ -83,6 +89,14 @@ sysnet_exec_ifconfig(neutron_t)
 
 optional_policy(`
 	brctl_domtrans(neutron_t)
+')
+
+optional_policy(`
+    dnsmasq_domtrans(neutron_t)
+')
+
+optional_policy(`
+    iptables_domtrans(neutron_t)
 ')
 
 optional_policy(`
@@ -106,4 +120,4 @@ optional_policy(`
 
 optional_policy(`
 	sudo_exec(neutron_t)
-')
+')  
