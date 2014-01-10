@@ -3,7 +3,7 @@
 
 ########################################
 ## <summary>
-##	Execute TEMPLATE in the motion domain.
+##	Execute motion in the motion domain.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -134,7 +134,7 @@ interface(`motion_systemctl',`
 	')
 
 	systemd_exec_systemctl($1)
-        systemd_read_fifo_file_password_run($1)
+    systemd_read_fifo_file_passwd_run($1)
 	allow $1 motion_unit_file_t:file read_file_perms;
 	allow $1 motion_unit_file_t:service manage_service_perms;
 
@@ -174,11 +174,15 @@ interface(`motion_admin',`
 	gen_require(`
 		type motion_t;
 		type motion_log_t;
-	type motion_unit_file_t;
+	    type motion_unit_file_t;
 	')
 
-	allow $1 motion_t:process { ptrace signal_perms };
+	allow $1 motion_t:process { signal_perms };
 	ps_process_pattern($1, motion_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 motion_t:process ptrace;
+    ')
 
 	logging_search_logs($1)
 	admin_pattern($1, motion_log_t)
