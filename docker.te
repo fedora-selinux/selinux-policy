@@ -12,6 +12,9 @@ init_daemon_domain(docker_t, docker_exec_t)
 type docker_var_lib_t;
 files_type(docker_var_lib_t)
 
+type docker_lock_t;
+files_lock_file(docker_lock_t)
+
 type docker_log_t;
 logging_log_file(docker_log_t)
 
@@ -33,6 +36,10 @@ allow docker_t self:process { getattr signal_perms };
 allow docker_t self:fifo_file rw_fifo_file_perms;
 allow docker_t self:unix_stream_socket create_stream_socket_perms;
 allow docker_t self:capability2 block_suspend;
+
+manage_dirs_pattern(docker_t, docker_lock_t, docker_lock_t)
+manage_files_pattern(docker_t, docker_lock_t, docker_lock_t)
+files_lock_filetrans(docker_t, docker_lock_t, { dir file }, "lxc")
 
 manage_dirs_pattern(docker_t, docker_log_t, docker_log_t)
 manage_files_pattern(docker_t, docker_log_t, docker_log_t)
@@ -77,6 +84,8 @@ storage_raw_rw_fixed_disk(docker_t)
 
 auth_use_nsswitch(docker_t)
 
+init_read_state(docker_t)
+
 logging_send_audit_msgs(docker_t)
 logging_send_syslog_msg(docker_t)
 
@@ -100,7 +109,8 @@ optional_policy(`
 #
 
 allow docker_t self:capability { sys_admin sys_boot dac_override setpcap sys_ptrace };
-allow docker_t self:process { getcap setcap setpgid setsched signal_perms };
+allow docker_t self:process { getcap setcap setexec setpgid setsched signal_perms };
+
 allow docker_t self:netlink_route_socket rw_netlink_socket_perms;;
 allow docker_t self:netlink_audit_socket create_netlink_socket_perms;
 allow docker_t self:unix_dgram_socket create_socket_perms;
@@ -136,10 +146,12 @@ fs_remount_all_fs(docker_t)
 fs_manage_cgroup_dirs(docker_t)
 fs_manage_cgroup_files(docker_t)
 fs_relabelfrom_xattr_fs(docker_t)
+fs_relabelfrom_tmpfs(docker_t)
 
 term_use_generic_ptys(docker_t)
 term_use_ptmx(docker_t)
 term_getattr_pty_fs(docker_t)
+term_relabel_pty_fs(docker_t)
 
 modutils_domtrans_insmod(docker_t)
 
@@ -154,4 +166,7 @@ optional_policy(`
 	virt_stream_connect_sandbox(docker_t)
 	virt_manage_sandbox_files(docker_t)
 	virt_relabel_sandbox_filesystem(docker_t)
+	# for lxc
+	virt_transition_svirt_sandbox(docker_t, system_r)
+	virt_mounton_sandbox_file(docker_t)
 ')

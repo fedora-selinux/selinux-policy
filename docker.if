@@ -193,44 +193,6 @@ interface(`docker_systemctl',`
 	ps_process_pattern($1, docker_t)
 ')
 
-
-########################################
-## <summary>
-##	All of the rules required to administrate
-##	an docker environment
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`docker_admin',`
-	gen_require(`
-		type docker_t;
-		type docker_var_lib_t, docker_var_run_t;
-	    type docker_unit_file_t;
-	')
-
-	allow $1 docker_t:process { ptrace signal_perms };
-	ps_process_pattern($1, docker_t)
-
-	files_search_var_lib($1)
-	admin_pattern($1, docker_var_lib_t)
-
-	files_search_pids($1)
-	admin_pattern($1, docker_var_run_t)
-
-	docker_systemctl($1)
-	admin_pattern($1, docker_unit_file_t)
-	allow $1 docker_unit_file_t:service all_service_perms;
-
-	optional_policy(`
-		systemd_passwd_agent_exec($1)
-		systemd_read_fifo_file_passwd_run($1)
-	')
-')
-
 ########################################
 ## <summary>
 ##	Read and write docker shared memory.
@@ -247,4 +209,49 @@ interface(`docker_rw_sem',`
 	')
 
 	allow $1 docker_t:sem rw_sem_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an docker environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`docker_admin',`
+	gen_require(`
+		type docker_t;
+		type docker_var_lib_t, docker_var_run_t;
+		type docker_unit_file_t;
+		type docker_lock_t;
+		type docker_log_t;
+	')
+
+	allow $1 docker_t:process { ptrace signal_perms };
+	ps_process_pattern($1, docker_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, docker_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, docker_var_run_t)
+
+	files_search_locks($1)
+	admin_pattern($1, docker_lock_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, docker_log_t)
+
+	docker_systemctl($1)
+	admin_pattern($1, docker_unit_file_t)
+	allow $1 docker_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
 ')
