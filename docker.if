@@ -79,6 +79,25 @@ interface(`docker_read_lib_files',`
 
 ########################################
 ## <summary>
+##	Read docker share files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`docker_read_share_files',`
+	gen_require(`
+		type docker_share_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, docker_share_t, docker_share_t)
+')
+
+########################################
+## <summary>
 ##	Manage docker lib files.
 ## </summary>
 ## <param name="domain">
@@ -209,6 +228,47 @@ interface(`docker_rw_sem',`
 	')
 
 	allow $1 docker_t:sem rw_sem_perms;
+')
+
+#######################################
+## <summary>
+##  Read and write the docker pty type.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`docker_use_ptys',`
+    gen_require(`
+        type docker_devpts_t;
+    ')
+
+    allow $1 docker_devpts_t:chr_file	rw_inherited_term_perms;
+')
+
+#######################################
+## <summary>
+##      Allow domain to create docker content
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`docker_filetrans_named_content',`
+
+    gen_require(`
+        type docker_var_lib_t;
+        type docker_share_t;
+    ')
+    
+
+    filetrans_pattern($1, docker_var_lib_t, docker_share_t, file, "config.env")
+    filetrans_pattern($1, docker_var_lib_t, docker_share_t, file, "hosts")
+    filetrans_pattern($1, docker_var_lib_t, docker_share_t, file, "hostname")
 ')
 
 ########################################
