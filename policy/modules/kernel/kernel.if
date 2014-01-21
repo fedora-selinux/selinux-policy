@@ -3522,12 +3522,8 @@ interface(`kernel_search_security_state',`
 ## </summary>
 ## <desc>
 ##	<p>
-##	Allow the specified domain to read the securitying
-##	state information. This includes several pieces
-##	of securitying information, such as security interface
-##	names, securityfilter (iptables) statistics, protocol
-##	information, routes, and remote procedure call (RPC)
-##	information.
+##	Allow the specified domain to read the security
+##	state information. 
 ##	</p>
 ## </desc>
 ## <param name="domain">
@@ -3547,6 +3543,32 @@ interface(`kernel_read_security_state',`
 	read_lnk_files_pattern($1, { proc_t proc_security_t }, proc_security_t)
 
 	list_dirs_pattern($1, proc_t, proc_security_t)
+')
+
+########################################
+## <summary>
+##	Write the security state information.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to write the security
+##	state information. 
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="write" weight="10"/>
+## <rolecap/>
+#
+interface(`kernel_write_security_state',`
+	gen_require(`
+		type proc_t, proc_security_t;
+	')
+
+	write_files_pattern($1, { proc_t proc_security_t }, proc_security_t)
 ')
 
 ########################################
@@ -3701,5 +3723,44 @@ interface(`kernel_rw_userhelper_state',`
 	dev_search_sysfs($1)
 	rw_files_pattern($1, proc_t, userhelper_t)
 	list_dirs_pattern($1, proc_t, userhelper_t)
+')
+
+########################################
+## <summary>
+##      Relabel to usermodehelper context .
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`kernel_relabelto_usermodehelper',`
+	gen_require(`
+		type usermodehelper_t;
+	')
+
+	allow $1 usermodehelper_t:file relabelto;
+')
+
+########################################
+## <summary>
+##	Read and write usermodehelper state
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kernel_rw_usermodehelper_state',`
+	gen_require(`
+		type proc_t, usermodehelper_t;
+	')
+
+	dev_search_sysfs($1)
+	rw_files_pattern($1, proc_t, usermodehelper_t)
+	list_dirs_pattern($1, proc_t, usermodehelper_t)
 ')
 
