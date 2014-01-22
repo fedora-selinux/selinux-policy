@@ -4,10 +4,18 @@ policy_module(docker, 1.0.0)
 #
 # Declarations
 #
+## <desc>
+## <p>
+## Allow docker to transition to unconfined conateiners
+## </p>
+## </desc>
+gen_tunable(docker_transition_unconfined, false)
 
 type docker_t;
 type docker_exec_t;
 init_daemon_domain(docker_t, docker_exec_t)
+domain_subj_id_change_exemption(docker_t)
+domain_role_change_exemption(docker_t)
 
 type docker_var_lib_t;
 files_type(docker_var_lib_t)
@@ -185,4 +193,8 @@ optional_policy(`
 	# for lxc
 	virt_transition_svirt_sandbox(docker_t, system_r)
 	virt_mounton_sandbox_file(docker_t)
+')
+
+tunable_policy(`docker_transition_unconfined',`
+	unconfined_transition(docker_t, docker_share_t)
 ')
