@@ -45,10 +45,12 @@ files_type(docker_share_t)
 #
 # docker local policy
 #
-allow docker_t self:capability { chown fowner fsetid mknod net_admin };
+allow docker_t self:capability { chown fowner fsetid mknod net_admin net_bind_service };
 allow docker_t self:process { getattr signal_perms };
 allow docker_t self:fifo_file rw_fifo_file_perms;
 allow docker_t self:unix_stream_socket create_stream_socket_perms;
+allow docker_t self:tcp_socket create_stream_socket_perms;
+allow docker_t self:udp_socket create_socket_perms;
 allow docker_t self:capability2 block_suspend;
 
 manage_dirs_pattern(docker_t, docker_lock_t, docker_lock_t)
@@ -97,7 +99,16 @@ corecmd_exec_bin(docker_t)
 corecmd_exec_shell(docker_t)
 
 corenet_tcp_bind_generic_node(docker_t)
+corenet_tcp_sendrecv_generic_if(docker_t)
+corenet_tcp_sendrecv_generic_node(docker_t)
+corenet_tcp_sendrecv_generic_port(docker_t)
+corenet_tcp_bind_all_ports(docker_t)
 corenet_tcp_connect_http_port(docker_t)
+corenet_udp_sendrecv_generic_if(docker_t)
+corenet_udp_sendrecv_generic_node(docker_t)
+corenet_udp_sendrecv_all_ports(docker_t)
+corenet_udp_bind_generic_node(docker_t)
+corenet_udp_bind_all_ports(docker_t)
 
 files_read_etc_files(docker_t)
 
@@ -157,10 +168,12 @@ dev_read_sysfs(docker_t)
 dev_rw_loop_control(docker_t)
 dev_rw_lvm_control(docker_t)
 
+files_getattr_isid_type(docker_t)
 files_manage_isid_type_dirs(docker_t)
 files_manage_isid_type_files(docker_t)
 files_manage_isid_type_symlinks(docker_t)
 files_manage_isid_type_chr_files(docker_t)
+files_manage_isid_type_blk_files(docker_t)
 files_exec_isid_files(docker_t)
 files_mounton_isid(docker_t)
 files_mounton_non_security(docker_t)
@@ -201,4 +214,5 @@ optional_policy(`
 
 tunable_policy(`docker_transition_unconfined',`
 	unconfined_transition(docker_t, docker_share_t)
+	unconfined_transition(docker_t, docker_var_lib_t)
 ')
