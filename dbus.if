@@ -19,6 +19,23 @@ interface(`dbus_stub',`
 
 ########################################
 ## <summary>
+##	Execute dbus-daemon in the caller domain.
+## </summary>
+## <param name="domain" unused="true">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`dbus_exec_dbusd',`
+	gen_require(`
+        type dbusd_exec_t;
+	')
+    can_exec($1, dbusd_exec_t)
+')
+
+########################################
+## <summary>
 ##	Role access for dbus
 ## </summary>
 ## <param name="role_prefix">
@@ -499,6 +516,47 @@ interface(`dbus_dontaudit_stream_connect_session_bus',`
 	')
 
 	dontaudit $1 session_bus_type:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Allow attempts to connect to
+##	session bus types with a unix
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dbus_stream_connect_session_bus',`
+	gen_require(`
+		attribute session_bus_type;
+	')
+
+	allow $1 session_bus_type:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to send dbus
+##	messages to session bus types.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dbus_chat_session_bus',`
+	gen_require(`
+		attribute session_bus_type;
+		class dbus send_msg;
+	')
+
+	allow $1 session_bus_type:dbus send_msg;
+	allow session_bus_type $1:dbus send_msg;
 ')
 
 ########################################
