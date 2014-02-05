@@ -29,6 +29,9 @@ logging_log_file(docker_log_t)
 type docker_tmp_t;
 files_tmp_file(docker_tmp_t)
 
+type docker_tmpfs_t;
+files_tmpfs_file(docker_tmpfs_t)
+
 type docker_var_run_t;
 files_pid_file(docker_var_run_t)
 
@@ -66,6 +69,13 @@ manage_dirs_pattern(docker_t, docker_tmp_t, docker_tmp_t)
 manage_files_pattern(docker_t, docker_tmp_t, docker_tmp_t)
 manage_lnk_files_pattern(docker_t, docker_tmp_t, docker_tmp_t)
 files_tmp_filetrans(docker_t, docker_tmp_t, { dir file lnk_file })
+
+manage_dirs_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
+manage_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
+manage_lnk_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
+manage_fifo_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
+manage_chr_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
+fs_tmpfs_filetrans(docker_t, docker_tmpfs_t, { dir file })
 
 manage_dirs_pattern(docker_t, docker_share_t, docker_share_t)
 manage_files_pattern(docker_t, docker_share_t, docker_share_t)
@@ -145,12 +155,13 @@ optional_policy(`
 # lxc rules
 #
 
-allow docker_t self:capability { sys_admin sys_boot dac_override setpcap sys_ptrace };
+allow docker_t self:capability { dac_override setgid setpcap setuid sys_admin sys_boot sys_chroot sys_ptrace };
+
 allow docker_t self:process { getcap setcap setexec setpgid setsched signal_perms };
 
 allow docker_t self:netlink_route_socket rw_netlink_socket_perms;;
 allow docker_t self:netlink_audit_socket create_netlink_socket_perms;
-allow docker_t self:unix_dgram_socket create_socket_perms;
+allow docker_t self:unix_dgram_socket { create_socket_perms sendto };
 allow docker_t self:unix_stream_socket { create_stream_socket_perms connectto };
 
 allow docker_t docker_var_lib_t:dir mounton;
@@ -160,6 +171,7 @@ can_exec(docker_t, docker_var_lib_t)
 kernel_setsched(docker_t)
 kernel_get_sysvipc_info(docker_t)
 kernel_request_load_module(docker_t)
+kernel_mounton_messages(docker_t)
 
 dev_getattr_all_blk_files(docker_t)
 dev_getattr_sysfs_fs(docker_t)
@@ -195,6 +207,11 @@ term_getattr_pty_fs(docker_t)
 term_relabel_pty_fs(docker_t)
 
 modutils_domtrans_insmod(docker_t)
+
+optional_policy(`
+	dbus_system_bus_client(docker_t)
+	init_dbus_chat(docker_t)
+')
 
 optional_policy(`
 	udev_read_db(docker_t)
