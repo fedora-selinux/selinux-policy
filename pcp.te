@@ -63,6 +63,8 @@ fs_tmpfs_filetrans(pcp_domain, pcp_tmpfs_t, { dir file })
 
 dev_read_urand(pcp_domain)
 
+files_read_etc_files(pcp_domain)
+
 fs_getattr_all_fs(pcp_domain)
 
 auth_read_passwd(pcp_domain)
@@ -79,6 +81,8 @@ sysnet_read_config(pcp_domain)
 allow pcp_pmcd_t self:process { setsched };
 allow pcp_pmcd_t self:netlink_route_socket create_socket_perms;
 allow pcp_pmcd_t self:unix_dgram_socket create_socket_perms;;
+
+auth_use_nsswitch(pcp_pmcd_t)
 
 kernel_read_network_state(pcp_pmcd_t)
 kernel_read_system_state(pcp_pmcd_t)
@@ -101,9 +105,9 @@ fs_getattr_all_fs(pcp_pmcd_t)
 fs_getattr_all_dirs(pcp_pmcd_t)
 fs_list_cgroup_dirs(pcp_pmcd_t)
 
-storage_getattr_fixed_disk_dev(pcp_pmcd_t)
+logging_send_syslog_msg(pcp_pmcd_t)
 
-auth_use_nsswitch(pcp_pmcd_t)
+storage_getattr_fixed_disk_dev(pcp_pmcd_t)
 
 optional_policy(`
     dbus_system_bus_client(pcp_pmcd_t)
@@ -120,8 +124,11 @@ optional_policy(`
 
 allow pcp_pmproxy_t self:process setsched;
 allow pcp_pmproxy_t self:netlink_route_socket create_socket_perms;
+allow pcp_pmproxy_t self:unix_dgram_socket create_socket_perms;
 
 auth_use_nsswitch(pcp_pmproxy_t)
+
+logging_send_syslog_msg(pcp_pmproxy_t)
 
 ########################################
 #
@@ -136,21 +143,27 @@ corenet_tcp_bind_generic_node(pcp_pmwebd_t)
 #
 
 allow pcp_pmmgr_t self:process { setpgid };
-
+allow pcp_pmmgr_t self:unix_dgram_socket create_socket_perms;
 allow pcp_pmmgr_t pcp_pmcd_t:unix_stream_socket connectto;
 
 kernel_read_system_state(pcp_pmmgr_t)
 
+auth_use_nsswitch(pcp_pmmgr_t)
+
 corenet_udp_bind_dey_sapi_port(pcp_pmmgr_t)
+
+corenet_tcp_bind_commplex_link_port(pcp_pmmgr_t)
+corenet_tcp_bind_dey_sapi_port(pcp_pmmgr_t)
 
 corenet_tcp_connect_all_ephemeral_ports(pcp_pmmgr_t)
 
 corecmd_exec_bin(pcp_pmmgr_t)
 
-auth_use_nsswitch(pcp_pmmgr_t)
+logging_send_syslog_msg(pcp_pmmgr_t)
 
 optional_policy(`
     pcp_pmie_exec(pcp_pmmgr_t)
+    pcp_pmlogger_exec(pcp_pmmgr_t)
 ')
 
 ########################################
@@ -161,4 +174,19 @@ optional_policy(`
 allow pcp_pmie_t self:netlink_route_socket { create_socket_perms nlmsg_read };
 
 allow pcp_pmie_t pcp_pmcd_t:unix_stream_socket connectto;
+
+corenet_tcp_connect_all_ephemeral_ports(pcp_pmie_t)
+
+########################################
+#
+# pcp_pmlogger local  policy
+#
+
+allow pcp_pmlogger_t self:process setpgid;
+allow pcp_pmlogger_t self:netlink_route_socket {create_socket_perms nlmsg_read };
+
+allow pcp_pmlogger_t pcp_pmcd_t:unix_stream_socket connectto;
+
+corenet_tcp_bind_dey_sapi_port(pcp_pmlogger_t)
+corenet_tcp_bind_generic_node(pcp_pmlogger_t)
 
