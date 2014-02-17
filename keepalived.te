@@ -1,0 +1,47 @@
+policy_module(keepalived, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type keepalived_t;
+type keepalived_exec_t;
+init_daemon_domain(keepalived_t, keepalived_exec_t)
+
+type keepalived_unit_file_t;
+systemd_unit_file(keepalived_unit_file_t)
+
+type keepalived_var_run_t;
+files_pid_file(keepalived_var_run_t)
+
+########################################
+#
+# keepalived local policy
+#
+allow keepalived_t self:capability { net_admin net_raw };
+allow keepalived_t self:process { signal_perms };
+allow keepalived_t self:netlink_socket create_socket_perms;
+allow keepalived_t self:netlink_route_socket nlmsg_write;
+allow keepalived_t self:packet_socket create_socket_perms;
+allow keepalived_t self:rawip_socket create_socket_perms;
+
+
+manage_files_pattern(keepalived_t, keepalived_var_run_t, keepalived_var_run_t)
+files_pid_filetrans(keepalived_t, keepalived_var_run_t, { file })
+
+kernel_read_system_state(keepalived_t)
+kernel_read_network_state(keepalived_t)
+
+auth_use_nsswitch(keepalived_t)
+
+corenet_tcp_connect_connlcli_port(keepalived_t)
+corenet_tcp_connect_http_port(keepalived_t)
+corenet_tcp_connect_smtp_port(keepalived_t)
+
+dev_read_urand(keepalived_t)
+
+modutils_domtrans_insmod(keepalived_t)
+
+logging_send_syslog_msg(keepalived_t)
+
