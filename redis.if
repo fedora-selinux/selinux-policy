@@ -1,9 +1,8 @@
-
-## <summary>redis-server SELinux policy</summary>
+## <summary>Advanced key-value store</summary>
 
 ########################################
 ## <summary>
-##	Execute TEMPLATE in the redis domin.
+##	Execute redis server in the redis domin.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -37,6 +36,7 @@ interface(`redis_initrc_domtrans',`
 
 	init_labeled_script_domtrans($1, redis_initrc_exec_t)
 ')
+
 ########################################
 ## <summary>
 ##	Read redis's log files.
@@ -46,7 +46,6 @@ interface(`redis_initrc_domtrans',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-## <rolecap/>
 #
 interface(`redis_read_log',`
 	gen_require(`
@@ -209,13 +208,12 @@ interface(`redis_systemctl',`
 	')
 
 	systemd_exec_systemctl($1)
-        systemd_read_fifo_file_password_run($1)
+    systemd_read_fifo_file_passwd_run($1)
 	allow $1 redis_unit_file_t:file read_file_perms;
 	allow $1 redis_unit_file_t:service manage_service_perms;
 
 	ps_process_pattern($1, redis_t)
 ')
-
 
 ########################################
 ## <summary>
@@ -236,18 +234,14 @@ interface(`redis_systemctl',`
 #
 interface(`redis_admin',`
 	gen_require(`
-		type redis_t;
-		type redis_initrc_exec_t;
-		type redis_log_t;
-		type redis_var_lib_t;
-		type redis_var_run_t;
-	type redis_unit_file_t;
+		type redis_t, redis_initrc_exec_t, redis_var_lib_t;
+		type redis_log_t, redis_var_run_t, redis_unit_file_t;
 	')
 
 	allow $1 redis_t:process { ptrace signal_perms };
 	ps_process_pattern($1, redis_t)
 
-	redis_initrc_domtrans($1)
+	init_labeled_script_domtrans($1, redis_initrc_exec_t)
 	domain_system_change_exemption($1)
 	role_transition $2 redis_initrc_exec_t system_r;
 	allow $2 system_r;
@@ -264,6 +258,7 @@ interface(`redis_admin',`
 	redis_systemctl($1)
 	admin_pattern($1, redis_unit_file_t)
 	allow $1 redis_unit_file_t:service all_service_perms;
+
 	optional_policy(`
 		systemd_passwd_agent_exec($1)
 		systemd_read_fifo_file_passwd_run($1)
