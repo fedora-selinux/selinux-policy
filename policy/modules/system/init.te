@@ -451,9 +451,24 @@ auth_use_nsswitch(init_t)
 auth_rw_login_records(init_t)
 auth_domtrans_chk_passwd(init_t)
 
-optional_policy(`
-	ipsec_read_config(init_t)
-    ipsec_manage_pid(init_t)
+ifdef(`distro_redhat',`
+    # it comes from setupr scripts used in systemd unit files
+    # has been covered by initrc_t
+	optional_policy(`
+		bind_manage_config_dirs(init_t)
+		bind_manage_config(init_t)
+		bind_write_config(init_t)
+		bind_setattr_zone_dirs(init_t)
+	')
+
+    optional_policy(`
+	    ipsec_read_config(init_t)
+        ipsec_manage_pid(init_t)
+    ')
+
+    optional_policy(`
+        rpc_manage_nfs_state_data(init_t)
+    ')
 ')
 
 optional_policy(`
@@ -500,11 +515,6 @@ optional_policy(`
 	rpcbind_filetrans_named_content(init_t)
 	rpcbind_relabel_sock_file(init_t)
 ')
-
-optional_policy(`
-    rpc_manage_nfs_state_data(init_t)
-')
-
 
 optional_policy(`
 	systemd_filetrans_named_content(init_t)
