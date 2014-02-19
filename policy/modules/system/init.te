@@ -74,6 +74,12 @@ role system_r types init_t;
 init_initrc_domain(init_t)
 
 #
+# init_tmp_t is the type for content in /tmp directory
+#
+type init_tmp_t;
+files_tmp_file(init_tmp_t)
+
+#
 # init_var_run_t is the type for /var/run/shutdown.pid.
 #
 type init_var_run_t;
@@ -163,6 +169,11 @@ allow init_t initrc_t:unix_stream_socket { connectto create_stream_socket_perms 
 allow initrc_t init_t:unix_stream_socket { connectto rw_stream_socket_perms sendto };
 allow initrc_t init_t:fifo_file rw_fifo_file_perms;
 
+manage_files_pattern(init_t, init_tmp_t, init_tmp_t)
+manage_dirs_pattern(init_t, init_tmp_t, init_tmp_t)
+manage_lnk_files_pattern(init_t, init_tmp_t, init_tmp_t)
+files_tmp_filetrans(init_t, init_tmp_t, { file dir })
+
 manage_dirs_pattern(init_t, init_var_lib_t, init_var_lib_t)
 manage_files_pattern(init_t, init_var_lib_t, init_var_lib_t)
 manage_lnk_files_pattern(init_t, init_var_lib_t, init_var_lib_t)
@@ -223,6 +234,7 @@ files_etc_filetrans_etc_runtime(init_t, file)
 # Run /etc/X11/prefdm:
 files_exec_etc_files(init_t)
 files_read_usr_files(init_t)
+files_write_root_dirs(init_t)
 # file descriptors inherited from the rootfs:
 files_dontaudit_rw_root_files(init_t)
 files_dontaudit_rw_root_chr_files(init_t)
@@ -454,9 +466,24 @@ auth_use_nsswitch(init_t)
 auth_rw_login_records(init_t)
 auth_domtrans_chk_passwd(init_t)
 
-optional_policy(`
-	ipsec_read_config(init_t)
-    ipsec_manage_pid(init_t)
+ifdef(`distro_redhat',`
+    # it comes from setupr scripts used in systemd unit files
+    # has been covered by initrc_t
+	optional_policy(`
+		bind_manage_config_dirs(init_t)
+		bind_manage_config(init_t)
+		bind_write_config(init_t)
+		bind_setattr_zone_dirs(init_t)
+	')
+
+    optional_policy(`
+	    ipsec_read_config(init_t)
+        ipsec_manage_pid(init_t)
+    ')
+
+    optional_policy(`
+        rpc_manage_nfs_state_data(init_t)
+    ')
 ')
 
 optional_policy(`
@@ -504,11 +531,6 @@ optional_policy(`
 	rpcbind_filetrans_named_content(init_t)
 	rpcbind_relabel_sock_file(init_t)
 ')
-
-optional_policy(`
-    rpc_manage_nfs_state_data(init_t)
-')
-
 
 optional_policy(`
 	systemd_filetrans_named_content(init_t)
