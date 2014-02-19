@@ -5,9 +5,19 @@ policy_module(vmtools, 1.0.0)
 # Declarations
 #
 
+attribute_role vmtools_helper_roles;
+
+roleattribute system_r vmtools_helper_roles;
+
 type vmtools_t;
 type vmtools_exec_t;
 init_daemon_domain(vmtools_t, vmtools_exec_t)
+role vmtools_helper_roles types vmtools_t;
+
+type vmtools_helper_t;
+type vmtools_helper_exec_t;
+application_domain(vmtools_helper_t, vmtools_helper_exec_t)
+role vmtools_helper_roles types vmtools_t;
 
 type vmtools_unit_file_t;
 systemd_unit_file(vmtools_unit_file_t)
@@ -43,4 +53,30 @@ fs_getattr_all_fs(vmtools_t)
 
 auth_use_nsswitch(vmtools_t)
 
+#shutdown
+init_rw_utmp(vmtools_t)
+init_stream_connect(vmtools_t)
+init_telinit(vmtools_t)
+
 logging_send_syslog_msg(vmtools_t)
+
+systemd_exec_systemctl(vmtools_t)
+
+sysnet_domtrans_ifconfig(vmtools_t)
+
+xserver_stream_connect_xdm(vmtools_t)
+xserver_stream_connect(vmtools_t)
+
+optional_policy(`
+    unconfined_domain(vmtools_t)
+')
+
+########################################
+#
+# vmtools-helper local policy
+#
+
+domtrans_pattern(vmtools_helper_t, vmtools_exec_t, vmtools_t)
+can_exec(vmtools_helper_t, vmtools_helper_exec_t)
+
+userdom_stream_connect(vmtools_helper_t)
