@@ -4,6 +4,13 @@ policy_module(lsm, 1.0.0)
 #
 # Declarations
 #
+## <desc>
+##	<p>
+##	Determine whether lsmd_plugin can
+##	connect to all TCP ports.
+##	</p>
+## </desc>
+gen_tunable(lsmd_plugin_connect_any, false)
 
 type lsmd_t;
 type lsmd_exec_t;
@@ -47,6 +54,7 @@ logging_send_syslog_msg(lsmd_t)
 #
 
 allow lsmd_plugin_t self:udp_socket create_socket_perms;
+allow lsmd_plugin_t self:tcp_socket create_stream_socket_perms;
 
 domtrans_pattern(lsmd_t, lsmd_plugin_exec_t, lsmd_plugin_t)
 allow lsmd_plugin_t lsmd_t:unix_stream_socket { read write };
@@ -58,11 +66,21 @@ manage_files_pattern(lsmd_plugin_t, lsmd_plugin_tmp_t, lsmd_plugin_tmp_t)
 manage_dirs_pattern(lsmd_plugin_t, lsmd_plugin_tmp_t, lsmd_plugin_tmp_t)
 files_tmp_filetrans(lsmd_plugin_t, lsmd_plugin_tmp_t, { file dir })
 
+tunable_policy(`lsmd_plugin_connect_any',`
+	corenet_tcp_connect_all_ports(lsmd_plugin_t)
+	corenet_sendrecv_all_packets(lsmd_plugin_t)
+	corenet_tcp_sendrecv_all_ports(lsmd_plugin_t)
+')
+
 kernel_read_system_state(lsmd_plugin_t)
 
 dev_read_urand(lsmd_plugin_t)
 
 corecmd_exec_bin(lsmd_plugin_t)
+
+corenet_tcp_connect_http_port(lsmd_plugin_t)
+corenet_tcp_connect_http_cache_port(lsmd_plugin_t)
+corenet_tcp_connect_ssh_port(lsmd_plugin_t)
 
 init_stream_connect(lsmd_plugin_t)
 init_dontaudit_rw_stream_socket(lsmd_plugin_t)
