@@ -51,11 +51,12 @@ files_var_lib_filetrans(pcp_domain, pcp_var_lib_t, { dir})
 manage_dirs_pattern(pcp_domain, pcp_var_run_t, pcp_var_run_t)
 manage_files_pattern(pcp_domain, pcp_var_run_t, pcp_var_run_t)
 manage_sock_files_pattern(pcp_domain, pcp_var_run_t, pcp_var_run_t)
-files_pid_filetrans(pcp_domain, pcp_var_run_t, { file sock_file })
+files_pid_filetrans(pcp_domain, pcp_var_run_t, { dir file sock_file })
 
 manage_dirs_pattern(pcp_domain, pcp_tmp_t, pcp_tmp_t)
 manage_files_pattern(pcp_domain, pcp_tmp_t, pcp_tmp_t)
-files_tmp_filetrans(pcp_domain, pcp_tmp_t, { dir file })
+manage_sock_files_pattern(pcp_domain, pcp_tmp_t, pcp_tmp_t)
+files_tmp_filetrans(pcp_domain, pcp_tmp_t, { dir file sock_file })
 
 manage_dirs_pattern(pcp_domain, pcp_tmpfs_t, pcp_tmpfs_t)
 manage_files_pattern(pcp_domain, pcp_tmpfs_t, pcp_tmpfs_t)
@@ -80,10 +81,11 @@ sysnet_read_config(pcp_domain)
 
 allow pcp_pmcd_t self:process { setsched };
 allow pcp_pmcd_t self:netlink_route_socket create_socket_perms;
-allow pcp_pmcd_t self:unix_dgram_socket create_socket_perms;;
+allow pcp_pmcd_t self:unix_dgram_socket create_socket_perms;
 
 auth_use_nsswitch(pcp_pmcd_t)
 
+kernel_get_sysvipc_info(pcp_pmcd_t)
 kernel_read_network_state(pcp_pmcd_t)
 kernel_read_system_state(pcp_pmcd_t)
 kernel_read_state(pcp_pmcd_t)
@@ -92,9 +94,13 @@ kernel_read_rpc_sysctls(pcp_pmcd_t)
 
 corecmd_exec_bin(pcp_pmcd_t)
 
+corenet_tcp_bind_amqp_port(pcp_pmcd_t)
+corenet_tcp_connect_amqp_port(pcp_pmcd_t)
+
 dev_read_sysfs(pcp_pmcd_t)
 
 domain_read_all_domains_state(pcp_pmcd_t)
+domain_getattr_all_domains(pcp_pmcd_t)
 
 dev_getattr_all_blk_files(pcp_pmcd_t)
 dev_getattr_all_chr_files(pcp_pmcd_t)
@@ -106,9 +112,13 @@ fs_getattr_all_dirs(pcp_pmcd_t)
 fs_list_cgroup_dirs(pcp_pmcd_t)
 fs_read_cgroup_files(pcp_pmcd_t)
 
+init_read_utmp(pcp_pmcd_t)
+
 logging_send_syslog_msg(pcp_pmcd_t)
 
 storage_getattr_fixed_disk_dev(pcp_pmcd_t)
+
+userdom_read_user_tmp_files(pcp_pmcd_t)
 
 optional_policy(`
     dbus_system_bus_client(pcp_pmcd_t)
@@ -177,9 +187,15 @@ allow pcp_pmie_t self:unix_dgram_socket { create_socket_perms sendto };
 
 allow pcp_pmie_t pcp_pmcd_t:unix_stream_socket connectto;
 
+kernel_read_system_state(pcp_pmie_t)
+
+corecmd_exec_bin(pcp_pmie_t)
+
 corenet_tcp_connect_all_ephemeral_ports(pcp_pmie_t)
 
 logging_send_syslog_msg(pcp_pmie_t)
+
+userdom_read_user_tmp_files(pcp_pmie_t)
 
 ########################################
 #
@@ -192,5 +208,8 @@ allow pcp_pmlogger_t self:netlink_route_socket {create_socket_perms nlmsg_read }
 allow pcp_pmlogger_t pcp_pmcd_t:unix_stream_socket connectto;
 
 corenet_tcp_bind_dey_sapi_port(pcp_pmlogger_t)
+corenet_tcp_bind_commplex_link_port(pcp_pmlogger_t)
 corenet_tcp_bind_generic_node(pcp_pmlogger_t)
+
+corenet_tcp_connect_all_ephemeral_ports(pcp_pmlogger_t)
 
