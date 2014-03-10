@@ -5,7 +5,6 @@ policy_module(pcp, 1.0.0)
 # Declarations
 #
 
-
 ## <desc>
 ## <p>
 ## Allow pcp to bind to all unreserved_ports
@@ -82,14 +81,6 @@ miscfiles_read_generic_certs(pcp_domain)
 
 sysnet_read_config(pcp_domain)
 
-tunable_policy(`pcp_bind_all_unreserved_ports',`
-    corenet_sendrecv_all_server_packets(pcp_pmcd_t)
-    corenet_sendrecv_all_server_packets(pcp_pmlogger_t)
-    corenet_tcp_bind_all_unreserved_ports(pcp_pmcd_t)
-    corenet_tcp_bind_all_unreserved_ports(pcp_pmlogger_t)
-    
-')
-
 
 ########################################
 #
@@ -114,8 +105,6 @@ corecmd_exec_bin(pcp_pmcd_t)
 corenet_tcp_bind_amqp_port(pcp_pmcd_t)
 corenet_tcp_connect_amqp_port(pcp_pmcd_t)
 
-dev_read_sysfs(pcp_pmcd_t)
-
 domain_read_all_domains_state(pcp_pmcd_t)
 domain_getattr_all_domains(pcp_pmcd_t)
 
@@ -136,6 +125,11 @@ logging_send_syslog_msg(pcp_pmcd_t)
 storage_getattr_fixed_disk_dev(pcp_pmcd_t)
 
 userdom_read_user_tmp_files(pcp_pmcd_t)
+
+tunable_policy(`pcp_bind_all_unreserved_ports',`
+    corenet_sendrecv_all_server_packets(pcp_pmcd_t)
+    corenet_tcp_bind_all_unreserved_ports(pcp_pmcd_t)
+')
 
 optional_policy(`
     dbus_system_bus_client(pcp_pmcd_t)
@@ -224,9 +218,15 @@ allow pcp_pmlogger_t self:netlink_route_socket {create_socket_perms nlmsg_read }
 
 allow pcp_pmlogger_t pcp_pmcd_t:unix_stream_socket connectto;
 
+corenet_tcp_bind_generic_node(pcp_pmlogger_t)
 corenet_tcp_bind_dey_sapi_port(pcp_pmlogger_t)
 corenet_tcp_bind_commplex_link_port(pcp_pmlogger_t)
-corenet_tcp_bind_generic_node(pcp_pmlogger_t)
+corenet_tcp_bind_amqp_port(pcp_pmlogger_t)
 
 corenet_tcp_connect_all_ephemeral_ports(pcp_pmlogger_t)
+
+tunable_policy(`pcp_bind_all_unreserved_ports',`
+    corenet_sendrecv_all_server_packets(pcp_pmlogger_t)
+    corenet_tcp_bind_all_unreserved_ports(pcp_pmlogger_t)
+')
 
