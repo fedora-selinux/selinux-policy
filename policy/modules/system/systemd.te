@@ -33,6 +33,11 @@ type random_seed_t;
 files_security_file(random_seed_t)
 files_mountpoint(random_seed_t)
 
+systemd_domain_template(systemd_networkd)
+
+type systemd_networkd_unit_file_t;
+systemd_unit_file(systemd_networkd_unit_file_t;
+
 # domain for systemd-tty-ask-password-agent and systemd-gnome-ask-password-agent
 # systemd components
 
@@ -210,6 +215,34 @@ optional_policy(`
 optional_policy(`
 	# It links /run/user/$USER/X11/display to /tmp/.X11-unix/X* sock_file
 	xserver_search_xdm_tmp_dirs(systemd_logind_t)
+')
+
+#######################################
+#
+# systemd-networkd local policy
+#
+
+allow systemd_networkd_t self:capability { net_admin };
+
+allow systemd_networkd_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow systemd_networkd_t self:netlink_route_socket { create_socket_perms nlmsg_read nlmsg_write };
+allow systemd_networkd_t self:unix_dgram_socket create_socket_perms;
+
+kernel_dgram_send(systemd_networkd_t)
+
+dev_read_sysfs(systemd_networkd_t)
+
+sysnet_filetrans_named_content(systemd_networkd_t)
+sysnet_manage_config(systemd_networkd_t)
+sysnet_manage_config_dirs(systemd_networkd_t)
+
+optional_policy(`
+    dbus_system_bus_client(systemd_networkd_t)
+    dbus_connect_system_bus(systemd_networkd_t)
+')
+
+optional_policy(`
+    udev_read_db(systemd_networkd_t)
 ')
 
 #######################################
