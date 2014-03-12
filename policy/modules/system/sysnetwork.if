@@ -604,6 +604,36 @@ interface(`sysnet_manage_config',`
 
 #######################################
 ## <summary>
+##	Create, read, write, and delete network config dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_manage_config_dirs',`
+	gen_require(`
+		type net_conf_t;
+	')
+
+	allow $1 net_conf_t:file manage_dir_perms;
+
+	ifdef(`distro_debian',`
+		files_search_pids($1)
+		manage_dirs_pattern($1, net_conf_t, net_conf_t)
+	')
+
+	ifdef(`distro_redhat',`
+        files_search_pids($1)
+        init_search_pid_dirs($1)
+		allow $1 net_conf_t:dir list_dir_perms;
+		manage_dirs_pattern($1, net_conf_t, net_conf_t)
+	')
+')
+
+#######################################
+## <summary>
 ##	Read the dhcp client pid file.
 ## </summary>
 ## <param name="domain">
