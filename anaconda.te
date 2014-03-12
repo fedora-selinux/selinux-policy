@@ -20,6 +20,14 @@ domain_entry_file(anaconda_t, anaconda_exec_t)
 domain_obj_id_change_exemption(anaconda_t)
 role system_r types anaconda_t;
 
+attribute_role install_roles;
+roleattribute system_r install_roles;
+
+type install_t;
+type install_exec_t;
+application_domain(install_t, install_exec_t)
+role install_roles types install_t;
+
 ########################################
 #
 # Local policy
@@ -58,3 +66,32 @@ optional_policy(`
 optional_policy(`
 	unconfined_domain_noaudit(anaconda_t)
 ')
+
+########################################
+#
+# Local policy
+#
+
+allow install_t self:capability2 mac_admin;
+
+tunable_policy(`deny_ptrace',`',`
+	domain_ptrace_all_domains(install_t)
+')
+
+optional_policy(`
+    mount_run(install_t, install_roles)
+')
+
+optional_policy(`
+    networkmanager_dbus_chat(install_t)
+')
+
+optional_policy(`
+	seutil_run_setfiles_mac(install_t, install_roles)
+')
+
+optional_policy(`
+	unconfined_domain_noaudit(install_t)
+')
+
+
