@@ -81,6 +81,9 @@ files_type(haproxy_var_lib_t)
 type haproxy_unit_file_t;
 systemd_unit_file(haproxy_unit_file_t)
 
+type haproxy_var_run_t;
+files_pid_file(haproxy_var_run_t)
+
 rhcs_domain_template(groupd)
 rhcs_domain_template(qdiskd)
 
@@ -590,19 +593,26 @@ logging_send_syslog_msg(groupd_t)
 #
 
 # bug in haproxy and process vs pid owner
-allow haproxy_t self:capability dac_override;
+allow haproxy_t self:capability { dac_override kill };
 
 allow haproxy_t self:capability { chown setgid setuid sys_chroot sys_resource };
 allow haproxy_t self:process { fork setrlimit signal_perms };
 allow haproxy_t self:fifo_file rw_fifo_file_perms;
 allow haproxy_t self:unix_stream_socket create_stream_socket_perms;
-allow haproxy_t self:tcp_socket { accept listen };
+allow haproxy_t self:tcp_socket create_stream_socket_perms;
+allow haproxy_t self: udp_socket create_socket_perms;
 
 manage_dirs_pattern(haproxy_t, haproxy_var_lib_t, haproxy_var_lib_t)
 manage_files_pattern(haproxy_t, haproxy_var_lib_t, haproxy_var_lib_t)
 manage_lnk_files_pattern(haproxy_t, haproxy_var_lib_t, haproxy_var_lib_t)
 manage_sock_files_pattern(haproxy_t, haproxy_var_lib_t, haproxy_var_lib_t)
 files_var_lib_filetrans(haproxy_t, haproxy_var_lib_t, { dir file lnk_file })
+
+manage_sock_files_pattern(haproxy_t, haproxy_var_run_t, haproxy_var_run_t)
+manage_files_pattern(haproxy_t, haproxy_var_run_t, haproxy_var_run_t)
+files_pid_filetrans(haproxy_t, haproxy_var_run_t, { sock_file file })
+
+corenet_sendrecv_unlabeled_packets(haproxy_t)
 
 corenet_tcp_connect_commplex_link_port(haproxy_t)
 corenet_tcp_connect_commplex_main_port(haproxy_t)
