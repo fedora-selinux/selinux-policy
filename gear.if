@@ -1,0 +1,288 @@
+
+## <summary>The open-source application container engine.</summary>
+
+########################################
+## <summary>
+##	Execute gear in the gear domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`gear_domtrans',`
+	gen_require(`
+		type gear_t, gear_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, gear_exec_t, gear_t)
+')
+
+########################################
+## <summary>
+##	Search gear lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gear_search_lib',`
+	gen_require(`
+		type gear_var_lib_t;
+	')
+
+	allow $1 gear_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Execute gear lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gear_exec_lib',`
+	gen_require(`
+		type gear_var_lib_t;
+	')
+
+	allow $1 gear_var_lib_t:dir search_dir_perms;
+	can_exec($1, gear_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read gear lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gear_read_lib_files',`
+	gen_require(`
+		type gear_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, gear_var_lib_t, gear_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage gear lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gear_manage_lib_files',`
+	gen_require(`
+		type gear_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, gear_var_lib_t, gear_var_lib_t)
+	manage_lnk_files_pattern($1, gear_var_lib_t, gear_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage gear lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gear_manage_lib_dirs',`
+	gen_require(`
+		type gear_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, gear_var_lib_t, gear_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create objects in a gear var lib directory
+##	with an automatic type transition to
+##	a specified private type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="private_type">
+##	<summary>
+##	The type of the object to create.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	The class of the object to be created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`gear_lib_filetrans',`
+	gen_require(`
+		type gear_var_lib_t;
+	')
+
+	filetrans_pattern($1, gear_var_lib_t, $2, $3, $4)
+')
+
+########################################
+## <summary>
+##	Read gear PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gear_read_pid_files',`
+	gen_require(`
+		type gear_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, gear_var_run_t, gear_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute gear server in the gear domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`gear_systemctl',`
+	gen_require(`
+		type gear_t;
+		type gear_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 gear_unit_file_t:file read_file_perms;
+	allow $1 gear_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, gear_t)
+')
+
+########################################
+## <summary>
+##	Read and write gear shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gear_rw_sem',`
+	gen_require(`
+		type gear_t;
+	')
+
+	allow $1 gear_t:sem rw_sem_perms;
+')
+
+#######################################
+## <summary>
+##  Read and write the gear pty type.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`gear_use_ptys',`
+    gen_require(`
+        type gear_devpts_t;
+    ')
+
+    allow $1 gear_devpts_t:chr_file rw_term_perms;
+')
+
+#######################################
+## <summary>
+##      Allow domain to create gear content
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`gear_filetrans_named_content',`
+    gen_require(`
+            type gear_var_lib_t;
+	    type gear_var_run_t;
+    ')
+
+    files_pid_filetrans($1, gear_var_run_t, file, "gear.pid")
+    files_var_lib_filetrans($1, gear_var_lib_t, dir, "gear")
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an gear environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gear_admin',`
+	gen_require(`
+		type gear_t;
+		type gear_var_lib_t, gear_var_run_t;
+		type gear_unit_file_t;
+		type gear_lock_t;
+		type gear_log_t;
+	')
+
+	allow $1 gear_t:process { ptrace signal_perms };
+	ps_process_pattern($1, gear_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, gear_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, gear_var_run_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, gear_log_t)
+
+	gear_systemctl($1)
+	admin_pattern($1, gear_unit_file_t)
+	allow $1 gear_unit_file_t:service all_service_perms;
+')
