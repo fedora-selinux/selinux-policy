@@ -1,0 +1,94 @@
+policy_module(gear, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type gear_t;
+type gear_exec_t;
+init_daemon_domain(gear_t, gear_exec_t)
+
+type gear_var_lib_t;
+files_type(gear_var_lib_t)
+
+type gear_log_t;
+logging_log_file(gear_log_t)
+
+type gear_var_run_t;
+files_pid_file(gear_var_run_t)
+
+type gear_unit_file_t;
+systemd_unit_file(gear_unit_file_t)
+
+########################################
+#
+# gear local policy
+#
+allow gear_t self:process { getattr signal_perms };
+allow gear_t self:fifo_file rw_fifo_file_perms;
+allow gear_t self:unix_stream_socket create_stream_socket_perms;
+allow gear_t self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(gear_t, gear_log_t, gear_log_t)
+manage_files_pattern(gear_t, gear_log_t, gear_log_t)
+manage_lnk_files_pattern(gear_t, gear_log_t, gear_log_t)
+logging_log_filetrans(gear_t, gear_log_t, { dir file lnk_file })
+
+gear_filetrans_named_content(gear_t)
+
+manage_dirs_pattern(gear_t, gear_var_lib_t, gear_var_lib_t)
+manage_chr_files_pattern(gear_t, gear_var_lib_t, gear_var_lib_t)
+manage_blk_files_pattern(gear_t, gear_var_lib_t, gear_var_lib_t)
+manage_files_pattern(gear_t, gear_var_lib_t, gear_var_lib_t)
+manage_lnk_files_pattern(gear_t, gear_var_lib_t, gear_var_lib_t)
+files_var_lib_filetrans(gear_t, gear_var_lib_t, { dir file lnk_file })
+
+manage_dirs_pattern(gear_t, gear_var_run_t, gear_var_run_t)
+manage_files_pattern(gear_t, gear_var_run_t, gear_var_run_t)
+manage_sock_files_pattern(gear_t, gear_var_run_t, gear_var_run_t)
+manage_lnk_files_pattern(gear_t, gear_var_run_t, gear_var_run_t)
+files_pid_filetrans(gear_t, gear_var_run_t, { dir file lnk_file sock_file })
+
+kernel_read_system_state(gear_t)
+kernel_read_network_state(gear_t)
+kernel_read_all_sysctls(gear_t)
+kernel_rw_net_sysctls(gear_t)
+
+domain_use_interactive_fds(gear_t)
+
+corecmd_exec_bin(gear_t)
+corecmd_exec_shell(gear_t)
+
+corenet_tcp_bind_generic_node(gear_t)
+corenet_tcp_sendrecv_generic_if(gear_t)
+corenet_tcp_sendrecv_generic_node(gear_t)
+corenet_tcp_sendrecv_generic_port(gear_t)
+#corenet_tcp_bind_gear_port(gear_t)
+
+files_read_etc_files(gear_t)
+
+fs_read_cgroup_files(gear_t)
+fs_read_tmpfs_symlinks(gear_t)
+
+auth_use_nsswitch(gear_t)
+
+init_read_state(gear_t)
+init_dbus_chat(gear_t)
+
+logging_send_audit_msgs(gear_t)
+logging_send_syslog_msg(gear_t)
+
+miscfiles_read_localization(gear_t)
+
+mount_domtrans(gear_t)
+
+seutil_read_default_contexts(gear_t)
+
+sysnet_dns_name_resolve(gear_t)
+
+systemd_manage_all_unit_files(gear_t)
+
+optional_policy(`
+	docker_stream_connect(gear_t)
+')
