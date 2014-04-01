@@ -220,7 +220,7 @@ interface(`xserver_non_drawing_client',`
 interface(`xserver_user_client',`
 	refpolicywarn(`$0() has been deprecated, please use xserver_user_x_domain_template instead.')
 	gen_require(`
-		type xdm_t, xdm_tmp_t;
+		type xdm_t;
 		type xauth_home_t, iceauth_home_t, xserver_t, xserver_tmpfs_t;
 	')
 
@@ -235,8 +235,8 @@ interface(`xserver_user_client',`
 	# for when /tmp/.X11-unix is created by the system
 	allow $1 xdm_t:fd use;
 	allow $1 xdm_t:fifo_file rw_inherited_fifo_file_perms;
-	allow $1 xdm_tmp_t:dir search_dir_perms;
-	allow $1 xdm_tmp_t:sock_file { read write };
+    userdom_search_user_tmp_dirs($1)
+    userdom_rw_user_tmp_sock_files($1)
 	dontaudit $1 xdm_t:tcp_socket { read write };
 
 	# Allow connections to X server.
@@ -395,7 +395,7 @@ template(`xserver_object_types_template',`
 #
 template(`xserver_user_x_domain_template',`
 	gen_require(`
-		type xdm_t, xdm_tmp_t, xserver_tmpfs_t;
+		type xdm_t, xserver_tmpfs_t;
 		type xdm_home_t;
 		type xauth_home_t, iceauth_home_t, xserver_t;
 	')
@@ -413,8 +413,8 @@ template(`xserver_user_x_domain_template',`
 	# for when /tmp/.X11-unix is created by the system
 	allow $2 xdm_t:fd use;
 	allow $2 xdm_t:fifo_file rw_inherited_fifo_file_perms;
-	allow $2 xdm_tmp_t:dir search_dir_perms;
-	allow $2 xdm_tmp_t:sock_file rw_inherited_sock_file_perms;
+    userdom_search_user_tmp_dirs($1)
+    userdom_rw_user_tmp_sock_files($1)
 	dontaudit $2 xdm_t:tcp_socket { read write };
 
 	# Allow connections to X server.
@@ -429,7 +429,7 @@ template(`xserver_user_x_domain_template',`
 	xserver_ro_session($2, $3)
 	xserver_use_user_fonts($2)
 
-	xserver_read_xdm_tmp_files($2)
+    userdom_read_user_tmpf_files($2)
 	xserver_read_xdm_pid($2)
 	xserver_xdm_append_log($2)
 
@@ -817,12 +817,13 @@ interface(`xserver_manage_xdm_spool_files',`
 #
 interface(`xserver_stream_connect_xdm',`
 	gen_require(`
-		type xdm_t, xdm_tmp_t, xdm_var_run_t;
+		type xdm_t, xdm_var_run_t;
 	')
 
 	files_search_tmp($1)
 	files_search_pids($1)
-	stream_connect_pattern($1, { xdm_tmp_t xdm_var_run_t }, { xdm_tmp_t xdm_var_run_t }, xdm_t)
+	stream_connect_pattern($1, { xdm_var_run_t }, { xdm_var_run_t }, xdm_t)
+    userdom_stream_connect($1)
 ')
 
 ########################################
@@ -934,12 +935,8 @@ interface(`xserver_read_xdm_rw_config',`
 ## </param>
 #
 interface(`xserver_search_xdm_tmp_dirs',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	files_search_tmp($1)
-	allow $1 xdm_tmp_t:dir search_dir_perms;
+    refpolicywarn(`$0() has been deprecated, please use userdom_search_user_tmp_dirs instead.')
+    userdom_search_user_tmp_dirs($1)
 ')
 
 ########################################
@@ -953,11 +950,8 @@ interface(`xserver_search_xdm_tmp_dirs',`
 ## </param>
 #
 interface(`xserver_setattr_xdm_tmp_dirs',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	allow $1 xdm_tmp_t:dir setattr_dir_perms;
+    refpolicywarn(`$0() has been deprecated, please use userdom_dontaudit_setattr_user_tmp instead.')
+    userdom_dontaudit_setattr_user_tmp($1)
 ')
 
 ########################################
@@ -971,11 +965,8 @@ interface(`xserver_setattr_xdm_tmp_dirs',`
 ## </param>
 #
 interface(`xserver_dontaudit_xdm_tmp_dirs',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	dontaudit $1 xdm_tmp_t:dir setattr_dir_perms;
+    refpolicywarn(`$0() has been deprecated, please use userdom_dontaudit_setattr_user_tmp instead.')
+    userdom_dontaudit_setattr_user_tmp($1)
 ')
 
 ########################################
@@ -990,13 +981,8 @@ interface(`xserver_dontaudit_xdm_tmp_dirs',`
 ## </param>
 #
 interface(`xserver_create_xdm_tmp_sockets',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	files_search_tmp($1)
-	allow $1 xdm_tmp_t:dir list_dir_perms;
-	create_sock_files_pattern($1, xdm_tmp_t, xdm_tmp_t)
+    refpolicywarn(`$0() has been deprecated, please use userdom_create_user_tmp_sockets instead.')
+    userdom_create_user_tmp_sockets($1)
 ')
 
 ########################################
@@ -1317,12 +1303,8 @@ interface(`xserver_manage_xdm_etc_files',`
 ## </param>
 #
 interface(`xserver_read_xdm_tmp_files',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	files_search_tmp($1)
-	read_files_pattern($1, xdm_tmp_t, xdm_tmp_t)
+    refpolicywarn(`$0() has been deprecated, please use userdom_read_user_tmpfs_files instead.')
+    userdom_read_user_tmpfs_files($1)
 ')
 
 ########################################
@@ -1336,12 +1318,8 @@ interface(`xserver_read_xdm_tmp_files',`
 ## </param>
 #
 interface(`xserver_dontaudit_read_xdm_tmp_files',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	dontaudit $1 xdm_tmp_t:dir search_dir_perms;
-	dontaudit $1 xdm_tmp_t:file read_file_perms;
+    refpolicywarn(`$0() has been deprecated, please use userdom_dontaudit_read_user_tmp_files instead.')
+    userdom_dontaudit_read_user_tmp_files($1)
 ')
 
 ########################################
@@ -1355,12 +1333,8 @@ interface(`xserver_dontaudit_read_xdm_tmp_files',`
 ## </param>
 #
 interface(`xserver_rw_xdm_tmp_files',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	allow $1 xdm_tmp_t:dir search_dir_perms;
-	allow $1 xdm_tmp_t:file rw_file_perms;
+    refpolicywarn(`$0() has been deprecated, please use userdom_rw_user_tmpfs_files instead.')
+    userdom_rw_user_tmpfs_files($1)
 ')
 
 ########################################
@@ -1374,11 +1348,8 @@ interface(`xserver_rw_xdm_tmp_files',`
 ## </param>
 #
 interface(`xserver_manage_xdm_tmp_files',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	manage_files_pattern($1, xdm_tmp_t, xdm_tmp_t)
+    refpolicywarn(`$0() has been deprecated, please use userdom_manage_user_tmp_files instead.')
+    userdom_manage_user_tmp_files($1)
 ')
 
 ########################################
@@ -1392,11 +1363,8 @@ interface(`xserver_manage_xdm_tmp_files',`
 ## </param>
 #
 interface(`xserver_relabel_xdm_tmp_dirs',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	allow $1 xdm_tmp_t:dir relabel_dir_perms;
+    refpolicywarn(`$0() has been deprecated, please use userdom_relabel_user_tmp_dirs instead.')
+    userdom_relabel_user_tmp_dirs($1)
 ')
 
 ########################################
@@ -1410,11 +1378,8 @@ interface(`xserver_relabel_xdm_tmp_dirs',`
 ## </param>
 #
 interface(`xserver_manage_xdm_tmp_dirs',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	manage_dirs_pattern($1, xdm_tmp_t, xdm_tmp_t)
+    refpolicywarn(`$0() has been deprecated, please use userdom_manage_user_tmp_dirs instead.')
+    userdom_manage_user_tmp_dirs($1)
 ')
 
 ########################################
@@ -1429,11 +1394,8 @@ interface(`xserver_manage_xdm_tmp_dirs',`
 ## </param>
 #
 interface(`xserver_dontaudit_getattr_xdm_tmp_sockets',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	dontaudit $1 xdm_tmp_t:sock_file getattr_sock_file_perms;
+    refpolicywarn(`$0() has been deprecated, please use usedom_dontaudit_user_getattr_tmp_sockets instead.')
+    usedom_dontaudit_user_getattr_tmp_sockets($1)
 ')
 
 ########################################
@@ -1946,11 +1908,8 @@ interface(`xserver_xdm_ioctl_log',`
 ## </param>
 #
 interface(`xserver_append_xdm_tmp_files',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	allow $1 xdm_tmp_t:file append_inherited_file_perms;
+    refpolicywarn(`$0() has been deprecated, please use userdom_append_user_tmp_files instead.')
+    userdom_append_user_tmp_files($1)
 ')
 
 ########################################
@@ -2296,12 +2255,8 @@ interface(`xserver_filetrans_admin_home_content',`
 ## </param>
 #
 interface(`xserver_xdm_tmp_filetrans',`
-	gen_require(`
-		type xdm_tmp_t;
-	')
-
-	filetrans_pattern($1, xdm_tmp_t, $2, $3, $4)
-	files_search_tmp($1)
+    refpolicywarn(`$0() has been deprecated, please use userdom_user_tmp_filetrans instead.')
+    userdom_user_tmp_filetrans($1,$2, $3, $4)
 ')
 
 ########################################
