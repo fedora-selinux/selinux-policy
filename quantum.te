@@ -29,8 +29,9 @@ systemd_unit_file(neutron_unit_file_t)
 # Local policy
 #
 
-allow neutron_t self:capability { sys_ptrace kill setgid setuid sys_resource net_admin sys_admin net_raw };
-allow neutron_t self:process { setsched setrlimit };
+allow neutron_t self:capability { sys_ptrace kill setgid setuid sys_resource net_admin sys_admin };
+allow neutron_t self:capability2 block_suspend;
+allow neutron_t self:process { setsched setrlimit signal_perms };
 allow neutron_t self:fifo_file rw_fifo_file_perms;
 allow neutron_t self:key manage_key_perms;
 allow neutron_t self:tcp_socket { accept listen };
@@ -52,7 +53,7 @@ files_var_lib_filetrans(neutron_t, neutron_var_lib_t, dir)
 
 can_exec(neutron_t, neutron_tmp_t)
 
-kernel_read_kernel_sysctls(neutron_t)
+kernel_rw_kernel_sysctl(neutron_t)
 kernel_read_system_state(neutron_t)
 kernel_read_network_state(neutron_t)
 kernel_request_load_module(neutron_t)
@@ -71,7 +72,9 @@ corenet_tcp_bind_neutron_port(neutron_t)
 corenet_tcp_connect_keystone_port(neutron_t)
 corenet_tcp_connect_amqp_port(neutron_t)
 corenet_tcp_connect_mysqld_port(neutron_t)
+corenet_tcp_connect_osapi_compute_port(neutron_t)
 
+domain_read_all_domains_state(neutron_t)
 domain_named_filetrans(neutron_t)
 
 dev_read_sysfs(neutron_t)
@@ -110,15 +113,14 @@ optional_policy(`
 
 optional_policy(`
 	mysql_stream_connect(neutron_t)
+    mysql_read_db_lnk_files(neutron_t)
 	mysql_read_config(neutron_t)
-
 	mysql_tcp_connect(neutron_t)
 ')
 
 optional_policy(`
 	postgresql_stream_connect(neutron_t)
 	postgresql_unpriv_client(neutron_t)
-
 	postgresql_tcp_connect(neutron_t)
 ')
 
