@@ -472,7 +472,7 @@ role system_r types httpd_passwd_t;
 # Apache server local policy
 #
 
-allow httpd_t self:capability { chown dac_override kill setgid setuid sys_nice sys_tty_config };
+allow httpd_t self:capability { chown dac_override kill setgid setuid sys_nice sys_tty_config sys_chroot };
 dontaudit httpd_t self:capability { net_admin sys_tty_config };
 allow httpd_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
 allow httpd_t self:fd use;
@@ -510,6 +510,7 @@ allow httpd_t httpd_log_t:dir setattr;
 create_dirs_pattern(httpd_t, httpd_log_t, httpd_log_t)
 create_files_pattern(httpd_t, httpd_log_t, httpd_log_t)
 append_files_pattern(httpd_t, httpd_log_t, httpd_log_t)
+setattr_files_pattern(httpd_t, httpd_log_t, httpd_log_t)
 read_files_pattern(httpd_t, httpd_log_t, httpd_log_t)
 read_lnk_files_pattern(httpd_t, httpd_log_t, httpd_log_t)
 # cjp: need to refine create interfaces to
@@ -1661,7 +1662,7 @@ allow httpd_t httpd_script_type:unix_stream_socket connectto;
 
 allow httpd_t httpd_script_exec_type:file read_file_perms;
 allow httpd_t httpd_script_exec_type:lnk_file read_lnk_file_perms;
-allow httpd_t httpd_script_type:process { signal sigkill sigstop };
+allow httpd_t httpd_script_type:process { signal sigkill sigstop signull };
 allow httpd_t httpd_script_exec_type:dir list_dir_perms;
 
 allow httpd_script_type self:process { setsched signal_perms };
@@ -1673,6 +1674,7 @@ allow httpd_script_type httpd_t:fd use;
 allow httpd_script_type httpd_t:process sigchld;
 
 dontaudit httpd_script_type httpd_t:tcp_socket { read write };
+dontaudit httpd_script_type httpd_t:unix_stream_socket { read write };
 
 fs_getattr_xattr_fs(httpd_script_type)
 
