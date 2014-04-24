@@ -21,19 +21,27 @@ files_type(mongod_var_lib_t)
 type mongod_var_run_t;
 files_pid_file(mongod_var_run_t)
 
+type mongod_tmp_t;
+files_tmp_file(mongod_tmp_t)
+
 ########################################
 #
 # Local policy
 #
 
-allow mongod_t self:process signal;
+
+allow mongod_t self:process { setsched signal };
 allow mongod_t self:fifo_file rw_fifo_file_perms;
+
+allow mongod_t self:netlink_route_socket r_netlink_socket_perms;
+allow mongod_t self:unix_stream_socket create_stream_socket_perms;
+allow mongod_t self:udp_socket create_socket_perms;
 
 manage_dirs_pattern(mongod_t, mongod_log_t, mongod_log_t)
 append_files_pattern(mongod_t, mongod_log_t, mongod_log_t)
 create_files_pattern(mongod_t, mongod_log_t, mongod_log_t)
 setattr_files_pattern(mongod_t, mongod_log_t, mongod_log_t)
-logging_log_filetrans(mongod_t, mongod_log_t, dir)
+logging_log_filetrans(mongod_t, mongod_log_t, { dir file })
 
 manage_dirs_pattern(mongod_t, mongod_var_lib_t, mongod_var_lib_t)
 manage_files_pattern(mongod_t, mongod_var_lib_t, mongod_var_lib_t)
@@ -44,7 +52,16 @@ manage_files_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
 manage_sock_files_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
 files_pid_filetrans(mongod_t, mongod_var_run_t, { dir file sock_file })
 
+manage_dirs_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
+manage_files_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
+manage_sock_files_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
+files_tmp_filetrans(mongod_t, mongod_tmp_t, { file dir sock_file })
+
 kernel_read_system_state(mongod_t)
+kernel_read_vm_sysctls(mongod_t)
+
+corecmd_exec_bin(mongod_t)
+corecmd_exec_shell(mongod_t)
 
 corenet_all_recvfrom_unlabeled(mongod_t)
 corenet_all_recvfrom_netlabel(mongod_t)
@@ -57,4 +74,16 @@ dev_read_sysfs(mongod_t)
 dev_read_urand(mongod_t)
 
 fs_getattr_all_fs(mongod_t)
+
+optional_policy(`
+	mysql_stream_connect(mongod_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(mongod_t)
+')
+
+optional_policy(`
+	sysnet_dns_name_resolve(mongod_t)
+')
 

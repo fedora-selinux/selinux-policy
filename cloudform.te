@@ -8,7 +8,6 @@ attribute cloudform_domain;
 
 cloudform_domain_template(deltacloudd)
 cloudform_domain_template(iwhd)
-cloudform_domain_template(mongod)
 cloudform_domain_template(cloud_init)
 
 type cloud_init_tmp_t;
@@ -40,21 +39,6 @@ files_type(iwhd_var_lib_t)
 
 type iwhd_var_run_t;
 files_pid_file(iwhd_var_run_t)
-
-type mongod_initrc_exec_t;
-init_script_file(mongod_initrc_exec_t)
-
-type mongod_log_t;
-logging_log_file(mongod_log_t)
-
-type mongod_var_lib_t;
-files_type(mongod_var_lib_t)
-
-type mongod_tmp_t;
-files_tmp_file(mongod_tmp_t)
-
-type mongod_var_run_t;
-files_pid_file(mongod_var_run_t)
 
 type iwhd_log_t;
 logging_log_file(iwhd_log_t)
@@ -243,56 +227,3 @@ dev_read_urand(iwhd_t)
 
 userdom_home_manager(iwhd_t)
 
-########################################
-#
-# mongod local policy
-#
-
-allow mongod_t self:process { execmem setsched signal };
-
-allow mongod_t self:netlink_route_socket r_netlink_socket_perms;
-allow mongod_t self:unix_stream_socket create_stream_socket_perms;
-allow mongod_t self:udp_socket create_socket_perms;
-
-manage_dirs_pattern(mongod_t, mongod_log_t, mongod_log_t)
-manage_files_pattern(mongod_t, mongod_log_t, mongod_log_t)
-logging_log_filetrans(mongod_t, mongod_log_t, file, "dbomatic.log")
-logging_log_filetrans(mongod_t, mongod_log_t, file, "mongod.log")
-
-manage_dirs_pattern(mongod_t, mongod_var_lib_t, mongod_var_lib_t)
-manage_files_pattern(mongod_t, mongod_var_lib_t, mongod_var_lib_t)
-
-manage_dirs_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
-manage_files_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
-manage_sock_files_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
-files_tmp_filetrans(mongod_t, mongod_tmp_t, { file dir sock_file })
-
-manage_dirs_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
-manage_files_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
-#needed by dbomatic
-files_pid_filetrans(mongod_t, mongod_var_run_t, { file })
-
-corecmd_exec_bin(mongod_t)
-corecmd_exec_shell(mongod_t)
-
-corenet_tcp_bind_generic_node(mongod_t)
-corenet_tcp_bind_mongod_port(mongod_t)
-corenet_tcp_connect_mongod_port(mongod_t)
-corenet_tcp_connect_postgresql_port(mongod_t)
-
-kernel_read_vm_sysctls(mongod_t)
-kernel_read_system_state(mongod_t)
-
-fs_getattr_all_fs(mongod_t)
-
-optional_policy(`
-	mysql_stream_connect(mongod_t)
-')
-
-optional_policy(`
-	postgresql_stream_connect(mongod_t)
-')
-
-optional_policy(`
-	sysnet_dns_name_resolve(mongod_t)
-')
