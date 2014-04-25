@@ -455,9 +455,29 @@ sysnet_dns_name_resolve(nsswitch_domain)
 
 systemd_hostnamed_read_config(nsswitch_domain)
 
+
+tunable_policy(`authlogin_nsswitch_use_ldap',`
+    allow nsswitch_domain self:tcp_socket create_socket_perms;
+')
+
+tunable_policy(`authlogin_nsswitch_use_ldap',`
+	corenet_tcp_sendrecv_generic_if(nsswitch_domain)
+	corenet_tcp_sendrecv_generic_node(nsswitch_domain)
+	corenet_tcp_sendrecv_ldap_port(nsswitch_domain)
+	corenet_tcp_connect_ldap_port(nsswitch_domain)
+	corenet_sendrecv_ldap_client_packets(nsswitch_domain)
+')
+
+tunable_policy(`authlogin_nsswitch_use_ldap',`
+	# Support for LDAPS
+	dev_read_rand(nsswitch_domain)
+	# LDAP Configuration using encrypted requires
+	dev_read_urand(nsswitch_domain)
+	sysnet_read_config(nsswitch_domain)
+')
+
 tunable_policy(`authlogin_nsswitch_use_ldap',`
 	miscfiles_read_generic_certs(nsswitch_domain)
-	sysnet_use_ldap(nsswitch_domain)
 ')
 
 optional_policy(`
@@ -468,6 +488,7 @@ optional_policy(`
 
 optional_policy(`
 	tunable_policy(`authlogin_nsswitch_use_ldap',`
+        ldap_read_certs(nsswitch_domain)
 		ldap_stream_connect(nsswitch_domain)
 	')
 ')
