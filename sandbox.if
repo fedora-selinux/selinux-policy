@@ -22,14 +22,42 @@ interface(`sandbox_transition',`
 		attribute sandbox_domain;
 	')
 
-	allow $1 sandbox_domain:process transition;
-	dontaudit $1 sandbox_domain:process { noatsecure siginh rlimitinh };
-	role $2 types sandbox_domain;
-	allow sandbox_domain $1:process { sigchld signull };
-	allow sandbox_domain $1:fifo_file rw_inherited_fifo_file_perms;
-	dontaudit sandbox_domain $1:process signal;
-	dontaudit sandbox_domain $1:key { link read search view };
-	dontaudit sandbox_domain $1:unix_stream_socket rw_socket_perms;
+    sandbox_dyntransition($1) #885288
+    allow $1 sandbox_domain:process transition;
+    dontaudit $1 sandbox_domain:process { noatsecure siginh rlimitinh };
+
+    role $2 types sandbox_domain;
+
+    allow sandbox_domain $1:process { sigchld signull };
+    allow sandbox_domain $1:fifo_file rw_inherited_fifo_file_perms;
+
+    dontaudit sandbox_domain $1:process signal;
+    dontaudit sandbox_domain $1:key { link read search view };
+    dontaudit sandbox_domain $1:unix_stream_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Execute sandbox in the sandbox domain, and
+##	allow the specified role the sandbox domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the sandbox domain.
+##	</summary>
+## </param>
+#
+interface(`sandbox_dyntransition',`
+	gen_require(`
+		attribute sandbox_domain;
+	')
+
+	allow $1 sandbox_domain:process dyntransition;
 ')
 
 ########################################
