@@ -26,6 +26,7 @@ systemd_unit_file(gear_unit_file_t)
 # gear local policy
 #
 allow gear_t self:capability { chown net_admin fowner dac_override };
+dontaudit gear_t self:capability sys_ptrace;
 allow gear_t self:capability2 block_suspend;
 allow gear_t self:process { getattr signal_perms };
 allow gear_t self:fifo_file rw_fifo_file_perms;
@@ -33,6 +34,7 @@ allow gear_t self:unix_stream_socket create_stream_socket_perms;
 allow gear_t self:tcp_socket create_stream_socket_perms;
 
 allow gear_t gear_unit_file_t:dir { relabelfrom relabelto };
+manage_dir_perms(gear_t, gear_unit_file_t, gear_unit_file_t)
 
 manage_dirs_pattern(gear_t, gear_log_t, gear_log_t)
 manage_files_pattern(gear_t, gear_log_t, gear_log_t)
@@ -54,6 +56,7 @@ manage_files_pattern(gear_t, gear_var_run_t, gear_var_run_t)
 manage_sock_files_pattern(gear_t, gear_var_run_t, gear_var_run_t)
 manage_lnk_files_pattern(gear_t, gear_var_run_t, gear_var_run_t)
 files_pid_filetrans(gear_t, gear_var_run_t, { dir file lnk_file sock_file })
+init_pid_filetrans(gear_t, gear_var_run_t, { dir file lnk_file sock_file })
 
 kernel_read_system_state(gear_t)
 kernel_read_network_state(gear_t)
@@ -79,8 +82,10 @@ dev_unmount_sysfs_fs(gear_t)
 files_mounton_rootfs(gear_t)
 files_read_etc_files(gear_t)
 
+fs_list_cgroup_dirs(gear_t)
 fs_read_cgroup_files(gear_t)
 fs_read_tmpfs_symlinks(gear_t)
+fs_getattr_all_fs(gear_t)
 
 auth_use_nsswitch(gear_t)
 
@@ -92,6 +97,7 @@ iptables_domtrans(gear_t)
 
 logging_send_audit_msgs(gear_t)
 logging_send_syslog_msg(gear_t)
+logging_read_generic_logs(gear_t)
 
 miscfiles_read_localization(gear_t)
 
@@ -105,6 +111,7 @@ sysnet_exec_ifconfig(gear_t)
 sysnet_manage_ifconfig_run(gear_t)
 
 systemd_manage_all_unit_files(gear_t)
+systemd_exec_systemctl(gear_t)
 
 optional_policy(`
 	hostname_exec(gear_t)
