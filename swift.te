@@ -5,6 +5,15 @@ policy_module(swift, 1.0.0)
 # Declarations
 #
 
+## <desc>
+##  <p>
+##	Determine whether swift can
+##	connect to all TCP ports
+##	</p>
+## </desc>
+gen_tunable(swift_can_network, false)
+
+
 type swift_t;
 type swift_exec_t;
 init_daemon_domain(swift_t, swift_exec_t)
@@ -73,7 +82,14 @@ kernel_dgram_send(swift_t)
 kernel_read_system_state(swift_t)
 kernel_read_network_state(swift_t)
 
+# bug in swift
+corenet_tcp_bind_xserver_port(swift_t)
+corenet_tcp_bind_http_cache_port(swift_t)
+
+corenet_tcp_connect_xserver_port(swift_t)
+
 corecmd_exec_shell(swift_t)
+corecmd_exec_bin(swift_t)
 
 dev_read_urand(swift_t)
 
@@ -90,6 +106,12 @@ libs_exec_ldconfig(swift_t)
 logging_send_syslog_msg(swift_t)
 
 userdom_dontaudit_search_user_home_dirs(swift_t)
+
+tunable_policy(`swift_can_network',`
+	corenet_sendrecv_all_client_packets(swift_t)
+	corenet_tcp_connect_all_ports(swift_t)
+	corenet_tcp_sendrecv_all_ports(swift_t)
+')
 
 optional_policy(`
     rpm_exec(swift_t)
