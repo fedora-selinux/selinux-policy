@@ -1,0 +1,54 @@
+policy_module(geoclue, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type geoclue_t;
+type geoclue_exec_t;
+application_domain(geoclue_t, geoclue_exec_t)
+role system_r types geoclue_t;
+
+type geoclue_var_lib_t;
+files_type(geoclue_var_lib_t)
+
+type geoclue_tmp_t;
+files_tmp_file(geoclue_tmp_t)
+
+########################################
+#
+# geoclue local policy
+#
+allow geoclue_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(geoclue_t, geoclue_var_lib_t, geoclue_var_lib_t)
+manage_files_pattern(geoclue_t, geoclue_var_lib_t, geoclue_var_lib_t)
+manage_lnk_files_pattern(geoclue_t, geoclue_var_lib_t, geoclue_var_lib_t)
+files_var_lib_filetrans(geoclue_t, geoclue_var_lib_t, { dir })
+
+manage_files_pattern(geoclue_t, geoclue_tmp_t, geoclue_tmp_t)
+manage_dirs_pattern(geoclue_t, geoclue_tmp_t, geoclue_tmp_t)
+files_tmp_filetrans(geoclue_t, geoclue_tmp_t, { dir file })
+
+kernel_read_network_state(geoclue_t)
+
+auth_read_passwd(geoclue_t)
+
+corenet_tcp_connect_http_port(geoclue_t)
+
+corecmd_exec_bin(geoclue_t)
+
+dev_read_urand(geoclue_t)
+
+miscfiles_read_generic_certs(geoclue_t)
+
+sysnet_dns_name_resolve(geoclue_t)
+
+optional_policy(`
+	dbus_system_domain(geoclue_t, geoclue_exec_t)
+
+	optional_policy(`
+		networkmanager_dbus_chat(geoclue_t)
+	')
+')
