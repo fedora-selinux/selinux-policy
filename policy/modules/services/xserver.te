@@ -231,12 +231,6 @@ files_type(xserver_var_lib_t)
 type xserver_var_run_t;
 files_pid_file(xserver_var_run_t)
 
-type xdm_tmp_t;
-files_tmp_file(xdm_tmp_t)
-typealias xdm_tmp_t alias { xserver_tmp_t user_xserver_tmp_t staff_xserver_tmp_t sysadm_xserver_tmp_t ice_tmp_t };
-typealias xdm_tmp_t alias { auditadm_xserver_tmp_t secadm_xserver_tmp_t xdm_xserver_tmp_t };
-userdom_user_tmp_file(xserver_tmp_t)
-
 type xdm_tmpfs_t;
 files_tmpfs_file(xdm_tmpfs_t)
 
@@ -264,7 +258,7 @@ files_config_file(xserver_etc_t)
 type xserver_tmpfs_t;
 typealias xserver_tmpfs_t alias { user_xserver_tmpfs_t staff_xserver_tmpfs_t sysadm_xserver_tmpfs_t xguest_xserver_tmpfs_t unconfined_xserver_tmpfs_t xdm_xserver_tmpfs_t };
 typealias xserver_tmpfs_t alias { auditadm_xserver_tmpfs_t secadm_xserver_tmpfs_t };
-userdom_user_tmpfs_file(xserver_tmpfs_t)
+userdom_user_tmp_file(xserver_tmpfs_t)
 
 type xsession_exec_t;
 corecmd_executable_file(xsession_exec_t)
@@ -470,14 +464,8 @@ read_files_pattern(xdm_t, xdm_etc_t, xdm_etc_t)
 # this is ugly, daemons should not create files under /etc!
 manage_files_pattern(xdm_t, xdm_rw_etc_t, xdm_rw_etc_t)
 
-manage_dirs_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
-manage_files_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
-manage_lnk_files_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
-manage_sock_files_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
-files_tmp_filetrans(xdm_t, xdm_tmp_t, { file dir sock_file lnk_file })
-relabelfrom_dirs_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
-relabelfrom_files_pattern(xdm_t, xdm_tmp_t, xdm_tmp_t)
-can_exec(xdm_t, xdm_tmp_t)
+userdom_manage_all_user_tmp_content(xdm_t)
+userdom_exec_user_tmp_files(xdm_t)
 
 manage_dirs_pattern(xdm_t, xdm_tmpfs_t, xdm_tmpfs_t)
 manage_files_pattern(xdm_t, xdm_tmpfs_t, xdm_tmpfs_t)
@@ -697,7 +685,7 @@ userdom_stream_connect(xdm_t)
 userdom_manage_user_tmp_dirs(xdm_t)
 userdom_manage_user_tmp_files(xdm_t)
 userdom_manage_user_tmp_sockets(xdm_t)
-userdom_manage_tmpfs_role(system_r, xdm_t)
+userdom_manage_tmp_role(system_r, xdm_t)
 
 #userdom_home_manager(xdm_t)
 tunable_policy(`xdm_write_home',`
@@ -1349,9 +1337,8 @@ dontaudit xserver_t xdm_var_lib_t:dir search_dir_perms;
 read_files_pattern(xserver_t, xdm_var_run_t, xdm_var_run_t)
 
 # Label pid and temporary files with derived types.
-manage_files_pattern(xserver_t, xdm_tmp_t, xdm_tmp_t)
-manage_lnk_files_pattern(xserver_t, xdm_tmp_t, xdm_tmp_t)
-manage_sock_files_pattern(xserver_t, xdm_tmp_t, xdm_tmp_t)
+userdom_manage_user_tmp_files(xserver_t)
+userdom_manage_user_tmp_sockets(xserver_t)
 
 # Run xkbcomp.
 allow xserver_t xkb_var_lib_t:lnk_file read_lnk_file_perms;
@@ -1591,7 +1578,6 @@ manage_files_pattern(x_userdomain, user_fonts_cache_t, user_fonts_cache_t)
 
 stream_connect_pattern(x_userdomain, xserver_tmp_t, xserver_tmp_t, xserver_t)
 allow x_userdomain xserver_tmp_t:sock_file delete_sock_file_perms;
-dontaudit x_userdomain xdm_tmp_t:sock_file setattr_sock_file_perms;
 files_search_tmp(x_userdomain)
 
 # Communicate via System V shared memory.
@@ -1618,10 +1604,9 @@ allow x_userdomain xauth_home_t:file read_file_perms;
 # for when /tmp/.X11-unix is created by the system
 allow x_userdomain xdm_t:fd use;
 allow x_userdomain xdm_t:fifo_file rw_inherited_fifo_file_perms;
-allow x_userdomain xdm_tmp_t:dir search_dir_perms;
-allow x_userdomain xdm_tmp_t:sock_file rw_inherited_sock_file_perms;
+userdom_search_user_tmp_dirs(x_userdomain)
+userdom_rw_user_tmp_sock_files(x_userdomain)
 dontaudit x_userdomain xdm_t:tcp_socket { read write };
-dontaudit x_userdomain xdm_tmp_t:dir setattr_dir_perms;
 
 allow x_userdomain xdm_t:dbus send_msg;
 allow xdm_t  x_userdomain:dbus send_msg;
