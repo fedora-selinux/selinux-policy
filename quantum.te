@@ -5,6 +5,14 @@ policy_module(quantum, 1.0.3)
 # Declarations
 #
 
+## <desc>
+##  <p>
+##	Determine whether neutron can
+##	connect to all TCP ports
+##	</p>
+## </desc>
+gen_tunable(neutron_can_network, false)
+
 type neutron_t alias quantum_t;
 type neutron_exec_t alias quantum_exec_t;
 init_daemon_domain(neutron_t, neutron_exec_t)
@@ -108,6 +116,12 @@ netutils_exec(neutron_t)
 sysnet_exec_ifconfig(neutron_t)
 sysnet_manage_ifconfig_run(neutron_t)
 sysnet_filetrans_named_content_ifconfig(neutron_t)
+
+tunable_policy(`neutron_can_network',`
+	corenet_sendrecv_all_client_packets(neutron_t)
+	corenet_tcp_connect_all_ports(neutron_t)
+	corenet_tcp_sendrecv_all_ports(neutron_t)
+')
 
 optional_policy(`
 	brctl_domtrans(neutron_t)
