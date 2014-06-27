@@ -1,0 +1,57 @@
+## <summary>openstack-cinder</summary>
+
+######################################
+## <summary>
+##  Manage cinder lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`cinder_manage_lib_files',`
+    gen_require(`
+                type cinder_var_lib_t;
+                                ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, cinder_var_lib_t, cinder_var_lib_t)
+')
+
+#######################################
+## <summary>
+##  Creates types and rules for a basic
+##  openstack-cinder systemd daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`cinder_domain_template',`
+	gen_require(`
+		attribute cinder_domain;
+	')
+
+	type cinder_$1_t, cinder_domain;
+	type cinder_$1_exec_t;
+	init_daemon_domain(cinder_$1_t, cinder_$1_exec_t)
+
+	type cinder_$1_unit_file_t;
+	systemd_unit_file(cinder_$1_unit_file_t)
+
+	type cinder_$1_tmp_t;
+	files_tmp_file(cinder_$1_tmp_t)
+
+	manage_dirs_pattern(cinder_$1_t, cinder_$1_tmp_t, cinder_$1_tmp_t)
+	manage_files_pattern(cinder_$1_t, cinder_$1_tmp_t, cinder_$1_tmp_t)
+	files_tmp_filetrans(cinder_$1_t, cinder_$1_tmp_t, { file dir })
+	can_exec(cinder_$1_t, cinder_$1_tmp_t)
+
+	kernel_read_system_state(cinder_$1_t)
+
+    logging_send_syslog_msg(cinder_$1_t)
+
+')
