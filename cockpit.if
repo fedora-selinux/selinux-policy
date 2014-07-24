@@ -1,4 +1,3 @@
-
 ## <summary>policy for cockpit</summary>
 
 ########################################
@@ -11,13 +10,32 @@
 ## </summary>
 ## </param>
 #
-interface(`cockpit_domtrans',`
+interface(`cockpit_ws_domtrans',`
 	gen_require(`
-		type cockpit_t, cockpit_exec_t;
+		type cockpit_ws_t, cockpit_ws_exec_t;
 	')
 
 	corecmd_search_bin($1)
-	domtrans_pattern($1, cockpit_exec_t, cockpit_t)
+	domtrans_pattern($1, cockpit_ws_exec_t, cockpit_ws_t)
+')
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the cockpit domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`cockpit_session_domtrans',`
+	gen_require(`
+		type cockpit_session_t, cockpit_session_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, cockpit_session_exec_t, cockpit_session_t)
 ')
 
 ########################################
@@ -108,7 +126,7 @@ interface(`cockpit_manage_lib_dirs',`
 #
 interface(`cockpit_systemctl',`
 	gen_require(`
-		type cockpit_t;
+		type cockpit_ws_t;
 		type cockpit_unit_file_t;
 	')
 
@@ -117,30 +135,9 @@ interface(`cockpit_systemctl',`
 	allow $1 cockpit_unit_file_t:file read_file_perms;
 	allow $1 cockpit_unit_file_t:service manage_service_perms;
 
-	ps_process_pattern($1, cockpit_t)
+	ps_process_pattern($1, cockpit_ws_t)
 ')
 
-
-########################################
-## <summary>
-##	Send and receive messages from
-##	cockpit over dbus.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`cockpit_dbus_chat',`
-	gen_require(`
-		type cockpit_t;
-		class dbus send_msg;
-	')
-
-	allow $1 cockpit_t:dbus send_msg;
-	allow cockpit_t $1:dbus send_msg;
-')
 
 ########################################
 ## <summary>
@@ -161,17 +158,22 @@ interface(`cockpit_dbus_chat',`
 #
 interface(`cockpit_admin',`
 	gen_require(`
-		type cockpit_t;
+		type cockpit_ws_t;
+		type cockpit_session_t;
 		type cockpit_var_lib_t;
-	type cockpit_unit_file_t;
+		type cockpit_unit_file_t;
 	')
 
-	allow $1 cockpit_t:process { signal_perms };
-	ps_process_pattern($1, cockpit_t)
+	allow $1 cockpit_ws_t:process { signal_perms };
+	ps_process_pattern($1, cockpit_ws_t)
 
-    tunable_policy(`deny_ptrace',`',`
-        allow $1 cockpit_t:process ptrace;
-    ')
+	allow $1 cockpit_session_t:process { signal_perms };
+	ps_process_pattern($1, cockpit_session_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 cockpit_ws_t:process ptrace;
+		allow $1 cockpit_session_t:process ptrace;
+	')
 
 	files_search_var_lib($1)
 	admin_pattern($1, cockpit_var_lib_t)
