@@ -19,6 +19,7 @@ attribute virt_tmpfs_type;
 attribute svirt_file_type;
 attribute virt_file_type;
 attribute sandbox_net_domain;
+attribute sandbox_caps_domain;
 
 type svirt_tmp_t, svirt_file_type;
 files_tmp_file(svirt_tmp_t)
@@ -136,6 +137,20 @@ gen_tunable(virt_sandbox_use_netlink, false)
 ## </p>
 ## </desc>
 gen_tunable(virt_sandbox_use_sys_admin, false)
+
+## <desc>
+## <p>
+## Allow sandbox containers to use mknod system calls
+## </p>
+## </desc>
+gen_tunable(virt_sandbox_use_mknod, false)
+
+## <desc>
+## <p>
+## Allow sandbox containers to use all capabilities
+## </p>
+## </desc>
+gen_tunable(virt_sandbox_use_all_caps, false)
 
 virt_domain_template(svirt)
 role system_r types svirt_t;
@@ -1302,6 +1317,7 @@ tunable_policy(`virt_use_samba',`
 # svirt_lxc_net_t local policy
 #
 virt_sandbox_domain_template(svirt_lxc_net)
+virt_default_capabilities(svirt_lxc_net_t)
 typeattribute svirt_lxc_net_t sandbox_net_domain;
 
 allow svirt_lxc_net_t self:capability { kill setuid setgid setfcap sys_boot ipc_lock chown dac_read_search dac_override fowner fsetid sys_chroot sys_nice sys_ptrace sys_resource setpcap };
@@ -1310,6 +1326,15 @@ allow svirt_lxc_net_t self:process { execstack execmem };
 
 tunable_policy(`virt_sandbox_use_sys_admin',`
 	allow svirt_lxc_net_t self:capability sys_admin;
+')
+
+tunable_policy(`virt_sandbox_use_mknod',`
+	allow svirt_lxc_net_t self:capability mknod;
+')
+
+tunable_policy(`virt_sandbox_use_all_caps',`
+	allow svirt_lxc_net_t self:capability all_capability_perms;
+	allow svirt_lxc_net_t self:capability2 all_capability2_perms;
 ')
 
 tunable_policy(`virt_sandbox_use_netlink',`
@@ -1681,3 +1706,5 @@ optional_policy(`
 optional_policy(`
 	systemd_dbus_chat_logind(sandbox_net_domain)
 ')
+
+allow sandbox_caps_domain self:capability { chown dac_override fowner kill setgid setuid setpcap net_bind_service net_raw sys_chroot mknod audit_write setfcap };
