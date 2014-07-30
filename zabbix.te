@@ -47,6 +47,9 @@ files_type(zabbix_var_lib_t)
 type zabbix_var_run_t;
 files_pid_file(zabbix_var_run_t)
 
+type zabbix_script_exec_t;
+application_executable_file(zabbix_script_exec_t)
+
 ########################################
 #
 # zabbix domain local policy
@@ -209,4 +212,33 @@ optional_policy(`
 
 optional_policy(`
 	hostname_exec(zabbix_agent_t)
+')
+
+########################################
+#
+# zabbix_script_script_t local policy
+#
+
+optional_policy(`
+	type zabbix_script_t;
+	domain_type(zabbix_script_t)
+
+	domain_entry_file(zabbix_script_t, zabbix_script_exec_t)
+	role system_r types zabbix_script_t;
+
+	domtrans_pattern(zabbix_t, zabbix_script_exec_t, zabbix_script_t)
+
+	allow zabbix_t zabbix_script_exec_t:dir search_dir_perms;
+	allow zabbix_t zabbix_script_exec_t:dir read_file_perms;
+	allow zabbix_t zabbix_script_exec_t:file ioctl;
+
+	init_domtrans_script(zabbix_script_t)
+
+    optional_polic(`
+        mta_send_mail(zabbix_script_t)
+    ')
+
+	optional_policy(`
+		unconfined_domain(zabbix_script_t)
+	')
 ')
