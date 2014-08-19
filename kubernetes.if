@@ -1,0 +1,45 @@
+## <summary>kube</summary>
+
+######################################
+## <summary>
+##	Creates types and rules for a basic
+##	kube init daemon domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`kube_domain_template',`
+    gen_require(`
+	attribute kube_domain;
+        ')
+
+    ##############################
+    #
+    # $1_t declarations
+    #
+
+    type kube_$1_t, kube_domain;
+    type kube_$1_exec_t;
+    init_daemon_domain(kube_$1_t, kube_$1_exec_t)
+
+    type kube_$1_unit_file_t;
+    systemd_unit_file(kube_$1_unit_file_t)
+
+    ##############################
+    #
+    # kube_domain domain policy
+
+    allow kube_domain self:tcp_socket create_stream_socket_perms;
+
+    kernel_read_unix_sysctls(kube_domain)
+    kernel_read_net_sysctls(kube_domain)
+
+    auth_read_passwd(kube_domain)
+
+    corenet_tcp_bind_generic_node(kube_domain)
+    corenet_tcp_connect_http_cache_port(kube_domain)
+    corenet_tcp_connect_kubernetes_port(kube_domain)
+')
