@@ -9,13 +9,19 @@ attribute kube_domain;
 
 kube_domain_template(kubelet)
 kube_domain_template(apiserver)
-kube_domain_template(controller)
+kube_domain_template(controller_manager)
 kube_domain_template(proxy)
 kube_domain_template(kubecfg)
-kube_domain_template(etcd)
 
-type kube_etcd_var_lib_t;
-files_type(kube_etcd_var_lib_t)
+type etcd_t;
+type etcd_exec_t;
+init_daemon_domain(etcd_t,etcd_exec_t)
+
+type etcd_unit_file_t;
+systemd_unit_file(etcd_unit_file_t)
+
+type etcd_var_lib_t;
+files_type(etcd_var_lib_t)
 
 ########################################
 #
@@ -23,7 +29,6 @@ files_type(kube_etcd_var_lib_t)
 #
 
 allow kube_kubelet_t self:capability net_admin;
-allow kube_kubelet_t self:tcp_socket { accept listen create_socket_perms };
 
 corenet_tcp_bind_kubernetes_port(kube_kubelet_t)
 
@@ -32,14 +37,11 @@ corenet_tcp_bind_kubernetes_port(kube_kubelet_t)
 # kube_controller local policy
 #
 
-allow kube_controller_t self:tcp_socket create_socket_perms;
 
 ########################################
 #
 # kube_apiserver local policy
 #
-
-allow kube_apiserver_t self:tcp_socket { accept listen create_socket_perms };
 
 corenet_tcp_bind_http_cache_port(kube_apiserver_t)
 
@@ -49,22 +51,25 @@ corenet_tcp_bind_http_cache_port(kube_apiserver_t)
 #
 
 allow kube_proxy_t self:capability net_admin;
-allow kube_proxy_t self:tcp_socket create_socket_perms;
 
 ########################################
 #
-# kube_ectd local policy
+# ectd local policy
 #
 
-allow kube_etcd_t self:tcp_socket { accept listen create_socket_perms };
-allow kube_etcd_t self:unix_dgram_socket create_socket_perms;
+allow etcd_t self:tcp_socket create_stream_socket_perms;
 
-fs_getattr_xattr_fs(kube_etcd_t)
+manage_files_pattern(etcd_t, etcd_var_lib_t, etcd_var_lib_t)
+manage_dirs_pattern(etcd_t, etcd_var_lib_t, etcd_var_lib_t)
+files_var_lib_filetrans(etcd_t, etcd_var_lib_t, { dir file } )
 
-manage_files_pattern(kube_etcd_t, kube_etcd_var_lib_t, kube_etcd_var_lib_t)
-files_var_lib_filetrans(kube_etcd_t, kube_etcd_var_lib_t, file )
+kernel_read_unix_sysctls(etcd_t)
+kernel_read_net_sysctls(etcd_t)
 
-corenet_tcp_bind_kubernetes_port(kube_etcd_t)
-corenet_tcp_bind_afs3_callback_port(kube_etcd_t)
+corenet_tcp_bind_generic_node(etcd_t)
+corenet_tcp_bind_kubernetes_port(etcd_t)
+corenet_tcp_bind_afs3_callback_port(etcd_t)
 
-logging_send_syslog_msg(kube_etcd_t)
+fs_getattr_xattr_fs(etcd_t)
+
+logging_send_syslog_msg(etcd_t)
