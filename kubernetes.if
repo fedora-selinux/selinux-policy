@@ -1,4 +1,4 @@
-## <summary>kube</summary>
+## <summary>SELinux policy for Kubernetes container management</summary>
 
 ######################################
 ## <summary>
@@ -11,35 +11,77 @@
 ##	</summary>
 ## </param>
 #
-template(`kube_domain_template',`
+template(`kubernetes_domain_template',`
     gen_require(`
-	attribute kube_domain;
-        ')
+	    attribute kubernetes_domain;
+    ')
 
     ##############################
     #
     # $1_t declarations
     #
 
-    type kube_$1_t, kube_domain;
-    type kube_$1_exec_t;
-    init_daemon_domain(kube_$1_t, kube_$1_exec_t)
+    type $1_t, kubernetes_domain;
+    type $1_exec_t;
+    init_daemon_domain($1_t, $1_exec_t)
 
-    type kube_$1_unit_file_t;
-    systemd_unit_file(kube_$1_unit_file_t)
+    type $1_unit_file_t;
+    systemd_unit_file($1_unit_file_t)
+')
 
-    ##############################
-    #
-    # kube_domain domain policy
+########################################
+## <summary>
+##	Search kubernetes lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kubernetes_search_lib_kubelet',`
+	gen_require(`
+		type kubelet_var_lib_t;
+	')
 
-    allow kube_domain self:tcp_socket create_stream_socket_perms;
+	allow $1 kubelet_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
 
-    kernel_read_unix_sysctls(kube_domain)
-    kernel_read_net_sysctls(kube_domain)
+########################################
+## <summary>
+##	Read kubernetes lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kubernetes_read_lib_files_kubelet',`
+	gen_require(`
+		type kubelet_var_lib_t;
+	')
 
-    auth_read_passwd(kube_domain)
+	files_search_var_lib($1)
+	read_files_pattern($1, kubelet_var_lib_t, kubelet_var_lib_t)
+')
 
-    corenet_tcp_bind_generic_node(kube_domain)
-    corenet_tcp_connect_http_cache_port(kube_domain)
-    corenet_tcp_connect_kubernetes_port(kube_domain)
+########################################
+## <summary>
+##	Manage kubernetes lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kubernetes_manage_lib_files_kubelet',`
+	gen_require(`
+		type kubelet_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, kubelet_var_lib_t, kubelet_var_lib_t)
 ')
