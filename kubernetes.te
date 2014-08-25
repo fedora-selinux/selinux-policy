@@ -5,32 +5,55 @@ policy_module(kubernetes, 1.0.0)
 # Declarations
 #
 
-attribute kube_domain;
+attribute kubernetes_domain;
 
-kube_domain_template(kubelet)
-kube_domain_template(apiserver)
-kube_domain_template(controller_manager)
-kube_domain_template(proxy)
-kube_domain_template(kubecfg)
+kubernetes_domain_template(kube_apiserver)
+kubernetes_domain_template(kube_controller_manager)
+kubernetes_domain_template(kube_proxy)
+kubernetes_domain_template(kubelet)
 
-type etcd_t;
-type etcd_exec_t;
-init_daemon_domain(etcd_t,etcd_exec_t)
+permissive kube_apiserver_t;
+permissive kube_controller_manager_t;
+permissive kube_proxy_t;
+permissive kubelet_t;
 
-type etcd_unit_file_t;
-systemd_unit_file(etcd_unit_file_t)
+type kubelet_var_lib_t;
+files_type(kubelet_var_lib_t)
 
-type etcd_var_lib_t;
-files_type(etcd_var_lib_t)
+########################################
+#
+# kubernetes domain local policy
+#
+
+# this is kernel bug which is going to be fixed
+# needs to be removed then
+dontaudit kubernetes_domain self:capability2 block_suspend;
+
+allow kubernetes_domain self:tcp_socket create_stream_socket_perms;
+
+kernel_read_unix_sysctls(kubernetes_domain)
+kernel_read_net_sysctls(kubernetes_domain)
+
+auth_read_passwd(kubernetes_domain)
+
+corenet_tcp_bind_generic_node(kubernetes_domain)
+
+corenet_tcp_connect_http_cache_port(kubernetes_domain)
+corenet_tcp_connect_kubernetes_port(kubernetes_domain)
 
 ########################################
 #
 # kubelet local policy
 #
 
-allow kube_kubelet_t self:capability net_admin;
+allow kubelet_t self:capability net_admin;
 
-corenet_tcp_bind_kubernetes_port(kube_kubelet_t)
+manage_dirs_pattern(kubelet_t, kubelet_var_lib_t, kubelet_var_lib_t)
+manage_files_pattern(kubelet_t, kubelet_var_lib_t, kubelet_var_lib_t)
+manage_lnk_files_pattern(kubelet_t, kubelet_var_lib_t, kubelet_var_lib_t)
+files_var_lib_filetrans(kubelet_t, kubelet_var_lib_t, dir)
+
+corenet_tcp_bind_kubernetes_port(kubelet_t)
 
 ########################################
 #
@@ -51,25 +74,3 @@ corenet_tcp_bind_http_cache_port(kube_apiserver_t)
 #
 
 allow kube_proxy_t self:capability net_admin;
-
-########################################
-#
-# ectd local policy
-#
-
-allow etcd_t self:tcp_socket create_stream_socket_perms;
-
-manage_files_pattern(etcd_t, etcd_var_lib_t, etcd_var_lib_t)
-manage_dirs_pattern(etcd_t, etcd_var_lib_t, etcd_var_lib_t)
-files_var_lib_filetrans(etcd_t, etcd_var_lib_t, { dir file } )
-
-kernel_read_unix_sysctls(etcd_t)
-kernel_read_net_sysctls(etcd_t)
-
-corenet_tcp_bind_generic_node(etcd_t)
-corenet_tcp_bind_kubernetes_port(etcd_t)
-corenet_tcp_bind_afs3_callback_port(etcd_t)
-
-fs_getattr_xattr_fs(etcd_t)
-
-logging_send_syslog_msg(etcd_t)

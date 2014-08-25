@@ -1,0 +1,165 @@
+## <summary>A highly-available key value store for shared configuration.</summary>
+
+########################################
+## <summary>
+##	Execute etcd in the etcd domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`etcd_domtrans',`
+	gen_require(`
+		type etcd_t, etcd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, etcd_exec_t, etcd_t)
+')
+
+########################################
+## <summary>
+##	Search etcd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`etcd_search_lib',`
+	gen_require(`
+		type etcd_var_lib_t;
+	')
+
+	allow $1 etcd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read etcd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`etcd_read_lib_files',`
+	gen_require(`
+		type etcd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, etcd_var_lib_t, etcd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage etcd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`etcd_manage_lib_files',`
+	gen_require(`
+		type etcd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, etcd_var_lib_t, etcd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage etcd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`etcd_manage_lib_dirs',`
+	gen_require(`
+		type etcd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, etcd_var_lib_t, etcd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Execute etcd server in the etcd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`etcd_systemctl',`
+	gen_require(`
+		type etcd_t;
+		type etcd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 etcd_unit_file_t:file read_file_perms;
+	allow $1 etcd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, etcd_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an etcd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`etcd_admin',`
+	gen_require(`
+		type etcd_t;
+		type etcd_var_lib_t;
+	    type etcd_unit_file_t;
+	')
+
+	allow $1 etcd_t:process { signal_perms };
+	ps_process_pattern($1, etcd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 etcd_t:process ptrace;
+    ')
+
+	files_search_var_lib($1)
+	admin_pattern($1, etcd_var_lib_t)
+
+	etcd_systemctl($1)
+	admin_pattern($1, etcd_unit_file_t)
+	allow $1 etcd_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
