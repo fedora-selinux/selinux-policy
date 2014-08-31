@@ -168,27 +168,18 @@ interface(`cron_unconfined_role',`
     # Declarations
     #
     
-    role $1 types { unconfined_cronjob_t crontab_t };
+    role $1 types unconfined_cronjob_t;
 
     ##############################
     #
     # Local policy
     #
 
-    domtrans_pattern($2, crontab_exec_t, crontab_t)
-
     dontaudit crond_t $2:process { noatsecure siginh rlimitinh };
 
     allow $2 crond_t:process sigchld;
 
     allow $2 user_cron_spool_t:file { getattr read write ioctl };
-
-    allow $2 crontab_t:process { signal_perms };
-    ps_process_pattern($2, crontab_t)
-
-	tunable_policy(`deny_ptrace',`',`
-        allow $2 crontab_t:process ptrace;
-    ')
 
 	# cronjob shows up in user ps
 	ps_process_pattern($2, unconfined_cronjob_t)
@@ -197,9 +188,6 @@ interface(`cron_unconfined_role',`
 	tunable_policy(`deny_ptrace',`',`
 		allow $2 unconfined_cronjob_t:process ptrace;
 	')
-
-    corecmd_exec_bin(crontab_t)
-    corecmd_exec_shell(crontab_t)
 
     tunable_policy(`cron_userdomain_transition',`
         allow crond_t $2:process transition;
