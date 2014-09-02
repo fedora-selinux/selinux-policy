@@ -74,6 +74,10 @@ type openshift_cgroup_read_t;
 type openshift_cgroup_read_exec_t;
 application_domain(openshift_cgroup_read_t, openshift_cgroup_read_exec_t)
 
+type openshift_net_read_t;
+type openshift_net_read_exec_t;
+application_domain(openshift_net_read_t, openshift_net_read_exec_t)
+
 type openshift_cgroup_read_tmp_t, openshift_file_type;
 files_tmp_file(openshift_cgroup_read_tmp_t)
 
@@ -207,7 +211,7 @@ dontaudit openshift_domain openshift_initrc_tmp_t:file append;
 dontaudit openshift_domain openshift_var_run_t:file append;
 dontaudit openshift_domain openshift_file_type:sock_file execute;
 
-kernel_read_network_state(openshift_domain)
+kernel_dontaudit_search_network_state(openshift_domain)
 kernel_dontaudit_list_all_proc(openshift_domain)
 kernel_dontaudit_list_all_sysctls(openshift_domain)
 kernel_dontaudit_request_load_module(openshift_domain)
@@ -491,6 +495,53 @@ fs_read_cgroup_files(openshift_cgroup_read_t)
 allow openshift_cgroup_read_t openshift_var_lib_t:dir list_dir_perms;
 manage_files_pattern(openshift_cgroup_read_t, openshift_var_lib_t, openshift_var_lib_t)
 allow openshift_cgroup_read_t openshift_file_type:file rw_inherited_file_perms;
+
+########################################
+#
+# openshift_net_read local policy
+#
+
+allow openshift_net_read_t self:process { getattr signal_perms };
+allow openshift_net_read_t self:fifo_file rw_fifo_file_perms;
+allow openshift_net_read_t self:unix_stream_socket create_stream_socket_perms;
+allow openshift_net_read_t openshift_initrc_t:fifo_file rw_inherited_fifo_file_perms;
+
+allow openshift_net_read_t openshift_file_type:file rw_inherited_file_perms;
+
+kernel_read_network_state(openshift_net_read_t)
+kernel_read_system_state(openshift_net_read_t)
+
+term_dontaudit_use_generic_ptys(openshift_net_read_t)
+
+auth_read_passwd(openshift_net_read_t)
+
+miscfiles_read_localization(openshift_net_read_t)
+
+optional_policy(`
+	ssh_use_ptys(openshift_net_read_t)
+')
+
+corecmd_exec_bin(openshift_net_read_t)
+corecmd_exec_shell(openshift_net_read_t)
+
+dev_read_urand(openshift_net_read_t)
+
+domain_use_interactive_fds(openshift_net_read_t)
+
+fs_dontaudit_rw_anon_inodefs_files(openshift_net_read_t)
+
+userdom_use_inherited_user_ptys(openshift_net_read_t)
+
+miscfiles_read_generic_certs(openshift_net_read_t)
+
+domtrans_pattern(openshift_domain, openshift_net_read_exec_t, openshift_net_read_t)
+role system_r types openshift_net_read_t;
+
+allow openshift_domain openshift_net_read_t:process { getattr signal signull sigkill };
+
+allow openshift_net_read_t openshift_var_lib_t:dir list_dir_perms;
+manage_files_pattern(openshift_net_read_t, openshift_var_lib_t, openshift_var_lib_t)
+allow openshift_net_read_t openshift_file_type:file rw_inherited_file_perms;
 
 ########################################
 #
