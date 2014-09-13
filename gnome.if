@@ -68,11 +68,10 @@ template(`gnome_role_template',`
     gen_require(`
 		attribute gnomedomain, gkeyringd_domain;
 		attribute_role gconfd_roles;
-        type gnome_home_t;
-		type gkeyringd_exec_t, gkeyringd_gnome_home_t, gkeyringd_tmp_t;
+		attribute_role gnome_home_type;
+		type gkeyringd_exec_t, gkeyringd_tmp_t;
 		type gconfd_t, gconfd_exec_t, gconf_tmp_t;
-		type gconf_home_t;
-        class dbus send_msg;
+		class dbus send_msg;
 	')
 
 	########################################
@@ -100,11 +99,8 @@ template(`gnome_role_template',`
 
 	domtrans_pattern($3, gconfd_exec_t, gconfd_t)
 
-	allow $3 { gconf_home_t gconf_tmp_t }:dir { manage_dir_perms relabel_dir_perms };
-	allow $3 { gconf_home_t gconf_tmp_t }:file { manage_file_perms relabel_file_perms };
-
 	allow $3 gconfd_t:process { signal_perms };
-    allow $3 gconfd_t:unix_stream_socket connectto;
+	allow $3 gconfd_t:unix_stream_socket connectto;
 	ps_process_pattern($3, gconfd_t)
 
 
@@ -115,8 +111,8 @@ template(`gnome_role_template',`
 
 	domtrans_pattern($3, gkeyringd_exec_t, $1_gkeyringd_t)
 
-	allow $3 { gnome_home_t gkeyringd_gnome_home_t gkeyringd_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
-	allow $3 { gnome_home_t gkeyringd_gnome_home_t }:file { relabel_file_perms manage_file_perms };
+	allow $3 { gnome_home_type gkeyringd_tmp_t gconf_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
+	allow $3 { gnome_home_type gkeyringd_tmp_t gconf_tmp_t }:file { relabel_file_perms manage_file_perms };
 
 	userdom_home_manager($1_gkeyringd_t)
 
