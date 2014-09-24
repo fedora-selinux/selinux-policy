@@ -92,6 +92,9 @@ files_type(git_sys_content_t)
 type git_user_content_t alias git_session_content_t;
 userdom_user_home_content(git_user_content_t)
 
+type git_script_tmp_t;
+files_tmp_file(git_script_tmp_t)
+
 ########################################
 #
 # Session policy
@@ -172,7 +175,7 @@ logging_send_syslog_msg(git_system_t)
 
 tunable_policy(`git_system_enable_homedirs',`
 	userdom_search_user_home_dirs(git_system_t)
-	list_dirs_pattern(httpd_git_script_t, git_user_content_t, git_user_content_t)
+	list_dirs_pattern(git_script_t, git_user_content_t, git_user_content_t)
 	list_dirs_pattern(git_system_t, git_user_content_t, git_user_content_t)
 	read_files_pattern(git_system_t, git_user_content_t, git_user_content_t)
 
@@ -215,11 +218,14 @@ tunable_policy(`git_system_use_nfs',`
 # CGI policy
 #
 
+manage_dirs_pattern(git_script_t, git_script_tmp_t, git_script_tmp_t)
+manage_files_pattern(git_script_t, git_script_tmp_t, git_script_tmp_t)
+manage_lnk_files_pattern(git_script_t, git_script_tmp_t, git_script_tmp_t)
+files_tmp_filetrans(git_script_t, git_script_tmp_t, { file dir })
+
 list_dirs_pattern(git_script_t, { git_sys_content_t git_user_content_t }, { git_sys_content_t git_user_content_t })
 read_files_pattern(git_script_t, { git_sys_content_t git_user_content_t }, { git_sys_content_t git_user_content_t })
 files_search_var_lib(git_script_t)
-
-files_dontaudit_getattr_tmp_dirs(git_script_t)
 
 auth_use_nsswitch(git_script_t)
 
@@ -227,6 +233,7 @@ tunable_policy(`git_cgi_enable_homedirs',`
 	userdom_search_user_home_dirs(git_script_t)
 ')
 
+fs_getattr_tmpfs(git_script_t)
 tunable_policy(`git_cgi_enable_homedirs && use_nfs_home_dirs',`
 	fs_getattr_nfs(git_script_t)
 	fs_list_nfs(git_script_t)
