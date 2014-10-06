@@ -18,12 +18,15 @@ files_type(drbd_var_lib_t)
 type drbd_lock_t;
 files_lock_file(drbd_lock_t)
 
+type drbd_tmp_t;
+files_tmp_file(drbd_tmp_t)
+
 ########################################
 #
 # Local policy
 #
 
-allow drbd_t self:capability { kill net_admin };
+allow drbd_t self:capability { dac_read_search dac_override kill net_admin sys_admin };
 dontaudit drbd_t self:capability sys_tty_config;
 allow drbd_t self:fifo_file rw_fifo_file_perms;
 allow drbd_t self:unix_stream_socket create_stream_socket_perms;
@@ -38,9 +41,15 @@ files_var_lib_filetrans(drbd_t, drbd_var_lib_t, dir)
 manage_files_pattern(drbd_t, drbd_lock_t, drbd_lock_t)
 files_lock_filetrans(drbd_t, drbd_lock_t, file)
 
-can_exec(drbd_t, drbd_exec_t)
+manage_dirs_pattern(drbd_t, drbd_tmp_t, drbd_tmp_t)
+manage_files_pattern(drbd_t, drbd_tmp_t, drbd_tmp_t)
+files_tmp_filetrans(drbd_t, drbd_tmp_t, dir)
 
 kernel_read_system_state(drbd_t)
+
+auth_read_passwd(drbd_t)
+
+can_exec(drbd_t, drbd_exec_t)
 
 corecmd_exec_bin(drbd_t)
 
@@ -48,10 +57,16 @@ dev_read_rand(drbd_t)
 dev_read_sysfs(drbd_t)
 dev_read_urand(drbd_t)
 
-storage_raw_read_fixed_disk(drbd_t)
-
-auth_read_passwd(drbd_t)
+logging_send_syslog_msg(drbd_t)
 
 modutils_exec_insmod(drbd_t)
 
+storage_raw_read_fixed_disk(drbd_t)
+
 sysnet_dns_name_resolve(drbd_t)
+
+optional_policy(`
+    rhcs_read_log_cluster(drbd_t)
+    rhcs_rw_cluster_tmpfs(drbd_t)
+    rhcs_manage_cluster_lib_files(drbd_t)
+')
