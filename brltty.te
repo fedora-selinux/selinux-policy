@@ -1,0 +1,50 @@
+policy_module(brltty, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type brltty_t;
+type brltty_exec_t;
+init_daemon_domain(brltty_t, brltty_exec_t)
+
+type brltty_var_lib_t;
+files_type(brltty_var_lib_t)
+
+type brltty_unit_file_t;
+systemd_unit_file(brltty_unit_file_t)
+
+########################################
+#
+# brltty local policy
+#
+allow brltty_t self:capability { sys_admin  sys_tty_config };
+allow brltty_t self:process { fork signal_perms };
+
+allow brltty_t self:fifo_file rw_fifo_file_perms;
+allow brltty_t self:unix_stream_socket create_stream_socket_perms;
+allow brltty_t self:tcp_socket listen;
+
+manage_dirs_pattern(brltty_t, brltty_var_lib_t, brltty_var_lib_t)
+manage_files_pattern(brltty_t, brltty_var_lib_t, brltty_var_lib_t)
+manage_sock_files_pattern(brltty_t,brltty_var_lib_t, brltty_var_lib_t)
+files_var_lib_filetrans(brltty_t, brltty_var_lib_t, {file sock_file dir})
+
+kernel_read_system_state(brltty_t)
+kernel_read_usermodehelper_state(brltty_t)
+
+auth_use_nsswitch(brltty_t)
+
+corenet_tcp_bind_brlp_port(brltty_t)
+
+dev_read_sysfs(brltty_t)
+dev_getattr_generic_usb_dev(brltty_t)
+
+logging_send_syslog_msg(brltty_t)
+
+modutils_domtrans_insmod(brltty_t)
+
+sysnet_dns_name_resolve(brltty_t)
+
+term_use_unallocated_ttys(brltty_t)
