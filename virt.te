@@ -152,6 +152,20 @@ gen_tunable(virt_sandbox_use_mknod, false)
 ## </desc>
 gen_tunable(virt_sandbox_use_all_caps, false)
 
+## <desc>
+## <p>
+## Allow qemu-ga to read qemu-ga date.
+## </p>
+## </desc>
+gen_tunable(virt_read_qemu_ga_data, false)
+
+## <desc>
+## <p>
+## Allow qemu-ga to manage qemu-ga date.
+## </p>
+## </desc>
+gen_tunable(virt_rw_gemu_ga_data, false)
+
 virt_domain_template(svirt)
 role system_r types svirt_t;
 typealias svirt_t alias qemu_t;
@@ -1534,9 +1548,6 @@ manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_var_run_t, virt_qemu_ga_var_ru
 manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_var_run_t, virt_qemu_ga_var_run_t)
 files_pid_filetrans(virt_qemu_ga_t, virt_qemu_ga_var_run_t, { dir file } )
 
-manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
-manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
-
 manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_log_t, virt_qemu_ga_log_t)
 manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_log_t, virt_qemu_ga_log_t)
 logging_log_filetrans(virt_qemu_ga_t, virt_qemu_ga_log_t, { dir file })
@@ -1570,6 +1581,17 @@ systemd_exec_systemctl(virt_qemu_ga_t)
 systemd_start_power_services(virt_qemu_ga_t)
 
 userdom_use_user_ptys(virt_qemu_ga_t)
+
+tunable_policy(`virt_read_qemu_ga_data',`
+    read_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+    read_lnk_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+')
+
+tunable_policy(`virt_rw_qemu_ga_data',`
+    manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+    manage_lnk_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+    manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+')
 
 optional_policy(`
     bootloader_domtrans(virt_qemu_ga_t)
