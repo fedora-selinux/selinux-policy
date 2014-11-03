@@ -57,7 +57,7 @@ files_type(docker_share_t)
 #
 # docker local policy
 #
-allow docker_t self:capability { chown fowner fsetid mknod net_admin net_bind_service setfcap };
+allow docker_t self:capability { chown kill fowner fsetid mknod net_admin net_bind_service net_raw setfcap };
 allow docker_t self:process { getattr signal_perms };
 allow docker_t self:fifo_file rw_fifo_file_perms;
 allow docker_t self:unix_stream_socket create_stream_socket_perms;
@@ -84,12 +84,15 @@ manage_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
 manage_lnk_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
 manage_fifo_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
 manage_chr_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
+manage_blk_files_pattern(docker_t, docker_tmpfs_t, docker_tmpfs_t)
+can_exec(docker_t, docker_tmpfs_t)
 fs_tmpfs_filetrans(docker_t, docker_tmpfs_t, { dir file })
 allow docker_t docker_tmpfs_t:chr_file mounton;
 
 manage_dirs_pattern(docker_t, docker_share_t, docker_share_t)
 manage_files_pattern(docker_t, docker_share_t, docker_share_t)
 manage_lnk_files_pattern(docker_t, docker_share_t, docker_share_t)
+allow docker_t docker_share_t:dir_file_class_set { relabelfrom relabelto };
 can_exec(docker_t, docker_share_t)
 docker_filetrans_named_content(docker_t)
 
@@ -118,6 +121,7 @@ kernel_setsched(docker_t)
 kernel_read_all_proc(docker_t)
 
 domain_use_interactive_fds(docker_t)
+domain_dontaudit_read_all_domains_state(docker_t)
 
 corecmd_exec_bin(docker_t)
 corecmd_exec_shell(docker_t)
