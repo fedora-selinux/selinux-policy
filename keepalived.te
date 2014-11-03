@@ -15,17 +15,20 @@ systemd_unit_file(keepalived_unit_file_t)
 type keepalived_var_run_t;
 files_pid_file(keepalived_var_run_t)
 
+type keepalived_unconfined_script_exec_t;
+application_executable_file(keepalived_unconfined_script_exec_t)
+
 ########################################
 #
 # keepalived local policy
 #
-allow keepalived_t self:capability { net_admin net_raw };
+
+allow keepalived_t self:capability { net_admin net_raw kill };
 allow keepalived_t self:process { signal_perms };
 allow keepalived_t self:netlink_socket create_socket_perms;
 allow keepalived_t self:netlink_route_socket nlmsg_write;
 allow keepalived_t self:packet_socket create_socket_perms;
 allow keepalived_t self:rawip_socket create_socket_perms;
-
 
 manage_files_pattern(keepalived_t, keepalived_var_run_t, keepalived_var_run_t)
 files_pid_filetrans(keepalived_t, keepalived_var_run_t, { file })
@@ -44,6 +47,8 @@ corenet_tcp_connect_smtp_port(keepalived_t)
 corenet_tcp_connect_snmp_port(keepalived_t)
 corenet_tcp_connect_agentx_port(keepalived_t)
 
+domain_read_all_domains_state(keepalived_t)
+
 dev_read_urand(keepalived_t)
 
 modutils_domtrans_insmod(keepalived_t)
@@ -51,7 +56,34 @@ modutils_domtrans_insmod(keepalived_t)
 logging_send_syslog_msg(keepalived_t)
 
 optional_policy(`
+    rhcs_signull_haproxy(keepalived_t)
+')
+
+optional_policy(`
     snmp_manage_var_lib_files(keepalived_t)
     snmp_manage_var_lib_sock_files(keepalived_t)
     snmp_manage_var_lib_dirs(keepalived_t)
+')
+
+########################################
+#
+# keepalived_unconfined_script_script_t local policy
+#
+
+optional_policy(`
+	type keepalived_unconfined_script_t;
+	domain_type(keepalived_unconfined_script_t)
+
+	domain_entry_file(keepalived_unconfined_script_t, keepalived_unconfined_script_exec_t)
+	role system_r types keepalived_unconfined_script_t;
+
+	domtrans_pattern(keepalived_t, keepalived_unconfined_script_exec_t, keepalived_unconfined_script_t)
+
+	allow keepalived_t keepalived_unconfined_script_exec_t:dir search_dir_perms;
+	allow keepalived_t keepalived_unconfined_script_exec_t:dir read_file_perms;
+	allow keepalived_t keepalived_unconfined_script_exec_t:file ioctl;
+
+	optional_policy(`
+		unconfined_domain(keepalived_unconfined_script_t)
+	')
 ')
