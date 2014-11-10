@@ -13,6 +13,9 @@ init_daemon_domain(timemaster_t, timemaster_exec_t)
 type timemaster_var_run_t;
 files_pid_file(timemaster_var_run_t)
 
+type timemaster_tmpfs_t;
+files_tmpfs_file(timemaster_tmpfs_t)
+
 type timemaster_unit_file_t;
 systemd_unit_file(timemaster_unit_file_t)
 
@@ -45,10 +48,16 @@ allow timemaster_t self:udp_socket create_socket_perms;
 allow timemaster_t ptp4l_t:process signal;
 allow timemaster_t phc2sys_t:process signal;
 
+allow timemaster_t ptp4l_t:shm rw_shm_perms;
+
 manage_dirs_pattern(timemaster_t, timemaster_var_run_t, timemaster_var_run_t)
 manage_files_pattern(timemaster_t, timemaster_var_run_t, timemaster_var_run_t)
 manage_sock_files_pattern(timemaster_t, timemaster_var_run_t, timemaster_var_run_t)
 files_pid_filetrans(timemaster_t, timemaster_var_run_t, { dir file sock_file })
+
+manage_dirs_pattern(timemaster_t, timemaster_tmpfs_t, timemaster_tmpfs_t)
+manage_files_pattern(timemaster_t, timemaster_tmpfs_t, timemaster_tmpfs_t)
+fs_tmpfs_filetrans(timemaster_t, timemaster_tmpfs_t, { dir file })
 
 kernel_read_network_state(timemaster_t)
 
@@ -57,9 +66,15 @@ auth_use_nsswitch(timemaster_t)
 corenet_udp_bind_generic_node(timemaster_t)
 corenet_udp_bind_ntp_port(timemaster_t)
 
+dev_read_urand(timemaster_t)
+
 logging_send_syslog_msg(timemaster_t)
 
 sysnet_read_config(timemaster_t)
+
+optional_policy(`
+	ntp_domtrans(timemaster_t)
+')
 
 optional_policy(`
 	chronyd_domtrans(timemaster_t)
@@ -91,10 +106,18 @@ allow phc2sys_t self:udp_socket create_socket_perms;
 
 allow phc2sys_t ptp4l_t:unix_dgram_socket sendto;
 
+allow phc2sys_t timemaster_t:shm rw_shm_perms;
+
 manage_dirs_pattern(phc2sys_t, timemaster_var_run_t, timemaster_var_run_t)
 manage_files_pattern(phc2sys_t, timemaster_var_run_t, timemaster_var_run_t)
 manage_sock_files_pattern(phc2sys_t, timemaster_var_run_t, timemaster_var_run_t)
 files_pid_filetrans(phc2sys_t, timemaster_var_run_t, { dir file sock_file })
+
+manage_dirs_pattern(phc2sys_t, timemaster_tmpfs_t, timemaster_tmpfs_t)
+manage_files_pattern(phc2sys_t, timemaster_tmpfs_t, timemaster_tmpfs_t)
+fs_tmpfs_filetrans(phc2sys_t, timemaster_tmpfs_t, { dir file })
+
+dev_rw_realtime_clock(phc2sys_t)
 
 logging_send_syslog_msg(phc2sys_t)
 
@@ -129,8 +152,14 @@ manage_files_pattern(ptp4l_t, timemaster_var_run_t, timemaster_var_run_t)
 manage_sock_files_pattern(ptp4l_t, timemaster_var_run_t, timemaster_var_run_t)
 files_pid_filetrans(ptp4l_t, timemaster_var_run_t, { dir file sock_file })
 
+manage_dirs_pattern(ptp4l_t, timemaster_tmpfs_t, timemaster_tmpfs_t)
+manage_files_pattern(ptp4l_t, timemaster_tmpfs_t, timemaster_tmpfs_t)
+fs_tmpfs_filetrans(ptp4l_t, timemaster_tmpfs_t, { dir file })
+
 corenet_udp_bind_generic_node(ptp4l_t)
 corenet_udp_bind_reserved_port(ptp4l_t)
+
+dev_rw_realtime_clock(ptp4l_t)
 
 logging_send_syslog_msg(ptp4l_t)
 
