@@ -133,11 +133,9 @@ interface(`dbus_system_bus_client',`
 		type system_dbusd_var_run_t, system_dbusd_var_lib_t;
 		class dbus send_msg;
 		attribute dbusd_unconfined;
-		attribute system_bus_client;
 	')
 
 	# SE-DBus specific permissions
-	typeattribute $1 system_bus_client;
 	allow $1 { system_dbusd_t self }:dbus send_msg;
 	allow { system_dbusd_t dbusd_unconfined } $1:dbus send_msg;
 
@@ -150,6 +148,10 @@ interface(`dbus_system_bus_client',`
 	files_search_pids($1)
 	stream_connect_pattern($1, system_dbusd_var_run_t, system_dbusd_var_run_t, system_dbusd_t)
 	dbus_read_config($1)
+
+    optional_policy(`
+        unconfined_server_dbus_chat($1)
+    ')
 ')
 
 #######################################
@@ -619,12 +621,11 @@ interface(`dbus_dontaudit_chat_system_bus',`
 interface(`dbus_chat_system_bus',`
 	gen_require(`
 		attribute system_bus_type;
-		attribute system_bus_client;
 		class dbus send_msg;
 	')
 
-	allow $1 { system_bus_type system_bus_client }:dbus send_msg;
-	allow { system_bus_type system_bus_client } $1:dbus send_msg;
+	allow $1 system_bus_type:dbus send_msg;
+	allow system_bus_type $1:dbus send_msg;
 ')
 
 #######################################
