@@ -30,6 +30,10 @@ files_pid_file(couchdb_var_run_t)
 type couchdb_unit_file_t;
 systemd_unit_file(couchdb_unit_file_t)
 
+type couchdb_js_t;
+type couchdb_js_exec_t;
+init_daemon_domain(couchdb_js_t, couchdb_js_exec_t)
+
 ########################################
 #
 # Local policy
@@ -90,4 +94,18 @@ dev_read_urand(couchdb_t)
 fs_getattr_xattr_fs(couchdb_t)
 
 auth_use_nsswitch(couchdb_t)
+
+domtrans_pattern(couchdb_t, couchdb_js_exec_t, couchdb_js_t)
+
+########################################
+#
+# couchdb_js policy
+#
+
+# this is a complete policy. It processes the javascript
+# ouside the main process, passing data via FIFO.
+allow couchdb_js_t self:process { execmem getsched setsched };
+
+files_read_usr_files(couchdb_js_t)
+miscfiles_read_localization(couchdb_js_t)
 
