@@ -31,6 +31,11 @@ files_pid_file(sssd_var_run_t)
 type sssd_unit_file_t;
 systemd_unit_file(sssd_unit_file_t)
 
+type sssd_selinux_manager_t;
+type sssd_selinux_manager_exec_t;
+application_domain(sssd_selinux_manager_t, sssd_selinux_manager_exec_t)
+role system_r types sssd_selinux_manager_t;
+
 ########################################
 #
 # sssd local policy
@@ -148,3 +153,22 @@ optional_policy(`
 optional_policy(`
 	systemd_login_read_pid_files(sssd_t)
 ')
+
+########################################
+#
+# sssd SELinux manager local policy
+#
+
+domtrans_pattern(sssd_t, sssd_selinux_manager_exec_t, sssd_selinux_manager_t)
+
+logging_send_audit_msgs(sssd_selinux_manager_t)
+
+seutil_semanage_policy(sssd_selinux_manager_t)
+seutil_manage_file_contexts(sssd_selinux_manager_t)
+seutil_manage_config(sssd_selinux_manager_t)
+seutil_manage_login_config(sssd_selinux_manager_t)
+seutil_manage_default_contexts(sssd_selinux_manager_t)
+
+seutil_exec_setfiles(sssd_selinux_manager_t)
+logging_dontaudit_search_audit_logs(sssd_selinux_manager_t)
+
