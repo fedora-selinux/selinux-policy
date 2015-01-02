@@ -46,6 +46,9 @@ allow pcp_domain self:capability { setuid setgid dac_override };
 allow pcp_domain self:process signal_perms;
 allow pcp_domain self:tcp_socket create_stream_socket_perms;
 allow pcp_domain self:udp_socket create_socket_perms;
+allow pcp_domain self:netlink_route_socket create_socket_perms;
+
+corenet_tcp_connect_all_ephemeral_ports(pcp_domain)
 
 manage_dirs_pattern(pcp_domain, pcp_log_t, pcp_log_t)
 manage_files_pattern(pcp_domain, pcp_log_t, pcp_log_t)
@@ -76,8 +79,6 @@ files_read_etc_files(pcp_domain)
 
 fs_getattr_all_fs(pcp_domain)
 
-auth_read_passwd(pcp_domain)
-
 miscfiles_read_generic_certs(pcp_domain)
 
 sysnet_read_config(pcp_domain)
@@ -97,10 +98,7 @@ tunable_policy(`pcp_bind_all_unreserved_ports',`
 #
 
 allow pcp_pmcd_t self:process { setsched };
-allow pcp_pmcd_t self:netlink_route_socket create_socket_perms;
 allow pcp_pmcd_t self:unix_dgram_socket create_socket_perms;
-
-auth_use_nsswitch(pcp_pmcd_t)
 
 kernel_get_sysvipc_info(pcp_pmcd_t)
 kernel_read_network_state(pcp_pmcd_t)
@@ -151,10 +149,7 @@ optional_policy(`
 #
 
 allow pcp_pmproxy_t self:process setsched;
-allow pcp_pmproxy_t self:netlink_route_socket create_socket_perms;
 allow pcp_pmproxy_t self:unix_dgram_socket create_socket_perms;
-
-auth_use_nsswitch(pcp_pmproxy_t)
 
 logging_send_syslog_msg(pcp_pmproxy_t)
 
@@ -173,6 +168,14 @@ optional_policy(`
 
 corenet_tcp_bind_generic_node(pcp_pmwebd_t)
 
+optional_policy(`
+    dbus_system_bus_client(pcp_pmwebd_t)
+
+    optional_policy(`
+        avahi_dbus_chat(pcp_pmwebd_t)
+    ')
+')
+
 ########################################
 #
 # pcp_pmmgr local  policy
@@ -184,14 +187,10 @@ allow pcp_pmmgr_t pcp_pmcd_t:unix_stream_socket connectto;
 
 kernel_read_system_state(pcp_pmmgr_t)
 
-auth_use_nsswitch(pcp_pmmgr_t)
-
 corenet_udp_bind_dey_sapi_port(pcp_pmmgr_t)
 
 corenet_tcp_bind_commplex_link_port(pcp_pmmgr_t)
 corenet_tcp_bind_dey_sapi_port(pcp_pmmgr_t)
-
-corenet_tcp_connect_all_ephemeral_ports(pcp_pmmgr_t)
 
 corecmd_exec_bin(pcp_pmmgr_t)
 
@@ -216,8 +215,6 @@ kernel_read_system_state(pcp_pmie_t)
 
 corecmd_exec_bin(pcp_pmie_t)
 
-corenet_tcp_connect_all_ephemeral_ports(pcp_pmie_t)
-
 logging_send_syslog_msg(pcp_pmie_t)
 
 userdom_read_user_tmp_files(pcp_pmie_t)
@@ -235,6 +232,4 @@ allow pcp_pmlogger_t pcp_pmcd_t:unix_stream_socket connectto;
 corenet_tcp_bind_dey_sapi_port(pcp_pmlogger_t)
 corenet_tcp_bind_commplex_link_port(pcp_pmlogger_t)
 corenet_tcp_bind_generic_node(pcp_pmlogger_t)
-
-corenet_tcp_connect_all_ephemeral_ports(pcp_pmlogger_t)
 
