@@ -87,7 +87,7 @@ ifelse(eval(range_start($2) < 1024),1,`typeattribute $1 reserved_port_type;',`ty
 ')
 
 define(`add_ephemeral_attribute',`dnl
-ifelse(eval(range_start($3) >= 32768 && range_start($3) < 61001),1,`typeattribute $1 ephemeral_port_type;
+ifelse(eval(range_start($3) >= 50000 && range_start($3) < 61001),1,`typeattribute $1 ephemeral_port_type;
 ',`ifelse(`$5',`',`',`add_ephemeral_attribute($1,shiftn(4,$*))')')dnl
 ')
 
