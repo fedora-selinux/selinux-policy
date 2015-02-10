@@ -13,18 +13,14 @@ policy_module(docker, 1.0.0)
 ## </desc>
 gen_tunable(docker_connect_any, false)
 
-## <desc>
-## <p>
-## Allow docker to transition to unconfined containers.
-## </p>
-## </desc>
-gen_tunable(docker_transition_unconfined, false)
-
 type docker_t;
 type docker_exec_t;
 init_daemon_domain(docker_t, docker_exec_t)
 domain_subj_id_change_exemption(docker_t)
 domain_role_change_exemption(docker_t)
+
+type spc_t;
+domain_type(spc_t)
 
 type docker_var_lib_t;
 files_type(docker_var_lib_t)
@@ -297,9 +293,11 @@ tunable_policy(`docker_connect_any',`
     corenet_tcp_sendrecv_all_ports(docker_t)
 ')
 
-tunable_policy(`docker_transition_unconfined',`
-	unconfined_transition(docker_t, docker_share_t)
-	unconfined_transition(docker_t, docker_var_lib_t)
-	unconfined_setsched(docker_t)
-	userdom_attach_admin_tun_iface(docker_t)
+domtrans_pattern(docker_t, docker_share_t, spc_t)
+domtrans_pattern(docker_t, docker_var_lib_t, spc_t)
+allow docker_t spc_t:process setsched;
+role system_r type spc_t;
+optional_policy(`
+	unconfined_domain(spc_t)
 ')
+	
