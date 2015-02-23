@@ -21,6 +21,7 @@ domain_role_change_exemption(docker_t)
 
 type spc_t;
 domain_type(spc_t)
+role system_r types spc_t;
 
 type docker_var_lib_t;
 files_type(docker_var_lib_t)
@@ -297,13 +298,21 @@ tunable_policy(`docker_connect_any',`
 #
 # spc local policy
 #
+domain_entry_file(spc_t, docker_share_t)
+domain_entry_file(spc_t, docker_var_lib_t)
 role system_r types spc_t;
-allow docker_t spc_t:process setsched;
 
+domain_entry_file(spc_t, docker_share_t)
+domain_entry_file(spc_t, docker_var_lib_t)
 domtrans_pattern(docker_t, docker_share_t, spc_t)
 domtrans_pattern(docker_t, docker_var_lib_t, spc_t)
+allow docker_t spc_t:process { setsched signal_perms };
+ps_process_pattern(docker_t, spc_t)
 
 optional_policy(`
-	unconfined_domain(spc_t)
+	unconfined_domain_noaudit(spc_t)
 ')
 
+optional_policy(`
+	virt_transition_svirt_sandbox(spc_t, system_r)
+')
