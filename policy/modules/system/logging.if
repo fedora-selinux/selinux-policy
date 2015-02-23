@@ -616,6 +616,7 @@ interface(`logging_create_devlog_dev',`
 	allow $1 devlog_t:lnk_file manage_sock_file_perms;
 	dev_filetrans($1, devlog_t, lnk_file, "log")
 	init_pid_filetrans($1, devlog_t, sock_file, "syslog")
+    logging_syslogd_pid_filetrans($1, devlog_t, sock_file, "dev-log")
 ')
 
 ########################################
@@ -1449,4 +1450,40 @@ interface(`logging_filetrans_named_content',`
 	init_named_pid_filetrans($1, syslogd_var_run_t, dir, "journal")
 
     logging_log_filetrans($1, var_log_t, dir, "anaconda")
+')
+
+#######################################
+## <summary>
+##	Create objects in /run/systemd/journal/ directory
+##	with an automatic type transition to
+##	a specified private type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="private_type">
+##	<summary>
+##	The type of the object to create.
+##	</summary>
+## </param>
+## <param name="object_class">
+##	<summary>
+##	The class of the object to be created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`logging_syslogd_pid_filetrans',`
+	gen_require(`
+		type syslogd_var_run_t;
+	')
+
+	files_search_pids($1)
+	filetrans_pattern($1, syslogd_var_run_t, $2, $3, $4)
 ')
