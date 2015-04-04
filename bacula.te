@@ -5,6 +5,20 @@ policy_module(bacula, 1.2.0)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow bacula to manage nfs files
+## </p>
+## </desc>
+gen_tunable(bacula_use_nfs, false)
+ 
+## <desc>
+## <p>
+## Allow bacula to manage cifs files
+## </p>
+## </desc>
+gen_tunable(bacula_use_samba, false)
+
 attribute_role bacula_admin_roles;
 
 type bacula_t;
@@ -40,6 +54,9 @@ type bacula_admin_t;
 type bacula_admin_exec_t;
 application_domain(bacula_admin_t, bacula_admin_exec_t)
 role bacula_admin_roles types bacula_admin_t;
+
+type bacula_unconfined_script_exec_t;
+application_executable_file(bacula_unconfined_script_exec_t)
 
 ########################################
 #
@@ -111,6 +128,9 @@ corenet_tcp_connect_all_ports(bacula_t)
 dev_getattr_all_blk_files(bacula_t)
 dev_getattr_all_chr_files(bacula_t)
 
+files_getattr_all_pipes(bacula_t)
+files_getattr_all_sockets(bacula_t)
+
 files_dontaudit_getattr_all_sockets(bacula_t)
 files_dontaudit_getattr_all_pipes(bacula_t)
 files_read_all_files(bacula_t)
@@ -129,6 +149,18 @@ auth_read_shadow(bacula_t)
 logging_send_syslog_msg(bacula_t)
 
 sysnet_dns_name_resolve(bacula_t)
+
+tunable_policy(`bacula_use_nfs',`
+        fs_manage_nfs_dirs(bacula_t)
+        fs_manage_nfs_files(bacula_t)
+        fs_read_nfs_symlinks(bacula_t)
+')
+ 
+tunable_policy(`bacula_use_samba',`
+        fs_manage_cifs_dirs(bacula_t)
+        fs_manage_cifs_files(bacula_t)
+        fs_read_cifs_symlinks(bacula_t)
+')
 
 optional_policy(`
 	mysql_stream_connect(bacula_t)
@@ -178,3 +210,27 @@ sysnet_dns_name_resolve(bacula_admin_t)
 userdom_dontaudit_search_user_home_dirs(bacula_admin_t)
 userdom_use_user_ptys(bacula_admin_t)
 
+########################################
+#
+# Unconfined script local policy
+#
+
+optional_policy(`
+         type bacula_unconfined_script_t;
+         domain_type(bacula_unconfined_script_t)
+
+         domain_entry_file(bacula_unconfined_script_t, bacula_unconfined_script_exec_t)
+         role system_r types bacula_unconfined_script_t;
+ 
+         allow bacula_t bacula_unconfined_script_t:process signal_perms;
+
+         domtrans_pattern(bacula_t, bacula_unconfined_script_exec_t, bacula_unconfined_script_t)
+
+         allow bacula_unconfined_script_t bacula_unconfined_script_exec_t:dir search_dir_perms;
+         allow bacula_unconfined_script_t bacula_unconfined_script_exec_t:dir read_file_perms;
+         allow bacula_unconfined_script_t bacula_unconfined_script_exec_t:file ioctl;
+
+         optional_policy(`
+            unconfined_domain(bacula_unconfined_script_t)
+        ')
+')
