@@ -3860,3 +3860,48 @@ interface(`kernel_read_netlink_audit_socket',`
 
 	allow $1 kernel_t:netlink_audit_socket r_netlink_socket_perms;
 ')
+
+########################################
+## <summary>
+##	Execute an unlabeled file in the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`kernel_unlabeled_domtrans',`
+	gen_require(`
+		type unlabeled_t;
+	')
+
+	read_lnk_files_pattern($1, unlabeled_t, unlabeled_t)
+	domain_transition_pattern($1, unlabeled_t, $2)
+	type_transition $1 unlabeled_t:process $2;
+')
+
+########################################
+## <summary>
+##	Make general progams without labeles an entrypoint for
+##	the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which unlabeled_t is an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`kernel_unlabeled_entry_type',`
+	gen_require(`
+		type unlabeled_t;
+	')
+
+	domain_entry_file($1, unlabeled_t)
+')
+
