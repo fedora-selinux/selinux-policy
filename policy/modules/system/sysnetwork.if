@@ -66,6 +66,25 @@ interface(`sysnet_run_dhcpc',`
 
 ########################################
 ## <summary>
+##	Do not audit attempts to read and
+##	write dhcpc udp socket descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dontaudit_rw_dhcpc_udp_sockets',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	dontaudit $1 dhcpc_t:udp_socket { read write };
+')
+
+########################################
+## <summary>
 ##	Do not audit attempts to use
 ##	the dhcp file descriptors.
 ## </summary>
@@ -344,7 +363,7 @@ interface(`sysnet_setattr_config',`
 	')
 
 	files_search_etc($1)
-	allow $1 net_conf_t:file setattr;
+	allow $1 net_conf_t:file setattr_file_perms;
 ')
 
 #######################################
@@ -424,7 +443,15 @@ interface(`sysnet_read_config',`
 	files_search_etc($1)
 	allow $1 net_conf_t:file read_file_perms;
 
+	ifdef(`distro_debian',`
+		files_search_pids($1)
+		allow $1 net_conf_t:dir list_dir_perms;
+		read_files_pattern($1, net_conf_t, net_conf_t)
+	')
+
 	ifdef(`distro_redhat',`
+        files_search_all_pids($1)
+        init_search_pid_dirs($1)
 		allow $1 net_conf_t:dir list_dir_perms;
 		allow $1 net_conf_t:lnk_file read_lnk_file_perms;
 		read_files_pattern($1, net_conf_t, net_conf_t)
@@ -509,6 +536,8 @@ interface(`sysnet_etc_filetrans_config',`
 	')
 
 	files_etc_filetrans($1, net_conf_t, file, $2)
+	files_etc_filetrans($1, net_conf_t, lnk_file, $2)
+
 ')
 
 ########################################
@@ -558,13 +587,51 @@ interface(`sysnet_filetrans_config_fromdir',`
 interface(`sysnet_manage_config',`
 	gen_require(`
 		type net_conf_t;
-	')
+        ')
 
 	allow $1 net_conf_t:file manage_file_perms;
 
+	ifdef(`distro_debian',`
+		files_search_pids($1)
+		manage_files_pattern($1, net_conf_t, net_conf_t)
+	')
+
 	ifdef(`distro_redhat',`
+        files_search_all_pids($1)
+        init_search_pid_dirs($1)
 		allow $1 net_conf_t:dir list_dir_perms;
 		manage_files_pattern($1, net_conf_t, net_conf_t)
+		manage_lnk_files_pattern($1, net_conf_t, net_conf_t)
+	')
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete network config dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_manage_config_dirs',`
+	gen_require(`
+		type net_conf_t;
+	')
+
+	allow $1 net_conf_t:dir manage_dir_perms;
+
+	ifdef(`distro_debian',`
+		files_search_pids($1)
+		manage_dirs_pattern($1, net_conf_t, net_conf_t)
+	')
+
+	ifdef(`distro_redhat',`
+        files_search_all_pids($1)
+        init_search_pid_dirs($1)
+		allow $1 net_conf_t:dir list_dir_perms;
+		manage_dirs_pattern($1, net_conf_t, net_conf_t)
 	')
 ')
 
@@ -860,8 +927,10 @@ interface(`sysnet_dns_name_resolve',`
 	corenet_tcp_sendrecv_dns_port($1)
 	corenet_udp_sendrecv_dns_port($1)
 	corenet_tcp_connect_dns_port($1)
-    corenet_tcp_connect_dnssec_port($1)
+	corenet_tcp_connect_dnssec_port($1)
 	corenet_sendrecv_dns_client_packets($1)
+
+	files_search_all_pids($1)
 
 	miscfiles_read_generic_certs($1)
 
@@ -1007,12 +1076,23 @@ interface(`sysnet_filetrans_named_content',`
 	files_etc_filetrans($1, net_conf_t, file, "resolv.conf.tmp")
 	files_etc_filetrans($1, net_conf_t, file, "resolv.conf.fp-tmp")
 	files_etc_filetrans($1, net_conf_t, file, "resolv.conf.fp-saved")
+	files_etc_filetrans($1, net_conf_t, file, "resolv-secure.conf")
+	files_etc_filetrans($1, net_conf_t, file, ".resolv.conf.dnssec-trigger")
+	files_etc_filetrans($1, net_conf_t, file, ".resolv-secure.conf.dnssec-trigger")
+	files_etc_filetrans($1, net_conf_t, lnk_file, ".resolv.conf")
+	files_etc_filetrans($1, net_conf_t, lnk_file, ".resolv.conf.NetworkManager")
 	files_etc_filetrans($1, net_conf_t, file, "denyhosts")
 	files_etc_filetrans($1, net_conf_t, file, "hosts")
 	files_etc_filetrans($1, net_conf_t, file, "hosts.deny")
 	files_etc_filetrans($1, net_conf_t, file, "ethers")
 	files_etc_filetrans($1, net_conf_t, file, "yp.conf")
 	files_etc_filetrans($1, net_conf_t, file, "ntp.conf")
+	init_pid_filetrans($1, net_conf_t, dir, "network")
+
+	optional_policy(`
+	    networkmanager_pid_filetrans($1, net_conf_t, file, "resolv.conf")
+	    networkmanager_pid_filetrans($1, net_conf_t, file, "resolv.conf.tmp")
+    ')
 ')
 
 ########################################
