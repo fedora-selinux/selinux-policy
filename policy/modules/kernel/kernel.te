@@ -62,6 +62,7 @@ sid kernel gen_context(system_u:system_r:kernel_t,mls_systemhigh)
 type debugfs_t;
 files_mountpoint(debugfs_t)
 fs_type(debugfs_t)
+dev_associate_sysfs(debugfs_t)
 
 allow debugfs_t self:filesystem associate;
 genfscon debugfs / gen_context(system_u:object_r:debugfs_t,s0)
@@ -486,13 +487,16 @@ if( ! secure_mode_insmod ) {
 # Rules for unconfined acccess to this module
 #
 
-allow kern_unconfined proc_type:{ dir file lnk_file } *;
+allow kern_unconfined proc_type:{ file } ~entrypoint;
+allow kern_unconfined proc_type:{ dir lnk_file } *;
 
-allow kern_unconfined sysctl_type:{ dir file } *;
+allow kern_unconfined sysctl_type:{ file } ~entrypoint;
+allow kern_unconfined sysctl_type:{ dir } *;
 
 allow kern_unconfined kernel_t:system *;
 
-allow kern_unconfined unlabeled_t:dir_file_class_set *;
+allow kern_unconfined unlabeled_t:{ dir lnk_file sock_file fifo_file chr_file blk_file } *;
+allow kern_unconfined unlabeled_t:file ~entrypoint;
 allow kern_unconfined unlabeled_t:filesystem *;
 allow kern_unconfined unlabeled_t:association *;
 allow kern_unconfined unlabeled_t:packet *;
