@@ -5,6 +5,20 @@ policy_module(nagios, 1.13.0)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow nagios/nrpe to call sudo from NRPE utils scripts.
+## </p>
+## </desc>
+gen_tunable(nagios_run_sudo, false)
+
+## <desc>
+## <p>
+## Allow nagios run in conjunction with PNP4Nagios.
+## </p>
+## </desc>
+gen_tunable(nagios_run_pnp4nagios, false)
+
 attribute nagios_plugin_domain;
 
 type nagios_t;
@@ -168,6 +182,23 @@ mta_send_mail(nagios_t)
 mta_signal_system_mail(nagios_t)
 mta_kill_system_mail(nagios_t)
 
+tunable_policy(`nagios_run_sudo',`
+    allow nagios_t self:capability { sys_resource sys_ptrace };
+    allow nagios_t self:key write;
+
+    logging_send_audit_msgs(nagios_t)
+')
+
+optional_policy(`
+    tunable_policy(`nagios_run_sudo',`
+        sudo_exec(nagios_t)
+    ')
+')
+
+tunable_policy(`nagios_run_pnp4nagios',`
+    allow nagios_t nagios_log_t:file execute;
+')
+
 optional_policy(`
 	netutils_kill_ping(nagios_t)
 ')
@@ -271,6 +302,20 @@ auth_use_nsswitch(nrpe_t)
 logging_send_syslog_msg(nrpe_t)
 
 userdom_dontaudit_use_unpriv_user_fds(nrpe_t)
+
+tunable_policy(`nagios_run_sudo',`
+    allow nrpe_t self:capability { sys_resource sys_ptrace };
+    allow nrpe_t self:key write;
+
+    logging_send_audit_msgs(nrpe_t)
+')
+
+optional_policy(`
+    tunable_policy(`nagios_run_sudo',`
+        sudo_exec(nrpe_t)
+    ')
+')
+
 
 optional_policy(`
 	inetd_tcp_service_domain(nrpe_t, nrpe_exec_t)
