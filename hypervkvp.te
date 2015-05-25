@@ -23,6 +23,9 @@ files_type(hypervkvp_var_lib_t)
 type hypervkvp_tmp_t;
 files_tmpfs_file(hypervkvp_tmp_t)
 
+type hypervkvp_tmp_t;
+files_tmpfs_file(hypervkvp_tmp_t)
+
 type hypervvssd_t, hyperv_domain;
 type hypervvssd_exec_t;
 init_daemon_domain(hypervvssd_t, hypervvssd_exec_t)
@@ -51,9 +54,15 @@ dev_read_sysfs(hyperv_domain)
 # hypervkvp local policy
 #
 
+allow hypervkvp_t self:process setfscreate;
+
 manage_dirs_pattern(hypervkvp_t, hypervkvp_var_lib_t, hypervkvp_var_lib_t)
 manage_files_pattern(hypervkvp_t, hypervkvp_var_lib_t, hypervkvp_var_lib_t)
 files_var_lib_filetrans(hypervkvp_t, hypervkvp_var_lib_t, dir)
+
++manage_files_pattern(hypervkvp_t, hypervkvp_tmp_t, hypervkvp_tmp_t)
++manage_dirs_pattern(hypervkvp_t, hypervkvp_tmp_t, hypervkvp_tmp_t)
++files_tmp_filetrans(hypervkvp_t, hypervkvp_tmp_t, { file dir })
 
 manage_files_pattern(hypervkvp_t, hypervkvp_tmp_t, hypervkvp_tmp_t)
 manage_dirs_pattern(hypervkvp_t, hypervkvp_tmp_t, hypervkvp_tmp_t)
@@ -61,8 +70,12 @@ files_tmp_filetrans(hypervkvp_t, hypervkvp_tmp_t, { file dir })
 
 kernel_read_system_state(hypervkvp_t)
 kernel_read_network_state(hypervkvp_t)
+kernel_read_net_sysctls(hypervkvp_t)
 
 domain_read_all_domains_state(hypervkvp_t)
+
+seutil_exec_setfiles(hypervkvp_t)
+seutil_read_file_contexts(hypervkvp_t)
 
 files_dontaudit_search_home(hypervkvp_t)
 
@@ -76,6 +89,9 @@ sysnet_dns_name_resolve(hypervkvp_t)
 sysnet_domtrans_dhcpc(hypervkvp_t)
 sysnet_domtrans_ifconfig(hypervkvp_t)
 
+sysnet_manage_dhcpc_pid(hypervkvp_t)
+sysnet_signal_dhcpc(hypervkvp_t)
+
 sysnet_manage_config(hypervkvp_t)
 sysnet_etc_filetrans_config(hypervkvp_t)
 
@@ -84,7 +100,12 @@ systemd_exec_systemctl(hypervkvp_t)
 userdom_dontaudit_search_admin_dir(hypervkvp_t)
 
 optional_policy(`
+    brctl_domtrans(hypervkvp_t)
+')
+
+optional_policy(`
     netutils_domtrans_ping(hypervkvp_t)
+    netutils_domtrans(hypervkvp_t)
 ')
 
 optional_policy(`
