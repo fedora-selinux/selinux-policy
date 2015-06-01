@@ -5,6 +5,25 @@ policy_module(nagios, 1.13.0)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow nagios/nrpe to call sudo from NRPE utils scripts.
+## </p>
+## </desc>
+gen_tunable(nagios_run_sudo, false)
+
+## <desc>
+## <p>
+## Allow nagios run in conjunction with PNP4Nagios.
+## </p>
+## </desc>
+gen_tunable(nagios_run_pnp4nagios, false)
+
+gen_require(`
+    class passwd rootok;
+    class passwd passwd;
+')
+
 attribute nagios_plugin_domain;
 
 type nagios_t;
@@ -168,6 +187,35 @@ mta_send_mail(nagios_t)
 mta_signal_system_mail(nagios_t)
 mta_kill_system_mail(nagios_t)
 
+tunable_policy(`nagios_run_sudo',`
+    allow nagios_t self:capability { setuid setgid sys_resource sys_ptrace };
+    allow nagios_t self:process { setrlimit setsched };
+
+    allow nagios_t self:key write;
+
+    allow nagios_t self:passwd { passwd rootok };
+
+    auth_rw_lastlog(nagios_t)
+    auth_rw_faillog(nagios_t)
+
+    auth_domtrans_chkpwd(nagios_t)
+
+    selinux_compute_access_vector(nagios_t)
+
+    logging_send_audit_msgs(nagios_t)
+')
+
+optional_policy(`
+    tunable_policy(`nagios_run_sudo',`
+        sudo_exec(nagios_t)
+        sudo_manage_db(nagios_t)
+    ')
+')
+
+tunable_policy(`nagios_run_pnp4nagios',`
+    allow nagios_t nagios_log_t:file execute;
+')
+
 optional_policy(`
 	netutils_kill_ping(nagios_t)
 ')
@@ -271,6 +319,32 @@ auth_use_nsswitch(nrpe_t)
 logging_send_syslog_msg(nrpe_t)
 
 userdom_dontaudit_use_unpriv_user_fds(nrpe_t)
+
+tunable_policy(`nagios_run_sudo',`
+    allow nrpe_t self:capability { setuid setgid sys_resource sys_ptrace };
+    allow nrpe_t self:process { setrlimit setsched };
+
+    allow nrpe_t self:key write;
+
+    allow nrpe_t self:passwd { passwd rootok };
+
+    auth_rw_lastlog(nrpe_t)
+    auth_rw_faillog(nrpe_t)
+
+    auth_domtrans_chkpwd(nrpe_t)
+
+    selinux_compute_access_vector(nrpe_t)
+
+    logging_send_audit_msgs(nrpe_t)
+')
+
+optional_policy(`
+    tunable_policy(`nagios_run_sudo',`
+        sudo_exec(nrpe_t)
+        sudo_manage_db(nrpe_t)
+    ')
+')
+
 
 optional_policy(`
 	inetd_tcp_service_domain(nrpe_t, nrpe_exec_t)
