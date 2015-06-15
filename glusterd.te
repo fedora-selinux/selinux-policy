@@ -31,6 +31,7 @@ gen_tunable(gluster_export_all_rw, true)
 type glusterd_t;
 type glusterd_exec_t;
 init_daemon_domain(glusterd_t, glusterd_exec_t)
+domain_obj_id_change_exemption(glusterd_t)
 
 type glusterd_conf_t;
 files_type(glusterd_conf_t)
@@ -61,11 +62,13 @@ files_type(glusterd_brick_t)
 allow glusterd_t self:capability { sys_admin sys_resource sys_ptrace dac_override chown dac_read_search fowner fsetid kill setgid setuid net_admin mknod net_raw };
 
 allow glusterd_t self:capability2 block_suspend;
-allow glusterd_t self:process { getcap setcap setrlimit signal_perms };
+allow glusterd_t self:process { getcap setcap setrlimit signal_perms setsched getsched };
+allow glusterd_t self:sem create_sem_perms;
 allow glusterd_t self:fifo_file rw_fifo_file_perms;
 allow glusterd_t self:tcp_socket { accept listen };
 allow glusterd_t self:unix_stream_socket { accept listen connectto };
 allow glusterd_t self:rawip_socket create_socket_perms;
+allow glusterd_t self:unix_stream_socket create_stream_socket_perms;
 
 manage_dirs_pattern(glusterd_t, glusterd_conf_t, glusterd_conf_t)
 manage_files_pattern(glusterd_t, glusterd_conf_t, glusterd_conf_t)
@@ -163,6 +166,9 @@ fs_getattr_all_fs(glusterd_t)
 files_mounton_non_security(glusterd_t)
 
 storage_rw_fuse(glusterd_t)
+#needed by /usr/sbin/xfs_db
+storage_raw_read_fixed_disk(glusterd_t)
+storage_raw_write_fixed_disk(glusterd_t)
 
 auth_use_nsswitch(glusterd_t)
 
