@@ -17,6 +17,9 @@ type prosody_t;
 type prosody_exec_t;
 init_daemon_domain(prosody_t, prosody_exec_t)
 
+type prosody_log_t;
+logging_log_file(prosody_log_t)
+
 type prosody_var_lib_t;
 files_type(prosody_var_lib_t)
 
@@ -30,7 +33,7 @@ systemd_unit_file(prosody_unit_file_t)
 #
 # prosody local policy
 #
-allow prosody_t self:capability { setuid setgid };
+allow prosody_t self:capability { setuid setgid dac_read_search dac_override };
 allow prosody_t self:process { signal_perms execmem };
 allow prosody_t self:tcp_socket create_stream_socket_perms;
 
@@ -44,6 +47,11 @@ manage_files_pattern(prosody_t, prosody_var_run_t, prosody_var_run_t)
 manage_lnk_files_pattern(prosody_t, prosody_var_run_t, prosody_var_run_t)
 files_pid_filetrans(prosody_t, prosody_var_run_t, { dir file lnk_file })
 
+manage_dirs_pattern(prosody_t, prosody_log_t, prosody_log_t)
+manage_files_pattern(prosody_t, prosody_log_t, prosody_log_t)
+setattr_files_pattern(prosody_t, prosody_log_t, prosody_log_t)
+logging_log_filetrans(prosody_t, prosody_log_t, { file dir })
+
 can_exec(prosody_t, prosody_exec_t)
 
 kernel_read_system_state(prosody_t)
@@ -52,6 +60,7 @@ corecmd_exec_bin(prosody_t)
 corecmd_exec_shell(prosody_t)
 
 corenet_udp_bind_generic_node(prosody_t)
+corenet_tcp_connect_postgresql_port_port(prosody_t)
 corenet_tcp_connect_jabber_interserver_port(prosody_t)
 corenet_tcp_connect_jabber_client_port(prosody_t)
 corenet_tcp_bind_jabber_client_port(prosody_t)
