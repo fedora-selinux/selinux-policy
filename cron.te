@@ -27,6 +27,14 @@ gen_tunable(cron_can_relabel, false)
 gen_tunable(cron_userdomain_transition, true)
 
 ## <desc>
+##  <p>
+##  Allow system cronjob to be executed on
+##  on NFS, CIFS or FUSE filesystem.
+##  </p>
+## </desc>
+gen_tunable(cron_system_cronjob_use_shares, false)
+
+## <desc>
 ##	<p>
 ##	Enable extra rules in the cron domain
 ##	to support fcron.
@@ -403,6 +411,12 @@ manage_files_pattern(system_cronjob_t, system_cron_spool_t, system_cron_spool_t)
 # performs an entrypoint permission check
 # for this purpose.
 allow system_cronjob_t system_cron_spool_t:file entrypoint;
+
+tunable_policy(`cron_system_cronjob_use_shares',`
+    fs_fusefs_entrypoint(system_cronjob_t)
+    fs_nfs_entrypoint(system_cronjob_t)
+    fs_cifs_entrypoint(system_cronjob_t)
+')
 
 # Permit a transition from the crond_t domain to this domain.
 # The transition is requested explicitly by the modified crond 
