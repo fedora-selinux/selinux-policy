@@ -7,6 +7,9 @@ policy_module(ipa, 1.0.0)
 
 attribute ipa_domain;
 
+attribute_role ipa_helper_roles;
+roleattribute system_r ipa_helper_roles;
+
 type ipa_otpd_t, ipa_domain;
 type ipa_otpd_exec_t;
 init_daemon_domain(ipa_otpd_t, ipa_otpd_exec_t)
@@ -19,6 +22,13 @@ files_type(ipa_var_lib_t)
 
 type ipa_var_run_t;
 files_pid_file(ipa_var_run_t)
+
+type ipa_helper_t;
+type ipa_helper_exec_t;
+domain_type(ipa_helper_t)
+domain_obj_id_change_exemption(ipa_helper_t)
+init_system_domain(ipa_helper_t, ipa_helper_exec_t)
+role ipa_helper_roles types ipa_helper_t;
 
 ########################################
 #
@@ -47,4 +57,57 @@ optional_policy(`
 
 optional_policy(`
 	kerberos_use(ipa_otpd_t)
+')
+
+########################################
+#
+# ipa-helper local policy
+#
+
+
+allow ipa_helper_t self:capability { dac_override chown };
+
+allow ipa_helper_t self:process setfscreate;
+allow ipa_helper_t self:fifo_file rw_fifo_file_perms;
+allow ipa_helper_t self:netlink_route_socket r_netlink_socket_perms;
+
+kernel_read_system_state(ipa_helper_t)
+
+corenet_tcp_connect_ldap_port(ipa_helper_t)
+corenet_tcp_connect_smbd_port(ipa_helper_t)
+
+corecmd_exec_bin(ipa_helper_t)
+corecmd_exec_shell(ipa_helper_t)
+
+dev_read_urand(ipa_helper_t)
+
+auth_use_nsswitch(ipa_helper_t)
+
+ipa_manage_pid_files(ipa_helper_t)
+ipa_read_lib(ipa_helper_t)
+
+logging_send_syslog_msg(ipa_helper_t)
+
+optional_policy(`
+    ldap_stream_connect(ipa_helper_t)
+')
+
+optional_policy(`
+    libs_exec_ldconfig(ipa_helper_t)
+')
+
+optional_policy(`
+    memcached_stream_connect(ipa_helper_t)
+')
+
+optional_policy(`
+    oddjob_system_entry(ipa_helper_t, ipa_helper_exec_t)
+')
+
+optional_policy(`
+    samba_read_config(ipa_helper_t)
+')
+
+optional_policy(`
+    sssd_manage_lib_files(ipa_helper_t)
 ')
