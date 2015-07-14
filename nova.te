@@ -25,14 +25,6 @@ nova_domain_template(objectstore)
 nova_domain_template(scheduler)
 nova_domain_template(vncproxy)
 nova_domain_template(volume)
-nova_domain_template(nova)
-
-type nova_t;
-type nova_exec_t;
-init_daemon_domain(nova_t, nova_exec_t)
-typeattribute nova_t nova_domain;
-typealias nova_t alias { nova_ajax_t nova_api_t nova_cert_t nova_conductor_t nova_compute_t nova_console_t nova_direct_t nova_network_t nova_objectstore_t nova_scheduler_t nova_vncproxy_t nova_volume_t };
-typealias nova_exec_t alias { nova_ajax_exec_t nova_api_exec_t nova_cert_exec_t nova_conductor_exec_t nova_compute_exec_t nova_console_exec_t nova_direct_exec_t nova_network_exec_t nova_objectstore_exec_t nova_scheduler_exec_t nova_vncproxy_exec_t nova_volume_exec_t };
 
 typeattribute nova_api_t nova_sudo_domain;
 typeattribute nova_cert_t nova_sudo_domain;
@@ -40,18 +32,23 @@ typeattribute nova_console_t nova_sudo_domain;
 typeattribute nova_network_t nova_sudo_domain;
 typeattribute nova_volume_t nova_sudo_domain;
 
-	type nova_unit_file_t;
-	systemd_unit_file(nova_unit_file_t)
+type nova_t;
+type nova_exec_t;
+init_daemon_domain(nova_t, nova_exec_t)
+typeattribute nova_t nova_domain;
 
-	type nova_tmp_t;
-	files_tmp_file(nova_tmp_t)
+type nova_unit_file_t;
+systemd_unit_file(nova_unit_file_t)
 
-	manage_dirs_pattern(nova_t, nova_tmp_t, nova_tmp_t)
-	manage_files_pattern(nova_t, nova_tmp_t, nova_tmp_t)
-	manage_lnk_files_pattern(nova_t, nova_tmp_t, nova_tmp_t)
-	files_tmp_filetrans(nova_t, nova_tmp_t, { lnk_file file dir })
-	fs_tmpfs_filetrans(nova_t, nova_tmp_t, { lnk_file file dir })
-	can_exec(nova_t, nova_tmp_t)
+type nova_tmp_t;
+files_tmp_file(nova_tmp_t)
+
+manage_dirs_pattern(nova_t, nova_tmp_t, nova_tmp_t)
+manage_files_pattern(nova_t, nova_tmp_t, nova_tmp_t)
+manage_lnk_files_pattern(nova_t, nova_tmp_t, nova_tmp_t)
+files_tmp_filetrans(nova_t, nova_tmp_t, { lnk_file file dir })
+fs_tmpfs_filetrans(nova_t, nova_tmp_t, { lnk_file file dir })
+can_exec(nova_t, nova_tmp_t)
 
 type nova_log_t;
 logging_log_file(nova_log_t)
@@ -88,6 +85,12 @@ manage_files_pattern(nova_domain, nova_var_run_t, nova_var_run_t)
 
 kernel_read_network_state(nova_domain)
 kernel_read_kernel_sysctls(nova_domain)
+
+kernel_read_system_state(nova_t)
+
+logging_send_syslog_msg(nova_t)
+
+miscfiles_read_generic_certs(nova_t)
 
 corecmd_exec_bin(nova_domain)
 corecmd_exec_shell(nova_domain)
@@ -132,8 +135,6 @@ fs_getattr_all_fs(nova_domain)
 init_read_utmp(nova_domain)
 
 libs_exec_ldconfig(nova_domain)
-
-miscfiles_read_generic_certs(nova_t)
 
 optional_policy(`
     mysql_stream_connect(nova_domain)
