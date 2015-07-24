@@ -13,7 +13,32 @@ interface(`sslh_domtrans',`
 		type sslh_t, sslh_exec_t;
 	')
 
+	corecmd_search_bin($1)
 	domtrans_pattern($1, sslh_exec_t, sslh_t)
+')
+
+#######################################
+## <summary>
+##      Execute tor server in the tor domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to transition.
+##      </summary>
+## </param>
+#
+interface(`sslh_systemctl',`
+        gen_require(`
+                type sslh_t;
+                type sslh_unit_file_t;
+        ')
+
+        systemd_exec_systemctl($1)
+        init_reload_services($1)
+        allow $1 sslh_unit_file_t:file read_file_perms;
+        allow $1 sslh_unit_file_t:service manage_service_perms;
+
+        ps_process_pattern($1, sslh_t)
 ')
 
 
@@ -40,7 +65,7 @@ interface(`sslh_read_config',`
 
 ########################################
 ## <summary>
-##      Permit the writing of sslh config files
+##      Permit the creation and writing of sslh config files
 ## </summary>
 ## <param name="domain">
 ##      <summary>
@@ -55,7 +80,7 @@ interface(`sslh_write_config',`
 
         files_search_etc($1)
         allow $1 sslh_config_t:dir   rw_dir_perms;
-        allow $1 sslh_config_t:file  { rw_dir_perms create };
+        allow $1 sslh_config_t:file  { rw_file_perms create };
         allow $1 sslh_config_t:lnk_file read_lnk_file_perms;
 ')
 
@@ -65,6 +90,7 @@ interface(`sslh_admin',
          gen_require(`
                  type sslh_t, sslh_config_t; 
                  type sslh_var_run_t;
+                 type sslh_initrc_exec_t;
          ')
 
          allow $1 sslh_t:process signal_perms;
