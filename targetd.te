@@ -1,0 +1,57 @@
+policy_module(targetd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type targetd_t;
+type targetd_exec_t;
+init_daemon_domain(targetd_t, targetd_exec_t)
+
+type targetd_etc_rw_t;
+files_type(targetd_etc_rw_t)
+
+type targetd_unit_file_t;
+systemd_unit_file(targetd_unit_file_t)
+
+########################################
+#
+# targetd local policy
+#
+
+allow targetd_t self:fifo_file rw_fifo_file_perms;
+allow targetd_t self:unix_stream_socket create_stream_socket_perms;
+allow targetd_t self:tcp_socket listen;
+allow targetd_t self:netlink_route_socket { bind create getattr nlmsg_read };
+allow targetd_t self:process setfscreate;
+
+manage_dirs_pattern(targetd_t, targetd_etc_rw_t, targetd_etc_rw_t)
+manage_files_pattern(targetd_t, targetd_etc_rw_t, targetd_etc_rw_t)
+files_etc_filetrans(targetd_t, targetd_etc_rw_t, { dir file })
+
+kernel_read_system_state(targetd_t)
+
+auth_use_nsswitch(targetd_t)
+
+corecmd_exec_shell(targetd_t)
+
+corenet_tcp_bind_generic_node(targetd_t)
+corenet_tcp_bind_lsm_plugin_port(targetd_t)
+
+dev_read_sysfs(targetd_t)
+dev_read_urand(targetd_t)
+
+libs_exec_ldconfig(targetd_t)
+
+lvm_read_config(targetd_t);
+lvm_read_metadata(targetd_t)
+lvm_manage_lock(targetd_t);
+lvm_stream_connect(targetd_t);
+
+storage_getattr_fixed_disk_dev(targetd_t)
+storage_getattr_removable_dev(targetd_t)
+
+sysnet_read_config(targetd_t)
+
+udev_read_pid_files(targetd_t)
