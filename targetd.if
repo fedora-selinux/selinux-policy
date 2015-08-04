@@ -1,0 +1,167 @@
+
+## <summary> Targetd  is  a service to allow the remote configuration of block device volumes and file systems within dedicated pools </summary>
+
+########################################
+## <summary>
+##	Execute targetd_exec_t in the targetd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`targetd_domtrans',`
+	gen_require(`
+		type targetd_t, targetd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, targetd_exec_t, targetd_t)
+')
+
+######################################
+## <summary>
+##	Execute targetd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`targetd_exec',`
+	gen_require(`
+		type targetd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, targetd_exec_t)
+')
+
+########################################
+## <summary>
+##	Search targetd conf directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`targetd_search_conf',`
+	gen_require(`
+		type targetd_etc_rw_t;
+	')
+
+	allow $1 targetd_etc_rw_t:dir search_dir_perms;
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Read targetd conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`targetd_read_conf_files',`
+	gen_require(`
+		type targetd_etc_rw_t;
+	')
+
+	allow $1 targetd_etc_rw_t:dir list_dir_perms;
+	read_files_pattern($1, targetd_etc_rw_t, targetd_etc_rw_t)
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Manage targetd conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`targetd_manage_conf_files',`
+	gen_require(`
+		type targetd_etc_rw_t;
+	')
+
+	manage_files_pattern($1, targetd_etc_rw_t, targetd_etc_rw_t)
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Execute targetd server in the targetd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`targetd_systemctl',`
+	gen_require(`
+		type targetd_t;
+		type targetd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 targetd_unit_file_t:file read_file_perms;
+	allow $1 targetd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, targetd_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an targetd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`targetd_admin',`
+	gen_require(`
+		type targetd_t;
+		type targetd_etc_rw_t;
+	type targetd_unit_file_t;
+	')
+
+	allow $1 targetd_t:process { signal_perms };
+	ps_process_pattern($1, targetd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 targetd_t:process ptrace;
+    ')
+
+	files_search_etc($1)
+	admin_pattern($1, targetd_etc_rw_t)
+
+	targetd_systemctl($1)
+	admin_pattern($1, targetd_unit_file_t)
+	allow $1 targetd_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
