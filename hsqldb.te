@@ -1,0 +1,59 @@
+policy_module(hsqldb, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type hsqldb_t;
+type hsqldb_exec_t;
+init_daemon_domain(hsqldb_t, hsqldb_exec_t)
+
+type hsqldb_tmp_t;
+files_tmp_file(hsqldb_tmp_t)
+
+type hsqldb_var_lib_t;
+files_type(hsqldb_var_lib_t)
+
+type hsqldb_unit_file_t;
+systemd_unit_file(hsqldb_unit_file_t)
+
+########################################
+#
+# hsqldb local policy 
+# 
+
+allow hsqldb_t self:fifo_file rw_fifo_file_perms;
+allow hsqldb_t self:unix_stream_socket create_stream_socket_perms;
+
+allow hsqldb_t self:process execmem;
+allow hsqldb_t self:tcp_socket { accept listen bind create setopt getattr };
+#allow hsqldb_t self:udp_socket { create connect getattr };
+
+manage_dirs_pattern(hsqldb_t, hsqldb_tmp_t, hsqldb_tmp_t)
+manage_files_pattern(hsqldb_t, hsqldb_tmp_t, hsqldb_tmp_t)
+manage_lnk_files_pattern(hsqldb_t, hsqldb_tmp_t, hsqldb_tmp_t)
+files_tmp_filetrans(hsqldb_t, hsqldb_tmp_t, { dir file lnk_file })
+
+manage_dirs_pattern(hsqldb_t, hsqldb_var_lib_t, hsqldb_var_lib_t)
+manage_files_pattern(hsqldb_t, hsqldb_var_lib_t, hsqldb_var_lib_t)
+manage_lnk_files_pattern(hsqldb_t, hsqldb_var_lib_t, hsqldb_var_lib_t)
+files_var_lib_filetrans(hsqldb_t, hsqldb_var_lib_t, { dir file lnk_file })
+
+auth_use_nsswitch(hsqldb_t)
+
+corecmd_exec_bin(hsqldb_t)
+
+corenet_tcp_bind_generic_node(hsqldb_t)
+corenet_tcp_bind_tor_port(hsqldb_t)
+corenet_tcp_connect_tor_port(hsqldb_t)
+
+dev_list_sysfs(hsqldb_t)
+
+dev_read_urand(hsqldb_t)
+dev_read_rand(hsqldb_t)
+
+kernel_read_system_state(hsqldb_t)
+kernel_read_network_state(hsqldb_t)
+
+sysnet_read_config(hsqldb_t)
