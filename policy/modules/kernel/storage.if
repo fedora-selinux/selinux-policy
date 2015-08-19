@@ -567,6 +567,35 @@ interface(`storage_write_scsi_generic',`
 	typeattribute $1 scsi_generic_write;
 ')
 
+
+########################################
+## <summary>
+##	Allow the caller to directly read and write, in a
+##	generic fashion, from any SCSI device.
+##	This is extremly dangerous as it can bypass the
+##	SELinux protections for filesystem objects, and
+##	should only be used by trusted domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`storage_rw_inherited_scsi_generic',`
+	gen_require(`
+        attribute scsi_generic_read;
+		attribute scsi_generic_write;
+		type scsi_generic_device_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 scsi_generic_device_t:chr_file rw_inherited_chr_file_perms;
+	allow $1 scsi_generic_device_t:chr_file rw_inherited_blk_file_perms;
+	typeattribute $1 scsi_generic_write;
+    typeattribute $1 scsi_generic_read;
+')
+
 ########################################
 ## <summary>
 ##	Set attributes of the device nodes
