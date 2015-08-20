@@ -1,0 +1,121 @@
+
+## <summary>The blkmapd daemon performs device discovery and mapping for pNFS block layout client.</summary>
+
+########################################
+## <summary>
+##	Execute blkmapd_exec_t in the blkmapd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`blkmapd_domtrans',`
+	gen_require(`
+		type blkmapd_t, blkmapd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, blkmapd_exec_t, blkmapd_t)
+')
+
+######################################
+## <summary>
+##	Execute blkmapd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`blkmapd_exec',`
+	gen_require(`
+		type blkmapd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, blkmapd_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute blkmapd server in the blkmapd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`blkmapd_initrc_domtrans',`
+	gen_require(`
+		type blkmapd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, blkmapd_initrc_exec_t)
+')
+########################################
+## <summary>
+##	Read blkmapd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`blkmapd_read_pid_files',`
+	gen_require(`
+		type blkmapd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, blkmapd_var_run_t, blkmapd_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an blkmapd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`blkmapd_admin',`
+	gen_require(`
+		type blkmapd_t;
+		type blkmapd_initrc_exec_t;
+		type blkmapd_var_run_t;
+	')
+
+	allow $1 blkmapd_t:process { signal_perms };
+	ps_process_pattern($1, blkmapd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 blkmapd_t:process ptrace;
+    ')
+
+	blkmapd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 blkmapd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, blkmapd_var_run_t)
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
