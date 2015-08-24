@@ -1,5 +1,102 @@
 
-## <summary>policy for jetty</summary>
+## <summary>Jetty - HTTP server and Servlet container</summary>
+
+########################################
+## <summary>
+##	Execute jetty_exec_t in the jetty domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`jetty_domtrans',`
+	gen_require(`
+		type jetty_t, jetty_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, jetty_exec_t, jetty_t)
+')
+
+######################################
+## <summary>
+##	Execute jetty in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_exec',`
+	gen_require(`
+		type jetty_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, jetty_exec_t)
+')
+
+########################################
+## <summary>
+##	Search jetty conf directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_search_conf',`
+	gen_require(`
+		type jetty_etc_rw_t;
+	')
+
+	allow $1 jetty_etc_rw_t:dir search_dir_perms;
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Read jetty conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_read_conf_files',`
+	gen_require(`
+		type jetty_etc_rw_t;
+	')
+
+	allow $1 jetty_etc_rw_t:dir list_dir_perms;
+	read_files_pattern($1, jetty_etc_rw_t, jetty_etc_rw_t)
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Manage jetty conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_manage_conf_files',`
+	gen_require(`
+		type jetty_etc_rw_t;
+	')
+
+	manage_files_pattern($1, jetty_etc_rw_t, jetty_etc_rw_t)
+	files_search_etc($1)
+')
+
 
 ########################################
 ## <summary>
@@ -140,6 +237,83 @@ interface(`jetty_manage_log',`
 
 ########################################
 ## <summary>
+##	Search jetty rw directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_search_rw_dir',`
+	gen_require(`
+		type jetty_rw_t;
+	')
+
+	allow $1 jetty_rw_t:dir search_dir_perms;
+	files_search_rw($1)
+')
+
+########################################
+## <summary>
+##	Read jetty rw files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_read_rw_files',`
+	gen_require(`
+		type jetty_rw_t;
+	')
+
+	read_files_pattern($1, jetty_rw_t, jetty_rw_t)
+	allow $1 jetty_rw_t:dir list_dir_perms;
+	files_search_rw($1)
+')
+
+########################################
+## <summary>
+##	Manage jetty rw files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_manage_rw_files',`
+	gen_require(`
+		type jetty_rw_t;
+	')
+
+	manage_files_pattern($1, jetty_rw_t, jetty_rw_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	jetty rw dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_manage_rw_dirs',`
+	gen_require(`
+		type jetty_rw_t;
+	')
+
+	manage_dirs_pattern($1, jetty_rw_t, jetty_rw_t)
+')
+
+
+########################################
+## <summary>
 ##	Search jetty lib directories.
 ## </summary>
 ## <param name="domain">
@@ -230,7 +404,31 @@ interface(`jetty_read_pid_files',`
 	')
 
 	files_search_pids($1)
-	allow $1 jetty_var_run_t:file read_file_perms;
+	read_files_pattern($1, jetty_var_run_t, jetty_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute jetty server in the jetty domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`jetty_systemctl',`
+	gen_require(`
+		type jetty_t;
+		type jetty_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 jetty_unit_file_t:file read_file_perms;
+	allow $1 jetty_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, jetty_t)
 ')
 
 
@@ -244,15 +442,28 @@ interface(`jetty_read_pid_files',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
-## <rolecap/>
 #
 interface(`jetty_admin',`
 	gen_require(`
+		type jetty_t;
+		type jetty_etc_rw_t;
 		type jetty_cache_t;
 		type jetty_log_t;
+		type jetty_rw_t;
 		type jetty_var_lib_t;
 		type jetty_var_run_t;
+	type jetty_unit_file_t;
 	')
+
+	allow $1 jetty_t:process { signal_perms };
+	ps_process_pattern($1, jetty_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 jetty_t:process ptrace;
+    ')
+
+	files_search_etc($1)
+	admin_pattern($1, jetty_etc_rw_t)
 
 	files_search_var($1)
 	admin_pattern($1, jetty_cache_t)
@@ -260,9 +471,20 @@ interface(`jetty_admin',`
 	logging_search_logs($1)
 	admin_pattern($1, jetty_log_t)
 
+	files_search_etc($1)
+	admin_pattern($1, jetty_rw_t)
+
 	files_search_var_lib($1)
 	admin_pattern($1, jetty_var_lib_t)
 
 	files_search_pids($1)
 	admin_pattern($1, jetty_var_run_t)
+
+	jetty_systemctl($1)
+	admin_pattern($1, jetty_unit_file_t)
+	allow $1 jetty_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
 ')
