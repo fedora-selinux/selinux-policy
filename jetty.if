@@ -41,65 +41,6 @@ interface(`jetty_exec',`
 
 ########################################
 ## <summary>
-##	Search jetty conf directories.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`jetty_search_conf',`
-	gen_require(`
-		type jetty_etc_rw_t;
-	')
-
-	allow $1 jetty_etc_rw_t:dir search_dir_perms;
-	files_search_etc($1)
-')
-
-########################################
-## <summary>
-##	Read jetty conf files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`jetty_read_conf_files',`
-	gen_require(`
-		type jetty_etc_rw_t;
-	')
-
-	allow $1 jetty_etc_rw_t:dir list_dir_perms;
-	read_files_pattern($1, jetty_etc_rw_t, jetty_etc_rw_t)
-	files_search_etc($1)
-')
-
-########################################
-## <summary>
-##	Manage jetty conf files.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`jetty_manage_conf_files',`
-	gen_require(`
-		type jetty_etc_rw_t;
-	')
-
-	manage_files_pattern($1, jetty_etc_rw_t, jetty_etc_rw_t)
-	files_search_etc($1)
-')
-
-
-########################################
-## <summary>
 ##	Search jetty cache directories.
 ## </summary>
 ## <param name="domain">
@@ -237,26 +178,26 @@ interface(`jetty_manage_log',`
 
 ########################################
 ## <summary>
-##	Search jetty rw directories.
+##	Do not audit attempts to read,
+##	jetty tmp files
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##	Domain allowed access.
+##	Domain to not audit.
 ##	</summary>
 ## </param>
 #
-interface(`jetty_search_rw_dir',`
+interface(`jetty_dontaudit_read_tmp_files',`
 	gen_require(`
-		type jetty_rw_t;
+		type jetty_tmp_t;
 	')
 
-	allow $1 jetty_rw_t:dir search_dir_perms;
-	files_search_rw($1)
+	dontaudit $1 jetty_tmp_t:file read_file_perms;
 ')
 
 ########################################
 ## <summary>
-##	Read jetty rw files.
+##	Read jetty tmp files
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -264,19 +205,18 @@ interface(`jetty_search_rw_dir',`
 ##	</summary>
 ## </param>
 #
-interface(`jetty_read_rw_files',`
+interface(`jetty_read_tmp_files',`
 	gen_require(`
-		type jetty_rw_t;
+		type jetty_tmp_t;
 	')
 
-	read_files_pattern($1, jetty_rw_t, jetty_rw_t)
-	allow $1 jetty_rw_t:dir list_dir_perms;
-	files_search_rw($1)
+	files_search_tmp($1)
+	read_files_pattern($1, jetty_tmp_t, jetty_tmp_t)
 ')
 
 ########################################
 ## <summary>
-##	Manage jetty rw files.
+##	Manage jetty tmp files
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -284,33 +224,16 @@ interface(`jetty_read_rw_files',`
 ##	</summary>
 ## </param>
 #
-interface(`jetty_manage_rw_files',`
+interface(`jetty_manage_tmp',`
 	gen_require(`
-		type jetty_rw_t;
+		type jetty_tmp_t;
 	')
 
-	manage_files_pattern($1, jetty_rw_t, jetty_rw_t)
+	files_search_tmp($1)
+	manage_dirs_pattern($1, jetty_tmp_t, jetty_tmp_t)
+	manage_files_pattern($1, jetty_tmp_t, jetty_tmp_t)
+	manage_lnk_files_pattern($1, jetty_tmp_t, jetty_tmp_t)
 ')
-
-########################################
-## <summary>
-##	Create, read, write, and delete
-##	jetty rw dirs.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`jetty_manage_rw_dirs',`
-	gen_require(`
-		type jetty_rw_t;
-	')
-
-	manage_dirs_pattern($1, jetty_rw_t, jetty_rw_t)
-')
-
 
 ########################################
 ## <summary>
@@ -442,14 +365,19 @@ interface(`jetty_systemctl',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
 #
 interface(`jetty_admin',`
 	gen_require(`
 		type jetty_t;
-		type jetty_etc_rw_t;
 		type jetty_cache_t;
 		type jetty_log_t;
-		type jetty_rw_t;
+		type jetty_tmp_t;
 		type jetty_var_lib_t;
 		type jetty_var_run_t;
 	type jetty_unit_file_t;
@@ -462,17 +390,14 @@ interface(`jetty_admin',`
         allow $1 jetty_t:process ptrace;
     ')
 
-	files_search_etc($1)
-	admin_pattern($1, jetty_etc_rw_t)
-
 	files_search_var($1)
 	admin_pattern($1, jetty_cache_t)
 
 	logging_search_logs($1)
 	admin_pattern($1, jetty_log_t)
 
-	files_search_etc($1)
-	admin_pattern($1, jetty_rw_t)
+	files_search_tmp($1)
+	admin_pattern($1, jetty_tmp_t)
 
 	files_search_var_lib($1)
 	admin_pattern($1, jetty_var_lib_t)
