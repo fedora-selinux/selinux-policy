@@ -1,5 +1,43 @@
 
-## <summary>policy for jetty</summary>
+## <summary>Jetty - HTTP server and Servlet container</summary>
+
+########################################
+## <summary>
+##	Execute jetty_exec_t in the jetty domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`jetty_domtrans',`
+	gen_require(`
+		type jetty_t, jetty_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, jetty_exec_t, jetty_t)
+')
+
+######################################
+## <summary>
+##	Execute jetty in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_exec',`
+	gen_require(`
+		type jetty_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, jetty_exec_t)
+')
 
 ########################################
 ## <summary>
@@ -140,6 +178,65 @@ interface(`jetty_manage_log',`
 
 ########################################
 ## <summary>
+##	Do not audit attempts to read,
+##	jetty tmp files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`jetty_dontaudit_read_tmp_files',`
+	gen_require(`
+		type jetty_tmp_t;
+	')
+
+	dontaudit $1 jetty_tmp_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read jetty tmp files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_read_tmp_files',`
+	gen_require(`
+		type jetty_tmp_t;
+	')
+
+	files_search_tmp($1)
+	read_files_pattern($1, jetty_tmp_t, jetty_tmp_t)
+')
+
+########################################
+## <summary>
+##	Manage jetty tmp files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jetty_manage_tmp',`
+	gen_require(`
+		type jetty_tmp_t;
+	')
+
+	files_search_tmp($1)
+	manage_dirs_pattern($1, jetty_tmp_t, jetty_tmp_t)
+	manage_files_pattern($1, jetty_tmp_t, jetty_tmp_t)
+	manage_lnk_files_pattern($1, jetty_tmp_t, jetty_tmp_t)
+')
+
+########################################
+## <summary>
 ##	Search jetty lib directories.
 ## </summary>
 ## <param name="domain">
@@ -230,7 +327,31 @@ interface(`jetty_read_pid_files',`
 	')
 
 	files_search_pids($1)
-	allow $1 jetty_var_run_t:file read_file_perms;
+	read_files_pattern($1, jetty_var_run_t, jetty_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute jetty server in the jetty domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`jetty_systemctl',`
+	gen_require(`
+		type jetty_t;
+		type jetty_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 jetty_unit_file_t:file read_file_perms;
+	allow $1 jetty_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, jetty_t)
 ')
 
 
@@ -244,15 +365,30 @@ interface(`jetty_read_pid_files',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
 ## <rolecap/>
 #
 interface(`jetty_admin',`
 	gen_require(`
+		type jetty_t;
 		type jetty_cache_t;
 		type jetty_log_t;
+		type jetty_tmp_t;
 		type jetty_var_lib_t;
 		type jetty_var_run_t;
+	type jetty_unit_file_t;
 	')
+
+	allow $1 jetty_t:process { signal_perms };
+	ps_process_pattern($1, jetty_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 jetty_t:process ptrace;
+    ')
 
 	files_search_var($1)
 	admin_pattern($1, jetty_cache_t)
@@ -260,9 +396,20 @@ interface(`jetty_admin',`
 	logging_search_logs($1)
 	admin_pattern($1, jetty_log_t)
 
+	files_search_tmp($1)
+	admin_pattern($1, jetty_tmp_t)
+
 	files_search_var_lib($1)
 	admin_pattern($1, jetty_var_lib_t)
 
 	files_search_pids($1)
 	admin_pattern($1, jetty_var_run_t)
+
+	jetty_systemctl($1)
+	admin_pattern($1, jetty_unit_file_t)
+	allow $1 jetty_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
 ')
