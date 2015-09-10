@@ -1,5 +1,6 @@
 
-## <summary>policy for sanlock</summary>
+## <summary>Sanlock - lock manager built on shared storage.</summary>
+
 
 ########################################
 ## <summary>
@@ -138,4 +139,106 @@ interface(`sanlock_admin',`
 	virt_systemctl($1)
 	admin_pattern($1, sanlock_unit_file_t)
 	allow $1 sanlock_unit_file_t:service all_service_perms;
+')
+
+########################################
+## <summary>
+##	Execute sanlk_resetd_exec_t in the sanlk_resetd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`sanlock_domtrans_sanlk_resetd',`
+	gen_require(`
+		type sanlk_resetd_t, sanlk_resetd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, sanlk_resetd_exec_t, sanlk_resetd_t)
+')
+
+######################################
+## <summary>
+##	Execute sanlk_resetd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sanlock_exec_sanlk_resetd',`
+	gen_require(`
+		type sanlk_resetd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, sanlk_resetd_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute sanlk_resetd server in the sanlk_resetd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`sanlock_systemctl_sanlk_resetd',`
+	gen_require(`
+		type sanlk_resetd_t;
+		type sanlk_resetd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 sanlk_resetd_unit_file_t:file read_file_perms;
+	allow $1 sanlk_resetd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, sanlk_resetd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an sanlk_resetd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sanlock_admin_sanlk_resetd',`
+	gen_require(`
+		type sanlk_resetd_t;
+	type sanlk_resetd_unit_file_t;
+	type sanlk_resetd_unit_file_t;
+	')
+
+	allow $1 sanlk_resetd_t:process { signal_perms };
+	ps_process_pattern($1, sanlk_resetd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 sanlk_resetd_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+
+	sanlk_resetd_systemctl($1)
+	admin_pattern($1, sanlk_resetd_unit_file_t)
+	allow $1 sanlk_resetd_unit_file_t:service all_service_perms;
+
+	sanlk_resetd_systemctl($1)
+	admin_pattern($1, sanlk_resetd_unit_file_t)
+	allow $1 sanlk_resetd_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
 ')
