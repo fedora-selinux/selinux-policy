@@ -30,6 +30,10 @@ type sanlock_t;
 type sanlock_exec_t;
 init_daemon_domain(sanlock_t, sanlock_exec_t)
 
+type sanlk_resetd_t;
+type sanlk_resetd_exec_t;
+init_daemon_domain(sanlk_resetd_t, sanlk_resetd_exec_t)
+
 type sanlock_conf_t;
 files_config_file(sanlock_conf_t)
 
@@ -44,6 +48,9 @@ init_script_file(sanlock_initrc_exec_t)
 
 type sanlock_unit_file_t;
 systemd_unit_file(sanlock_unit_file_t)
+
+type sanlk_resetd_unit_file_t;
+systemd_unit_file(sanlk_resetd_unit_file_t)
 
 ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(sanlock_t, sanlock_exec_t, s0 - mcs_systemhigh)
@@ -130,4 +137,28 @@ optional_policy(`
 	virt_manage_lib_files(sanlock_t)
 	virt_signal_svirt(sanlock_t)
 	virt_read_pid_files(sanlock_t)
+')
+
+########################################
+#
+# sanlk_resetd local policy
+#
+
+allow sanlk_resetd_t self:capability dac_override;
+allow sanlk_resetd_t self:fifo_file rw_fifo_file_perms;
+allow sanlk_resetd_t sanlock_t:unix_stream_socket connectto;
+
+manage_dirs_pattern(sanlk_resetd_t, sanlock_var_run_t, sanlock_var_run_t)
+manage_files_pattern(sanlk_resetd_t, sanlock_var_run_t, sanlock_var_run_t)
+manage_sock_files_pattern(sanlk_resetd_t, sanlock_var_run_t, sanlock_var_run_t)
+files_pid_filetrans(sanlk_resetd_t, sanlock_var_run_t, dir)
+
+kernel_dgram_send(sanlk_resetd_t)
+
+domain_use_interactive_fds(sanlk_resetd_t)
+
+logging_send_syslog_msg(sanlk_resetd_t)
+
+optional_policy(`
+        wdmd_stream_connect(sanlk_resetd_t)
 ')
