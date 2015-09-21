@@ -328,8 +328,8 @@ manage_lnk_files_pattern(smbd_t, samba_spool_t, samba_spool_t)
 manage_sock_files_pattern(smbd_t, samba_spool_t, samba_spool_t)
 files_spool_filetrans(smbd_t, samba_spool_t, dir, "samba")
 
-
 allow smbd_t smbcontrol_t:process { signal signull };
+allow smbd_t smbcontrol_t:unix_dgram_socket sendto;
 
 manage_dirs_pattern(smbd_t, smbd_tmp_t, smbd_tmp_t)
 manage_files_pattern(smbd_t, smbd_tmp_t, smbd_tmp_t)
@@ -626,6 +626,7 @@ manage_sock_files_pattern(nmbd_t, samba_var_t, samba_var_t)
 files_var_filetrans(nmbd_t, samba_var_t, dir, "samba")
 
 allow nmbd_t smbcontrol_t:process signal;
+allow nmbd_t smbcontrol_t:unix_dgram_socket sendto;
 
 kernel_getattr_core_if(nmbd_t)
 kernel_getattr_message_if(nmbd_t)
@@ -687,11 +688,11 @@ optional_policy(`
 #
 
 allow smbcontrol_t self:capability2 block_suspend;
-allow smbcontrol_t self:process signal;
+allow smbcontrol_t self:process { signal signull };
 # internal communication is often done using fifo and unix sockets.
 allow smbcontrol_t self:fifo_file rw_file_perms;
 allow smbcontrol_t self:unix_stream_socket create_stream_socket_perms;
-allow smbcontrol_t self:process { signal signull };
+allow smbcontrol_t self:unix_dgram_socket create_socket_perms;
 
 allow smbcontrol_t nmbd_t:process { signal signull };
 read_files_pattern(smbcontrol_t, nmbd_var_run_t, nmbd_var_run_t)
@@ -701,6 +702,11 @@ read_files_pattern(smbcontrol_t, smbd_var_run_t, smbd_var_run_t)
 allow smbcontrol_t winbind_t:process { signal signull };
 
 manage_files_pattern(smbcontrol_t, samba_var_t, samba_var_t)
+manage_sock_files_pattern(smbcontrol_t, samba_var_t, samba_var_t)
+
+allow smbcontrol_t nmbd_t:unix_dgram_socket sendto;
+allow smbcontrol_t smbd_t:unix_dgram_socket sendto;
+allow smbcontrol_t winbind_t:unix_dgram_socket sendto;
 
 samba_read_config(smbcontrol_t)
 samba_search_var(smbcontrol_t)
@@ -1070,6 +1076,7 @@ allow winbind_helper_t samba_var_t:dir search_dir_perms;
 files_list_var_lib(winbind_helper_t)
 
 allow winbind_t smbcontrol_t:process signal;
+allow winbind_t smbcontrol_t:unix_dgram_socket sendto;
 
 stream_connect_pattern(winbind_helper_t, winbind_var_run_t, winbind_var_run_t, winbind_t)
 
