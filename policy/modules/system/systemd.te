@@ -199,6 +199,7 @@ systemd_config_generic_services(systemd_logind_t)
 # /run/user/.*
 # Actually only have proof of it creating dirs and symlinks (/run/user/$USER/X11/display)
 auth_manage_var_auth(systemd_logind_t)
+auth_use_nsswitch(systemd_logind_t)
 
 authlogin_read_state(systemd_logind_t)
 
@@ -324,6 +325,8 @@ kernel_request_load_module(systemd_networkd_t)
 kernel_rw_net_sysctls(systemd_networkd_t)
 kernel_read_xen_state(systemd_networkd_t)
 
+auth_use_nsswitch(systemd_networkd_t)
+
 corenet_tcp_bind_all_nodes(systemd_networkd_t)
 corenet_udp_bind_all_nodes(systemd_networkd_t)
 corenet_tcp_bind_dhcpc_port(systemd_networkd_t)
@@ -367,6 +370,8 @@ init_pid_filetrans(systemd_passwd_agent_t, systemd_passwd_var_run_t, { dir fifo_
 domain_read_all_domains_state(systemd_passwd_agent_t)
 
 kernel_stream_connect(systemd_passwd_agent_t)
+
+auth_use_nsswitch(systemd_passwd_agent_t)
 
 dev_create_generic_dirs(systemd_passwd_agent_t)
 dev_read_generic_files(systemd_passwd_agent_t)
@@ -440,6 +445,7 @@ auth_manage_login_records(systemd_tmpfiles_t)
 auth_relabel_var_auth_dirs(systemd_tmpfiles_t)
 auth_relabel_login_records(systemd_tmpfiles_t)
 auth_setattr_login_records(systemd_tmpfiles_t)
+auth_use_nsswitch(systemd_tmpfiles_t)
 
 init_dgram_send(systemd_tmpfiles_t)
 init_rw_stream_sockets(systemd_tmpfiles_t)
@@ -514,6 +520,8 @@ allow systemd_notify_t self:fifo_file rw_fifo_file_perms;
 allow systemd_notify_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_notify_t self:unix_dgram_socket create_socket_perms;
 
+auth_use_nsswitch(systemd_notify_t)
+
 domain_use_interactive_fds(systemd_notify_t)
 
 fs_getattr_cgroup_files(systemd_notify_t)
@@ -540,6 +548,8 @@ allow systemd_logger_t self:fifo_file rw_fifo_file_perms;
 allow systemd_logger_t self:unix_stream_socket create_stream_socket_perms;
 
 kernel_use_fds(systemd_logger_t)
+
+auth_use_nsswitch(systemd_logger_t)
 
 dev_write_kmsg(systemd_logger_t)
 
@@ -578,6 +588,8 @@ allow systemd_localed_t self:process setfscreate;
 allow systemd_localed_t self:fifo_file rw_fifo_file_perms;
 allow systemd_localed_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_localed_t self:unix_dgram_socket create_socket_perms;
+
+auth_use_nsswitch(systemd_localed_t)
 
 dev_write_kmsg(systemd_localed_t)
 
@@ -620,6 +632,8 @@ files_etc_filetrans(systemd_hostnamed_t, hostname_etc_t, file, "machine-info" )
 kernel_dgram_send(systemd_hostnamed_t)
 kernel_read_xen_state(systemd_hostnamed_t)
 
+auth_use_nsswitch(systemd_hostnamed_t)
+
 dev_write_kmsg(systemd_hostnamed_t)
 dev_read_sysfs(systemd_hostnamed_t)
 
@@ -649,6 +663,8 @@ allow systemd_timedated_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_timedated_t self:unix_dgram_socket create_socket_perms;
 
 allow systemd_timedated_t systemd_timedated_unit_file_t:service manage_service_perms;
+
+auth_use_nsswitch(systemd_timedated_t)
 
 corecmd_exec_bin(systemd_timedated_t)
 corecmd_exec_shell(systemd_timedated_t)
@@ -731,6 +747,8 @@ kernel_request_load_module(systemd_sysctl_t)
 kernel_rw_all_sysctls(systemd_sysctl_t)
 kernel_write_security_state(systemd_sysctl_t)
 
+auth_use_nsswitch(systemd_sysctl_t)
+
 files_read_system_conf_files(systemd_sysctl_t)
 
 dev_write_kmsg(systemd_sysctl_t)
@@ -747,8 +765,6 @@ logging_send_syslog_msg(systemd_sysctl_t)
 #
 allow systemd_domain self:process { setfscreate signal_perms };
 dontaudit systemd_domain self:capability net_admin;
-
-auth_use_nsswitch(systemd_domain)
 
 dev_read_urand(systemd_domain)
 
