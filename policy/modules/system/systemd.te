@@ -76,6 +76,14 @@ systemd_domain_template(systemd_hostnamed)
 type hostname_etc_t;
 files_config_file(hostname_etc_t)
 
+systemd_domain_template(systemd_rfkill)
+
+type systemd_rfkill_unit_file_t;
+systemd_unit_file(systemd_rfkill_unit_file_t)
+
+type systemd_rfkill_var_lib_t;
+files_type(systemd_rfkill_var_lib_t)
+
 systemd_domain_template(systemd_timedated)
 typeattribute systemd_timedated_t systemd_domain;
 typealias systemd_timedated_t alias gnomeclock_t;
@@ -650,8 +658,29 @@ optional_policy(`
 
 #######################################
 #
+# rfkill policy
+#
+
+allow systemd_rfkill_t self:capability net_admin;
+
+manage_files_pattern(systemd_rfkill_t, systemd_rfkill_var_lib_t, systemd_rfkill_var_lib_t)
+
+kernel_dgram_send(systemd_rfkill_t)
+
+dev_read_sysfs(systemd_rfkill_t)
+dev_rw_wireless(systemd_rfkill_t)
+
+init_search_var_lib_dirs(systemd_rfkill_t)
+
+optional_policy(`
+    udev_read_db(systemd_rfkill_t)
+')
+
+#######################################
+#
 # Timedated policy
 #
+
 allow systemd_timedated_t self:capability { sys_nice sys_time dac_override };
 allow systemd_timedated_t self:process { getattr getsched setfscreate };
 allow systemd_timedated_t self:fifo_file rw_fifo_file_perms;
