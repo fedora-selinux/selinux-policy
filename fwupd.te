@@ -1,0 +1,48 @@
+policy_module(fwupd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type fwupd_t;
+type fwupd_exec_t;
+init_daemon_domain(fwupd_t, fwupd_exec_t)
+
+type fwupd_cache_t;
+files_type(fwupd_cache_t)
+
+type fwupd_var_lib_t;
+files_type(fwupd_var_lib_t)
+
+type fwupd_unit_file_t;
+systemd_unit_file(fwupd_unit_file_t)
+
+########################################
+#
+# fwupd local policy
+#
+allow fwupd_t self:fifo_file rw_fifo_file_perms;
+allow fwupd_t self:unix_stream_socket create_stream_socket_perms;
+allow fwupd_t self:netlink_kobject_uevent_socket create_socket_perms;;
+
+manage_dirs_pattern(fwupd_t, fwupd_cache_t, fwupd_cache_t)
+manage_files_pattern(fwupd_t, fwupd_cache_t, fwupd_cache_t)
+manage_lnk_files_pattern(fwupd_t, fwupd_cache_t, fwupd_cache_t)
+files_var_filetrans(fwupd_t, fwupd_cache_t, { dir })
+
+manage_dirs_pattern(fwupd_t, fwupd_var_lib_t, fwupd_var_lib_t)
+manage_files_pattern(fwupd_t, fwupd_var_lib_t, fwupd_var_lib_t)
+manage_lnk_files_pattern(fwupd_t, fwupd_var_lib_t, fwupd_var_lib_t)
+files_var_lib_filetrans(fwupd_t, fwupd_var_lib_t, { dir })
+
+auth_read_passwd(fwupd_t)
+
+dev_rw_sysfs(fwupd_t)
+dev_rw_generic_usb_dev(fwupd_t)
+
+udev_read_pid_files(fwupd_t)
+
+optional_policy(`
+	dbus_system_domain(fwupd_t,fwupd_exec_t)
+')
