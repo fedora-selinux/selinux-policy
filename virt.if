@@ -85,6 +85,8 @@ template(`virt_domain_template',`
 
 	allow $1_t $1_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms };
 	term_create_pty($1_t, $1_devpts_t)
+
+	virtlogd_log_write($1_t)
 ')
 
 ########################################
@@ -1554,4 +1556,51 @@ interface(`virt_dbus_chat',`
         allow $1 virtd_t:dbus send_msg;
         allow virtd_t $1:dbus send_msg;
         ps_process_pattern(virtd_t, $1)
+')
+
+
+########################################
+## <summary>
+##      Connect to the virtlogd daemon RPC socket
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`virtlogd_connect', `
+        gen_require(`
+	        type virtlogd_t, virtlogd_var_run_t;
+	')
+
+        # Allow domain to look in /var/run
+        files_search_pids($1)
+	# and connect to /var/run/libvirt/virtlogd-sock
+	stream_connect_pattern($1, virtlogd_var_run_t, virtlogd_var_run_t, virtlogd_t)
+
+        # Allow virtlogd to look at /proc/$PID/status
+	# to authenticate the connecting client
+	allow virtlogd_t $1:dir search;
+	allow virtlogd_t $1:file { open read };
+')
+
+
+########################################
+## <summary>
+##      Write to log pipes created by virtlogd
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to log.
+##      </summary>
+## </param>
+#
+interface(`virtlogd_log_write', `
+        gen_require(`
+	        type virtlogd_t;
+	')
+
+	# Allow domain to write to pipes connected to virtlogd
+        allow $1 virtlogd_t:fifo_file write;
 ')

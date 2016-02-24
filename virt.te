@@ -20,6 +20,7 @@ attribute svirt_file_type;
 attribute virt_file_type;
 attribute sandbox_net_domain;
 attribute sandbox_caps_domain;
+attribute virtlog_file_type;
 
 type svirt_tmp_t, svirt_file_type;
 files_tmp_file(svirt_tmp_t)
@@ -238,6 +239,19 @@ init_script_file(virtd_initrc_exec_t)
 type virtd_keytab_t;
 files_type(virtd_keytab_t)
 
+type virtlogd_t, virtlog_file_type;
+type virtlogd_exec_t, virtlog_file_type;
+init_daemon_domain(virtlogd_t, virtlogd_exec_t)
+type virtlogd_var_run_t, virtlog_file_type;
+type virtlogd_etc_t, virtlog_file_type;
+
+type virtlogd_unit_file_t, virtlog_file_type;
+systemd_unit_file(virtlogd_unit_file_t)
+
+type virtlogd_initrc_exec_t, virtlog_file_type;
+init_script_file(virtlogd_initrc_exec_t)
+
+
 type qemu_var_run_t, virt_file_type;
 typealias qemu_var_run_t alias svirt_var_run_t;
 files_pid_file(qemu_var_run_t)
@@ -245,10 +259,12 @@ mls_trusted_object(qemu_var_run_t)
 
 ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(virtd_t, virtd_exec_t, s0 - mcs_systemhigh)
+	init_ranged_daemon_domain(virtlogd_t, virtlogd_exec_t, s0 - mcs_systemhigh)
 ')
 
 ifdef(`enable_mls',`
 	init_ranged_daemon_domain(virtd_t, virtd_exec_t, s0 - mls_systemhigh)
+	init_ranged_daemon_domain(virtlogd_t, virtlogd_exec_t, s0 - mls_systemhigh)
 ')
 
 type virt_qmf_t, virt_system_domain;
@@ -431,6 +447,9 @@ manage_files_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
 filetrans_pattern(virtd_t, virt_var_run_t, virt_lxc_var_run_t, dir, "lxc")
 allow virtd_t virt_lxc_var_run_t:file { relabelfrom relabelto };
 stream_connect_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t, virtd_lxc_t)
+
+# libvirtd is permitted to talk to virtlogd
+virtlogd_connect(virtd_t)
 
 kernel_read_system_state(virtd_t)
 kernel_read_network_state(virtd_t)
@@ -691,6 +710,47 @@ optional_policy(`
 optional_policy(`
 	unconfined_domain(virtd_t)
 ')
+
+########################################
+#
+# virtd local policy
+#
+
+# virtlogd is allowed to manage files it creates in /var/run
+manage_files_pattern(virtlogd_t, virtlogd_var_run_t, virtlogd_var_run_t)
+
+# virtlogd needs to read /etc/libvirt/virtlogd.conf only
+files_config_file(virtlogd_etc_t)
+allow virtlogd_t virtlogd_etc_t:file read_file_perms;
+files_search_etc(virtlogd_t)
+allow virtlogd_t virt_etc_t:dir search;
+
+# virtlogd creates /var/run/libvirt/virtlogd-sock with isolated
+# context from other stuff in /var/run/libvirt
+filetrans_pattern(virtlogd_t, virt_var_run_t, virtlogd_var_run_t, { dir file sock_file })
+
+# virtlogd creates a /var/run/virtlogd.pid file
+files_pid_file(virtlogd_var_run_t)
+manage_dirs_pattern(virtlogd_t, virtlogd_var_run_t, virtlogd_var_run_t)
+manage_files_pattern(virtlogd_t, virtlogd_var_run_t, virtlogd_var_run_t)
+manage_sock_files_pattern(virtlogd_t, virtlogd_var_run_t, virtlogd_var_run_t)
+files_pid_filetrans(virtlogd_t, virtlogd_var_run_t, { dir file sock_file })
+
+kernel_read_network_state(virtlogd_t)
+
+allow virtlogd_t self:unix_stream_socket { connectto create_stream_socket_perms relabelfrom relabelto };
+
+dev_read_sysfs(virtlogd_t)
+
+logging_send_syslog_msg(virtlogd_t)
+logging_stream_connect_syslog(virtlogd_t)
+
+auth_use_nsswitch(virtlogd_t)
+
+manage_files_pattern(virtlogd_t, virt_log_t, virt_log_t)
+
+allow svirt_t virtlogd_t:fifo_file write;
+
 
 ########################################
 #
