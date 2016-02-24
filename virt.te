@@ -238,6 +238,19 @@ init_script_file(virtd_initrc_exec_t)
 type virtd_keytab_t;
 files_type(virtd_keytab_t)
 
+type virtlogd_t;
+type virtlogd_exec_t;
+init_daemon_domain(virtlogd_t, virtlogd_exec_t)
+type virtlogd_var_run_t;
+type virtlogd_etc_t;
+
+type virtlogd_unit_file_t;
+systemd_unit_file(virtlogd_unit_file_t)
+
+type virtlogd_initrc_exec_t;
+init_script_file(virtlogd_initrc_exec_t)
+
+
 type qemu_var_run_t, virt_file_type;
 typealias qemu_var_run_t alias svirt_var_run_t;
 files_pid_file(qemu_var_run_t)
@@ -245,10 +258,12 @@ mls_trusted_object(qemu_var_run_t)
 
 ifdef(`enable_mcs',`
 	init_ranged_daemon_domain(virtd_t, virtd_exec_t, s0 - mcs_systemhigh)
+	init_ranged_daemon_domain(virtlogd_t, virtlogd_exec_t, s0 - mcs_systemhigh)
 ')
 
 ifdef(`enable_mls',`
 	init_ranged_daemon_domain(virtd_t, virtd_exec_t, s0 - mls_systemhigh)
+	init_ranged_daemon_domain(virtlogd_t, virtlogd_exec_t, s0 - mls_systemhigh)
 ')
 
 type virt_qmf_t, virt_system_domain;
@@ -431,6 +446,10 @@ manage_files_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
 filetrans_pattern(virtd_t, virt_var_run_t, virt_lxc_var_run_t, dir, "lxc")
 allow virtd_t virt_lxc_var_run_t:file { relabelfrom relabelto };
 stream_connect_pattern(virtd_t, virt_lxc_var_run_t, virt_lxc_var_run_t, virtd_lxc_t)
+
+# libvirtd is permitted to talk to virtlogd
+stream_connect_pattern(virtd_t, virt_var_run_t, virtlogd_var_run_t, virtlogd_t)
+
 
 kernel_read_system_state(virtd_t)
 kernel_read_network_state(virtd_t)
@@ -691,6 +710,51 @@ optional_policy(`
 optional_policy(`
 	unconfined_domain(virtd_t)
 ')
+
+########################################
+#
+# virtlogd local policy
+#
+
+# virtlogd is allowed to manage files it creates in /var/run/libvirt
+manage_files_pattern(virtlogd_t, virt_var_run_t, virtlogd_var_run_t)
+
+# virtlogd needs to read /etc/libvirt/virtlogd.conf only
+files_config_file(virtlogd_etc_t)
+allow virtlogd_t virtlogd_etc_t:file read_file_perms;
+files_search_etc(virtlogd_t)
+allow virtlogd_t virt_etc_t:dir search;
+
+# virtlogd creates /var/run/libvirt/virtlogd-sock with isolated
+# context from other stuff in /var/run/libvirt
+filetrans_pattern(virtlogd_t, virt_var_run_t, virtlogd_var_run_t, { sock_file })
+# This lets systemd create the socket itself too
+files_pid_file(virtlogd_var_run_t)
+
+# virtlogd creates a /var/run/virtlogd.pid file
+allow virtlogd_t virtlogd_var_run_t:file manage_file_perms;
+manage_sock_files_pattern(virtlogd_t, virt_var_run_t, virtlogd_var_run_t)
+files_pid_filetrans(virtlogd_t, virtlogd_var_run_t, file)
+
+kernel_read_network_state(virtlogd_t)
+
+allow virtlogd_t self:unix_stream_socket create_stream_socket_perms;
+
+dev_read_sysfs(virtlogd_t)
+
+logging_send_syslog_msg(virtlogd_t)
+
+auth_use_nsswitch(virtlogd_t)
+
+manage_files_pattern(virtlogd_t, virt_log_t, virt_log_t)
+
+
+# Allow virtlogd to look at /proc/$PID/status
+# to authenticate the connecting libvirtd
+allow virtlogd_t virtd_t:dir list_dir_perms;
+allow virtlogd_t virtd_t:file read_file_perms;
+allow virtlogd_t virtd_t:lnk_file read_lnk_file_perms;
+
 
 ########################################
 #
