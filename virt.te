@@ -300,6 +300,9 @@ typealias virt_lxc_var_run_t alias virtd_lxc_var_run_t;
 type svirt_sandbox_file_t alias svirt_lxc_file_t, svirt_file_type;
 files_mountpoint(svirt_sandbox_file_t)
 
+type container_image_t;
+files_mountpoint(container_image_t)
+
 ########################################
 #
 # svirt local policy
@@ -1251,21 +1254,30 @@ manage_sock_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sand
 manage_fifo_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
 manage_chr_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
 allow svirt_sandbox_domain svirt_sandbox_file_t:file { execmod relabelfrom relabelto };
+allow svirt_sandbox_domain svirt_sandbox_file_t:dir { execmod relabelfrom relabelto };
+virt_mounton_sandbox_file(svirt_sandbox_domain)
+
+list_dirs_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+read_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+read_lnk_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+allow svirt_sandbox_domain container_image_t:file execmod;
+can_exec(svirt_sandbox_domain, container_image_t)
 
 allow svirt_sandbox_domain svirt_sandbox_file_t:blk_file setattr;
 rw_blk_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
 can_exec(svirt_sandbox_domain, svirt_sandbox_file_t)
 allow svirt_sandbox_domain svirt_sandbox_file_t:dir mounton;
-allow svirt_sandbox_domain svirt_sandbox_file_t:filesystem getattr;
+allow svirt_sandbox_domain svirt_sandbox_file_t:filesystem { getattr remount };
 
 kernel_getattr_proc(svirt_sandbox_domain)
 kernel_list_all_proc(svirt_sandbox_domain)
 kernel_read_all_sysctls(svirt_sandbox_domain)
-kernel_read_net_sysctls(svirt_sandbox_domain)
+kernel_rw_net_sysctls(svirt_sandbox_domain)
 kernel_dontaudit_search_kernel_sysctl(svirt_sandbox_domain)
 kernel_dontaudit_access_check_proc(svirt_sandbox_domain)
 kernel_dontaudit_setattr_proc_files(svirt_sandbox_domain)
 kernel_dontaudit_setattr_proc_dirs(svirt_sandbox_domain)
+kernel_dontaudit_write_usermodehelper_state(svirt_sandbox_domain)
 
 corecmd_exec_all_executables(svirt_sandbox_domain)
 
