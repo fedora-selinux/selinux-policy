@@ -51,6 +51,14 @@ systemd_unit_file(systemd_networkd_unit_file_t)
 type systemd_networkd_var_run_t;
 files_pid_file(systemd_networkd_var_run_t)
 
+systemd_domain_template(systemd_resolved)
+
+type systemd_resolved_var_run_t;
+files_pid_file(systemd_resolved_var_run_t)
+
+type systemd_resolved_unit_file_t;
+systemd_unit_file(systemd_resolved_unit_file_t)
+
 # domain for systemd-tty-ask-password-agent and systemd-gnome-ask-password-agent
 # systemd components
 
@@ -828,6 +836,32 @@ files_etc_filetrans(systemd_hwdb_t, systemd_hwdb_etc_t, file)
 dev_read_sysfs(systemd_gpt_generator_t)
 dev_write_kmsg(systemd_gpt_generator_t)
 dev_read_nvme(systemd_gpt_generator_t)
+
+#######################################
+#
+# systemd_resolved domain
+#
+
+allow systemd_resolved_t self:capability { chown setgid setpcap setuid };
+allow systemd_resolved_t self:process setcap;
+allow systemd_resolved_t self:tcp_socket { accept listen };
+
+manage_dirs_pattern(systemd_resolved_t, systemd_resolved_var_run_t, systemd_resolved_var_run_t)
+manage_files_pattern(systemd_resolved_t, systemd_resolved_var_run_t, systemd_resolved_var_run_t)
+init_pid_filetrans(systemd_resolved_t, systemd_resolved_var_run_t, dir)
+
+list_dirs_pattern(systemd_resolved_t, systemd_networkd_var_run_t, systemd_networkd_var_run_t)
+
+kernel_dgram_send(systemd_resolved_t)
+
+corenet_tcp_bind_llmnr_port(systemd_resolved_t)
+corenet_udp_bind_llmnr_port(systemd_resolved_t)
+
+sysnet_manage_config(systemd_resolved_t)
+
+optional_policy(`
+	dbus_system_bus_client(systemd_resolved_t)
+')
 
 ########################################
 #
