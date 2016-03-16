@@ -224,16 +224,20 @@ init_script_file(virtd_initrc_exec_t)
 type virtd_keytab_t;
 files_type(virtd_keytab_t)
 
-type virtlogd_t;
-type virtlogd_exec_t;
+type virtlogd_t, virt_system_domain;
+type virtlogd_exec_t, virt_file_type;
 init_daemon_domain(virtlogd_t, virtlogd_exec_t)
-type virtlogd_var_run_t;
-type virtlogd_etc_t;
 
-type virtlogd_unit_file_t;
+type virtlogd_etc_t, virt_file_type;
+files_config_file(virtlogd_etc_t)
+
+type virtlogd_var_run_t, virt_file_type;
+files_pid_file(virtlogd_var_run_t)
+
+type virtlogd_unit_file_t, virt_file_type;
 systemd_unit_file(virtlogd_unit_file_t)
 
-type virtlogd_initrc_exec_t;
+type virtlogd_initrc_exec_t, virt_file_type;
 init_script_file(virtlogd_initrc_exec_t)
 
 
@@ -709,7 +713,6 @@ optional_policy(`
 manage_files_pattern(virtlogd_t, virt_var_run_t, virtlogd_var_run_t)
 
 # virtlogd needs to read /etc/libvirt/virtlogd.conf only
-files_config_file(virtlogd_etc_t)
 allow virtlogd_t virtlogd_etc_t:file read_file_perms;
 files_search_etc(virtlogd_t)
 allow virtlogd_t virt_etc_t:dir search;
@@ -718,7 +721,6 @@ allow virtlogd_t virt_etc_t:dir search;
 # context from other stuff in /var/run/libvirt
 filetrans_pattern(virtlogd_t, virt_var_run_t, virtlogd_var_run_t, { sock_file })
 # This lets systemd create the socket itself too
-files_pid_file(virtlogd_var_run_t)
 
 # virtlogd creates a /var/run/virtlogd.pid file
 allow virtlogd_t virtlogd_var_run_t:file manage_file_perms;
