@@ -21,6 +21,13 @@ gen_tunable(gssd_read_tmp, true)
 ## </desc>
 gen_tunable(nfsd_anon_write, false)
 
+## <desc>
+## <p>
+## Allow rpcd_t  to manage fuse files
+## </p>
+## </desc>
+gen_tunable(rpcd_use_fusefs, false)
+
 attribute rpc_domain;
 
 type exports_t;
@@ -135,6 +142,8 @@ manage_dirs_pattern(rpcd_t, rpcd_var_run_t, rpcd_var_run_t)
 manage_files_pattern(rpcd_t, rpcd_var_run_t, rpcd_var_run_t)
 files_pid_filetrans(rpcd_t, rpcd_var_run_t, { file dir })
 
+read_lnk_files_pattern(rpcd_t, var_lib_nfs_t, var_lib_nfs_t)
+
 # rpc.statd executes sm-notify
 can_exec(rpcd_t, rpcd_exec_t)
 
@@ -170,6 +179,13 @@ miscfiles_read_generic_certs(rpcd_t)
 
 userdom_signal_unpriv_users(rpcd_t)
 userdom_read_user_home_content_files(rpcd_t)
+
+tunable_policy(`rpcd_use_fusefs',`
+	fs_manage_fusefs_dirs(rpcd_t)
+	fs_manage_fusefs_files(rpcd_t)
+	fs_read_fusefs_symlinks(rpcd_t)
+	fs_getattr_fusefs(rpcd_t)
+')
 
 ifdef(`distro_debian',`
 	term_dontaudit_use_unallocated_ttys(rpcd_t)
