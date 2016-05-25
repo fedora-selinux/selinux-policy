@@ -71,41 +71,6 @@ gen_tunable(ftpd_use_passive_mode, false)
 ## </desc>
 gen_tunable(ftpd_connect_all_unreserved, false)
 
-## <desc>
-##	<p>
-##	Determine whether sftpd can modify
-##	public files used for public file
-##	transfer services. Directories/Files must
-##	be labeled public_content_rw_t.
-##	</p>
-## </desc>
-gen_tunable(sftpd_anon_write, false)
-
-## <desc>
-##	<p>
-##	Determine whether sftpd-can read and write
-##	files in user home directories.
-##	</p>
-## </desc>
-gen_tunable(sftpd_enable_homedirs, false)
-
-## <desc>
-##	<p>
-##	Determine whether sftpd-can login to
-##	local users and read and write all
-##	files on the system, governed by DAC.
-##	</p>
-## </desc>
-gen_tunable(sftpd_full_access, false)
-
-## <desc>
-##	<p>
-##	Determine whether sftpd can read and write
-##	files in user ssh home directories.
-##	</p>
-## </desc>
-gen_tunable(sftpd_write_ssh_home, false)
-
 attribute_role ftpdctl_roles;
 
 type anon_sftpd_t;
@@ -431,12 +396,7 @@ userdom_use_inherited_user_terminals(ftpdctl_t)
 # Anon sftpd local policy
 #
 
-
 miscfiles_read_public_files(anon_sftpd_t)
-
-tunable_policy(`sftpd_anon_write',`
-	miscfiles_manage_public_files(anon_sftpd_t)
-')
 
 ########################################
 #
@@ -448,51 +408,13 @@ userdom_read_user_home_content_files(sftpd_t)
 userdom_read_user_home_content_symlinks(sftpd_t)
 userdom_dontaudit_list_admin_dir(sftpd_t)
 
-tunable_policy(`sftpd_full_access',`
-	allow sftpd_t self:capability { dac_override dac_read_search };
-	fs_read_noxattr_fs_files(sftpd_t)
-	files_manage_non_security_dirs(sftpd_t)
-	files_manage_non_security_files(sftpd_t)
-')
-
-optional_policy(`
-	tunable_policy(`sftpd_write_ssh_home',`
-		ssh_manage_home_files(sftpd_t)
-	')
-')
-
 userdom_filetrans_home_content(sftpd_t)
 userdom_tmp_filetrans_user_tmp(sftpd_t, { dir file })
-
-tunable_policy(`sftpd_enable_homedirs',`
-	allow sftpd_t self:capability { dac_override dac_read_search };
 
 	userdom_manage_user_home_content_dirs(sftpd_t)
 	userdom_manage_user_home_content_files(sftpd_t)
 	userdom_manage_user_tmp_dirs(sftpd_t)
 	userdom_manage_user_tmp_files(sftpd_t)
-')
-
-tunable_policy(`sftpd_enable_homedirs && use_nfs_home_dirs',`
-	fs_manage_nfs_dirs(sftpd_t)
-	fs_manage_nfs_files(sftpd_t)
-	fs_manage_nfs_symlinks(sftpd_t)
-')
-
-tunable_policy(`sftpd_enable_homedirs && use_samba_home_dirs',`
-	fs_manage_cifs_dirs(sftpd_t)
-	fs_manage_cifs_files(sftpd_t)
-	fs_manage_cifs_symlinks(sftpd_t)
-')
-
-tunable_policy(`sftpd_anon_write',`
-	miscfiles_manage_public_files(sftpd_t)
-')
-
-tunable_policy(`sftpd_full_access',`
-	allow sftpd_t self:capability { dac_override dac_read_search };
-	fs_read_noxattr_fs_files(sftpd_t)
-	files_manage_non_security_files(sftpd_t)
 ')
 
 userdom_home_reader(sftpd_t)
