@@ -12,18 +12,41 @@ init_daemon_domain(oracleasm_t, oracleasm_exec_t)
 type oracleasm_initrc_exec_t;
 init_script_file(oracleasm_initrc_exec_t)
 
+type oracleasm_tmp_t;
+files_tmp_file(oracleasm_tmp_t)
+
 ########################################
 #
 # oracleasm local policy
 #
 
+allow oracleasm_t self:capability { fsetid fowner chown };
 allow oracleasm_t self:fifo_file rw_fifo_file_perms;
 allow oracleasm_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(oracleasm_t, oracleasm_tmp_t, oracleasm_tmp_t)
+manage_files_pattern(oracleasm_t, oracleasm_tmp_t, oracleasm_tmp_t)
+files_tmp_filetrans(oracleasm_t, oracleasm_tmp_t, { file dir })
+
+kernel_read_system_state(oracleasm_t)
+
+auth_read_passwd(oracleasm_t)
+
+dev_rw_sysfs(oracleasm_t)
 
 domain_use_interactive_fds(oracleasm_t)
 
 corecmd_exec_shell(oracleasm_t)
 corecmd_exec_bin(oracleasm_t)
+
+fs_getattr_xattr_fs(oracleasm_t)
+fs_list_oracleasmfs(oracleasm_t)
+fs_getattr_oracleasmfs(oracleasm_t)
+fs_setattr_oracleasmfs(oracleasm_t)
+fs_setattr_oracleasmfs_dirs(oracleasm_t)
+
+storage_raw_read_fixed_disk(oracleasm_t)
+storage_raw_read_removable_device(oracleasm_t)
 
 optional_policy(`
     mount_domtrans(oracleasm_t)
