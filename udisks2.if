@@ -1,0 +1,206 @@
+## <summary>udisks - Disk Manager</summary>
+
+########################################
+## <summary>
+##	Execute udisks2_exec_t in the udisks2 domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`udisks2_domtrans',`
+	gen_require(`
+		type udisks2_t, udisks2_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, udisks2_exec_t, udisks2_t)
+')
+
+######################################
+## <summary>
+##	Execute udisks2 in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udisks2_exec',`
+	gen_require(`
+		type udisks2_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, udisks2_exec_t)
+')
+
+########################################
+## <summary>
+##	Search udisks2 lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udisks2_search_lib',`
+	gen_require(`
+		type udisks2_var_lib_t;
+	')
+
+	allow $1 udisks2_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read udisks2 lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udisks2_read_lib_files',`
+	gen_require(`
+		type udisks2_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, udisks2_var_lib_t, udisks2_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage udisks2 lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udisks2_manage_lib_files',`
+	gen_require(`
+		type udisks2_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, udisks2_var_lib_t, udisks2_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage udisks2 lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udisks2_manage_lib_dirs',`
+	gen_require(`
+		type udisks2_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, udisks2_var_lib_t, udisks2_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read udisks2 PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udisks2_read_pid_files',`
+	gen_require(`
+		type udisks2_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, udisks2_var_run_t, udisks2_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute udisks2 server in the udisks2 domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`udisks2_systemctl',`
+	gen_require(`
+		type udisks2_t;
+		type udisks2_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 udisks2_unit_file_t:file read_file_perms;
+	allow $1 udisks2_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, udisks2_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an udisks2 environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`udisks2_admin',`
+	gen_require(`
+		type udisks2_t;
+		type udisks2_var_lib_t;
+		type udisks2_var_run_t;
+	type udisks2_unit_file_t;
+	')
+
+	allow $1 udisks2_t:process { signal_perms };
+	ps_process_pattern($1, udisks2_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 udisks2_t:process ptrace;
+    ')
+
+	files_search_var_lib($1)
+	admin_pattern($1, udisks2_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, udisks2_var_run_t)
+
+	udisks2_systemctl($1)
+	admin_pattern($1, udisks2_unit_file_t)
+	allow $1 udisks2_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
