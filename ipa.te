@@ -18,11 +18,18 @@ type ipa_dnskey_t, ipa_domain;
 type ipa_dnskey_exec_t;
 init_daemon_domain(ipa_dnskey_t, ipa_dnskey_exec_t)
 
+type ipa_ods_exporter_t, ipa_domain;
+type ipa_ods_exporter_exec_t;
+init_daemon_domain(ipa_ods_exporter_t, ipa_ods_exporter_exec_t)
+
 type ipa_otpd_unit_file_t;
 systemd_unit_file(ipa_otpd_unit_file_t)
 
 type ipa_dnskey_unit_file_t;
 systemd_unit_file(ipa_dnskey_unit_file_t)
+
+type ipa_ods_exporter_unit_file_t;
+systemd_unit_file(ipa_ods_exporter_unit_file_t)
 
 type ipa_log_t;
 logging_log_file(ipa_log_t)
@@ -203,4 +210,51 @@ optional_policy(`
 	opendnssec_manage_config(ipa_dnskey_t)
 	opendnssec_manage_var_files(ipa_dnskey_t)
 	opendnssec_filetrans_etc_content(ipa_dnskey_t)
+')
+
+########################################
+#
+# ipa-ods-exporter local policy
+#
+allow ipa_ods_exporter_t self:netlink_route_socket { bind create getattr nlmsg_read };
+allow ipa_ods_exporter_t self:udp_socket { connect create getattr };
+allow ipa_ods_exporter_t self:unix_dgram_socket { create getopt setopt };
+
+manage_files_pattern(ipa_ods_exporter_t, ipa_var_lib_t, ipa_var_lib_t)
+list_dirs_pattern(ipa_ods_exporter_t, ipa_var_lib_t, ipa_var_lib_t)
+
+manage_files_pattern(ipa_ods_exporter_t, ipa_tmp_t, ipa_tmp_t)
+manage_dirs_pattern(ipa_ods_exporter_t, ipa_tmp_t, ipa_tmp_t)
+files_tmp_filetrans(ipa_ods_exporter_t, ipa_tmp_t, { dir file })
+
+kernel_dgram_send(ipa_ods_exporter_t)
+
+auth_use_nsswitch(ipa_ods_exporter_t)
+
+corecmd_exec_bin(ipa_ods_exporter_t)
+corecmd_exec_shell(ipa_ods_exporter_t)
+
+libs_exec_ldconfig(ipa_ods_exporter_t)
+
+logging_send_syslog_msg(ipa_ods_exporter_t)
+
+miscfiles_read_certs(ipa_ods_exporter_t)
+
+sysnet_read_config(ipa_ods_exporter_t)
+
+optional_policy(`
+    bind_search_cache(ipa_ods_exporter_t)
+')
+
+optional_policy(`
+    dirsrv_stream_connect(ipa_ods_exporter_t)
+')
+
+optional_policy(`
+    opendnssec_manage_var_files(ipa_ods_exporter_t)
+    opendnssec_stream_connect(ipa_ods_exporter_t)
+')
+
+optional_policy(`
+    ldap_stream_connect(ipa_ods_exporter_t)
 ')
