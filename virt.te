@@ -309,10 +309,8 @@ files_pid_file(virt_lxc_var_run_t)
 typealias virt_lxc_var_run_t alias virtd_lxc_var_run_t;
 
 # virt lxc container files
-type svirt_sandbox_file_t alias svirt_lxc_file_t, svirt_file_type;
-files_mountpoint(svirt_sandbox_file_t)
-
-type container_image_t;
+type container_image_t, svirt_file_type;
+typealias container_image_t alias { svirt_sandbox_file_t svirt_lxc_file_t };
 files_mountpoint(container_image_t)
 
 ########################################
@@ -1021,12 +1019,12 @@ manage_files_pattern(virsh_t, virt_image_type, virt_image_type)
 manage_blk_files_pattern(virsh_t, virt_image_type, virt_image_type)
 manage_lnk_files_pattern(virsh_t, virt_image_type, virt_image_type)
 
-manage_dirs_pattern(virsh_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_files_pattern(virsh_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_chr_files_pattern(virsh_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_lnk_files_pattern(virsh_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_sock_files_pattern(virsh_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_fifo_files_pattern(virsh_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
+manage_dirs_pattern(virsh_t, container_image_t, container_image_t)
+manage_files_pattern(virsh_t, container_image_t, container_image_t)
+manage_chr_files_pattern(virsh_t, container_image_t, container_image_t)
+manage_lnk_files_pattern(virsh_t, container_image_t, container_image_t)
+manage_sock_files_pattern(virsh_t, container_image_t, container_image_t)
+manage_fifo_files_pattern(virsh_t, container_image_t, container_image_t)
 virt_transition_svirt_sandbox(virsh_t, system_r)
 
 manage_dirs_pattern(virsh_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
@@ -1183,15 +1181,15 @@ manage_sock_files_pattern(virtd_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
 files_pid_filetrans(virtd_lxc_t, virt_lxc_var_run_t, { file dir })
 filetrans_pattern(virtd_lxc_t, virt_var_run_t, virt_lxc_var_run_t, dir, "lxc")
 
-manage_dirs_pattern(virtd_lxc_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_files_pattern(virtd_lxc_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_chr_files_pattern(virtd_lxc_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_lnk_files_pattern(virtd_lxc_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_sock_files_pattern(virtd_lxc_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_fifo_files_pattern(virtd_lxc_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-allow virtd_lxc_t svirt_sandbox_file_t:dir_file_class_set { relabelto relabelfrom };
-allow virtd_lxc_t svirt_sandbox_file_t:filesystem { relabelto relabelfrom };
-files_associate_rootfs(svirt_sandbox_file_t)
+manage_dirs_pattern(virtd_lxc_t, container_image_t, container_image_t)
+manage_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
+manage_chr_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
+manage_lnk_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
+manage_sock_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
+manage_fifo_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
+allow virtd_lxc_t container_image_t:dir_file_class_set { relabelto relabelfrom };
+allow virtd_lxc_t container_image_t:filesystem { relabelto relabelfrom };
+files_associate_rootfs(container_image_t)
 
 seutil_read_file_contexts(virtd_lxc_t)
 
@@ -1220,7 +1218,7 @@ files_mounton_non_security(virtd_lxc_t)
 files_mount_all_file_type_fs(virtd_lxc_t)
 files_unmount_all_file_type_fs(virtd_lxc_t)
 files_list_isid_type_dirs(virtd_lxc_t)
-files_root_filetrans(virtd_lxc_t, svirt_sandbox_file_t, dir_file_class_set)
+files_root_filetrans(virtd_lxc_t, container_image_t, dir_file_class_set)
 
 fs_read_fusefs_files(virtd_lxc_t)
 fs_getattr_all_fs(virtd_lxc_t)
@@ -1275,7 +1273,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-    docker_exec_lib(virtd_lxc_t)
+    container_exec_lib(virtd_lxc_t)
 ')
 
 optional_policy(`
@@ -1326,13 +1324,13 @@ allow svirt_sandbox_domain virtd_lxc_t:process sigchld;
 allow svirt_sandbox_domain virtd_lxc_t:fd use;
 allow svirt_sandbox_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
 
-manage_dirs_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_lnk_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_sock_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
-manage_fifo_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
-allow svirt_sandbox_domain svirt_sandbox_file_t:file { execmod relabelfrom relabelto };
-allow svirt_sandbox_domain svirt_sandbox_file_t:dir { execmod relabelfrom relabelto };
+manage_dirs_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+manage_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+manage_lnk_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+manage_sock_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+manage_fifo_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+allow svirt_sandbox_domain container_image_t:file { execmod relabelfrom relabelto };
+allow svirt_sandbox_domain container_image_t:dir { execmod relabelfrom relabelto };
 virt_mounton_sandbox_file(svirt_sandbox_domain)
 
 list_dirs_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
@@ -1341,11 +1339,11 @@ read_lnk_files_pattern(svirt_sandbox_domain, container_image_t, container_image_
 allow svirt_sandbox_domain container_image_t:file execmod;
 can_exec(svirt_sandbox_domain, container_image_t)
 
-allow svirt_sandbox_domain svirt_sandbox_file_t:blk_file setattr;
-rw_blk_files_pattern(svirt_sandbox_domain, svirt_sandbox_file_t, svirt_sandbox_file_t)
-can_exec(svirt_sandbox_domain, svirt_sandbox_file_t)
-allow svirt_sandbox_domain svirt_sandbox_file_t:dir mounton;
-allow svirt_sandbox_domain svirt_sandbox_file_t:filesystem { getattr remount };
+allow svirt_sandbox_domain container_image_t:blk_file setattr;
+rw_blk_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
+can_exec(svirt_sandbox_domain, container_image_t)
+allow svirt_sandbox_domain container_image_t:dir mounton;
+allow svirt_sandbox_domain container_image_t:filesystem { getattr remount };
 
 kernel_getattr_proc(svirt_sandbox_domain)
 kernel_list_all_proc(svirt_sandbox_domain)
@@ -1462,87 +1460,88 @@ tunable_policy(`virt_sandbox_use_fusefs',`
 ')
 
 optional_policy(`
-    docker_read_share_files(svirt_sandbox_domain)
-    docker_exec_share_files(svirt_sandbox_domain)
-    docker_lib_filetrans(svirt_sandbox_domain,svirt_sandbox_file_t, sock_file)
-    docker_use_ptys(svirt_sandbox_domain)
-    docker_spc_stream_connect(svirt_sandbox_domain)
+    container_read_share_files(svirt_sandbox_domain)
+    container_exec_share_files(svirt_sandbox_domain)
+    container_lib_filetrans(svirt_sandbox_domain,container_image_t, sock_file)
+    container_use_ptys(svirt_sandbox_domain)
+    container_spc_stream_connect(svirt_sandbox_domain)
     fs_dontaudit_remount_tmpfs(svirt_sandbox_domain)
     dev_dontaudit_mounton_sysfs(svirt_sandbox_domain)
 ')
 
 ########################################
 #
-# svirt_lxc_net_t local policy
+# container_t local policy
 #
-virt_sandbox_domain_template(svirt_lxc_net)
-virt_default_capabilities(svirt_lxc_net_t)
-typeattribute svirt_lxc_net_t sandbox_net_domain;
-dontaudit svirt_lxc_net_t self:capability fsetid;
-dontaudit svirt_lxc_net_t self:capability2  block_suspend ;
-allow svirt_lxc_net_t self:process { execstack execmem };
-manage_chr_files_pattern(svirt_lxc_net_t, svirt_sandbox_file_t, svirt_sandbox_file_t)
-kernel_load_module(svirt_lxc_net_t)
+virt_sandbox_domain_template(container)
+typealias container_t alias svirt_lxc_net_t;
+virt_default_capabilities(container_t)
+typeattribute container_t sandbox_net_domain;
+dontaudit container_t self:capability fsetid;
+dontaudit container_t self:capability2  block_suspend ;
+allow container_t self:process { execstack execmem };
+manage_chr_files_pattern(container_t, container_image_t, container_image_t)
+kernel_load_module(container_t)
 
 tunable_policy(`virt_sandbox_use_sys_admin',`
-	allow svirt_lxc_net_t self:capability sys_admin;
+	allow container_t self:capability sys_admin;
 ')
 
 tunable_policy(`virt_sandbox_use_mknod',`
-	allow svirt_lxc_net_t self:capability mknod;
+	allow container_t self:capability mknod;
 ')
 
 tunable_policy(`virt_sandbox_use_all_caps',`
-	allow svirt_lxc_net_t self:capability all_capability_perms;
-	allow svirt_lxc_net_t self:capability2 all_capability2_perms;
+	allow container_t self:capability all_capability_perms;
+	allow container_t self:capability2 all_capability2_perms;
 ')
 
 tunable_policy(`virt_sandbox_use_netlink',`
-	allow svirt_lxc_net_t self:netlink_socket create_socket_perms;
-	allow svirt_lxc_net_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
-	allow svirt_lxc_net_t self:netlink_kobject_uevent_socket create_socket_perms;
+	allow container_t self:netlink_socket create_socket_perms;
+	allow container_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
+	allow container_t self:netlink_kobject_uevent_socket create_socket_perms;
 ', `
-	logging_dontaudit_send_audit_msgs(svirt_lxc_net_t)
+	logging_dontaudit_send_audit_msgs(container_t)
 ')
 
-allow svirt_lxc_net_t virt_lxc_var_run_t:dir list_dir_perms;
-allow svirt_lxc_net_t virt_lxc_var_run_t:file read_file_perms;
+allow container_t virt_lxc_var_run_t:dir list_dir_perms;
+allow container_t virt_lxc_var_run_t:file read_file_perms;
 
-kernel_read_irq_sysctls(svirt_lxc_net_t)
-kernel_read_messages(svirt_lxc_net_t)
+kernel_read_irq_sysctls(container_t)
+kernel_read_messages(container_t)
 
-dev_read_sysfs(svirt_lxc_net_t)
-dev_read_mtrr(svirt_lxc_net_t)
-dev_read_rand(svirt_lxc_net_t)
-dev_read_urand(svirt_lxc_net_t)
+dev_read_sysfs(container_t)
+dev_read_mtrr(container_t)
+dev_read_rand(container_t)
+dev_read_urand(container_t)
 
-files_read_kernel_modules(svirt_lxc_net_t)
+files_read_kernel_modules(container_t)
 
-fs_noxattr_type(svirt_sandbox_file_t)
+fs_noxattr_type(container_image_t)
 # Do we actually need these?
-fs_mount_cgroup(svirt_lxc_net_t)
-fs_manage_cgroup_dirs(svirt_lxc_net_t)
-fs_manage_cgroup_files(svirt_lxc_net_t)
+fs_mount_cgroup(container_t)
+fs_manage_cgroup_dirs(container_t)
+fs_manage_cgroup_files(container_t)
 # Needed for docker
-fs_unmount_xattr_fs(svirt_lxc_net_t)
+fs_unmount_xattr_fs(container_t)
 
-term_pty(svirt_sandbox_file_t)
+term_pty(container_image_t)
 
-auth_use_nsswitch(svirt_lxc_net_t)
+auth_use_nsswitch(container_t)
 
-rpm_read_db(svirt_lxc_net_t)
+rpm_read_db(container_t)
 
-logging_send_syslog_msg(svirt_lxc_net_t)
+logging_send_syslog_msg(container_t)
 
 tunable_policy(`virt_sandbox_use_audit',`
-	logging_send_audit_msgs(svirt_lxc_net_t)
+	logging_send_audit_msgs(container_t)
 ')
 
-userdom_use_user_ptys(svirt_lxc_net_t)
+userdom_use_user_ptys(container_t)
 
 ########################################
 #
-# svirt_lxc_net_t local policy
+# container_t local policy
 #
 virt_sandbox_domain_template(svirt_qemu_net)
 typeattribute svirt_qemu_net_t sandbox_net_domain;
@@ -1585,12 +1584,12 @@ dev_read_urand(svirt_qemu_net_t)
 
 files_read_kernel_modules(svirt_qemu_net_t)
 
-fs_noxattr_type(svirt_sandbox_file_t)
+fs_noxattr_type(container_image_t)
 fs_mount_cgroup(svirt_qemu_net_t)
 fs_manage_cgroup_dirs(svirt_qemu_net_t)
 fs_manage_cgroup_files(svirt_qemu_net_t)
 
-term_pty(svirt_sandbox_file_t)
+term_pty(container_image_t)
 
 auth_use_nsswitch(svirt_qemu_net_t)
 
@@ -1819,7 +1818,7 @@ tunable_policy(`virt_transition_userdomain',`
 
 ########################################
 #
-# svirt_lxc_net_t local policy
+# container_t local policy
 #
 virt_sandbox_domain_template(svirt_kvm_net)
 typeattribute svirt_kvm_net_t sandbox_net_domain;
@@ -1855,12 +1854,12 @@ dev_read_urand(svirt_kvm_net_t)
 
 files_read_kernel_modules(svirt_kvm_net_t)
 
-fs_noxattr_type(svirt_sandbox_file_t)
+fs_noxattr_type(container_image_t)
 fs_mount_cgroup(svirt_kvm_net_t)
 fs_manage_cgroup_dirs(svirt_kvm_net_t)
 fs_manage_cgroup_files(svirt_kvm_net_t)
 
-term_pty(svirt_sandbox_file_t)
+term_pty(container_image_t)
 
 auth_use_nsswitch(svirt_kvm_net_t)
 
