@@ -309,9 +309,12 @@ files_pid_file(virt_lxc_var_run_t)
 typealias virt_lxc_var_run_t alias virtd_lxc_var_run_t;
 
 # virt lxc container files
-type container_image_t, svirt_file_type;
-typealias container_image_t alias { svirt_sandbox_file_t svirt_lxc_file_t };
-files_mountpoint(container_image_t)
+type container_file_t, svirt_file_type;
+typealias container_file_t alias { svirt_sandbox_file_t svirt_lxc_file_t };
+files_mountpoint(container_file_t)
+
+type container_ro_file_t, svirt_file_type;
+files_mountpoint(container_ro_file_t)
 
 ########################################
 #
@@ -1019,12 +1022,12 @@ manage_files_pattern(virsh_t, virt_image_type, virt_image_type)
 manage_blk_files_pattern(virsh_t, virt_image_type, virt_image_type)
 manage_lnk_files_pattern(virsh_t, virt_image_type, virt_image_type)
 
-manage_dirs_pattern(virsh_t, container_image_t, container_image_t)
-manage_files_pattern(virsh_t, container_image_t, container_image_t)
-manage_chr_files_pattern(virsh_t, container_image_t, container_image_t)
-manage_lnk_files_pattern(virsh_t, container_image_t, container_image_t)
-manage_sock_files_pattern(virsh_t, container_image_t, container_image_t)
-manage_fifo_files_pattern(virsh_t, container_image_t, container_image_t)
+manage_dirs_pattern(virsh_t, container_file_t, container_file_t)
+manage_files_pattern(virsh_t, container_file_t, container_file_t)
+manage_chr_files_pattern(virsh_t, container_file_t, container_file_t)
+manage_lnk_files_pattern(virsh_t, container_file_t, container_file_t)
+manage_sock_files_pattern(virsh_t, container_file_t, container_file_t)
+manage_fifo_files_pattern(virsh_t, container_file_t, container_file_t)
 virt_transition_svirt_sandbox(virsh_t, system_r)
 
 manage_dirs_pattern(virsh_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
@@ -1181,15 +1184,15 @@ manage_sock_files_pattern(virtd_lxc_t, virt_lxc_var_run_t, virt_lxc_var_run_t)
 files_pid_filetrans(virtd_lxc_t, virt_lxc_var_run_t, { file dir })
 filetrans_pattern(virtd_lxc_t, virt_var_run_t, virt_lxc_var_run_t, dir, "lxc")
 
-manage_dirs_pattern(virtd_lxc_t, container_image_t, container_image_t)
-manage_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
-manage_chr_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
-manage_lnk_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
-manage_sock_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
-manage_fifo_files_pattern(virtd_lxc_t, container_image_t, container_image_t)
-allow virtd_lxc_t container_image_t:dir_file_class_set { relabelto relabelfrom };
-allow virtd_lxc_t container_image_t:filesystem { relabelto relabelfrom };
-files_associate_rootfs(container_image_t)
+manage_dirs_pattern(virtd_lxc_t, container_file_t, container_file_t)
+manage_files_pattern(virtd_lxc_t, container_file_t, container_file_t)
+manage_chr_files_pattern(virtd_lxc_t, container_file_t, container_file_t)
+manage_lnk_files_pattern(virtd_lxc_t, container_file_t, container_file_t)
+manage_sock_files_pattern(virtd_lxc_t, container_file_t, container_file_t)
+manage_fifo_files_pattern(virtd_lxc_t, container_file_t, container_file_t)
+allow virtd_lxc_t container_file_t:dir_file_class_set { relabelto relabelfrom };
+allow virtd_lxc_t container_file_t:filesystem { relabelto relabelfrom };
+files_associate_rootfs(container_file_t)
 
 seutil_read_file_contexts(virtd_lxc_t)
 
@@ -1218,7 +1221,7 @@ files_mounton_non_security(virtd_lxc_t)
 files_mount_all_file_type_fs(virtd_lxc_t)
 files_unmount_all_file_type_fs(virtd_lxc_t)
 files_list_isid_type_dirs(virtd_lxc_t)
-files_root_filetrans(virtd_lxc_t, container_image_t, dir_file_class_set)
+files_root_filetrans(virtd_lxc_t, container_file_t, dir_file_class_set)
 
 fs_read_fusefs_files(virtd_lxc_t)
 fs_getattr_all_fs(virtd_lxc_t)
@@ -1324,26 +1327,26 @@ allow svirt_sandbox_domain virtd_lxc_t:process sigchld;
 allow svirt_sandbox_domain virtd_lxc_t:fd use;
 allow svirt_sandbox_domain virtd_lxc_t:unix_stream_socket { connectto rw_socket_perms };
 
-manage_dirs_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-manage_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-manage_lnk_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-manage_sock_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-manage_fifo_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-allow svirt_sandbox_domain container_image_t:file { execmod relabelfrom relabelto };
-allow svirt_sandbox_domain container_image_t:dir { execmod relabelfrom relabelto };
-virt_mounton_sandbox_file(svirt_sandbox_domain)
+manage_dirs_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+manage_files_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+manage_lnk_files_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+manage_sock_files_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+manage_fifo_files_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+allow svirt_sandbox_domain container_file_t:file { execmod relabelfrom relabelto };
+allow svirt_sandbox_domain container_file_t:dir { execmod relabelfrom relabelto };
+allow svirt_sandbox_domain svirt_file_type:dir_file_class_set mounton;
 
-list_dirs_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-read_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-read_lnk_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-allow svirt_sandbox_domain container_image_t:file execmod;
-can_exec(svirt_sandbox_domain, container_image_t)
+list_dirs_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+read_files_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+read_lnk_files_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+allow svirt_sandbox_domain container_file_t:file execmod;
+can_exec(svirt_sandbox_domain, container_file_t)
 
-allow svirt_sandbox_domain container_image_t:blk_file setattr;
-rw_blk_files_pattern(svirt_sandbox_domain, container_image_t, container_image_t)
-can_exec(svirt_sandbox_domain, container_image_t)
-allow svirt_sandbox_domain container_image_t:dir mounton;
-allow svirt_sandbox_domain container_image_t:filesystem { getattr remount };
+allow svirt_sandbox_domain container_file_t:blk_file setattr;
+rw_blk_files_pattern(svirt_sandbox_domain, container_file_t, container_file_t)
+can_exec(svirt_sandbox_domain, container_file_t)
+allow svirt_sandbox_domain container_file_t:dir mounton;
+allow svirt_sandbox_domain container_file_t:filesystem { getattr remount };
 
 kernel_getattr_proc(svirt_sandbox_domain)
 kernel_list_all_proc(svirt_sandbox_domain)
@@ -1462,7 +1465,7 @@ tunable_policy(`virt_sandbox_use_fusefs',`
 optional_policy(`
     container_read_share_files(svirt_sandbox_domain)
     container_exec_share_files(svirt_sandbox_domain)
-    container_lib_filetrans(svirt_sandbox_domain,container_image_t, sock_file)
+    container_lib_filetrans(svirt_sandbox_domain,container_file_t, sock_file)
     container_use_ptys(svirt_sandbox_domain)
     container_spc_stream_connect(svirt_sandbox_domain)
     fs_dontaudit_remount_tmpfs(svirt_sandbox_domain)
@@ -1480,7 +1483,7 @@ typeattribute container_t sandbox_net_domain;
 dontaudit container_t self:capability fsetid;
 dontaudit container_t self:capability2  block_suspend ;
 allow container_t self:process { execstack execmem };
-manage_chr_files_pattern(container_t, container_image_t, container_image_t)
+manage_chr_files_pattern(container_t, container_file_t, container_file_t)
 kernel_load_module(container_t)
 
 tunable_policy(`virt_sandbox_use_sys_admin',`
@@ -1517,7 +1520,7 @@ dev_read_urand(container_t)
 
 files_read_kernel_modules(container_t)
 
-fs_noxattr_type(container_image_t)
+fs_noxattr_type(container_file_t)
 # Do we actually need these?
 fs_mount_cgroup(container_t)
 fs_manage_cgroup_dirs(container_t)
@@ -1525,7 +1528,7 @@ fs_manage_cgroup_files(container_t)
 # Needed for docker
 fs_unmount_xattr_fs(container_t)
 
-term_pty(container_image_t)
+term_pty(container_file_t)
 
 auth_use_nsswitch(container_t)
 
@@ -1584,12 +1587,12 @@ dev_read_urand(svirt_qemu_net_t)
 
 files_read_kernel_modules(svirt_qemu_net_t)
 
-fs_noxattr_type(container_image_t)
+fs_noxattr_type(container_file_t)
 fs_mount_cgroup(svirt_qemu_net_t)
 fs_manage_cgroup_dirs(svirt_qemu_net_t)
 fs_manage_cgroup_files(svirt_qemu_net_t)
 
-term_pty(container_image_t)
+term_pty(container_file_t)
 
 auth_use_nsswitch(svirt_qemu_net_t)
 
@@ -1854,12 +1857,12 @@ dev_read_urand(svirt_kvm_net_t)
 
 files_read_kernel_modules(svirt_kvm_net_t)
 
-fs_noxattr_type(container_image_t)
+fs_noxattr_type(container_file_t)
 fs_mount_cgroup(svirt_kvm_net_t)
 fs_manage_cgroup_dirs(svirt_kvm_net_t)
 fs_manage_cgroup_files(svirt_kvm_net_t)
 
-term_pty(container_image_t)
+term_pty(container_file_t)
 
 auth_use_nsswitch(svirt_kvm_net_t)
 
@@ -1904,3 +1907,8 @@ optional_policy(`
 
 allow sandbox_caps_domain self:capability { chown dac_override fowner kill setgid setuid setpcap net_bind_service net_raw sys_chroot mknod audit_write setfcap };
 
+list_dirs_pattern(svirt_sandbox_domain, container_ro_file_t, container_ro_file_t)
+read_files_pattern(svirt_sandbox_domain, container_ro_file_t, container_ro_file_t)
+read_lnk_files_pattern(svirt_sandbox_domain, container_ro_file_t, container_ro_file_t)
+allow svirt_sandbox_domain container_ro_file_t:file execmod;
+can_exec(svirt_sandbox_domain, container_ro_file_t)

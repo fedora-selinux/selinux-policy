@@ -34,7 +34,7 @@ interface(`virt_stub_svirt_sandbox_domain',`
 
 ########################################
 ## <summary>
-##	container_image_t stub interface.  No access allowed.
+##	container_file_t stub interface.  No access allowed.
 ## </summary>
 ## <param name="domain" unused="true">
 ##	<summary>
@@ -44,13 +44,14 @@ interface(`virt_stub_svirt_sandbox_domain',`
 #
 interface(`virt_stub_container_image',`
 	gen_require(`
-		type container_image_t;
+		type container_file_t;
 	')
 ')
 
 interface(`virt_stub_svirt_sandbox_file',`
 	gen_require(`
-		type container_image_t;
+		type container_file_t;
+		type container_ro_file_t;
 	')
 ')
 
@@ -906,15 +907,15 @@ interface(`virt_ptrace',`
 #
 interface(`virt_exec_sandbox_files',`
 	gen_require(`
-		type container_image_t;
+		attribute svirt_file_type;
 	')
 
-	can_exec($1, container_image_t)
+	can_exec($1, svirt_file_type)
 ')
 
 ########################################
 ## <summary>
-##	Allow any container_image_t to be an entrypoint of this domain
+##	Allow any svirt_file_type to be an entrypoint of this domain
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -925,9 +926,9 @@ interface(`virt_exec_sandbox_files',`
 #
 interface(`virt_sandbox_entrypoint',`
 	gen_require(`
-		type container_image_t;
+		type svirt_file_type;
 	')
-	allow $1 container_image_t:file entrypoint;
+	allow $1 svirt_file_type:file entrypoint;
 ')
 
 #######################################
@@ -942,12 +943,12 @@ interface(`virt_sandbox_entrypoint',`
 #
 interface(`virt_read_sandbox_files',`
 	gen_require(`
-		type container_image_t;
+		type svirt_file_type;
 	')
 
-	list_dirs_pattern($1, container_image_t, container_image_t)
-	read_files_pattern($1, container_image_t, container_image_t)
-	read_lnk_files_pattern($1, container_image_t, container_image_t)
+	list_dirs_pattern($1, svirt_file_type, svirt_file_type)
+	read_files_pattern($1, svirt_file_type, svirt_file_type)
+	read_lnk_files_pattern($1, svirt_file_type, svirt_file_type)
 ')
 
 #######################################
@@ -962,15 +963,15 @@ interface(`virt_read_sandbox_files',`
 #
 interface(`virt_manage_sandbox_files',`
 	gen_require(`
-		type container_image_t;
+		atribute svirt_file_type;
 	')
 
-	manage_dirs_pattern($1, container_image_t, container_image_t)
-	manage_files_pattern($1, container_image_t, container_image_t)
-	manage_fifo_files_pattern($1, container_image_t, container_image_t)
-	manage_chr_files_pattern($1, container_image_t, container_image_t)
-	manage_lnk_files_pattern($1, container_image_t, container_image_t)
-	allow $1 container_image_t:dir_file_class_set { relabelfrom relabelto };
+	manage_dirs_pattern($1, svirt_file_type, svirt_file_type)
+	manage_files_pattern($1, svirt_file_type, svirt_file_type)
+	manage_fifo_files_pattern($1, svirt_file_type, svirt_file_type)
+	manage_chr_files_pattern($1, svirt_file_type, svirt_file_type)
+	manage_lnk_files_pattern($1, svirt_file_type, svirt_file_type)
+	allow $1 svirt_file_type:dir_file_class_set { relabelfrom relabelto };
 ')
 
 #######################################
@@ -985,10 +986,10 @@ interface(`virt_manage_sandbox_files',`
 #
 interface(`virt_getattr_sandbox_filesystem',`
 	gen_require(`
-		type container_image_t;
+		type svirt_file_type;
 	')
 
-	allow $1 container_image_t:filesystem getattr;
+	allow $1 svirt_file_type:filesystem getattr;
 ')
 
 #######################################
@@ -1003,10 +1004,10 @@ interface(`virt_getattr_sandbox_filesystem',`
 #
 interface(`virt_relabel_sandbox_filesystem',`
 	gen_require(`
-		type container_image_t;
+		type svirt_file_type;
 	')
 
-	allow $1 container_image_t:filesystem { relabelfrom relabelto };
+	allow $1 svirt_file_type:filesystem { relabelfrom relabelto };
 ')
 
 #######################################
@@ -1021,10 +1022,10 @@ interface(`virt_relabel_sandbox_filesystem',`
 #
 interface(`virt_mounton_sandbox_file',`
 	gen_require(`
-		type container_image_t;
+		type svirt_file_type;
 	')
 
-	allow $1 container_image_t:dir_file_class_set mounton;
+	allow $1 svirt_file_type:dir_file_class_set mounton;
 ')
 
 #######################################
@@ -1040,11 +1041,11 @@ interface(`virt_mounton_sandbox_file',`
 interface(`virt_stream_connect_sandbox',`
 	gen_require(`
 		attribute svirt_sandbox_domain;
-		type container_image_t;
+		type svirt_file_type;
 	')
 
 	files_search_pids($1)
-	stream_connect_pattern($1, container_image_t, container_image_t, svirt_sandbox_domain)
+	stream_connect_pattern($1, svirt_file_type, svirt_file_type, svirt_sandbox_domain)
 	ps_process_pattern(svirt_sandbox_domain, $1)
 ')
 
