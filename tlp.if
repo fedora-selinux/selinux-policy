@@ -1,0 +1,184 @@
+
+## <summary>policy for tlp</summary>
+
+########################################
+## <summary>
+##	Execute tlp_exec_t in the tlp domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`tlp_domtrans',`
+	gen_require(`
+		type tlp_t, tlp_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, tlp_exec_t, tlp_t)
+')
+
+######################################
+## <summary>
+##	Execute tlp in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tlp_exec',`
+	gen_require(`
+		type tlp_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, tlp_exec_t)
+')
+
+########################################
+## <summary>
+##	Search tlp conf directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tlp_search_conf',`
+	gen_require(`
+		type tlp_etc_rw_t;
+	')
+
+	allow $1 tlp_etc_rw_t:dir search_dir_perms;
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Read tlp conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tlp_read_conf_files',`
+	gen_require(`
+		type tlp_etc_rw_t;
+	')
+
+	allow $1 tlp_etc_rw_t:dir list_dir_perms;
+	read_files_pattern($1, tlp_etc_rw_t, tlp_etc_rw_t)
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Manage tlp conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tlp_manage_conf_files',`
+	gen_require(`
+		type tlp_etc_rw_t;
+	')
+
+	manage_files_pattern($1, tlp_etc_rw_t, tlp_etc_rw_t)
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Execute tlp server in the tlp domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`tlp_systemctl',`
+	gen_require(`
+		type tlp_t;
+		type tlp_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 tlp_unit_file_t:file read_file_perms;
+	allow $1 tlp_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, tlp_t)
+')
+
+########################################
+## <summary>
+##	Read all dbus pid files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tlp_manage_pid_files',`
+	gen_require(`
+		type tlp_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, tlp_var_run_t, tlp_var_run_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an tlp environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`tlp_admin',`
+	gen_require(`
+		type tlp_t;
+		type tlp_etc_rw_t;
+	type tlp_unit_file_t;
+	')
+
+	allow $1 tlp_t:process { signal_perms };
+	ps_process_pattern($1, tlp_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 tlp_t:process ptrace;
+    ')
+
+	files_search_etc($1)
+	admin_pattern($1, tlp_etc_rw_t)
+
+	tlp_systemctl($1)
+	admin_pattern($1, tlp_unit_file_t)
+	allow $1 tlp_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

@@ -1,0 +1,54 @@
+policy_module(tlp, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type tlp_t;
+type tlp_exec_t;
+init_daemon_domain(tlp_t, tlp_exec_t)
+
+type tlp_var_run_t;
+files_pid_file(tlp_var_run_t)
+
+type tlp_unit_file_t;
+systemd_unit_file(tlp_unit_file_t)
+
+########################################
+#
+# tlp local policy
+#
+allow tlp_t self:capability { net_admin sys_rawio };
+allow tlp_t self:unix_stream_socket create_stream_socket_perms;
+allow tlp_t self:udp_socket create_socket_perms;
+
+manage_dirs_pattern(tlp_t, tlp_var_run_t, tlp_var_run_t)
+manage_files_pattern(tlp_t, tlp_var_run_t, tlp_var_run_t)
+files_pid_filetrans(tlp_t, tlp_var_run_t, { dir file })
+
+kernel_read_system_state(tlp_t)
+kernel_read_fs_sysctls(tlp_t)
+kernel_rw_fs_sysctls(tlp_t)
+kernel_rw_kernel_sysctl(tlp_t)
+kernel_rw_vm_sysctls(tlp_t)
+
+auth_read_passwd(tlp_t)
+
+corecmd_exec_bin(tlp_t)
+
+dev_list_sysfs(tlp_t)
+dev_manage_sysfs(tlp_t)
+
+files_read_kernel_modules(tlp_t)
+
+modutils_exec_insmod(tlp_t)
+modutils_read_module_config(tlp_t)
+
+storage_raw_read_fixed_disk(tlp_t)
+
+sysnet_exec_ifconfig(tlp_t)
+
+optional_policy(`
+    fstools_exec(tlp_t)
+')
