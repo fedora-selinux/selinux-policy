@@ -62,6 +62,13 @@ gen_tunable(virt_use_fusefs, false)
 
 ## <desc>
 ## <p>
+## Allow sandbox containers to share apache content
+## </p>
+## </desc>
+gen_tunable(virt_sandbox_share_apache_content, false)
+
+## <desc>
+## <p>
 ## Allow sandbox containers manage fuse files
 ## </p>
 ## </desc>
@@ -1418,12 +1425,10 @@ userdom_dontaudit_append_inherited_admin_home_file(svirt_sandbox_domain)
 userdom_dontaudit_read_inherited_admin_home_files(svirt_sandbox_domain)
 
 optional_policy(`
-	apache_exec_modules(svirt_sandbox_domain)
-	apache_read_sys_content(svirt_sandbox_domain)
-')
-
-optional_policy(`
-	gear_read_pid_files(svirt_sandbox_domain)
+tunable_policy(`virt_sandbox_share_apache_content',`
+		apache_exec_modules(svirt_sandbox_domain)
+		apache_read_sys_content(svirt_sandbox_domain)
+	')
 ')
 
 optional_policy(`
@@ -1545,10 +1550,6 @@ fs_manage_cgroup_files(container_t)
 fs_unmount_xattr_fs(container_t)
 
 term_pty(container_file_t)
-
-auth_use_nsswitch(container_t)
-
-rpm_read_db(container_t)
 
 logging_send_syslog_msg(container_t)
 
