@@ -577,6 +577,24 @@ interface(`fs_mount_cgroup', `
 
 ########################################
 ## <summary>
+##	Allow the type to associate to cgroup filesystems.
+## </summary>
+## <param name="type">
+##	<summary>
+##	The type of the object to be associated.
+##	</summary>
+## </param>
+#
+interface(`fs_associate_cgroupfs',`
+	gen_require(`
+		type cgroup_t;
+	')
+
+	allow $1 cgroup_t:filesystem associate;
+')
+
+########################################
+## <summary>
 ##	Remount cgroup filesystems.
 ## </summary>
 ## <param name="domain">
@@ -852,6 +870,25 @@ interface(`fs_dontaudit_rw_cgroup_files',`
 	')
 
 	dontaudit $1 cgroup_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Relabel cgroup files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fs_relabel_cgroup_files',`
+	gen_require(`
+		type cgroup_t;
+
+	')
+
+	relabel_files_pattern($1, cgroup_t, cgroup_t)
 ')
 
 ########################################
@@ -3171,7 +3208,7 @@ interface(`fs_search_kdbus_dirs',`
 #
 interface(`fs_relabel_kdbus_dirs',`
 	gen_require(`
-		type cgroup_t;
+		type kdbusfs_t;
 
 	')
 
@@ -3269,7 +3306,7 @@ interface(`fs_manage_kdbus_dirs',`
 #
 interface(`fs_read_kdbus_files',`
 	gen_require(`
-		type cgroup_t;
+		type kdbusfs_t;
 
 	')
 
@@ -6643,7 +6680,7 @@ interface(`fs_dontaudit_leaks',`
 interface(`fs_tmpfs_filetrans_named_content',`
 	gen_require(`
 		type cgroup_t;
-        type devlog_t;
+		type devlog_t;
 	')
 
 	fs_tmpfs_filetrans($1, cgroup_t, lnk_file, "cpu")
@@ -6776,7 +6813,7 @@ interface(`fs_remount_tracefs', `
 #
 interface(`fs_unmount_tracefs', `
 	gen_require(`
-		type cgroup_t;
+		type tracefs_t;
 	')
 
 	allow $1 tracefs_t:filesystem unmount;
