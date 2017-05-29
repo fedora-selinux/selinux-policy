@@ -31,6 +31,7 @@ systemd_unit_file(ganesha_unit_file_t)
 #
 # ganesha local policy
 #
+allow ganesha_t self:capability2 block_suspend;
 allow ganesha_t self:process { setcap setrlimit };
 allow ganesha_t self:fifo_file rw_fifo_file_perms;
 allow ganesha_t self:unix_stream_socket create_stream_socket_perms;
@@ -45,10 +46,14 @@ manage_dirs_pattern(ganesha_t, ganesha_var_log_t, ganesha_var_log_t)
 manage_files_pattern(ganesha_t, ganesha_var_log_t, ganesha_var_log_t)
 logging_log_filetrans(ganesha_t, ganesha_var_log_t, { file dir })
 
+kernel_search_network_sysctl(ganesha_t)
+
 auth_use_nsswitch(ganesha_t)
 
 corenet_tcp_bind_nfs_port(ganesha_t)
 corenet_tcp_connect_generic_port(ganesha_t)
+corenet_tcp_connect_gluster_port(ganesha_t)
+corenet_udp_bind_dey_keyneg_port(ganesha_t)
 corenet_udp_bind_nfs_port(ganesha_t)
 corenet_udp_bind_all_rpc_ports(ganesha_t)
 corenet_tcp_bind_all_rpc_ports(ganesha_t)
@@ -68,6 +73,9 @@ optional_policy(`
     unconfined_dbus_chat(ganesha_t)
 ')
 
+optional_policy(`
+    glusterd_read_conf(ganesha_t)
+')
 
 optional_policy(`
     kerberos_read_keytab(ganesha_t)
