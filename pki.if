@@ -477,3 +477,27 @@ interface(`pki_stream_connect',`
 	files_search_pids($1)
 	stream_connect_pattern($1, pki_common_t, pki_common_t, pki_tomcat_t)
 ')
+
+########################################
+## <summary>
+##	Execute pki in the pkit_tomcat_t domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`pki_tomcat_systemctl',`
+	gen_require(`
+		type pki_tomcat_t;
+		type pki_tomcat_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 pki_tomcat_unit_file_t:file read_file_perms;
+	allow $1 pki_tomcat_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, pki_tomcat_t)
+')
