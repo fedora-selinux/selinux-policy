@@ -5,6 +5,10 @@ policy_module(logrotate, 1.15.0)
 # Declarations
 #
 
+gen_require(`
+    class passwd passwd;
+')
+
 ## <desc>
 ## <p>
 ## Allow logrotate to manage nfs files
@@ -51,6 +55,8 @@ dontaudit logrotate_t self:capability { sys_resource net_admin };
 dontaudit logrotate_t self:process setrlimit;
 
 allow logrotate_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+
+allow logrotate_t self:passwd { passwd };
 
 # Set a context other than the default one for newly created files.
 allow logrotate_t self:process setfscreate;
@@ -144,6 +150,7 @@ auth_use_nsswitch(logrotate_t)
 
 init_all_labeled_script_domtrans(logrotate_t)
 init_reload_services(logrotate_t)
+init_reload_transient_unit(logrotate_t)
 
 logging_manage_all_logs(logrotate_t)
 logging_send_syslog_msg(logrotate_t)
