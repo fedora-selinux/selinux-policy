@@ -33,7 +33,7 @@ files_tmp_file(webadm_tmp_t)
 # Local policy
 #
 
-allow webadm_t self:capability { dac_override dac_read_search kill sys_nice };
+allow webadm_t self:capability { dac_override dac_read_search kill sys_nice sys_resource };
 
 manage_dirs_pattern(webadm_t, webadm_tmp_t, webadm_tmp_t)
 manage_files_pattern(webadm_t, webadm_tmp_t, webadm_tmp_t)
@@ -47,13 +47,25 @@ files_list_var(webadm_t)
 selinux_get_enforce_mode(webadm_t)
 seutil_domtrans_setfiles(webadm_t)
 
+init_rw_pipes(webadm_t)
+init_status(webadm_t)
+
 logging_send_audit_msgs(webadm_t)
 logging_send_syslog_msg(webadm_t)
 
 userdom_dontaudit_search_user_home_dirs(webadm_t)
+userdom_dontaudit_manage_admin_files(webadm_t)
 
 optional_policy(`
 	apache_admin(webadm_t, webadm_r)
+')
+
+optional_policy(`
+    dbus_system_bus_client(webadm_t)
+')
+
+optional_policy(`
+    policykit_dbus_chat(webadm_t)
 ')
 
 tunable_policy(`webadm_manage_user_files',`
