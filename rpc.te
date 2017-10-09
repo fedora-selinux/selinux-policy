@@ -68,6 +68,12 @@ systemd_unit_file(nfsd_unit_file_t)
 type var_lib_nfs_t;
 files_mountpoint(var_lib_nfs_t)
 
+type nfsd_tmp_t;
+files_tmp_file(nfsd_tmp_t)
+
+typealias nfsd_exec_t alias ganesha_exec_t;
+typealias nfsd_unit_file_t alias ganesha_unit_file_t;
+
 ########################################
 #
 # Common rpc domain local policy
@@ -231,10 +237,19 @@ optional_policy(`
 # NFSD local policy
 #
 
-allow nfsd_t self:capability {  dac_read_search sys_admin sys_resource };
+allow nfsd_t self:capability {  dac_read_search dac_override sys_admin sys_resource };
 dontaudit nfsd_t self:capability sys_rawio;
 
+allow nfsd_t self:process { setcap };
+
 allow nfsd_t exports_t:file read_file_perms;
+
+manage_dirs_pattern(nfsd_t, nfsd_tmp_t, nfsd_tmp_t)
+manage_files_pattern(nfsd_t, nfsd_tmp_t, nfsd_tmp_t)
+files_tmp_filetrans(nfsd_t, nfsd_tmp_t, { file dir })
+
+manage_files_pattern(nfsd_t, rpcd_var_run_t, rpcd_var_run_t)
+files_pid_filetrans(nfsd_t, rpcd_var_run_t, { file })
 
 # for /proc/fs/nfs/exports - should we have a new type?
 kernel_read_system_state(nfsd_t)
@@ -311,6 +326,15 @@ tunable_policy(`nfs_export_all_ro',`
 	fs_read_noxattr_fs_files(nfsd_t)
 
 	files_read_non_security_files(nfsd_t)
+')
+
+optional_policy(`
+    glusterd_manage_log(nfsd_t)
+    glusterd_manage_pid(nfsd_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(nfsd_t)
 ')
 
 optional_policy(`
