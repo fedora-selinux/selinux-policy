@@ -5,6 +5,9 @@ policy_module(chronyd, 1.2.0)
 # Declarations
 #
 
+attribute_role chronyc_roles;
+roleattribute system_r chronyc_roles;
+
 type chronyd_t;
 type chronyd_exec_t;
 init_daemon_domain(chronyd_t, chronyd_exec_t)
@@ -30,6 +33,12 @@ logging_log_file(chronyd_var_log_t)
 type chronyd_var_run_t;
 files_pid_file(chronyd_var_run_t)
 
+type chronyc_t;
+type chronyc_exec_t;
+domain_type(chronyc_t, chronyc_exec_t)
+init_system_domain(chronyc_t, chronyc_exec_t)
+role chronyc_roles types chronyc_t;
+
 ########################################
 #
 # Local policy
@@ -45,6 +54,8 @@ allow chronyd_t self:fifo_file rw_fifo_file_perms;
 allow chronyd_t chronyd_keys_t:file append_file_perms;
 allow chronyd_t chronyd_keys_t:file setattr_file_perms;
 allow chronyd_t chronyd_keys_t:file read_file_perms;
+
+allow chronyd_t chronyc_t:unix_dgram_socket sendto;
 
 manage_dirs_pattern(chronyd_t, chronyd_tmpfs_t, chronyd_tmpfs_t)
 manage_files_pattern(chronyd_t, chronyd_tmpfs_t, chronyd_tmpfs_t)
@@ -124,3 +135,22 @@ optional_policy(`
 optional_policy(`
     ptp4l_rw_shm(chronyd_t)
 ')
+
+########################################
+#
+# Local policy
+#
+
+allow chronyc_t self:capability { dac_read_search };
+allow chronyc_t self:udp_socket create_socket_perms;
+allow chronyc_t self:unix_dgram_socket create_socket_perms;
+
+allow chronyc_t chronyd_t:unix_dgram_socket sendto;
+
+manage_dirs_pattern(chronyc_t, chronyd_var_run_t, chronyd_var_run_t)
+manage_files_pattern(chronyc_t, chronyd_var_run_t, chronyd_var_run_t)
+manage_sock_files_pattern(chronyc_t, chronyd_var_run_t, chronyd_var_run_t)
+
+corecmd_exec_bin(chronyc_t)
+
+sysnet_read_config(chronyc_t)
