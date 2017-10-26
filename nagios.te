@@ -19,6 +19,14 @@ gen_tunable(nagios_run_sudo, false)
 ## </desc>
 gen_tunable(nagios_run_pnp4nagios, false)
 
+## <desc>
+##	<p>
+##	Determine whether Nagios, NRPE can
+##	access nfs file systems.
+##	</p>
+## </desc>
+gen_tunable(nagios_use_nfs, false)
+
 gen_require(`
     class passwd rootok;
     class passwd passwd;
@@ -225,6 +233,12 @@ tunable_policy(`nagios_run_pnp4nagios',`
     allow nagios_t nagios_log_t:file execute;
 ')
 
+tunable_policy(`nagios_use_nfs',`
+	fs_manage_nfs_files(nagios_t)
+    fs_manage_nfs_dirs(nagios_t)
+    fs_manage_nfs_symlinks(nagios_t)
+')
+
 optional_policy(`
 	netutils_kill_ping(nagios_t)
 ')
@@ -355,6 +369,12 @@ optional_policy(`
     ')
 ')
 
+
+tunable_policy(`nagios_use_nfs',`
+	fs_manage_nfs_files(nrpe_t)
+    fs_manage_nfs_dirs(nrpe_t)
+    fs_manage_nfs_symlinks(nrpe_t)
+')
 
 optional_policy(`
 	inetd_tcp_service_domain(nrpe_t, nrpe_exec_t)
