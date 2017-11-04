@@ -108,6 +108,8 @@ template(`gnome_role_template',`
 	# Gkeyringd policy
 	#
 
+    allow $1_gkeyringd_t $3:unix_stream_socket { connectto create_stream_socket_perms };
+
 	domtrans_pattern($3, gkeyringd_exec_t, $1_gkeyringd_t)
 
 	allow $3 { gnome_home_type gkeyringd_tmp_t gconf_tmp_t }:dir { relabel_dir_perms manage_dir_perms };
@@ -125,7 +127,6 @@ template(`gnome_role_template',`
 	allow $3 $1_gkeyringd_t:fd use;
 	allow $3 $1_gkeyringd_t:fifo_file rw_fifo_file_perms;
 
-	dontaudit $1_gkeyringd_t $3:unix_stream_socket { getattr read write connectto};
 	stream_connect_pattern($3, gkeyringd_tmp_t, gkeyringd_tmp_t, $1_gkeyringd_t)
 
 	kernel_read_system_state($1_gkeyringd_t)
@@ -140,6 +141,8 @@ template(`gnome_role_template',`
 	auth_use_nsswitch($1_gkeyringd_t)
 
 	logging_send_syslog_msg($1_gkeyringd_t)
+
+    userdom_rw_user_tmp_sock_files($1_gkeyringd_t)
 
 	allow $1_gkeyringd_t $3:dbus send_msg;
 	allow $3 $1_gkeyringd_t:dbus send_msg;
