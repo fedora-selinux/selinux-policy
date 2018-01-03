@@ -41,6 +41,8 @@ files_type(sandbox_devpts_t)
 #
 allow sandbox_xserver_t self:process { signal_perms execstack };
 
+allow sandbox_web_t sandbox_xserver_t:process2 nnp_transition;
+
 tunable_policy(`deny_execmem',`',`
 	allow sandbox_xserver_t self:process execmem;
 ')
@@ -117,6 +119,22 @@ optional_policy(`
 		hal_dbus_chat(sandbox_xserver_t)
 	')
 ')
+
+########################################
+#
+# sandbox_x_t local policy
+#
+
+allow sandbox_x_t sandbox_x_client_t:process2 nnp_transition;
+allow sandbox_x_t sandbox_xserver_t:process2 nnp_transition;
+
+files_search_home(sandbox_x_t)
+userdom_use_user_ptys(sandbox_x_t)
+
+# This access is needed due to Wayland
+userdom_manage_user_tmp_dirs(sandbox_x_t)
+userdom_map_tmp_files(sandbox_x_t)
+userdom_manage_user_tmp_files(sandbox_x_t)
 
 ########################################
 #
@@ -294,9 +312,6 @@ optional_policy(`
 	networkmanager_dontaudit_dbus_chat(sandbox_x_domain)
 ')
 
-files_search_home(sandbox_x_t)
-userdom_use_user_ptys(sandbox_x_t)
-
 #1103622
 corenet_tcp_connect_xserver_port(sandbox_x_domain)
 xserver_stream_connect(sandbox_x_domain)
@@ -318,6 +333,11 @@ corenet_dontaudit_tcp_connect_xserver_port(sandbox_x_client_t)
 auth_use_nsswitch(sandbox_x_client_t)
 
 logging_send_syslog_msg(sandbox_x_client_t)
+
+# This access is needed due to Wayland
+userdom_manage_user_tmp_dirs(sandbox_x_client_t)
+userdom_map_tmp_files(sandbox_x_client_t)
+userdom_manage_user_tmp_files(sandbox_x_client_t)
 
 optional_policy(`
 	avahi_dbus_chat(sandbox_x_client_t)
@@ -341,11 +361,15 @@ optional_policy(`
 #
 typeattribute sandbox_web_client_t sandbox_web_type;
 
+allow sandbox_web_t sandbox_web_client_t:process2 nnp_transition;
+
 selinux_get_fs_mount(sandbox_web_client_t)
 
 auth_use_nsswitch(sandbox_web_client_t)
 
 logging_send_syslog_msg(sandbox_web_client_t)
+
+miscfiles_map_generic_certs(sandbox_web_client_t)
 
 allow sandbox_web_type self:capability { setuid setgid };
 allow sandbox_web_type self:netlink_audit_socket nlmsg_relay;
