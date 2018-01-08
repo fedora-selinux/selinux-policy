@@ -72,7 +72,7 @@ AWK ?= gawk
 GREP ?= egrep
 INSTALL ?= install
 M4 ?= m4
-PYTHON ?= python
+PYTHON ?= python3
 SED ?= sed
 SORT ?= LC_ALL=C sort
 UMASK ?= umask
