@@ -1,4 +1,4 @@
-PYTHON ?= python
+PYTHON ?= python3
 
 # flask needs to know where to export the libselinux headers.
 LIBSELINUX_D ?= ../../libselinux
