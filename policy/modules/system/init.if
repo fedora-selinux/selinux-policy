@@ -729,6 +729,55 @@ interface(`init_var_lib_filetrans',`
 	filetrans_pattern($1, init_var_lib_t, $2, $3, $4)
 ')
 
+#########################################
+## <summary>
+##	Abstract socket service activation (systemd).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain to be started by systemd socket activation.
+##	</summary>
+## </param>
+#
+interface(`init_abstract_socket_activation',`
+	ifdef(`init_systemd',`
+		gen_require(`
+			type init_t;
+		')
+
+		allow init_t $1:unix_stream_socket create_stream_socket_perms;
+	')
+')
+
+#########################################
+## <summary>
+##	Named socket service activation (systemd).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain to be started by systemd socket activation.
+##	</summary>
+## </param>
+## <param name="sock_file">
+##	<summary>
+##	The domain socket file type.
+##	</summary>
+## </param>
+#
+interface(`init_named_socket_activation',`
+	ifdef(`init_systemd',`
+		gen_require(`
+			type init_t;
+		')
+
+		allow init_t $1:unix_dgram_socket create_socket_perms;
+		allow init_t $1:unix_stream_socket create_stream_socket_perms;
+		allow init_t $2:dir manage_dir_perms;
+		allow init_t $2:fifo_file manage_fifo_file_perms;
+		allow init_t $2:sock_file manage_sock_file_perms;
+	')
+')
+
 ########################################
 ## <summary>
 ##	Connect to init with a unix socket.
