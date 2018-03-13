@@ -154,6 +154,15 @@ files_pid_file(systemd_machined_var_run_t)
 type systemd_machined_var_lib_t;
 files_type(systemd_machined_var_lib_t)
 
+systemd_domain_template(systemd_importd)
+init_nnp_daemon_domain(systemd_importd_t)
+
+type systemd_importd_var_run_t;
+files_pid_file(systemd_importd_var_run_t)
+
+type systemd_importd_tmp_t;
+files_tmp_file(systemd_importd_tmp_t)
+
 #######################################
 #
 # Systemd_logind local policy
@@ -1052,3 +1061,56 @@ kernel_dgram_send(systemd_initctl_t)
 
 init_rw_initctl(systemd_initctl_t)
 init_stream_connectto(systemd_initctl_t)
+
+########################################
+#
+# systemd_importd local policy
+#
+allow systemd_importd_t self:capability { chown fowner fsetid mknod setpcap sys_admin };
+allow systemd_importd_t self:process { setcap setfscreate };
+allow systemd_importd_t self:unix_stream_socket create_stream_socket_perms;
+allow systemd_importd_t self:unix_dgram_socket create_socket_perms;
+allow systemd_importd_t self:tcp_socket create_socket_perms;
+allow systemd_importd_t self:udp_socket create_socket_perms;
+allow systemd_importd_t self:unix_dgram_socket sendto;
+
+manage_dirs_pattern(systemd_importd_t, systemd_importd_var_run_t, systemd_importd_var_run_t)
+manage_files_pattern(systemd_importd_t, systemd_importd_var_run_t, systemd_importd_var_run_t)
+manage_sock_files_pattern(systemd_importd_t, systemd_importd_var_run_t, systemd_importd_var_run_t)
+init_pid_filetrans(systemd_importd_t, systemd_importd_var_run_t, dir)
+
+manage_dirs_pattern(systemd_importd_t, systemd_importd_tmp_t, systemd_importd_tmp_t)
+manage_files_pattern(systemd_importd_t, systemd_importd_tmp_t, systemd_importd_tmp_t)
+files_tmp_filetrans(systemd_importd_t, systemd_importd_tmp_t, { dir file })
+
+kernel_dgram_send(systemd_importd_t)
+kernel_read_system_state(systemd_importd_t)
+
+auth_read_passwd(systemd_importd_t)
+
+corecmd_exec_bin(systemd_importd_t)
+
+corenet_tcp_connect_http_port(systemd_importd_t)
+
+fs_getattr_xattr_fs(systemd_importd_t)
+
+init_read_state(systemd_importd_t)
+
+logging_send_syslog_msg(systemd_importd_t)
+
+miscfiles_read_certs(systemd_importd_t)
+
+sysnet_read_config(systemd_importd_t)
+
+optional_policy(`
+    systemd_machined_manage_lib_files(systemd_importd_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(systemd_importd_t)
+    dbus_acquire_svc_system_dbusd(systemd_importd_t)
+')
+
+optional_policy(`
+    gpg_exec(systemd_importd_t)
+')
