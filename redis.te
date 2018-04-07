@@ -5,6 +5,13 @@ policy_module(redis, 1.0.1)
 # Declarations
 #
 
+## <desc>
+## <p>
+## Allow Redis to run redis-sentinal notification scripts.
+## </p>
+## </desc>
+gen_tunable(redis_enable_notify, false)
+
 type redis_t;
 type redis_exec_t;
 init_daemon_domain(redis_t, redis_exec_t)
@@ -74,11 +81,15 @@ corenet_sendrecv_redis_server_packets(redis_t)
 corenet_tcp_bind_redis_port(redis_t)
 corenet_tcp_sendrecv_redis_port(redis_t)
 
-corecmd_exec_shell(redis_t)
-
 dev_read_sysfs(redis_t)
 dev_read_urand(redis_t)
 
 logging_send_syslog_msg(redis_t)
 
 sysnet_dns_name_resolve(redis_t)
+
+tunable_policy(`redis_enable_notify',`
+    corecmd_exec_bin(redis_t)
+    corecmd_exec_shell(redis_t)
+    sendmail_domtrans(redis_t)
+')
