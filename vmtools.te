@@ -26,6 +26,9 @@ systemd_unit_file(vmtools_unit_file_t)
 type vmtools_tmp_t;
 files_tmp_file(vmtools_tmp_t)
 
+type vmtools_unconfined_exec_t;
+application_executable_file(vmtools_unconfined_exec_t)
+
 ########################################
 #
 # vmtools local policy
@@ -103,3 +106,29 @@ optional_policy(`
     unconfined_domain(vmtools_helper_t)
 ')
 
+########################################
+#
+# vmtools_unconfined_script_t local policy
+#
+
+optional_policy(`
+	type vmtools_unconfined_t;
+	domain_type(vmtools_unconfined_t)
+
+	domain_entry_file(vmtools_unconfined_t, vmtools_unconfined_exec_t)
+	role system_r types vmtools_unconfined_t;
+
+	domtrans_pattern(vmtools_t, vmtools_unconfined_exec_t, vmtools_unconfined_t)
+
+	allow vmtools_t vmtools_unconfined_exec_t:dir search_dir_perms;
+	allow vmtools_t vmtools_unconfined_exec_t:dir read_file_perms;
+	allow vmtools_t vmtools_unconfined_exec_t:file ioctl;
+
+	init_domtrans_script(vmtools_unconfined_t)
+
+    corecmd_exec_shell(vmtools_unconfined_t)
+
+	optional_policy(`
+		unconfined_domain(vmtools_unconfined_t)
+	')
+')
