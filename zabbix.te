@@ -13,6 +13,14 @@ policy_module(zabbix, 1.6.0)
 ## </desc>
 gen_tunable(zabbix_can_network, false)
 
+
+## <desc>
+## <p>
+## Allow Zabbix to run su/sudo.
+## </p>
+## </desc>
+gen_tunable(zabbix_run_sudo, false)
+
 attribute zabbix_domain;
 
 type zabbix_t, zabbix_domain;
@@ -139,6 +147,31 @@ tunable_policy(`zabbix_can_network',`
 	corenet_tcp_sendrecv_all_ports(zabbix_t)
 ')
 
+tunable_policy(`zabbix_run_sudo',`
+    allow zabbix_t self:capability { setuid setgid sys_resource };
+    allow zabbix_t self:process { setrlimit setsched };
+    allow zabbix_t self:key write;
+    allow zabbix_t self:passwd { passwd rootok };
+
+    auth_rw_lastlog(zabbix_t)
+    auth_rw_faillog(zabbix_t)
+    auth_exec_chkpwd(zabbix_t)
+
+    selinux_compute_access_vector(zabbix_t)
+
+    systemd_write_inherited_logind_sessions_pipes(zabbix_t)
+    systemd_dbus_chat_logind(zabbix_t)
+
+    xserver_exec_xauth(zabbix_t)
+')
+
+optional_policy(`
+    tunable_policy(`zabbix_run_sudo',`
+        sudo_exec(zabbix_t)
+        su_exec(zabbix_t)
+    ')
+')
+
 optional_policy(`
 	mysql_stream_connect(zabbix_t)
 ')
@@ -236,6 +269,31 @@ logging_search_logs(zabbix_agent_t)
 sysnet_dns_name_resolve(zabbix_agent_t)
 
 zabbix_tcp_connect(zabbix_agent_t)
+
+tunable_policy(`zabbix_run_sudo',`
+    allow zabbix_agent_t self:capability { setuid setgid sys_resource };
+    allow zabbix_agent_t self:process { setrlimit setsched };
+    allow zabbix_agent_t self:key write;
+    allow zabbix_agent_t self:passwd { passwd rootok };
+
+    auth_rw_lastlog(zabbix_agent_t)
+    auth_rw_faillog(zabbix_agent_t)
+    auth_exec_chkpwd(zabbix_agent_t)
+
+    selinux_compute_access_vector(zabbix_agent_t)
+
+    systemd_write_inherited_logind_sessions_pipes(zabbix_agent__t)
+    systemd_dbus_chat_logind(zabbix_agent_t)
+
+    xserver_exec_xauth(zabbix_agent_t)
+')
+
+optional_policy(`
+    tunable_policy(`zabbix_run_sudo',`
+        sudo_exec(zabbix_agent_t)
+        su_exec(zabbix_agent_t)
+    ')
+')
 
 optional_policy(`
 	dmidecode_domtrans(zabbix_agent_t)
