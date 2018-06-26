@@ -34,7 +34,7 @@ files_tmp_file(psad_tmp_t)
 
 allow psad_t self:capability { net_admin net_raw setuid setgid dac_read_search  };
 dontaudit psad_t self:capability sys_tty_config;
-allow psad_t self:process signal_perms;
+allow psad_t self:process { setrlimit signal_perms };
 allow psad_t self:fifo_file rw_fifo_file_perms;
 allow psad_t self:rawip_socket create_socket_perms;
 
@@ -87,11 +87,21 @@ auth_use_nsswitch(psad_t)
 logging_read_generic_logs(psad_t)
 logging_read_syslog_config(psad_t)
 logging_send_syslog_msg(psad_t)
+logging_mmap_journal(psad_t)
 
 sysnet_exec_ifconfig(psad_t)
 
 optional_policy(`
+    dbus_stream_connect_system_dbusd(psad_t)
+    dbus_send_system_bus(psad_t)
+')
+
+optional_policy(`
 	iptables_domtrans(psad_t)
+')
+
+optional_policy(`
+    journalctl_exec(psad_t)
 ')
 
 optional_policy(`
