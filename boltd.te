@@ -1,0 +1,38 @@
+policy_module(boltd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type boltd_t;
+type boltd_exec_t;
+init_daemon_domain(boltd_t, boltd_exec_t)
+
+type boltd_var_lib_t;
+files_type(boltd_var_lib_t)
+
+########################################
+#
+# boltd local policy
+#
+allow boltd_t self:capability dac_read_search;
+
+allow boltd_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow boltd_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(boltd_t, boltd_var_lib_t, boltd_var_lib_t)
+manage_files_pattern(boltd_t, boltd_var_lib_t, boltd_var_lib_t)
+manage_lnk_files_pattern(boltd_t, boltd_var_lib_t, boltd_var_lib_t)
+files_var_lib_filetrans(boltd_t, boltd_var_lib_t, { dir file lnk_file })
+
+kernel_dgram_send(boltd_t)
+
+auth_use_nsswitch(boltd_t)
+
+dev_list_sysfs(boltd_t)
+dev_rw_sysfs(boltd_t)
+
+optional_policy(`
+    udev_read_db(boltd_t)
+')
