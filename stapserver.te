@@ -21,6 +21,9 @@ files_pid_file(stapserver_var_run_t)
 type stapserver_tmp_t;
 files_tmp_file(stapserver_tmp_t)
 
+type stapserver_tmpfs_t;
+userdom_user_tmpfs_file(stapserver_tmpfs_t)
+
 ########################################
 #
 # stapserver local policy
@@ -41,6 +44,7 @@ allow stapserver_t self:tcp_socket { accept listen };
 manage_dirs_pattern(stapserver_t, stapserver_var_lib_t, stapserver_var_lib_t)
 manage_files_pattern(stapserver_t, stapserver_var_lib_t, stapserver_var_lib_t)
 files_var_lib_filetrans(stapserver_t, stapserver_var_lib_t, dir)
+allow stapserver_t stapserver_var_lib_t:file map;
 
 manage_dirs_pattern(stapserver_t, stapserver_log_t, stapserver_log_t)
 manage_files_pattern(stapserver_t, stapserver_log_t, stapserver_log_t)
@@ -50,14 +54,19 @@ manage_dirs_pattern(stapserver_t, stapserver_tmp_t, stapserver_tmp_t)
 manage_files_pattern(stapserver_t, stapserver_tmp_t, stapserver_tmp_t)
 manage_lnk_files_pattern(stapserver_t, stapserver_tmp_t, stapserver_tmp_t)
 files_tmp_filetrans(stapserver_t, stapserver_tmp_t, { file dir })
-allow stapserver_t stapserver_tmp_t:file map;
+allow stapserver_t stapserver_tmp_t:file { execute map };
 
 manage_dirs_pattern(stapserver_t, stapserver_var_run_t, stapserver_var_run_t)
 manage_files_pattern(stapserver_t, stapserver_var_run_t, stapserver_var_run_t)
 files_pid_filetrans(stapserver_t, stapserver_var_run_t, dir )
 
+manage_files_pattern(stapserver_t, stapserver_tmpfs_t, stapserver_tmpfs_t)
+manage_dirs_files_pattern(stapserver_t, stapserver_tmpfs_t, stapserver_tmpfs_t)
+fs_tmpfs_filetrans(stapserver_t, stapserver_tmpfs_t, { file dir })
+
 kernel_read_system_state(stapserver_t)
 kernel_read_kernel_sysctls(stapserver_t)
+kernel_read_fs_sysctls(stapserver_t)
 files_list_kernel_modules(stapserver_t)
 
 corecmd_exec_bin(stapserver_t)
@@ -114,3 +123,6 @@ optional_policy(`
 	rpm_exec(stapserver_t)
 ')
 
+optional_policy(`
+	rpc_search_nfs_state_data(stapserver_t)
+')
