@@ -313,6 +313,86 @@ interface(`mysql_rw_db_sockets',`
 
 ########################################
 ## <summary>
+##	Allow the specified domain to append to MySQL log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mysql_append_log',`
+	gen_require(`
+		type mysqld_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 mysqld_log_t:dir list_dir_perms;
+	append_files_pattern($1, mysqld_log_t, mysqld_log_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to append to the MySQL logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`mysql_dontaudit_append_log',`
+	gen_require(`
+		type mysqld_log_t;
+	')
+
+	dontaudit $1 mysqld_log_t:file append_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read MySQL log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mysql_read_log',`
+	gen_require(`
+		type mysqld_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 mysqld_log_t:dir list_dir_perms;
+	read_files_pattern($1, mysqld_log_t, mysqld_log_t)
+	read_lnk_files_pattern($1, mysqld_log_t, mysqld_log_t)
+')
+
+########################################
+## <summary>
+##	dontaudit attempts to read MySQL log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mysql_dontaudit_read_log',`
+	gen_require(`
+		type mysqld_log_t;
+	')
+
+	dontaudit $1 mysqld_log_t:file read_file_perms;
+	dontaudit $1 mysqld_log_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
 ##	Write to the MySQL log.
 ## </summary>
 ## <param name="domain">
@@ -328,6 +408,25 @@ interface(`mysql_write_log',`
 
 	logging_search_logs($1)
 	allow $1 mysqld_log_t:file { write_file_perms setattr_file_perms };
+')
+
+########################################
+## <summary>
+##	dontaudit attempts to write to the MySQL log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mysql_dontaudit_write_log',`
+	gen_require(`
+		type mysqld_log_t;
+	')
+
+	dontaudit $1 mysqld_log_t:file { write_file_perms setattr_file_perms };
 ')
 
 ######################################
