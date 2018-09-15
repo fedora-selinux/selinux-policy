@@ -62,7 +62,11 @@ files_pid_filetrans(cockpit_ws_t, cockpit_var_run_t, { file dir sock_file })
 manage_files_pattern(cockpit_ws_t, cockpit_var_lib_t, cockpit_var_lib_t)
 manage_dirs_pattern(cockpit_ws_t, cockpit_var_lib_t, cockpit_var_lib_t)
 
+kernel_read_network_state(cockpit_ws_t)
+
 auth_use_nsswitch(cockpit_ws_t)
+
+corecmd_exec_bin(cockpit_ws_t)
 
 files_mmap_usr_files(cockpit_ws_t)
 
@@ -70,12 +74,18 @@ init_stream_connect(cockpit_ws_t)
 
 logging_send_syslog_msg(cockpit_ws_t)
 
+sysnet_exec_ifconfig(cockpit_ws_t)
+
 # cockpit-ws launches cockpit-session
 cockpit_session_domtrans(cockpit_ws_t)
 allow cockpit_ws_t cockpit_session_t:process signal_perms;
 
 # cockpit-session communicates back with cockpit-ws
 allow cockpit_session_t cockpit_ws_t:unix_stream_socket rw_stream_socket_perms;
+
+optional_policy(`
+    hostname_exec(cockpit_ws_t)
+')
 
 optional_policy(`
     kerberos_use(cockpit_ws_t)
