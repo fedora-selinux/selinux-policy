@@ -30,6 +30,7 @@ allow rhnsd_t self:capability { kill };
 allow rhnsd_t self:process { fork signal };
 allow rhnsd_t self:fifo_file rw_fifo_file_perms;
 allow rhnsd_t self:unix_stream_socket create_stream_socket_perms;
+allow rhnsd_t self:udp_socket create_socket_perms;
 
 manage_dirs_pattern(rhnsd_t, rhnsd_var_run_t, rhnsd_var_run_t)
 manage_files_pattern(rhnsd_t, rhnsd_var_run_t, rhnsd_var_run_t)
@@ -38,11 +39,22 @@ files_pid_filetrans(rhnsd_t, rhnsd_var_run_t, { dir file })
 manage_files_pattern(rhnsd_t, rhnsd_conf_t, rhnsd_conf_t)
 manage_lnk_files_pattern(rhnsd_t, rhnsd_conf_t, rhnsd_conf_t)
 
+auth_use_nsswitch(rhnsd_t)
+
 corecmd_exec_bin(rhnsd_t)
 
 logging_send_syslog_msg(rhnsd_t)
 
+miscfiles_read_certs(rhnsd_t)
+
+sysnet_read_config(rhnsd_t)
+
+optional_policy(`
+    gnome_read_generic_data_home_dirs(rhnsd_t)
+')
+
 optional_policy(`
     # execute rhn_check
     rpm_domtrans(rhnsd_t)
+    rpm_read_log(rhnsd_t)
 ')
