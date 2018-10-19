@@ -77,6 +77,9 @@ domain_type(gpg_web_t)
 gpg_entry_type(gpg_web_t)
 role system_r types gpg_web_t;
 
+type gpg_tmpfs_t;
+files_tmpfs_file(gpg_tmpfs_t)
+
 ########################################
 #
 # GPG local policy
@@ -262,6 +265,11 @@ manage_files_pattern(gpg_agent_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
 manage_sock_files_pattern(gpg_agent_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
 files_tmp_filetrans(gpg_agent_t, gpg_agent_tmp_t, { file sock_file dir })
 
+manage_dirs_pattern(gpg_t, gpg_tmpfs_t, gpg_tmpfs_t)
+manage_files_pattern(gpg_t, gpg_tmpfs_t, gpg_tmpfs_t)
+manage_sock_files_pattern(gpg_t, gpg_tmpfs_t, gpg_tmpfs_t)
+fs_tmpfs_filetrans(gpg_t, gpg_tmpfs_t, { dir file sock_file })
+
 # allow gpg to connect to the gpg agent
 stream_connect_pattern(gpg_t, gpg_agent_tmp_t, gpg_agent_tmp_t, gpg_agent_t)
 
@@ -283,6 +291,8 @@ dev_dontaudit_getattr_all_blk_files(gpg_agent_t)
 domain_use_interactive_fds(gpg_agent_t)
 
 fs_dontaudit_list_inotifyfs(gpg_agent_t)
+
+init_getattr_initctl(gpg_agent_t)
 
 logging_send_syslog_msg(gpg_agent_t)
 
@@ -315,6 +325,10 @@ optional_policy(`
 
 optional_policy(`
 	pcscd_stream_connect(gpg_agent_t)
+')
+
+optional_policy(`
+    gpm_getattr_gpmctl(gpg_agent_t)
 ')
 
 optional_policy(`
