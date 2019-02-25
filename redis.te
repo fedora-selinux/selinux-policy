@@ -89,7 +89,25 @@ logging_send_syslog_msg(redis_t)
 sysnet_dns_name_resolve(redis_t)
 
 tunable_policy(`redis_enable_notify',`
+	# allow httpd to connect to mail servers
+	corenet_tcp_connect_smtp_port(redis_t)
+	corenet_sendrecv_smtp_client_packets(redis_t)
+	corenet_tcp_connect_pop_port(redis_t)
+    corenet_sendrecv_pop_client_packets(redis_t)
+
     corecmd_exec_bin(redis_t)
     corecmd_exec_shell(redis_t)
-    sendmail_domtrans(redis_t)
+')
+
+optional_policy(`
+    tunable_policy(`redis_enable_notify',`
+	    mta_send_mail(redis_t)
+	    mta_signal_system_mail(redis_t)
+    ')
+')
+
+optional_policy(`
+    tunable_policy(`redis_enable_notify',`
+        postfix_rw_spool_maildrop_files(redis_t)
+    ')
 ')
