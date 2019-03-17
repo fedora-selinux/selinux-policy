@@ -1408,12 +1408,15 @@ template(`userdom_unpriv_user_template', `
 	# Local policy
 	#
 	allow $1_t self:capability { setgid chown fowner };
-    allow $1_t self:bluetooth_socket create_socket_perms;
     allow $1_t self:alg_socket create_socket_perms;
     allow $1_t self:dccp_socket create_socket_perms;
     allow $1_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
     dontaudit $1_t self:capability { setuid };
     dontaudit $1_t self:netlink_selinux_socket create_socket_perms;
+
+tunable_policy(`deny_bluetooth',`',`
+    allow $1_t self:bluetooth_socket create_socket_perms;
+')
 
 	corecmd_exec_chroot($1_t)
 
@@ -1584,11 +1587,14 @@ template(`userdom_admin_user_template',`
 
     allow $1_t self:bpf { map_create map_read map_write prog_load prog_run };
 
-    allow $1_t self:bluetooth_socket create_stream_socket_perms;
     allow $1_t self:alg_socket create_stream_socket_perms;
     allow $1_t self:dccp_socket create_stream_socket_perms;
 
     allow $1_t self:cap_userns sys_ptrace;
+
+    tunable_policy(`deny_bluetooth',`',`
+        allow $1_t self:bluetooth_socket create_stream_socket_perms;
+    ')
 
 	kernel_read_software_raid_state($1_t)
 	kernel_getattr_core_if($1_t)
