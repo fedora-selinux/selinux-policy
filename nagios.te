@@ -203,7 +203,7 @@ mta_kill_system_mail(nagios_t)
 systemd_exec_systemctl(nagios_t)
 
 tunable_policy(`nagios_run_sudo',`
-    allow nagios_t self:capability { setuid setgid sys_resource sys_ptrace };
+    allow nagios_t self:capability { chown setuid setgid sys_resource sys_ptrace };
     allow nagios_t self:process { setrlimit setsched };
 
     allow nagios_t self:key write;
@@ -228,9 +228,19 @@ optional_policy(`
 ')
 
 optional_policy(`
+    dbus_system_bus_client(nagios_t)
+')
+
+optional_policy(`
     tunable_policy(`nagios_run_sudo',`
         sudo_exec(nagios_t)
         sudo_manage_db(nagios_t)
+    ')
+')
+
+optional_policy(`
+    tunable_policy(`nagios_run_sudo',`
+	    init_read_utmp(nagios_t)
     ')
 ')
 
