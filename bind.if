@@ -337,6 +337,25 @@ interface(`bind_manage_cache',`
 
 ########################################
 ## <summary>
+##	Read bind pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_read_pid_files',`
+	gen_require(`
+		type named_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, named_var_run_t, named_var_run_t)
+')
+
+########################################
+## <summary>
 ##	Set attributes of bind pid directories.
 ## </summary>
 ## <param name="domain">
@@ -543,4 +562,23 @@ interface(`bind_admin',`
 	admin_pattern($1, named_unit_file_t)
 	bind_systemctl($1)
 	allow $1 named_unit_file_t:service all_service_perms;
+')
+
+######################################
+## <summary>
+##	Execute bind in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_exec',`
+	gen_require(`
+		type named_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, named_exec_t)
 ')
