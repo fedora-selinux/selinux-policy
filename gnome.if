@@ -127,6 +127,8 @@ template(`gnome_role_template',`
 	allow $3 $1_gkeyringd_t:fd use;
 	allow $3 $1_gkeyringd_t:fifo_file rw_fifo_file_perms;
 
+    allow $3 $1_gkeyringd_t:dbus { acquire_svc };
+
 	stream_connect_pattern($3, gkeyringd_tmp_t, gkeyringd_tmp_t, $1_gkeyringd_t)
 
 	kernel_read_system_state($1_gkeyringd_t)
@@ -144,12 +146,13 @@ template(`gnome_role_template',`
 
     userdom_rw_user_tmp_sock_files($1_gkeyringd_t)
 
-	allow $1_gkeyringd_t $3:dbus send_msg;
+	allow $1_gkeyringd_t $3:dbus { acquire_svc send_msg };
 	allow $3 $1_gkeyringd_t:dbus send_msg;
 
 	optional_policy(`
         dbus_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
-        dbus_dontaudit_stream_connect_system_dbusd($1_gkeyringd_t)
+        dbus_stream_connect_system_dbusd($1_gkeyringd_t)
+        dbus_send_system_bus($1_gkeyringd_t)
 		gnome_manage_generic_home_dirs($1_gkeyringd_t)
 		gnome_read_generic_data_home_files($1_gkeyringd_t)
 		gnome_read_generic_data_home_dirs($1_gkeyringd_t)
