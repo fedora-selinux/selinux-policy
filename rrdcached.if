@@ -1,0 +1,97 @@
+
+## <summary>rrdcached - Daemon that receives updates to existing RRD files, accumulates them and writes the updates to the RRD file.</summary>
+
+########################################
+## <summary>
+##	Execute rrdcached_exec_t in the rrdcached domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rrdcached_domtrans',`
+	gen_require(`
+		type rrdcached_t, rrdcached_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rrdcached_exec_t, rrdcached_t)
+')
+
+######################################
+## <summary>
+##	Execute rrdcached in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rrdcached_exec',`
+	gen_require(`
+		type rrdcached_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, rrdcached_exec_t)
+')
+########################################
+## <summary>
+##	Read rrdcached PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rrdcached_read_pid_files',`
+	gen_require(`
+		type rrdcached_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, rrdcached_var_run_t, rrdcached_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an rrdcached environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rrdcached_admin',`
+	gen_require(`
+		type rrdcached_t;
+		type rrdcached_var_run_t;
+	')
+
+	allow $1 rrdcached_t:process { signal_perms };
+	ps_process_pattern($1, rrdcached_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 rrdcached_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+	admin_pattern($1, rrdcached_var_run_t)
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
