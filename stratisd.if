@@ -1,0 +1,96 @@
+## <summary>Daemon to create and monitor storage pools</summary>
+
+########################################
+## <summary>
+##  Execute stratisd_exec_t in the stratisd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`stratisd_domtrans',`
+	gen_require(`
+		type stratisd_t, stratisd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, stratisd_exec_t, stratisd_t)
+')
+
+######################################
+## <summary>
+##	Execute stratisd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`stratisd_exec',`
+	gen_require(`
+		type stratisd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, stratisd_exec_t)
+')
+
+########################################
+## <summary>
+##	Read stratisd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`stratisd_read_pid_files',`
+	gen_require(`
+		type stratisd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, stratisd_var_run_t, stratisd_var_run_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an stratisd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`stratisd_admin',`
+	gen_require(`
+		type stratisd_t;
+		type stratisd_var_run_t;
+	')
+
+	allow $1 stratisd_t:process { signal_perms };
+	ps_process_pattern($1, stratisd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 stratisd_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+	admin_pattern($1, stratisd_var_run_t)
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
