@@ -94,10 +94,18 @@ mta_system_content(crond_var_run_t)
 type crontab_exec_t;
 application_executable_file(crontab_exec_t)
 
+type admin_crontab_tmp_t;
+files_tmp_file(admin_crontab_tmp_t)
+
+type admin_crontab_t;
 cron_common_crontab_template(admin_crontab)
 typealias admin_crontab_t alias sysadm_crontab_t;
 typealias admin_crontab_tmp_t alias sysadm_crontab_tmp_t;
 
+type crontab_tmp_t;
+files_tmp_file(crontab_tmp_t)
+
+type crontab_t;
 cron_common_crontab_template(crontab)
 typealias crontab_t alias { user_crontab_t staff_crontab_t };
 typealias crontab_t alias { auditadm_crontab_t secadm_crontab_t };
@@ -147,6 +155,10 @@ ifdef(`enable_mcs',`
 
 # Allow our crontab domain to unlink a user cron spool file.
 allow admin_crontab_t user_cron_spool_t:file { read_file_perms delete_file_perms };
+
+manage_dirs_pattern(admin_crontab_t, admin_crontab_tmp_t, admin_crontab_tmp_t)
+manage_files_pattern(admin_crontab_t, admin_crontab_tmp_t, admin_crontab_tmp_t)
+files_tmp_filetrans(admin_crontab_t, admin_crontab_tmp_t, { dir file })
 
 # Manipulate other users crontab.
 selinux_get_fs_mount(admin_crontab_t)
@@ -812,6 +824,10 @@ allow crontab_domain self:fifo_file rw_fifo_file_perms;
 
 allow crontab_domain crond_t:process signal;
 allow crontab_domain crond_var_run_t:file read_file_perms;
+
+manage_dirs_pattern(crontab_t, crontab_tmp_t, crontab_tmp_t)
+manage_files_pattern(crontab_t, crontab_tmp_t, crontab_tmp_t)
+files_tmp_filetrans(crontab_t, crontab_tmp_t, { dir file })
 
 corecmd_exec_bin(crontab_domain)
 corecmd_exec_shell(crontab_domain)
