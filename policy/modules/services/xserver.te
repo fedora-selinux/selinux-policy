@@ -232,6 +232,9 @@ files_type(xdm_var_lib_t)
 type xdm_var_run_t;
 files_pid_file(xdm_var_run_t)
 
+type xdm_unit_file_t;
+systemd_unit_file(xdm_unit_file_t)
+
 type xserver_var_lib_t;
 files_type(xserver_var_lib_t)
 
@@ -422,7 +425,7 @@ optional_policy(`
 
 allow xdm_t self:capability { setgid setuid sys_resource kill sys_tty_config mknod chown dac_read_search dac_override fowner fsetid ipc_owner sys_nice sys_rawio net_bind_service net_admin sys_ptrace };
 allow xdm_t self:capability2 { block_suspend };
-allow xdm_t self:cap_userns { kill sys_ptrace };
+allow xdm_t self:cap_userns { kill sys_admin sys_ptrace };
 dontaudit xdm_t self:capability sys_admin;
 dontaudit xdm_t self:capability2 wake_alarm;
 tunable_policy(`deny_ptrace',`',`
@@ -449,6 +452,8 @@ allow xdm_t xauth_home_t:file manage_file_perms;
 allow xdm_t xserver_unconfined_type:process { signull };
 
 allow xdm_t x_domain:system { status reload };
+
+allow xdm_t xdm_unit_file_t:service { status start };
 
 allow xdm_t xconsole_device_t:fifo_file { getattr_fifo_file_perms setattr_fifo_file_perms };
 manage_dirs_pattern(xdm_t, xkb_var_lib_t, xkb_var_lib_t)
@@ -550,6 +555,7 @@ allow xdm_t xserver_log_t:file map;
 
 kernel_read_system_state(xdm_t)
 kernel_read_device_sysctls(xdm_t)
+kernel_read_sysctl(xdm_t)
 kernel_read_kernel_sysctls(xdm_t)
 kernel_read_net_sysctls(xdm_t)
 kernel_read_network_state(xdm_t)
@@ -762,6 +768,7 @@ userdom_filetrans_generic_home_content(xdm_t)
 
 optional_policy(`
     dbus_stream_connect_session_bus(xdm_t)
+    dbus_systemctl(xdm_t)
 ')
 
 optional_policy(`
@@ -1757,6 +1764,10 @@ optional_policy(`
 
 optional_policy(`
 	pulseaudio_stream_connect(x_userdomain)
+')
+
+optional_policy(`
+	thumb_nnp_domtrans(x_userdomain)
 ')
 
 tunable_policy(`selinuxuser_direct_dri_enabled',`

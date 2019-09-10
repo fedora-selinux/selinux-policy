@@ -10,6 +10,7 @@ role sysadm_r;
 userdom_admin_user_template(sysadm)
 allow sysadm_t self:socket { accept listen };
 allow sysadm_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
+allow sysadm_t self:netlink_selinux_socket create_socket_perms;
 allow sysadm_t self:netlink_generic_socket create_socket_perms;
 allow sysadm_t self:tipc_socket create_socket_perms;
 allow sysadm_t self:sctp_socket create_socket_perms;
@@ -206,7 +207,7 @@ optional_policy(`
 ')
 
 optional_policy(`
-	cron_admin_role(sysadm_r, sysadm_t)
+	cron_admin_role(sysadm_r, sysadm)
 ')
 
 optional_policy(`
@@ -219,7 +220,7 @@ optional_policy(`
 
 optional_policy(`
 	dbus_role_template(sysadm, sysadm_r, sysadm_t)
-
+    dbus_connect_system_bus(sysadm_t)
 	dontaudit sysadm_dbusd_t self:capability net_admin;
 
     optional_policy(`
@@ -479,6 +480,11 @@ optional_policy(`
 optional_policy(`
 	rpm_run(sysadm_t, sysadm_r)
 	rpm_dbus_chat(sysadm_t, sysadm_r)
+    rpm_hawkey_named_filetrans(sysadm_t)
+')
+
+optional_policy(`
+    rtkit_daemon_dbus_chat(sysadm_t)
 ')
 
 optional_policy(`
@@ -617,6 +623,7 @@ optional_policy(`
 
 optional_policy(`
     wireshark_role(sysadm_r, sysadm_t)
+    wireshark_rw_shm(sysadm_t)
 ')
 
 optional_policy(`

@@ -253,6 +253,7 @@ interface(`systemd_dontaudit_read_unit_files',`
         ')
 
         dontaudit $1 systemd_unit_file_type:file read_file_perms;
+        dontaudit $1 systemd_unit_file_type:dir list_dir_perms;
 ')
 
 ######################################
@@ -1938,6 +1939,7 @@ interface(`systemd_machined_manage_lib_files',`
         ')
 
         files_search_var_lib($1)
+        manage_dirs_pattern($1, systemd_machined_var_lib_t, systemd_machined_var_lib_t)
         manage_files_pattern($1, systemd_machined_var_lib_t, systemd_machined_var_lib_t)
 ')
 
@@ -2096,7 +2098,27 @@ interface(`systemd_allow_mount_dir',`
         attribute systemd_mount_directory;
     ')
 
-    allow $1 systemd_mount_directory:dir mounton;
+    allow $1 systemd_mount_directory:dir { list_dir_perms mounton };
+')
+
+########################################
+## <summary>
+##	Allow process to create directory configured in a
+##  systemd unit as ReadWriteDirectory or ReadOnlyDirectory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`systemd_allow_create_mount_dir',`
+    gen_require(`
+        attribute systemd_mount_directory;
+    ')
+
+    allow $1 systemd_mount_directory:dir create_dir_perms;
 ')
 
 ########################################
@@ -2175,4 +2197,44 @@ interface(`systemd_dbus_chat_resolved',`
 	allow $1 systemd_resolved_t:dbus send_msg;
 	allow systemd_resolved_t $1:dbus send_msg;
 	ps_process_pattern(systemd_resolved_t, $1)
+')
+
+######################################
+## <summary>
+##	Make the specified type usable as a systemd private tmp type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Type to be used as a private tmp type.
+##	</summary>
+## </param>
+#
+interface(`systemd_private_tmp',`
+	gen_require(`
+		attribute systemd_private_tmp_type;
+	')
+
+	typeattribute $1 systemd_private_tmp_type;
+')
+
+#######################################
+## <summary>
+##	Delete filesystem objects with systemd_delete_private_tmp attribute
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`systemd_delete_private_tmp',`
+	gen_require(`
+		attribute systemd_private_tmp_type;
+	')
+
+	allow $1 systemd_private_tmp_type:dir delete_dir_perms;
+	allow $1 systemd_private_tmp_type:fifo_file delete_fifo_file_perms;
+	allow $1 systemd_private_tmp_type:file delete_file_perms;
+	allow $1 systemd_private_tmp_type:lnk_file delete_lnk_file_perms;
+	allow $1 systemd_private_tmp_type:sock_file delete_sock_file_perms;
 ')

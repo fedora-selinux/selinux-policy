@@ -60,6 +60,9 @@ files_pid_file(auditd_var_run_t)
 type auditd_unit_file_t;
 systemd_unit_file(auditd_unit_file_t)
 
+type auditd_tmp_t;
+files_tmp_file(auditd_tmp_t)
+
 type audisp_t;
 type audisp_exec_t;
 init_system_domain(audisp_t, audisp_exec_t)
@@ -187,6 +190,10 @@ logging_log_filetrans(auditd_t, auditd_log_t, dir, "audit")
 manage_files_pattern(auditd_t, auditd_var_run_t, auditd_var_run_t)
 manage_sock_files_pattern(auditd_t, auditd_var_run_t, auditd_var_run_t)
 files_pid_filetrans(auditd_t, auditd_var_run_t, { file sock_file })
+
+manage_files_pattern(auditd_t, auditd_tmp_t, auditd_tmp_t)
+manage_dirs_pattern(auditd_t, auditd_tmp_t, auditd_tmp_t)
+files_tmp_filetrans(auditd_t, auditd_tmp_t, { file dir })
 
 kernel_read_kernel_sysctls(auditd_t)
 # Needs to be able to run dispatcher.  see /etc/audit/auditd.conf
@@ -372,6 +379,10 @@ systemd_start_power_services(audisp_remote_t)
 term_search_ptys(audisp_remote_t)
 
 userdom_use_user_ptys(audisp_remote_t)
+
+optional_policy(`
+    kerberos_read_keytab(audisp_remote_t)
+')
 
 ########################################
 #
