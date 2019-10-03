@@ -77,8 +77,6 @@ SED ?= sed
 SORT ?= LC_ALL=C sort
 UMASK ?= umask
 
-CFLAGS += -Wall
-
 # policy source layout
 poldir := policy
 moddir := $(poldir)/modules
@@ -99,7 +97,7 @@ genxml := $(PYTHON) -E $(support)/segenxml.py
 gendoc := $(PYTHON) -E $(support)/sedoctool.py
 genperm := $(PYTHON) -E $(support)/genclassperms.py
 policyvers := $(PYTHON) -E $(support)/policyvers.py
-fcsort := $(tmpdir)/fc_sort
+fcsort := $(PYTHON) -E $(support)/fc_sort.py
 setbools := $(AWK) -f $(support)/set_bools_tuns.awk
 get_type_attr_decl := $(SED) -r -f $(support)/get_type_attr_decl.sed
 comment_move_decl := $(SED) -r -f $(support)/comment_move_decl.sed
@@ -398,13 +396,6 @@ $(mod_conf) $(booleans): $(polxml)
 
 ########################################
 #
-# Generate the fc_sort program
-#
-$(fcsort) : $(support)/fc_sort.c
-	$(verbose) $(CC) $(CFLAGS) $^ -o $@
-
-########################################
-#
 # Documentation generation
 #
 $(layerxml): %.xml: $(all_metaxml) $(filter $(addprefix $(moddir)/, $(notdir $*))%, $(detected_mods)) $(subst .te,.if, $(filter $(addprefix $(moddir)/, $(notdir $*))%, $(detected_mods)))
@@ -622,7 +613,6 @@ bare: clean
 	#rm -f $(tags)
 # don't remove these files if we're given a local root
 ifndef LOCAL_ROOT
-	rm -f $(fcsort)
 	rm -f $(support)/*.pyc
 ifneq ($(generated_te),)
 	rm -f $(generated_te)
