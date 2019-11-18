@@ -248,7 +248,7 @@ optional_policy(`
 # ipsec_mgmt Local policy
 #
 
-allow ipsec_mgmt_t self:capability { dac_read_search dac_override net_admin setpcap sys_nice sys_ptrace };
+allow ipsec_mgmt_t self:capability { dac_read_search dac_override net_admin net_raw setpcap sys_nice sys_ptrace };
 dontaudit ipsec_mgmt_t self:capability sys_tty_config;
 allow ipsec_mgmt_t self:process { getsched setrlimit setsched signal };
 allow ipsec_mgmt_t self:unix_stream_socket { create_stream_socket_perms connectto };
@@ -258,6 +258,7 @@ allow ipsec_mgmt_t self:key_socket create_socket_perms;
 allow ipsec_mgmt_t self:fifo_file rw_fifo_file_perms;
 allow ipsec_mgmt_t self:netlink_xfrm_socket { create_netlink_socket_perms nlmsg_read };
 allow ipsec_mgmt_t self:netlink_route_socket { create_netlink_socket_perms };
+allow ipsec_mgmt_t self:packet_socket create_socket_perms;
 
 allow ipsec_mgmt_t ipsec_mgmt_lock_t:file manage_file_perms;
 files_lock_filetrans(ipsec_mgmt_t, ipsec_mgmt_lock_t, file)
@@ -291,10 +292,12 @@ allow ipsec_mgmt_t ipsec_t:unix_dgram_socket { create connect write };
 
 allow ipsec_mgmt_t ipsec_t:process { signal };
 
+allow ipsec_mgmt_t ipsec_conf_file_t:dir list_dir_perms;
 allow ipsec_mgmt_t ipsec_conf_file_t:file read_file_perms;
 
 manage_files_pattern(ipsec_mgmt_t, ipsec_key_file_t, ipsec_key_file_t)
 manage_lnk_files_pattern(ipsec_mgmt_t, ipsec_key_file_t, ipsec_key_file_t)
+allow ipsec_mgmt_t ipsec_key_file_t:file map;
 
 # whack needs to connect to pluto
 stream_connect_pattern(ipsec_mgmt_t, ipsec_var_run_t, ipsec_var_run_t, ipsec_t)
@@ -315,6 +318,10 @@ kernel_getattr_message_if(ipsec_mgmt_t)
 
 # There is bug in kernel in 4.16 where lot of domains requesting module_request, for now dontauditing
 kernel_dontaudit_request_load_module(ipsec_mgmt_t)
+
+corenet_udp_bind_dhcpc_port(ipsec_mgmt_t)
+corenet_udp_bind_ipsecnat_port(ipsec_mgmt_t)
+corenet_udp_bind_isakmp_port(ipsec_mgmt_t)
 
 domain_dontaudit_getattr_all_sockets(ipsec_mgmt_t)
 domain_dontaudit_getattr_all_pipes(ipsec_mgmt_t)
