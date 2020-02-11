@@ -178,6 +178,14 @@ files_tmp_file(systemd_importd_tmp_t)
 type systemd_machined_devpts_t;
 term_login_pty(systemd_machined_devpts_t)
 
+systemd_domain_template(systemd_userdbd)
+
+type systemd_userdbd_unit_file_t;
+systemd_unit_file(systemd_userdbd_unit_file_t)
+
+type systemd_userdbd_runtime_t;
+files_pid_file(systemd_userdbd_runtime_t)
+
 #######################################
 #
 # Systemd_logind local policy
@@ -290,6 +298,7 @@ init_config_transient_files(systemd_logind_t)
 getty_systemctl(systemd_logind_t)
 
 systemd_config_generic_services(systemd_logind_t)
+systemd_userdbd_stream_connect(systemd_logind_t)
 
 # /run/user/.*
 # Actually only have proof of it creating dirs and symlinks (/run/user/$USER/X11/display)
@@ -1209,3 +1218,24 @@ optional_policy(`
 optional_policy(`
     gpg_exec(systemd_importd_t)
 ')
+
+########################################
+#
+# systemd_userdbd local policy
+#
+allow systemd_userdbd_t self:capability dac_read_search;
+
+manage_dirs_pattern(systemd_userdbd_t, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
+manage_files_pattern(systemd_userdbd_t, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
+manage_sock_files_pattern(systemd_userdbd_t, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
+init_named_pid_filetrans(systemd_userdbd_t, systemd_userdbd_runtime_t, dir, "userdb")
+
+kernel_dgram_send(systemd_userdbd_t)
+
+auth_read_shadow(systemd_userdbd_t)
+auth_use_nsswitch(systemd_userdbd_t)
+
+can_exec(systemd_userdbd_t systemd_userdbd_exec_t)
+
+init_stream_connectto(systemd_userdbd_t)
+
