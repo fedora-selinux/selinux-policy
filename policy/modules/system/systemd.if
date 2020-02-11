@@ -2256,3 +2256,65 @@ interface(`systemd_delete_private_tmp',`
 	allow $1 systemd_private_tmp_type:lnk_file delete_lnk_file_perms;
 	allow $1 systemd_private_tmp_type:sock_file delete_sock_file_perms;
 ')
+
+#######################################
+## <summary>
+##	Create objects in the pid directory
+##	with a private type with a type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_userdbd_runtime_filetrans',`
+	gen_require(`
+		type init_var_run_t;
+		type systemd_userdbd_runtime_t;
+	')
+
+	filetrans_pattern($1, init_var_run_t, systemd_userdbd_runtime_t, dir, "userdb")
+')
+
+#######################################
+## <summary>
+##	Manage systemd-userdbd data sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_userdbd_runtime_manage_sockets',`
+	gen_require(`
+		type systemd_userdbd_runtime_t;
+	')
+
+	manage_sock_files_pattern($1, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t);
+')
+
+#######################################
+## <summary>
+##	Connect to systemd-userdbd with a unix socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_userdbd_stream_connect',`
+	gen_require(`
+		type systemd_userdbd_t;
+        type systemd_userdbd_runtime_t;
+	')
+
+	files_search_pids($1)
+	list_dirs_pattern($1, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
+	read_lnk_files_pattern($1, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
+	write_sock_files_pattern($1, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
+
+	allow $1 systemd_userdbd_t:unix_stream_socket connectto;
+')
