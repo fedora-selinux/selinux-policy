@@ -11,6 +11,13 @@ gen_require(`
 
 ## <desc>
 ## <p>
+## Dontaudit all daemons scheduling requests (setsched, sys_nice).
+## </p>
+## </desc>
+gen_tunable(daemons_dontaudit_scheduling, true)
+
+## <desc>
+## <p>
 ## Allow all daemons to use tcp wrappers.
 ## </p>
 ## </desc>
@@ -1271,6 +1278,11 @@ domain_dontaudit_use_interactive_fds(daemon)
 userdom_dontaudit_list_admin_dir(daemon)
 userdom_dontaudit_search_user_tmp(daemon)
 
+tunable_policy(`daemons_dontaudit_scheduling',`
+	dontaudit daemon self:process { setsched };
+	dontaudit daemon self:capability { sys_nice };
+')
+
 tunable_policy(`daemons_use_tcp_wrapper',`
     corenet_tcp_connect_auth_port(daemon)
 ')
@@ -1881,8 +1893,6 @@ allow daemon initrc_domain:fd use;
 allow daemon initrc_domain:fifo_file rw_inherited_fifo_file_perms;
 allow daemon initrc_domain:process sigchld;
 allow initrc_domain direct_init_entry:file { getattr open read map execute };
-
-dontaudit daemon self:process { setsched };
 
 allow systemprocess initrc_domain:fd use;
 allow systemprocess initrc_domain:fifo_file rw_inherited_fifo_file_perms;
