@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
 {
 	int lines;
 	size_t start, finish, regex_len, context_len;
-	size_t line_len, buf_len, i, j;
+	size_t line_len, buf_len, i;
 	char *input_name, *output_name, *line_buf;
 
 	file_context_node_t *temp;
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 	input_name = argv[1];
 	output_name = argv[2];
 
-	i = j = lines = 0;
+	i = lines = 0;
 
 	/* Open the input file. */
 	if (!(in_file = fopen(input_name, "r"))) {
