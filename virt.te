@@ -180,6 +180,13 @@ gen_tunable(virt_read_qemu_ga_data, false)
 ## </desc>
 gen_tunable(virt_rw_qemu_ga_data, false)
 
+## <desc>
+## <p>
+## Allow virtlockd read and lock block devices.
+## </p>
+## </desc>
+gen_tunable(virt_lockd_blk_devs, false)
+
 virt_domain_template(svirt)
 role system_r types svirt_t;
 typealias svirt_t alias qemu_t;
@@ -229,6 +236,8 @@ files_pid_file(virt_var_run_t)
 
 type virt_var_lib_t, virt_file_type;
 files_mountpoint(virt_var_lib_t)
+
+type virt_var_lockd_t, virt_file_type;
 
 type virtd_t, virt_system_domain;
 type virtd_exec_t, virt_file_type;
@@ -462,6 +471,9 @@ manage_files_pattern(virtd_t, virt_var_lib_t, virt_var_lib_t)
 manage_sock_files_pattern(virtd_t, virt_var_lib_t, virt_var_lib_t)
 files_var_lib_filetrans(virtd_t, virt_var_lib_t, { file dir })
 allow virtd_t virt_var_lib_t:file { relabelfrom relabelto };
+
+manage_dirs_pattern(virtlogd_t, virt_var_lockd_t, virt_var_lockd_t)
+manage_files_pattern(virtlogd_t, virt_var_lockd_t, virt_var_lockd_t)
 
 manage_dirs_pattern(virtd_t, virt_var_run_t, virt_var_run_t)
 manage_files_pattern(virtd_t, virt_var_run_t, virt_var_run_t)
@@ -804,6 +816,10 @@ allow virtlogd_t virtd_t:file read_file_perms;
 allow virtlogd_t virtd_t:lnk_file read_lnk_file_perms;
 
 virt_manage_lib_files(virtlogd_t)
+
+tunable_policy(`virt_lockd_blk_devs',`
+	read_blk_files_pattern(virtlogd_t, device_t, device_node)
+')
 
 tunable_policy(`virt_use_nfs',`
 	fs_append_nfs_files(virtlogd_t)
