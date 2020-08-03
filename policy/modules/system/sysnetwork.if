@@ -1127,6 +1127,29 @@ interface(`sysnet_role_transition_dhcpc',`
 
 ########################################
 ## <summary>
+##	Set up filename transitions for systemd-resolved network
+##	configuration content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sysnet_filetrans_systemd_resolved',`
+	gen_require(`
+		type net_conf_t;
+	')
+
+	optional_policy(`
+		systemd_resolved_pid_filetrans($1, net_conf_t, file, "resolv.conf")
+		systemd_resolved_pid_filetrans($1, net_conf_t, file, "resolv.conf.tmp")
+		systemd_resolved_pid_filetrans($1, net_conf_t, file, "stub-resolv.conf")
+	')
+')
+
+########################################
+## <summary>
 ##	Transition to sysnet named content
 ## </summary>
 ## <param name="domain">
@@ -1138,7 +1161,6 @@ interface(`sysnet_role_transition_dhcpc',`
 interface(`sysnet_filetrans_named_content',`
 	gen_require(`
 		type net_conf_t;
-		type systemd_resolved_var_run_t;
 	')
 
 	files_etc_filetrans($1, net_conf_t, file, "resolv.conf")
@@ -1160,15 +1182,11 @@ interface(`sysnet_filetrans_named_content',`
 	init_pid_filetrans($1, net_conf_t, dir, "network")
 
 	optional_policy(`
-	    networkmanager_pid_filetrans($1, net_conf_t, file, "resolv.conf")
-	    networkmanager_pid_filetrans($1, net_conf_t, file, "resolv.conf.tmp")
-    ')
+		networkmanager_pid_filetrans($1, net_conf_t, file, "resolv.conf")
+		networkmanager_pid_filetrans($1, net_conf_t, file, "resolv.conf.tmp")
+	')
 
-    optional_policy(`
-        sysnet_filetrans_config_fromdir($1,systemd_resolved_var_run_t, file, "resolv.conf")
-        sysnet_filetrans_config_fromdir($1,systemd_resolved_var_run_t, file, "resolv.conf.tmp")
-        sysnet_filetrans_config_fromdir($1,systemd_resolved_var_run_t, file, "stub-resolv.conf")
-    ')
+	sysnet_filetrans_systemd_resolved($1)
 ')
 
 ########################################
