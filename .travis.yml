@@ -5,10 +5,25 @@ language: c
 services:
     - docker
 
+env:
+    # Expected name of target branch - this branch is fetched also from -contrib
+    # Remember to update it when creating a new release branch (CI will warn you
+    # in case you forget :)
+    # It is necessary so that people running the CI on their forks also get the
+    # right branch 
+    - TARGET_BRANCH=rawhide
+
 before_install:
+    - |
+        if [ "$TRAVIS_REPO_SLUG" = "fedora-selinux/selinux-policy" ] && \
+           [ "$TARGET_BRANCH" != "$TRAVIS_BRANCH" ]; then
+            echo "TARGET_BRANCH in .travis.yml ($TARGET_BRANCH) doesn't match TRAVIS_BRANCH ($TRAVIS_BRANCH)!"
+            exit 2
+        fi
     - cd ../
     - rm -rf selinux-policy/policy/modules/contrib
-    - git clone https://github.com/fedora-selinux/selinux-policy-contrib.git selinux-policy/policy/modules/contrib;
+    - git clone https://github.com/fedora-selinux/selinux-policy-contrib.git
+        -b "$TARGET_BRANCH" selinux-policy/policy/modules/contrib;
     - git clone https://github.com/containers/container-selinux.git
     - cp container-selinux/container.* selinux-policy/policy/modules/contrib;
     - docker pull fedora:rawhide
