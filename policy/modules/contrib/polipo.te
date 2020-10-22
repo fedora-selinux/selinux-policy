@@ -1,0 +1,166 @@
+policy_module(polipo, 1.1.1)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether polipo can
+##	access cifs file systems.
+##	</p>
+## </desc>
+gen_tunable(polipo_use_cifs, false)
+
+## <desc>
+##	<p>
+##	Determine whether Polipo can
+##	access nfs file systems.
+##	</p>
+## </desc>
+gen_tunable(polipo_use_nfs, false)
+
+## <desc>
+##	<p>
+##	Determine whether Polipo session daemon
+##	can bind tcp sockets to all unreserved ports.
+##	</p>
+## </desc>
+gen_tunable(polipo_session_bind_all_unreserved_ports, false)
+
+## <desc>
+##	<p>
+##	Determine whether calling user domains
+##	can execute Polipo daemon in the
+##	polipo_session_t domain.
+##	</p>
+## </desc>
+gen_tunable(polipo_session_users, false)
+
+## <desc>
+## <p>
+## Allow polipo to connect to all ports > 1023
+## </p>
+## </desc>
+gen_tunable(polipo_connect_all_unreserved, false)
+
+attribute polipo_daemon;
+
+type polipo_t, polipo_daemon;
+type polipo_exec_t;
+init_daemon_domain(polipo_t, polipo_exec_t)
+
+type polipo_initrc_exec_t;
+init_script_file(polipo_initrc_exec_t)
+
+type polipo_etc_t;
+files_config_file(polipo_etc_t)
+
+type polipo_cache_t;
+files_type(polipo_cache_t)
+
+type polipo_log_t;
+logging_log_file(polipo_log_t)
+
+type polipo_pid_t;
+files_pid_file(polipo_pid_t)
+
+type polipo_session_t, polipo_daemon;
+application_domain(polipo_session_t, polipo_exec_t)
+ubac_constrained(polipo_session_t)
+
+type polipo_config_home_t;
+userdom_user_home_content(polipo_config_home_t)
+
+type polipo_cache_home_t;
+userdom_user_home_content(polipo_cache_home_t)
+
+type polipo_unit_file_t;
+systemd_unit_file(polipo_unit_file_t)
+
+########################################
+#
+# Global local policy
+#
+
+allow polipo_daemon self:fifo_file rw_fifo_file_perms;
+allow polipo_daemon self:tcp_socket { listen accept };
+
+corenet_tcp_bind_generic_node(polipo_daemon)
+corenet_tcp_sendrecv_generic_if(polipo_daemon)
+corenet_tcp_sendrecv_generic_node(polipo_daemon)
+corenet_tcp_sendrecv_http_cache_port(polipo_daemon)
+corenet_tcp_bind_http_cache_port(polipo_daemon)
+corenet_sendrecv_http_cache_server_packets(polipo_daemon)
+corenet_tcp_connect_http_port(polipo_daemon)
+corenet_tcp_connect_http_cache_port(polipo_daemon)
+corenet_tcp_connect_tor_port(polipo_daemon)
+corenet_tcp_connect_flash_port(polipo_daemon)
+
+fs_search_auto_mountpoints(polipo_daemon)
+
+
+########################################
+#
+# Polipo local policy
+#
+
+read_files_pattern(polipo_t, polipo_etc_t, polipo_etc_t)
+
+manage_files_pattern(polipo_t, polipo_cache_t, polipo_cache_t)
+manage_dirs_pattern(polipo_t, polipo_cache_t, polipo_cache_t)
+files_var_filetrans(polipo_t, polipo_cache_t, dir)
+
+manage_files_pattern(polipo_t, polipo_log_t, polipo_log_t)
+logging_log_filetrans(polipo_t, polipo_log_t, file)
+
+manage_files_pattern(polipo_t, polipo_pid_t, polipo_pid_t)
+files_pid_filetrans(polipo_t, polipo_pid_t, file)
+
+auth_use_nsswitch(polipo_t)
+
+logging_send_syslog_msg(polipo_t)
+
+optional_policy(`
+	cron_system_entry(polipo_t, polipo_exec_t)
+')
+
+tunable_policy(`polipo_connect_all_unreserved',`
+    corenet_tcp_connect_all_unreserved_ports(polipo_t)
+')
+
+tunable_policy(`polipo_use_cifs',`
+	fs_manage_cifs_files(polipo_t)
+')
+
+tunable_policy(`polipo_use_nfs',`
+	fs_manage_nfs_files(polipo_t)
+')
+
+########################################
+#
+# Polipo session local policy
+#
+
+read_files_pattern(polipo_session_t, polipo_config_home_t, polipo_config_home_t)
+manage_files_pattern(polipo_session_t, polipo_cache_home_t, polipo_cache_home_t)
+
+auth_use_nsswitch(polipo_session_t)
+
+userdom_use_user_terminals(polipo_session_t)
+
+corenet_sendrecv_tor_client_packets(polipo_daemon)
+corenet_tcp_sendrecv_tor_port(polipo_daemon)
+corenet_tcp_connect_tor_port(polipo_daemon)
+corenet_tcp_connect_all_ephemeral_ports(polipo_daemon)
+
+logging_send_syslog_msg(polipo_session_t)
+
+userdom_home_manager(polipo_session_t)
+
+tunable_policy(`polipo_session_bind_all_unreserved_ports',`
+	corenet_tcp_sendrecv_all_ports(polipo_session_t)
+	corenet_tcp_bind_all_unreserved_ports(polipo_session_t)
+')
+

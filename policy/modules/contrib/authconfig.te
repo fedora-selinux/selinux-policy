@@ -1,0 +1,37 @@
+policy_module(authconfig, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type authconfig_t;
+type authconfig_exec_t;
+application_domain(authconfig_t, authconfig_exec_t)
+role system_r types authconfig_t;
+
+type authconfig_var_lib_t;
+files_type(authconfig_var_lib_t)
+
+########################################
+#
+# authconfig local policy
+#
+allow authconfig_t self:fifo_file rw_fifo_file_perms;
+allow authconfig_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(authconfig_t, authconfig_var_lib_t, authconfig_var_lib_t)
+manage_files_pattern(authconfig_t, authconfig_var_lib_t, authconfig_var_lib_t)
+manage_lnk_files_pattern(authconfig_t, authconfig_var_lib_t, authconfig_var_lib_t)
+files_var_lib_filetrans(authconfig_t, authconfig_var_lib_t, { dir file lnk_file })
+
+domain_use_interactive_fds(authconfig_t)
+domain_named_filetrans(authconfig_t)
+
+init_domtrans_script(authconfig_t)
+
+unconfined_domain_noaudit(authconfig_t)
+
+optional_policy(`
+    policykit_dbus_chat(authconfig_t)
+')

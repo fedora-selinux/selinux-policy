@@ -1,0 +1,93 @@
+
+## <summary>policy for numad</summary>
+
+########################################
+## <summary>
+##	Transition to numad.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`numad_domtrans',`
+	gen_require(`
+		type numad_t, numad_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, numad_exec_t, numad_t)
+')
+########################################
+## <summary>
+##	Execute numad server in the numad domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`numad_systemctl',`
+	gen_require(`
+		type numad_t;
+		type numad_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	systemd_read_fifo_file_passwd_run($1)
+	allow $1 numad_unit_file_t:file read_file_perms;
+	allow $1 numad_unit_file_t:service all_service_perms;
+
+	ps_process_pattern($1, numad_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	numad over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`numad_dbus_chat',`
+	gen_require(`
+		type numad_t;
+		class dbus send_msg;
+	')
+
+	allow $1 numad_t:dbus send_msg;
+	allow numad_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an numad environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`numad_admin',`
+	gen_require(`
+		type numad_t;
+		type numad_unit_file_t;
+	')
+
+	allow $1 numad_t:process { ptrace signal_perms };
+	ps_process_pattern($1, numad_t)
+
+	numad_systemctl($1)
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

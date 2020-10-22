@@ -1,0 +1,156 @@
+policy_module(apcupsd, 1.9.0)
+
+########################################
+#
+# Declarations
+#
+
+type apcupsd_t;
+type apcupsd_exec_t;
+init_daemon_domain(apcupsd_t, apcupsd_exec_t)
+
+type apcupsd_lock_t;
+files_lock_file(apcupsd_lock_t)
+
+type apcupsd_initrc_exec_t;
+init_script_file(apcupsd_initrc_exec_t)
+
+type apcupsd_log_t;
+logging_log_file(apcupsd_log_t)
+
+type apcupsd_tmp_t;
+files_tmp_file(apcupsd_tmp_t)
+
+type apcupsd_var_run_t;
+files_pid_file(apcupsd_var_run_t)
+
+type apcupsd_power_t;
+files_type(apcupsd_power_t)
+
+type apcupsd_unit_file_t;
+systemd_unit_file(apcupsd_unit_file_t)
+
+########################################
+#
+# Local policy
+#
+
+allow apcupsd_t self:capability { dac_read_search  setgid sys_tty_config };
+allow apcupsd_t self:process signal;
+allow apcupsd_t self:fifo_file rw_file_perms;
+allow apcupsd_t self:unix_stream_socket create_stream_socket_perms;
+allow apcupsd_t self:tcp_socket create_stream_socket_perms;
+
+allow apcupsd_t apcupsd_lock_t:file manage_file_perms;
+files_lock_filetrans(apcupsd_t, apcupsd_lock_t, file)
+
+manage_files_pattern(apcupsd_t, apcupsd_power_t, apcupsd_power_t)
+files_etc_filetrans(apcupsd_t, apcupsd_power_t, file, "powerfail")
+
+manage_files_pattern(apcupsd_t, apcupsd_log_t, apcupsd_log_t)
+logging_log_filetrans(apcupsd_t, apcupsd_log_t, file)
+
+manage_files_pattern(apcupsd_t, apcupsd_tmp_t, apcupsd_tmp_t)
+files_tmp_filetrans(apcupsd_t, apcupsd_tmp_t, file)
+
+manage_files_pattern(apcupsd_t, apcupsd_var_run_t, apcupsd_var_run_t)
+files_pid_filetrans(apcupsd_t, apcupsd_var_run_t, file)
+
+kernel_read_system_state(apcupsd_t)
+kernel_read_network_state(apcupsd_t)
+
+can_exec(apcupsd_t,apcupsd_exec_t)
+
+corecmd_exec_bin(apcupsd_t)
+corecmd_exec_shell(apcupsd_t)
+
+corenet_all_recvfrom_netlabel(apcupsd_t)
+corenet_tcp_sendrecv_generic_if(apcupsd_t)
+corenet_tcp_sendrecv_generic_node(apcupsd_t)
+corenet_tcp_bind_generic_node(apcupsd_t)
+corenet_udp_sendrecv_generic_if(apcupsd_t)
+corenet_udp_sendrecv_generic_node(apcupsd_t)
+corenet_udp_bind_generic_node(apcupsd_t)
+
+corenet_tcp_bind_apcupsd_port(apcupsd_t)
+corenet_sendrecv_apcupsd_server_packets(apcupsd_t)
+corenet_tcp_sendrecv_apcupsd_port(apcupsd_t)
+corenet_tcp_connect_apcupsd_port(apcupsd_t)
+corenet_udp_bind_apc_port(apcupsd_t)
+corenet_udp_bind_snmp_port(apcupsd_t)
+
+corenet_udp_bind_snmp_port(apcupsd_t)
+corenet_sendrecv_snmp_server_packets(apcupsd_t)
+corenet_udp_sendrecv_snmp_port(apcupsd_t)
+
+corenet_tcp_connect_smtp_port(apcupsd_t)
+
+fs_getattr_xattr_fs(apcupsd_t)
+
+dev_read_sysfs(apcupsd_t)
+dev_read_urand(apcupsd_t)
+
+dev_rw_generic_usb_dev(apcupsd_t)
+
+domain_signull_all_domains(apcupsd_t)
+
+files_manage_etc_runtime_files(apcupsd_t)
+files_etc_filetrans_etc_runtime(apcupsd_t, file, "nologin")
+
+term_use_all_terms(apcupsd_t)
+term_use_usb_ttys(apcupsd_t)
+
+#apcupsd runs shutdown, probably need a shutdown domain
+init_rw_utmp(apcupsd_t)
+init_telinit(apcupsd_t)
+
+auth_use_nsswitch(apcupsd_t)
+
+logging_send_syslog_msg(apcupsd_t)
+
+sysnet_dns_name_resolve(apcupsd_t)
+
+userdom_use_inherited_user_ttys(apcupsd_t)
+
+optional_policy(`
+	hostname_exec(apcupsd_t)
+')
+
+optional_policy(`
+	mta_send_mail(apcupsd_t)
+	mta_system_content(apcupsd_tmp_t)
+')
+
+optional_policy(`
+	shutdown_domtrans(apcupsd_t)
+')
+
+optional_policy(`
+	systemd_start_power_services(apcupsd_t)
+	systemd_status_power_services(apcupsd_t)
+')
+
+########################################
+#
+# CGI local policy
+#
+
+optional_policy(`
+	apache_content_template(apcupsd_cgi)
+	apache_content_alias_template(apcupsd_cgi, apcupsd_cgi)
+
+	allow apcupsd_cgi_script_t self:tcp_socket create_stream_socket_perms;
+	allow apcupsd_cgi_script_t self:udp_socket create_socket_perms;
+
+	corenet_all_recvfrom_netlabel(apcupsd_cgi_script_t)
+	corenet_tcp_sendrecv_generic_if(apcupsd_cgi_script_t)
+	corenet_tcp_sendrecv_generic_node(apcupsd_cgi_script_t)
+	corenet_tcp_sendrecv_all_ports(apcupsd_cgi_script_t)
+	corenet_sendrecv_apcupsd_client_packets(apcupsd_cgi_script_t)
+	corenet_tcp_connect_apcupsd_port(apcupsd_cgi_script_t)
+	corenet_udp_sendrecv_generic_if(apcupsd_cgi_script_t)
+	corenet_udp_sendrecv_generic_node(apcupsd_cgi_script_t)
+	corenet_udp_sendrecv_all_ports(apcupsd_cgi_script_t)
+
+	sysnet_dns_name_resolve(apcupsd_cgi_script_t)
+')

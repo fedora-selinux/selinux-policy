@@ -1,0 +1,68 @@
+policy_module(motion, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type motion_t;
+type motion_exec_t;
+init_daemon_domain(motion_t, motion_exec_t)
+
+type motion_log_t;
+logging_log_file(motion_log_t)
+
+type motion_unit_file_t;
+systemd_unit_file(motion_unit_file_t)
+
+type motion_var_run_t;
+files_pid_file(motion_var_run_t)
+
+type motion_data_t;
+files_type(motion_data_t)
+
+########################################
+#
+# motion local policy
+#
+allow motion_t self:udp_socket { create connect getattr };
+allow motion_t self:tcp_socket create_stream_socket_perms;
+allow motion_t self:netlink_route_socket r_netlink_socket_perms;
+
+manage_dirs_pattern(motion_t, motion_log_t, motion_log_t)
+manage_files_pattern(motion_t, motion_log_t, motion_log_t)
+logging_log_filetrans(motion_t, motion_log_t, { dir file })
+
+manage_dirs_pattern(motion_t, motion_var_run_t, motion_var_run_t)
+manage_files_pattern(motion_t, motion_var_run_t, motion_var_run_t)
+files_pid_filetrans(motion_t, motion_var_run_t, { dir file })
+
+manage_dirs_pattern(motion_t, motion_data_t, motion_data_t)
+manage_files_pattern(motion_t, motion_data_t, motion_data_t)
+files_var_filetrans(motion_t, motion_data_t, { dir file })
+
+corenet_tcp_bind_http_cache_port(motion_t)
+corenet_tcp_bind_transproxy_port(motion_t)
+corenet_tcp_bind_us_cli_port(motion_t)
+corenet_tcp_connect_http_port(motion_t)
+corenet_tcp_bind_generic_node(motion_t)
+
+dev_read_video_dev(motion_t)
+dev_write_video_dev(motion_t)
+dev_map_video_dev(motion_t)
+dev_list_sysfs(motion_t)
+dev_read_sysfs(motion_t)
+
+domain_use_interactive_fds(motion_t)
+
+logging_send_syslog_msg(motion_t)
+
+sysnet_read_config(motion_t)
+
+userdom_home_manager(motion_t)
+
+optional_policy(`
+    zoneminder_domtrans(motion_t)
+    zoneminder_manage_lib_files(motion_t)
+')
+

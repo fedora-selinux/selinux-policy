@@ -1,0 +1,98 @@
+policy_module(wm, 1.3.3)
+
+attribute wm_domain;
+
+########################################
+#
+# Declarations
+#
+
+type wm_exec_t;
+corecmd_executable_file(wm_exec_t)
+
+########################################
+#
+# Common wm domain local policy
+#
+
+allow wm_domain self:fifo_file rw_fifo_file_perms;
+allow wm_domain self:process { setcap setrlimit execmem signal_perms getsched setsched };
+allow wm_domain self:netlink_kobject_uevent_socket create_socket_perms;
+
+allow wm_domain self:shm create_shm_perms;
+allow wm_domain self:unix_dgram_socket create_socket_perms;
+
+corecmd_dontaudit_access_all_executables(wm_domain)
+corecmd_getattr_all_executables(wm_domain)
+
+dev_read_sound(wm_domain)
+dev_read_sysfs(wm_domain)
+dev_read_urand(wm_domain)
+dev_rw_wireless(wm_domain)
+dev_write_sound(wm_domain)
+
+fs_getattr_all_fs(wm_domain)
+
+application_signull(wm_domain)
+
+init_read_state(wm_domain)
+
+miscfiles_read_fonts(wm_domain)
+
+systemd_dbus_chat_logind(wm_domain)
+systemd_read_logind_sessions_files(wm_domain)
+systemd_write_inhibit_pipes(wm_domain)
+systemd_login_read_pid_files(wm_domain)
+
+userdom_manage_user_tmp_sockets(wm_domain)
+userdom_tmp_filetrans_user_tmp(wm_domain, sock_file)
+
+userdom_manage_user_home_content_dirs(wm_domain)
+userdom_manage_user_home_content_files(wm_domain)
+userdom_user_home_dir_filetrans_user_home_content(wm_domain, { dir file })
+
+udev_read_pid_files(wm_domain)
+
+optional_policy(`
+	gnome_stream_connect_gkeyringd(wm_domain)
+')
+
+optional_policy(`
+	dbus_system_bus_client(wm_domain)
+	dbus_session_bus_client(wm_domain)
+	optional_policy(`
+		accountsd_dbus_chat(wm_domain)
+	')
+	
+	optional_policy(`
+		bluetooth_dbus_chat(wm_domain)
+	')		
+
+	optional_policy(`
+		devicekit_dbus_chat_power(wm_domain)
+	')
+
+	optional_policy(`
+		networkmanager_dbus_chat(wm_domain)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(wm_domain)
+	')
+
+	optional_policy(`
+		systemd_dbus_chat_logind(wm_domain)
+	')
+')
+
+optional_policy(`
+	pulseaudio_stream_connect(wm_domain)
+')
+
+optional_policy(`
+	userhelper_exec_consolehelper(wm_domain)
+')
+
+optional_policy(`
+	xserver_manage_core_devices(wm_domain)
+')

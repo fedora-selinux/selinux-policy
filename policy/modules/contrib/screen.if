@@ -1,0 +1,137 @@
+## <summary>GNU terminal multiplexer</summary>
+
+#######################################
+## <summary>
+##	The role template for the screen module.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+template(`screen_role_template',`
+	gen_require(`
+		type screen_exec_t, screen_tmp_t;
+		type screen_home_t, screen_var_run_t;
+		attribute screen_domain;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	type $1_screen_t, screen_domain;
+	application_domain($1_screen_t, screen_exec_t)
+	domain_interactive_fd($1_screen_t)
+	ubac_constrained($1_screen_t)
+	role $2 types $1_screen_t;
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $3 $1_screen_t:process ptrace;
+	')
+
+    userdom_list_user_home_dirs($1_screen_t)
+	userdom_home_reader($1_screen_t)
+
+	domtrans_pattern($3, screen_exec_t, $1_screen_t)
+	allow $3 $1_screen_t:process { signal sigchld };
+	dontaudit $3 $1_screen_t:unix_stream_socket { ioctl read write };
+	allow $1_screen_t $3:unix_stream_socket { connectto };
+	allow $1_screen_t $3:process signal;
+    allow $3 screen_exec_t:file entrypoint;
+	ps_process_pattern($1_screen_t, $3)
+
+	manage_fifo_files_pattern($3, screen_home_t, screen_home_t)
+	manage_dirs_pattern($3, screen_home_t, screen_home_t)
+	manage_files_pattern($3, screen_home_t, screen_home_t)
+	manage_lnk_files_pattern($3, screen_home_t, screen_home_t)
+	manage_sock_files_pattern($3, screen_home_t, screen_home_t)
+	relabel_dirs_pattern($3, screen_home_t, screen_home_t)
+	relabel_files_pattern($3, screen_home_t, screen_home_t)
+	relabel_lnk_files_pattern($3, screen_home_t, screen_home_t)
+	relabel_sock_files_pattern($3, screen_home_t, screen_home_t)
+
+	userdom_user_home_content_filetrans($1_screen_t, screen_home_t, dir, ".screen")
+	userdom_user_home_content_filetrans($1_screen_t, screen_home_t, file, ".screenrc")
+	userdom_user_home_content_filetrans($1_screen_t, screen_home_t, file, ".tmux.conf")
+	userdom_user_home_dir_filetrans($3, screen_home_t, dir, ".screen")
+	userdom_user_home_dir_filetrans($3, screen_home_t, file, ".screenrc")
+	userdom_user_home_dir_filetrans($3, screen_home_t, file, ".tmux.conf")
+
+	manage_dirs_pattern($3, screen_var_run_t, screen_var_run_t)
+	manage_fifo_files_pattern($3, screen_var_run_t, screen_var_run_t)
+	manage_sock_files_pattern($3, screen_var_run_t, screen_var_run_t)
+
+	kernel_read_system_state($1_screen_t)
+
+	# Revert to the user domain when a shell is executed.
+	corecmd_shell_domtrans($1_screen_t, $3)
+	corecmd_bin_domtrans($1_screen_t, $3)
+
+	auth_domtrans_chk_passwd($1_screen_t)
+	auth_use_nsswitch($1_screen_t)
+
+	logging_send_syslog_msg($1_screen_t)
+
+	userdom_user_home_domtrans($1_screen_t, $3)
+	userdom_manage_tmp_role($2, $1_screen_t)
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_cifs_domtrans($1_screen_t, $3)
+	')
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_nfs_domtrans($1_screen_t, $3)
+	')
+')
+
+#######################################
+## <summary>
+##      Execute the rssh program
+##      in the caller domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`screen_exec',`
+        gen_require(`
+                type screen_exec_t;
+        ')
+
+        can_exec($1, screen_exec_t)
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to the screen domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`screen_sigchld',`
+	gen_require(`
+		attribute screen_domain;
+	')
+
+	allow $1 screen_domain:process sigchld;
+')
+

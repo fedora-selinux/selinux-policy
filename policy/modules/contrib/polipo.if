@@ -1,0 +1,220 @@
+## <summary>Caching web proxy.</summary>
+
+########################################
+## <summary>
+##	Role access for polipo session.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+template(`polipo_role',`
+	gen_require(`
+		type polipo_session_t, polipo_exec_t;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	role $1 types polipo_session_t;
+
+	########################################
+	#
+	# Policy
+	#
+
+	allow $2 polipo_session_t:process signal_perms;
+	ps_process_pattern($2, polipo_session_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $2 polipo_session_t:process ptrace;
+	')
+
+	tunable_policy(`polipo_session_users',`
+		domtrans_pattern($2, polipo_exec_t, polipo_session_t)
+	',`
+		can_exec($2, polipo_exec_t)
+	')
+')
+
+########################################
+## <summary>
+##	Create configuration files in user
+##	home directories with a named file
+##	type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`polipo_named_filetrans_config_home_files',`
+	gen_require(`
+		type polipo_config_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, polipo_config_home_t, file, ".polipo")
+')
+
+########################################
+## <summary>
+##	Create cache directories in user
+##	home directories with a named file
+##	type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`polipo_named_filetrans_cache_home_dirs',`
+	gen_require(`
+		type polipo_cache_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, polipo_cache_home_t, dir, ".polipo-cache")
+')
+
+########################################
+## <summary>
+##	Create configuration files in admin
+##	home directories with a named file
+##	type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`polipo_named_filetrans_admin_config_home_files',`
+	gen_require(`
+		type polipo_config_home_t;
+	')
+
+	userdom_admin_home_dir_filetrans($1, polipo_config_home_t, file, ".polipo")
+')
+
+########################################
+## <summary>
+##	Create cache directories in admin
+##	home directories with a named file
+##	type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`polipo_named_filetrans_admin_cache_home_dirs',`
+	gen_require(`
+		type polipo_cache_home_t;
+	')
+
+	userdom_admin_home_dir_filetrans($1, polipo_cache_home_t, dir, ".polipo-cache")
+')
+
+########################################
+## <summary>
+##	Create log files with a named file
+##	type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`polipo_named_filetrans_log_files',`
+	gen_require(`
+		type polipo_log_t;
+	')
+
+	logging_log_named_filetrans($1, polipo_log_t, file, "polipo")
+')
+
+########################################
+## <summary>
+##	Execute polipo server in the polipo domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`polipo_systemctl',`
+	gen_require(`
+		type polipo_t;
+		type polipo_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 polipo_unit_file_t:file read_file_perms;
+	allow $1 polipo_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, polipo_t)
+')
+
+########################################
+## <summary>
+##	Administrate an polipo environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`polipo_admin',`
+	gen_require(`
+		type polipo_t, polipo_pid_t, polipo_cache_t;
+		type polipo_etc_t, polipo_log_t, polipo_initrc_exec_t;
+		type polipo_unit_file_t;
+	')
+
+	allow $1 polipo_t:process signal_perms;
+	ps_process_pattern($1, polipo_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 polipo_t:process ptrace;
+	')
+
+	init_labeled_script_domtrans($1, polipo_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 polipo_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, polipo_etc_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, polipo_log_t)
+
+	files_list_var($1)
+	admin_pattern($1, polipo_cache_t)
+
+	files_list_pids($1)
+	admin_pattern($1, polipo_pid_t)
+
+	polipo_systemctl($1)
+	admin_pattern($1, polipo_unit_file_t)
+	allow $1 polipo_unit_file_t:service all_service_perms;
+')

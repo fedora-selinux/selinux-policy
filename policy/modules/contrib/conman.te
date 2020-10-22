@@ -1,0 +1,117 @@
+policy_module(conman, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##  <p>
+##	Determine whether conman can
+##	connect to all TCP ports
+##	</p>
+## </desc>
+gen_tunable(conman_can_network, false)
+
+## <desc>
+## <p>
+## Allow conman to manage nfs files
+## </p>
+## </desc>
+gen_tunable(conman_use_nfs, false)
+
+type conman_t;
+type conman_exec_t;
+init_daemon_domain(conman_t, conman_exec_t)
+
+type conman_log_t;
+logging_log_file(conman_log_t)
+
+type conman_tmp_t;
+files_tmp_file(conman_tmp_t)
+
+type conman_var_run_t;
+files_pid_file(conman_var_run_t)
+
+type conman_unit_file_t;
+systemd_unit_file(conman_unit_file_t)
+
+type conman_unconfined_script_t;
+type conman_unconfined_script_exec_t;
+application_domain(conman_unconfined_script_t, conman_unconfined_script_exec_t)
+init_system_domain(conman_unconfined_script_t, conman_unconfined_script_exec_t)
+
+########################################
+#
+# conman local policy
+#
+
+allow conman_t self:capability { sys_tty_config };
+allow conman_t self:process { setrlimit signal_perms };
+
+allow conman_t self:fifo_file rw_fifo_file_perms;
+allow conman_t self:unix_stream_socket create_stream_socket_perms;
+allow conman_t self:tcp_socket { accept listen create_socket_perms };
+
+allow conman_t conman_unconfined_script_t:process sigkill;
+allow conman_t conman_unconfined_script_exec_t:dir list_dir_perms;
+
+manage_dirs_pattern(conman_t, conman_log_t, conman_log_t)
+manage_files_pattern(conman_t, conman_log_t, conman_log_t)
+logging_log_filetrans(conman_t, conman_log_t, { dir })
+
+manage_files_pattern(conman_t, conman_tmp_t, conman_tmp_t)
+manage_dirs_pattern(conman_t, conman_tmp_t, conman_tmp_t)
+files_tmp_filetrans(conman_t, conman_tmp_t, { file dir })
+
+manage_files_pattern(conman_t, conman_var_run_t, conman_var_run_t)
+files_pid_filetrans(conman_t, conman_var_run_t, file)
+
+auth_use_nsswitch(conman_t)
+
+kernel_read_system_state(conman_t)
+
+corenet_tcp_bind_generic_node(conman_t)
+corenet_tcp_bind_conman_port(conman_t)
+
+corenet_tcp_connect_all_ephemeral_ports(conman_t)
+
+corecmd_exec_bin(conman_t)
+
+dev_read_urand(conman_t)
+
+logging_send_syslog_msg(conman_t)
+
+sysnet_dns_name_resolve(conman_t)
+
+userdom_use_user_ptys(conman_t)
+
+term_use_usb_ttys(conman_t)
+term_use_ptmx(conman_t)
+term_getattr_pty_fs(conman_t)
+
+tunable_policy(`conman_can_network',`
+	corenet_sendrecv_all_client_packets(conman_t)
+	corenet_tcp_connect_all_ports(conman_t)
+	corenet_tcp_sendrecv_all_ports(conman_t)
+')
+
+tunable_policy(`conman_use_nfs',`
+	fs_manage_nfs_files(conman_t)
+	fs_read_nfs_symlinks(conman_t)
+')
+
+optional_policy(`
+    freeipmi_stream_connect(conman_t)
+')
+
+########################################
+#
+# conman script local policy
+#
+
+domtrans_pattern(conman_t, conman_unconfined_script_exec_t, conman_unconfined_script_t)
+
+optional_policy(`
+	unconfined_domain(conman_unconfined_script_t)
+')

@@ -1,0 +1,233 @@
+
+## <summary>policy for boltd</summary>
+
+########################################
+## <summary>
+##	Execute boltd_exec_t in the boltd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`boltd_domtrans',`
+	gen_require(`
+		type boltd_t, boltd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, boltd_exec_t, boltd_t)
+')
+
+######################################
+## <summary>
+##	Execute boltd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_exec',`
+	gen_require(`
+		type boltd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, boltd_exec_t)
+')
+
+########################################
+## <summary>
+##	Search boltd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_search_lib',`
+	gen_require(`
+		type boltd_var_lib_t;
+	')
+
+	allow $1 boltd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read boltd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_read_lib_files',`
+	gen_require(`
+		type boltd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, boltd_var_lib_t, boltd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage boltd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_manage_lib_files',`
+	gen_require(`
+		type boltd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, boltd_var_lib_t, boltd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage boltd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_manage_lib_dirs',`
+	gen_require(`
+		type boltd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, boltd_var_lib_t, boltd_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an boltd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`boltd_admin',`
+	gen_require(`
+		type boltd_t;
+		type boltd_var_lib_t;
+	')
+
+	allow $1 boltd_t:process { signal_perms };
+	ps_process_pattern($1, boltd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 boltd_t:process ptrace;
+    ')
+
+	files_search_var_lib($1)
+	admin_pattern($1, boltd_var_lib_t)
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+
+########################################
+
+## <summary>
+##	Mounton boltd lib  directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_mounton_var_lib',`
+	gen_require(`
+		type boltd_var_lib_t;
+	')
+
+	allow $1 boltd_var_lib_t:dir mounton;
+')
+
+########################################
+
+## <summary>
+##	Mounton boltd var_run  directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_mounton_var_run',`
+	gen_require(`
+		type boltd_var_run_t;
+	')
+
+	allow $1 boltd_var_run_t:dir mounton;
+')
+
+######################################
+## <summary>
+##	Write to boltd named pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_write_var_run_pipes',`
+	gen_require(`
+		type boltd_var_run_t;
+	')
+
+	allow $1 boltd_var_run_t:fd use;
+	allow $1 boltd_var_run_t:fifo_file write;
+')
+
+########################################
+## <summary>
+##	Send messages to boltd over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boltd_dbus_chat',`
+	gen_require(`
+		type boltd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 boltd_t:dbus send_msg;
+	allow boltd_t $1:dbus send_msg;
+')

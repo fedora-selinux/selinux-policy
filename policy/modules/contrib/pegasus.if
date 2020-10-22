@@ -1,0 +1,60 @@
+## <summary>The Open Group Pegasus CIM/WBEM Server.</summary>
+
+######################################
+## <summary>
+##  Creates types and rules for a basic
+##  openlmi init daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`pegasus_openlmi_domain_template',`
+    gen_require(`
+        attribute pegasus_openlmi_domain;
+        type pegasus_t;
+    ')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type pegasus_openlmi_$1_t, pegasus_openlmi_domain;
+	type pegasus_openlmi_$1_exec_t;
+	init_daemon_domain(pegasus_openlmi_$1_t, pegasus_openlmi_$1_exec_t)
+
+	##############################
+	#
+	# Local policy
+	#
+	
+	domtrans_pattern(pegasus_t, pegasus_openlmi_$1_exec_t, pegasus_openlmi_$1_t)
+    allow pegasus_t pegasus_openlmi_$1_exec_t:file ioctl;
+
+	kernel_read_system_state(pegasus_openlmi_$1_t)
+	logging_send_syslog_msg(pegasus_openlmi_$1_t)
+')
+
+########################################
+## <summary>
+##	Connect to pegasus over a unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pegasus_stream_connect',`
+	gen_require(`
+		type pegasus_t, pegasus_var_run_t, pegasus_tmp_t;
+	')
+
+	files_search_pids($1)
+    stream_connect_pattern($1, pegasus_var_run_t, pegasus_var_run_t, pegasus_t)
+    stream_connect_pattern($1, pegasus_tmp_t, pegasus_tmp_t, pegasus_t)
+')
+

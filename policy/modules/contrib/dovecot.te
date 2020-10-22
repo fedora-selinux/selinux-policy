@@ -1,0 +1,399 @@
+policy_module(dovecot, 1.16.1)
+
+########################################
+#
+# Declarations
+#
+
+attribute dovecot_domain;
+
+dovecot_basic_types_template(dovecot)
+init_daemon_domain(dovecot_t, dovecot_exec_t)
+
+dovecot_basic_types_template(dovecot_auth)
+domain_type(dovecot_auth_t)
+domain_entry_file(dovecot_auth_t, dovecot_auth_exec_t)
+role system_r types dovecot_auth_t;
+
+type dovecot_auth_tmp_t;
+files_tmp_file(dovecot_auth_tmp_t)
+
+type dovecot_cert_t;
+miscfiles_cert_type(dovecot_cert_t)
+
+dovecot_basic_types_template(dovecot_deliver)
+domain_type(dovecot_deliver_t)
+domain_entry_file(dovecot_deliver_t, dovecot_deliver_exec_t)
+role system_r types dovecot_deliver_t;
+
+type dovecot_deliver_tmp_t;
+files_tmp_file(dovecot_deliver_tmp_t)
+
+type dovecot_etc_t;
+files_config_file(dovecot_etc_t)
+
+type dovecot_initrc_exec_t;
+init_script_file(dovecot_initrc_exec_t)
+
+type dovecot_keytab_t;
+files_type(dovecot_keytab_t)
+
+type dovecot_passwd_t;
+files_type(dovecot_passwd_t)
+
+type dovecot_spool_t;
+files_spool_file(dovecot_spool_t)
+
+type dovecot_tmp_t;
+files_tmp_file(dovecot_tmp_t)
+
+# /var/lib/dovecot holds SSL parameters file
+type dovecot_var_lib_t;
+files_type(dovecot_var_lib_t)
+
+type dovecot_var_log_t;
+logging_log_file(dovecot_var_log_t)
+
+type dovecot_var_run_t;
+files_pid_file(dovecot_var_run_t)
+
+#######################################
+#
+# dovecot domain local policy
+#
+
+allow dovecot_domain self:capability sys_resource;
+dontaudit dovecot_domain self:capability2 block_suspend;
+allow dovecot_domain self:process signal_perms;
+
+allow dovecot_domain self:unix_dgram_socket create_socket_perms;
+allow dovecot_domain self:fifo_file rw_fifo_file_perms;
+
+kernel_read_all_sysctls(dovecot_domain)
+kernel_read_network_state(dovecot_domain)
+
+corecmd_exec_bin(dovecot_domain)
+corecmd_exec_shell(dovecot_domain)
+
+dev_read_sysfs(dovecot_domain)
+dev_read_rand(dovecot_domain)
+dev_read_urand(dovecot_domain)
+
+# Dovecot now has quota support and it uses getmntent() to find the mountpoints.
+files_read_etc_runtime_files(dovecot_domain)
+
+########################################
+#
+# dovecot local policy
+#
+
+allow dovecot_t self:capability { dac_read_search dac_override chown fsetid kill net_bind_service setgid setuid sys_chroot };
+dontaudit dovecot_t self:capability sys_tty_config;
+allow dovecot_t self:process { setrlimit signal_perms getcap setcap setsched };
+allow dovecot_t self:tcp_socket create_stream_socket_perms;
+allow dovecot_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+domtrans_pattern(dovecot_t, dovecot_auth_exec_t, dovecot_auth_t)
+
+allow dovecot_t dovecot_auth_t:process signal;
+
+allow dovecot_t dovecot_deliver_t:process signull;
+
+allow dovecot_t dovecot_cert_t:dir list_dir_perms;
+read_files_pattern(dovecot_t, dovecot_cert_t, dovecot_cert_t)
+read_lnk_files_pattern(dovecot_t, dovecot_cert_t, dovecot_cert_t)
+
+allow dovecot_t dovecot_etc_t:dir list_dir_perms;
+read_files_pattern(dovecot_t, dovecot_etc_t, dovecot_etc_t)
+read_lnk_files_pattern(dovecot_t, dovecot_etc_t, dovecot_etc_t)
+files_search_etc(dovecot_t)
+
+can_exec(dovecot_t, dovecot_exec_t)
+
+allow dovecot_t dovecot_keytab_t:file read_file_perms;
+
+manage_dirs_pattern(dovecot_t, dovecot_tmp_t, dovecot_tmp_t)
+manage_files_pattern(dovecot_t, dovecot_tmp_t, dovecot_tmp_t)
+files_tmp_filetrans(dovecot_t, dovecot_tmp_t, { file dir })
+
+# Allow dovecot to create and read SSL parameters file
+manage_files_pattern(dovecot_t, dovecot_var_lib_t, dovecot_var_lib_t)
+files_search_var_lib(dovecot_t)
+files_read_var_symlinks(dovecot_t)
+
+manage_dirs_pattern(dovecot_t, dovecot_var_log_t, dovecot_var_log_t)
+manage_files_pattern(dovecot_t, dovecot_var_log_t, dovecot_var_log_t)
+logging_log_filetrans(dovecot_t, dovecot_var_log_t, { file dir })
+
+manage_dirs_pattern(dovecot_t, dovecot_spool_t, dovecot_spool_t)
+manage_files_pattern(dovecot_t, dovecot_spool_t, dovecot_spool_t)
+manage_lnk_files_pattern(dovecot_t, dovecot_spool_t, dovecot_spool_t)
+
+manage_dirs_pattern(dovecot_t, dovecot_var_run_t, dovecot_var_run_t)
+manage_files_pattern(dovecot_t, dovecot_var_run_t, dovecot_var_run_t)
+manage_lnk_files_pattern(dovecot_t, dovecot_var_run_t, dovecot_var_run_t)
+manage_sock_files_pattern(dovecot_t, dovecot_var_run_t, dovecot_var_run_t)
+manage_fifo_files_pattern(dovecot_t, dovecot_var_run_t, dovecot_var_run_t)
+files_pid_filetrans(dovecot_t, dovecot_var_run_t, { dir file fifo_file sock_file })
+
+kernel_read_security_state(dovecot_t)
+
+corenet_all_recvfrom_netlabel(dovecot_t)
+corenet_tcp_sendrecv_generic_if(dovecot_t)
+corenet_tcp_sendrecv_generic_node(dovecot_t)
+corenet_tcp_sendrecv_all_ports(dovecot_t)
+corenet_tcp_bind_generic_node(dovecot_t)
+corenet_tcp_bind_mail_port(dovecot_t)
+corenet_tcp_bind_pop_port(dovecot_t)
+corenet_tcp_bind_lmtp_port(dovecot_t)
+corenet_tcp_bind_sieve_port(dovecot_t)
+corenet_tcp_connect_all_ports(dovecot_t)
+corenet_tcp_connect_postgresql_port(dovecot_t)
+corenet_sendrecv_pop_server_packets(dovecot_t)
+corenet_sendrecv_all_client_packets(dovecot_t)
+
+fs_getattr_all_fs(dovecot_t)
+fs_getattr_all_dirs(dovecot_t)
+fs_search_auto_mountpoints(dovecot_t)
+fs_list_inotifyfs(dovecot_t)
+fs_get_all_fs_quotas(dovecot_t)
+
+domain_use_interactive_fds(dovecot_t)
+
+files_search_spool(dovecot_t)
+files_search_tmp(dovecot_t)
+files_dontaudit_list_default(dovecot_t)
+files_dontaudit_search_all_dirs(dovecot_t)
+files_search_all_mountpoints(dovecot_t)
+files_read_var_lib_files(dovecot_t)
+
+init_getattr_utmp(dovecot_t)
+
+auth_use_nsswitch(dovecot_t)
+
+miscfiles_read_generic_certs(dovecot_t)
+
+logging_send_syslog_msg(dovecot_t)
+
+userdom_home_manager(dovecot_t)
+userdom_dontaudit_use_unpriv_user_fds(dovecot_t)
+userdom_manage_user_home_content_dirs(dovecot_t)
+userdom_manage_user_home_content_files(dovecot_t)
+userdom_manage_user_home_content_symlinks(dovecot_t)
+userdom_manage_user_home_content_pipes(dovecot_t)
+userdom_manage_user_home_content_sockets(dovecot_t)
+userdom_filetrans_home_content(dovecot_t)
+
+optional_policy(`
+	mta_manage_home_rw(dovecot_t)
+    mta_mmap_home_rw(dovecot_t)
+	mta_manage_spool(dovecot_t)
+')
+
+optional_policy(`
+	kerberos_manage_host_rcache(dovecot_t)
+	kerberos_read_keytab(dovecot_t)
+	kerberos_tmp_filetrans_host_rcache(dovecot_t, "imap_0")
+	kerberos_use(dovecot_t)
+')
+
+optional_policy(`
+	gnome_manage_data(dovecot_t)
+')
+
+optional_policy(`
+	postfix_manage_private_sockets(dovecot_t)
+	postfix_search_spool(dovecot_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(dovecot_t)
+')
+
+optional_policy(`
+	mysql_read_config(dovecot_t)
+	mysql_stream_connect(dovecot_t)
+    mysql_tcp_connect(dovecot_t)
+')
+
+optional_policy(`
+	# Handle sieve scripts
+	sendmail_domtrans(dovecot_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(dovecot_t)
+')
+
+optional_policy(`
+	squid_dontaudit_search_cache(dovecot_t)
+')
+
+optional_policy(`
+	udev_read_db(dovecot_t)
+')
+
+########################################
+#
+# dovecot auth local policy
+#
+
+allow dovecot_auth_t self:capability { chown dac_read_search dac_override ipc_lock setgid setuid sys_nice };
+allow dovecot_auth_t self:process { getsched setsched signal_perms getcap setcap };
+allow dovecot_auth_t self:unix_stream_socket create_stream_socket_perms;
+
+allow dovecot_auth_t dovecot_t:unix_stream_socket { connectto rw_stream_socket_perms };
+
+read_files_pattern(dovecot_auth_t, dovecot_passwd_t, dovecot_passwd_t)
+
+read_files_pattern(dovecot_auth_t, dovecot_etc_t, dovecot_etc_t)
+read_lnk_files_pattern(dovecot_auth_t, dovecot_etc_t, dovecot_etc_t)
+
+manage_files_pattern(dovecot_auth_t, dovecot_var_run_t, dovecot_var_run_t)
+
+manage_dirs_pattern(dovecot_auth_t, dovecot_auth_tmp_t, dovecot_auth_tmp_t)
+manage_files_pattern(dovecot_auth_t, dovecot_auth_tmp_t, dovecot_auth_tmp_t)
+files_tmp_filetrans(dovecot_auth_t, dovecot_auth_tmp_t, { file dir })
+
+allow dovecot_auth_t dovecot_var_run_t:dir list_dir_perms;
+manage_sock_files_pattern(dovecot_auth_t, dovecot_var_run_t, dovecot_var_run_t)
+manage_fifo_files_pattern(dovecot_auth_t, dovecot_var_run_t, dovecot_var_run_t)
+
+dovecot_stream_connect_auth(dovecot_auth_t)
+
+corecmd_exec_bin(dovecot_auth_t)
+
+logging_send_audit_msgs(dovecot_auth_t)
+
+auth_domtrans_chk_passwd(dovecot_auth_t)
+auth_use_nsswitch(dovecot_auth_t)
+
+logging_send_syslog_msg(dovecot_auth_t)
+
+files_search_pids(dovecot_auth_t)
+files_read_usr_symlinks(dovecot_auth_t)
+files_read_var_lib_files(dovecot_auth_t)
+files_search_tmp(dovecot_auth_t)
+
+fs_getattr_xattr_fs(dovecot_auth_t)
+
+init_rw_utmp(dovecot_auth_t)
+init_stream_connect(dovecot_auth_t)
+
+sysnet_use_ldap(dovecot_auth_t)
+
+systemd_login_read_pid_files(dovecot_auth_t)
+systemd_dbus_chat_logind(dovecot_auth_t)
+systemd_write_inherited_logind_sessions_pipes(dovecot_auth_t)
+
+userdom_getattr_user_home_dirs(dovecot_auth_t)
+
+optional_policy(`
+	kerberos_use(dovecot_auth_t)
+
+	# for gssapi (kerberos)
+	userdom_list_user_tmp(dovecot_auth_t)
+	userdom_read_user_tmp_files(dovecot_auth_t)
+	userdom_read_user_tmp_symlinks(dovecot_auth_t)
+')
+
+optional_policy(`
+	mysql_search_db(dovecot_auth_t)
+	mysql_stream_connect(dovecot_auth_t)
+	mysql_read_config(dovecot_auth_t)
+	mysql_tcp_connect(dovecot_auth_t)
+    mysql_rw_db_sockets(dovecot_auth_t)
+')
+
+optional_policy(`
+	nis_authenticate(dovecot_auth_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(dovecot_auth_t)
+	optional_policy(`
+		oddjob_dbus_chat(dovecot_auth_t)
+		oddjob_domtrans_mkhomedir(dovecot_auth_t)
+	')
+')
+
+optional_policy(`
+	postfix_manage_private_sockets(dovecot_auth_t)
+	postfix_rw_inherited_master_pipes(dovecot_deliver_t)
+	postfix_search_spool(dovecot_auth_t)
+')
+
+########################################
+#
+# dovecot deliver local policy
+#
+
+allow dovecot_deliver_t self:capability { setuid setgid };
+
+allow dovecot_deliver_t dovecot_t:process signull;
+
+allow dovecot_deliver_t dovecot_etc_t:dir list_dir_perms;
+read_files_pattern(dovecot_deliver_t, dovecot_etc_t, dovecot_etc_t)
+read_lnk_files_pattern(dovecot_deliver_t, dovecot_etc_t, dovecot_etc_t)
+
+allow dovecot_deliver_t dovecot_cert_t:dir search_dir_perms;
+
+manage_dirs_pattern(dovecot_deliver_t, dovecot_var_log_t, dovecot_var_log_t)
+manage_files_pattern(dovecot_deliver_t, dovecot_var_log_t, dovecot_var_log_t)
+logging_log_filetrans(dovecot_deliver_t, dovecot_var_log_t, { file dir })
+
+manage_dirs_pattern(dovecot_deliver_t, dovecot_deliver_tmp_t, dovecot_deliver_tmp_t)
+manage_files_pattern(dovecot_deliver_t, dovecot_deliver_tmp_t, dovecot_deliver_tmp_t)
+files_tmp_filetrans(dovecot_deliver_t, dovecot_deliver_tmp_t, { file dir })
+
+allow dovecot_deliver_t dovecot_var_run_t:dir list_dir_perms;
+read_files_pattern(dovecot_deliver_t, dovecot_var_run_t, dovecot_var_run_t)
+read_sock_files_pattern(dovecot_deliver_t, dovecot_var_run_t, dovecot_var_run_t)
+dovecot_stream_connect(dovecot_deliver_t)
+
+can_exec(dovecot_deliver_t, dovecot_deliver_exec_t)
+
+auth_use_nsswitch(dovecot_deliver_t)
+
+logging_append_all_logs(dovecot_deliver_t)
+logging_send_syslog_msg(dovecot_deliver_t)
+
+dovecot_stream_connect_auth(dovecot_deliver_t)
+
+files_search_tmp(dovecot_deliver_t)
+files_dontaudit_getattr_all_dirs(dovecot_deliver_t)
+files_search_all_mountpoints(dovecot_deliver_t)
+
+fs_getattr_all_fs(dovecot_deliver_t)
+fs_dontaudit_getattr_all_fs(dovecot_deliver_t)
+fs_dontaudit_getattr_all_dirs(dovecot_deliver_t)
+fs_dontaudit_search_cgroup_dirs(dovecot_deliver_t)
+
+userdom_manage_user_home_content_dirs(dovecot_deliver_t)
+userdom_manage_user_home_content_files(dovecot_deliver_t)
+userdom_manage_user_home_content_symlinks(dovecot_deliver_t)
+userdom_manage_user_home_content_pipes(dovecot_deliver_t)
+userdom_manage_user_home_content_sockets(dovecot_deliver_t)
+userdom_filetrans_home_content(dovecot_deliver_t)
+
+userdom_home_manager(dovecot_deliver_t)
+
+optional_policy(`
+	gnome_manage_data(dovecot_deliver_t)
+')
+
+optional_policy(`
+	mta_mailserver_delivery(dovecot_deliver_t)
+    mta_mmap_home_rw(dovecot_deliver_t)
+	mta_manage_spool(dovecot_deliver_t)
+	mta_read_queue(dovecot_deliver_t)
+')
+
+optional_policy(`
+	postfix_use_fds_master(dovecot_deliver_t)
+')
+
+optional_policy(`
+	# Handle sieve scripts
+	sendmail_domtrans(dovecot_deliver_t)
+')

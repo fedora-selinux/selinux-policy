@@ -1,0 +1,99 @@
+
+## <summary>policy for cgdcbxd</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the cgdcbxd domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`cgdcbxd_domtrans',`
+	gen_require(`
+		type cgdcbxd_t, cgdcbxd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, cgdcbxd_exec_t, cgdcbxd_t)
+')
+########################################
+## <summary>
+##	Read cgdcbxd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cgdcbxd_read_pid_files',`
+	gen_require(`
+		type cgdcbxd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, cgdcbxd_var_run_t, cgdcbxd_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute cgdcbxd server in the cgdcbxd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`cgdcbxd_systemctl',`
+	gen_require(`
+		type cgdcbxd_t;
+		type cgdcbxd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 cgdcbxd_unit_file_t:file read_file_perms;
+	allow $1 cgdcbxd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, cgdcbxd_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an cgdcbxd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`cgdcbxd_admin',`
+	gen_require(`
+		type cgdcbxd_t;
+		type cgdcbxd_var_run_t;
+    	type cgdcbxd_unit_file_t;
+	')
+
+	allow $1 cgdcbxd_t:process { signal_perms };
+	ps_process_pattern($1, cgdcbxd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 cgdcbxd_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+	admin_pattern($1, cgdcbxd_var_run_t)
+
+	cgdcbxd_systemctl($1)
+	admin_pattern($1, cgdcbxd_unit_file_t)
+	allow $1 cgdcbxd_unit_file_t:service all_service_perms;
+
+')

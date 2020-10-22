@@ -1,0 +1,43 @@
+policy_module(cgdcbxd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type cgdcbxd_t;
+type cgdcbxd_exec_t;
+init_daemon_domain(cgdcbxd_t, cgdcbxd_exec_t)
+
+type cgdcbxd_var_run_t;
+files_pid_file(cgdcbxd_var_run_t)
+
+type cgdcbxd_unit_file_t;
+systemd_unit_file(cgdcbxd_unit_file_t)
+
+########################################
+#
+# cgdcbxd local policy
+#
+
+allow cgdcbxd_t self:fifo_file rw_fifo_file_perms;
+allow cgdcbxd_t self:unix_stream_socket create_stream_socket_perms;
+allow cgdcbxd_t self:unix_dgram_socket { create_socket_perms sendto };
+allow cgdcbxd_t self:udp_socket create_socket_perms;
+
+dontaudit cgdcbxd_t self:capability sys_ptrace;
+allow cgdcbxd_t self:netlink_route_socket rw_netlink_socket_perms;
+
+manage_files_pattern(cgdcbxd_t, cgdcbxd_var_run_t, cgdcbxd_var_run_t)
+files_pid_filetrans(cgdcbxd_t, cgdcbxd_var_run_t, { file })
+
+kernel_read_system_state(cgdcbxd_t)
+kernel_read_network_state(cgdcbxd_t)
+kernel_search_network_sysctl(cgdcbxd_t)
+
+domain_dontaudit_read_all_domains_state(cgdcbxd_t)
+
+optional_policy(`
+    fs_list_cgroup_dirs(cgdcbxd_t)
+    fs_rw_cgroup_files(cgdcbxd_t)
+')

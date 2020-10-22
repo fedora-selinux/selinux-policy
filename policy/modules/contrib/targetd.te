@@ -1,0 +1,114 @@
+policy_module(targetd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type targetd_t;
+type targetd_exec_t;
+init_daemon_domain(targetd_t, targetd_exec_t)
+
+type targetd_etc_rw_t;
+files_type(targetd_etc_rw_t)
+
+type targetd_unit_file_t;
+systemd_unit_file(targetd_unit_file_t)
+
+type targetd_tmp_t;
+files_tmp_file(targetd_tmp_t)
+
+########################################
+#
+# targetd local policy
+#
+
+allow targetd_t self:capability { ipc_lock sys_admin sys_nice };
+allow targetd_t self:fifo_file rw_fifo_file_perms;
+allow targetd_t self:unix_stream_socket create_stream_socket_perms;
+allow targetd_t self:unix_dgram_socket create_socket_perms;
+allow targetd_t self:tcp_socket { accept listen };
+allow targetd_t self:netlink_route_socket r_netlink_socket_perms;
+allow targetd_t self:process { setfscreate setsched };
+
+manage_dirs_pattern(targetd_t, targetd_etc_rw_t, targetd_etc_rw_t)
+manage_files_pattern(targetd_t, targetd_etc_rw_t, targetd_etc_rw_t)
+files_etc_filetrans(targetd_t, targetd_etc_rw_t, { dir file })
+
+manage_dirs_pattern(targetd_t, targetd_tmp_t, targetd_tmp_t)
+manage_files_pattern(targetd_t, targetd_tmp_t, targetd_tmp_t)
+files_tmp_filetrans(targetd_t, targetd_tmp_t, { file dir })
+
+files_rw_isid_type_dirs(targetd_t)
+
+fs_getattr_xattr_fs(targetd_t)
+fs_manage_configfs_files(targetd_t)
+fs_manage_configfs_lnk_files(targetd_t)
+fs_manage_configfs_dirs(targetd_t)
+fs_read_nfsd_files(targetd_t)
+
+kernel_rw_rpc_sysctls(targetd_t)
+kernel_get_sysvipc_info(targetd_t)
+kernel_read_system_state(targetd_t)
+kernel_read_network_state(targetd_t)
+kernel_load_module(targetd_t)
+kernel_request_load_module(targetd_t)
+kernel_dgram_send(targetd_t)
+
+rpc_read_exports(targetd_t)
+
+storage_raw_rw_fixed_disk(targetd_t)
+
+auth_use_nsswitch(targetd_t)
+
+corecmd_exec_shell(targetd_t)
+corecmd_exec_bin(targetd_t)
+
+corenet_tcp_bind_generic_node(targetd_t)
+corenet_tcp_bind_lsm_plugin_port(targetd_t)
+
+dev_rw_sysfs(targetd_t)
+dev_read_urand(targetd_t)
+dev_rw_lvm_control(targetd_t)
+dev_getattr_loop_control(targetd_t)
+
+libs_exec_ldconfig(targetd_t)
+
+seutil_dontaudit_read_module_store(targetd_t)
+
+storage_raw_read_fixed_disk(targetd_t)
+storage_raw_read_removable_device(targetd_t)
+
+sysnet_read_config(targetd_t)
+
+optional_policy(`
+    gnome_read_generic_data_home_dirs(targetd_t)
+')
+
+optional_policy(`
+   lvm_read_config(targetd_t)
+   lvm_map_config(targetd_t)
+   lvm_write_metadata(targetd_t)
+   lvm_manage_metadata(targetd_t)
+   lvm_manage_lock(targetd_t)
+   lvm_rw_pipes(targetd_t)
+   lvm_stream_connect(targetd_t)
+')
+
+optional_policy(`
+    modutils_read_module_config(targetd_t)
+')
+
+optional_policy(`
+    rpc_manage_nfs_state_data(targetd_t)
+')
+
+optional_policy(`
+    rpm_dontaudit_read_db(targetd_t)
+    rpm_dontaudit_exec(targetd_t)
+')
+
+optional_policy(`
+   udev_read_pid_files(targetd_t)
+')
+

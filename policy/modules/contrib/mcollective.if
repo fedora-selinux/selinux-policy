@@ -1,0 +1,109 @@
+
+## <summary>policy for mcollective</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the mcollective domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mcollective_domtrans',`
+	gen_require(`
+		type mcollective_t, mcollective_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mcollective_exec_t, mcollective_t)
+')
+
+########################################
+## <summary>
+##	Search mcollective conf directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mcollective_search_conf',`
+	gen_require(`
+		type mcollective_etc_rw_t;
+	')
+
+	allow $1 mcollective_etc_rw_t:dir search_dir_perms;
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Read mcollective conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mcollective_read_conf_files',`
+	gen_require(`
+		type mcollective_etc_rw_t;
+	')
+
+	allow $1 mcollective_etc_rw_t:dir list_dir_perms;
+	read_files_pattern($1, mcollective_etc_rw_t, mcollective_etc_rw_t)
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Manage mcollective conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mcollective_manage_conf_files',`
+	gen_require(`
+		type mcollective_etc_rw_t;
+	')
+
+	manage_files_pattern($1, mcollective_etc_rw_t, mcollective_etc_rw_t)
+	files_search_etc($1)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an mcollective environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mcollective_admin',`
+	gen_require(`
+		type mcollective_t;
+		type mcollective_etc_rw_t;
+	')
+
+	allow $1 mcollective_t:process { ptrace signal_perms };
+	ps_process_pattern($1, mcollective_t)
+
+	files_search_etc($1)
+	admin_pattern($1, mcollective_etc_rw_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

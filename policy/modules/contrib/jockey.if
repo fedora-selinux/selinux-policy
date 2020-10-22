@@ -1,0 +1,131 @@
+
+## <summary>policy for jockey</summary>
+
+########################################
+## <summary>
+##	Transition to jockey.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`jockey_domtrans',`
+	gen_require(`
+		type jockey_t, jockey_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, jockey_exec_t, jockey_t)
+')
+
+########################################
+## <summary>
+##	Search jockey cache directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jockey_search_cache',`
+	gen_require(`
+		type jockey_cache_t;
+	')
+
+	allow $1 jockey_cache_t:dir search_dir_perms;
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Read jockey cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jockey_read_cache_files',`
+	gen_require(`
+		type jockey_cache_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, jockey_cache_t, jockey_cache_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	jockey cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jockey_manage_cache_files',`
+	gen_require(`
+		type jockey_cache_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, jockey_cache_t, jockey_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage jockey cache dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jockey_manage_cache_dirs',`
+	gen_require(`
+		type jockey_cache_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, jockey_cache_t, jockey_cache_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an jockey environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`jockey_admin',`
+	gen_require(`
+		type jockey_t;
+		type jockey_cache_t;
+		type jockey_var_log_t;
+	')
+
+	allow $1 jockey_t:process { ptrace signal_perms };
+	ps_process_pattern($1, jockey_t)
+
+	files_search_var($1)
+	admin_pattern($1, jockey_cache_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, jockey_var_log_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

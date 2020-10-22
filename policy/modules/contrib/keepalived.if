@@ -1,0 +1,80 @@
+
+## <summary> keepalived - load-balancing and high-availability service</summary>
+
+########################################
+## <summary>
+##	Execute keepalived in the keepalived domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`keepalived_domtrans',`
+	gen_require(`
+		type keepalived_t, keepalived_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, keepalived_exec_t, keepalived_t)
+')
+########################################
+## <summary>
+##	Execute keepalived server in the keepalived domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`keepalived_systemctl',`
+	gen_require(`
+		type keepalived_t;
+		type keepalived_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 keepalived_unit_file_t:file read_file_perms;
+	allow $1 keepalived_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, keepalived_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an keepalived environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`keepalived_admin',`
+	gen_require(`
+		type keepalived_t;
+	    type keepalived_unit_file_t;
+	')
+
+	allow $1 keepalived_t:process { signal_perms };
+	ps_process_pattern($1, keepalived_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 keepalived_t:process ptrace;
+    ')
+
+	keepalived_systemctl($1)
+	admin_pattern($1, keepalived_unit_file_t)
+	allow $1 keepalived_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

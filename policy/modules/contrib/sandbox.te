@@ -1,0 +1,66 @@
+policy_module(sandbox,1.0.0)
+
+attribute sandbox_domain;
+
+########################################
+#
+# Declarations
+#
+sandbox_domain_template(sandbox)
+
+########################################
+#
+# sandbox local policy
+#
+allow sandbox_domain self:process { getattr signal_perms getsched setsched setpgid execstack };
+tunable_policy(`deny_execmem',`',`
+	allow sandbox_domain self:process execmem;
+')
+
+allow sandbox_domain self:fifo_file manage_file_perms;
+allow sandbox_domain self:sem create_sem_perms;
+allow sandbox_domain self:shm create_shm_perms;
+allow sandbox_domain self:msgq create_msgq_perms;
+allow sandbox_domain self:unix_stream_socket create_stream_socket_perms;
+allow sandbox_domain self:unix_dgram_socket { sendto create_socket_perms };
+dontaudit sandbox_domain self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+
+dev_rw_all_inherited_chr_files(sandbox_domain)
+dev_rw_all_inherited_blk_files(sandbox_domain)
+
+# sandbox_file_t was moved to sandboxX.te
+optional_policy(`
+	sandbox_exec_file(sandbox_domain)
+	sandbox_manage_content(sandbox_domain)
+	sandbox_dontaudit_mounton(sandbox_domain)
+	sandbox_manage_tmpfs_files(sandbox_domain)
+')
+
+gen_require(`
+	type usr_t, lib_t, locale_t, device_t;
+	type var_t, var_run_t, rpm_log_t, locale_t;
+	attribute exec_type, configfile;
+')
+
+kernel_dontaudit_read_system_state(sandbox_domain)
+kernel_dontaudit_getattr_core_if(sandbox_domain)
+
+corecmd_exec_all_executables(sandbox_domain)
+
+dev_dontaudit_getattr_all(sandbox_domain)
+
+files_rw_all_inherited_files(sandbox_domain, -exec_type -configfile -usr_t -lib_t -locale_t -var_t -var_run_t -device_t -rpm_log_t )
+corecmd_entrypoint_all_executables(sandbox_domain)
+files_entrypoint_all_mountpoint(sandbox_domain)
+
+files_read_config_files(sandbox_domain)
+files_read_var_files(sandbox_domain)
+files_read_all_mountpoint_symlinks(sandbox_domain)
+files_dontaudit_search_all_dirs(sandbox_domain)
+
+fs_dontaudit_getattr_all_fs(sandbox_domain)
+
+userdom_use_inherited_user_terminals(sandbox_domain)
+
+mta_dontaudit_read_spool_symlinks(sandbox_domain)
+

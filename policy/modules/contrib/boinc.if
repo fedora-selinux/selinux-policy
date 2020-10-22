@@ -1,0 +1,207 @@
+## <summary>policy for boinc</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run boinc.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`boinc_domtrans',`
+	gen_require(`
+		type boinc_t, boinc_exec_t;
+	')
+
+	domtrans_pattern($1, boinc_exec_t, boinc_t)
+')
+
+#######################################
+## <summary>
+##	Execute boinc server in the boinc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boinc_initrc_domtrans',`
+	gen_require(`
+		type boinc_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, boinc_initrc_exec_t)
+')
+
+#######################################
+## <summary>
+##  Dontaudit getattr on boinc lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`boinc_dontaudit_getattr_lib',`
+    gen_require(`
+        type boinc_var_lib_t;
+    ')
+
+    dontaudit $1 boinc_var_lib_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Search boinc lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boinc_search_lib',`
+	gen_require(`
+		type boinc_var_lib_t;
+	')
+
+	allow $1 boinc_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read boinc lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boinc_read_lib_files',`
+	gen_require(`
+		type boinc_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, boinc_var_lib_t, boinc_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	boinc lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boinc_manage_lib_files',`
+	gen_require(`
+		type boinc_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, boinc_var_lib_t, boinc_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage boinc var_lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`boinc_manage_var_lib',`
+	gen_require(`
+		type boinc_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, boinc_var_lib_t, boinc_var_lib_t)
+	manage_files_pattern($1, boinc_var_lib_t, boinc_var_lib_t)
+	manage_lnk_files_pattern($1, boinc_var_lib_t, boinc_var_lib_t)
+')
+
+#######################################
+## <summary>
+##  Execute boinc server in the boinc domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`boinc_systemctl',`
+    gen_require(`
+        type boinc_t;
+        type boinc_unit_file_t;
+    ')
+
+    systemd_exec_systemctl($1)
+	init_reload_services($1)
+    allow $1 boinc_unit_file_t:file read_file_perms;
+    allow $1 boinc_unit_file_t:service manage_service_perms;
+
+    ps_process_pattern($1, boinc_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an boinc environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`boinc_admin',`
+	gen_require(`
+		type boinc_t, boinc_initrc_exec_t, boinc_var_lib_t;
+		type boinc_unit_file_t;
+	')
+
+	allow $1 boinc_t:process signal_perms;
+	ps_process_pattern($1, boinc_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 boinc_t:process ptrace;
+	')
+
+	boinc_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 boinc_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_var_lib($1)
+	admin_pattern($1, boinc_var_lib_t)
+
+	boinc_systemctl($1)
+	admin_pattern($1, boinc_unit_file_t)
+
+	allow $1 boinc_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

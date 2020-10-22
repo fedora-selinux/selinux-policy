@@ -1,0 +1,152 @@
+
+## <summary>policy for mythtv_script</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the mythtv_script domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mythtv_script_domtrans',`
+	gen_require(`
+		type mythtv_script_t, mythtv_script_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mythtv_script_exec_t, mythtv_script_t)
+')
+
+#######################################
+## <summary>
+##	read mythtv libs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mythtv_read_lib',`
+	gen_require(`
+		type mythtv_var_lib_t;
+	')
+
+	read_files_pattern($1, mythtv_var_lib_t, mythtv_var_lib_t)
+	files_list_var_lib($1)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	mythtv lib content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mythtv_manage_lib',`
+	gen_require(`
+		type mythtv_var_lib_t;
+	')
+
+	manage_files_pattern($1, mythtv_var_lib_t, mythtv_var_lib_t)
+	manage_lnk_files_pattern($1, mythtv_var_lib_t, mythtv_var_lib_t)
+	files_list_var_lib($1)
+')
+
+#######################################
+## <summary>
+##	read mythtv logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mythtv_read_log',`
+	gen_require(`
+		type mythtv_var_log_t;
+	')
+
+	read_files_pattern($1, mythtv_var_log_t, mythtv_var_log_t)
+	logging_search_logs($1)
+')
+
+#######################################
+## <summary>
+##	Append mythtv log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mythtv_append_log',`
+	gen_require(`
+		type mythtv_var_log_t;
+	')
+
+	append_files_pattern($1, mythtv_var_log_t, mythtv_var_log_t)
+	logging_search_logs($1)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	mythtv log content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mythtv_manage_log',`
+	gen_require(`
+		type mythtv_var_log_t;
+	')
+
+	manage_files_pattern($1, mythtv_var_log_t, mythtv_var_log_t)
+	manage_lnk_files_pattern($1, mythtv_var_log_t, mythtv_var_log_t)
+	logging_search_logs($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an mythtv environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+## 	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mythtv_admin',`
+	gen_require(`
+		type mythtv_script_t, mythtv_var_lib_t;
+		type mythtv_var_log_t;
+	')
+
+	allow $1 mythtv_script_t:process signal_perms;
+	ps_process_pattern($1, mythtv_script_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 mythtv_script_t:process ptrace;
+	')
+
+	logging_list_logs($1)
+	admin_pattern($1, mythtv_var_log_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, mythtv_var_lib_t)
+')

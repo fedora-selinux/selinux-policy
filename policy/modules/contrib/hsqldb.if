@@ -1,0 +1,241 @@
+
+## <summary>Hsqldb is transactional database engine with in-memory and disk-based tables, supporting embedded and server modes.</summary>
+
+########################################
+## <summary>
+##	Execute hsqldb_exec_t in the hsqldb domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`hsqldb_domtrans',`
+	gen_require(`
+		type hsqldb_t, hsqldb_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, hsqldb_exec_t, hsqldb_t)
+')
+
+######################################
+## <summary>
+##	Execute hsqldb in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_exec',`
+	gen_require(`
+		type hsqldb_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, hsqldb_exec_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read,
+##	hsqldb tmp files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_dontaudit_read_tmp_files',`
+	gen_require(`
+		type hsqldb_tmp_t;
+	')
+
+	dontaudit $1 hsqldb_tmp_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read hsqldb tmp files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_read_tmp_files',`
+	gen_require(`
+		type hsqldb_tmp_t;
+	')
+
+	files_search_tmp($1)
+	read_files_pattern($1, hsqldb_tmp_t, hsqldb_tmp_t)
+')
+
+########################################
+## <summary>
+##	Manage hsqldb tmp files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_manage_tmp',`
+	gen_require(`
+		type hsqldb_tmp_t;
+	')
+
+	files_search_tmp($1)
+	manage_dirs_pattern($1, hsqldb_tmp_t, hsqldb_tmp_t)
+	manage_files_pattern($1, hsqldb_tmp_t, hsqldb_tmp_t)
+	manage_lnk_files_pattern($1, hsqldb_tmp_t, hsqldb_tmp_t)
+')
+
+########################################
+## <summary>
+##	Search hsqldb lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_search_lib',`
+	gen_require(`
+		type hsqldb_var_lib_t;
+	')
+
+	allow $1 hsqldb_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read hsqldb lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_read_lib_files',`
+	gen_require(`
+		type hsqldb_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, hsqldb_var_lib_t, hsqldb_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage hsqldb lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_manage_lib_files',`
+	gen_require(`
+		type hsqldb_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, hsqldb_var_lib_t, hsqldb_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage hsqldb lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_manage_lib_dirs',`
+	gen_require(`
+		type hsqldb_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, hsqldb_var_lib_t, hsqldb_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Execute hsqldb server in the hsqldb domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_systemctl',`
+	gen_require(`
+		type hsqldb_t;
+		type hsqldb_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 hsqldb_unit_file_t:file read_file_perms;
+	allow $1 hsqldb_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, hsqldb_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an hsqldb environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hsqldb_admin',`
+	gen_require(`
+		type hsqldb_t;
+		type hsqldb_tmp_t;
+		type hsqldb_var_lib_t;
+	type hsqldb_unit_file_t;
+	')
+
+	allow $1 hsqldb_t:process { signal_perms };
+	ps_process_pattern($1, hsqldb_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 hsqldb_t:process ptrace;
+    ')
+
+	files_search_tmp($1)
+	admin_pattern($1, hsqldb_tmp_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, hsqldb_var_lib_t)
+
+	hsqldb_systemctl($1)
+	admin_pattern($1, hsqldb_unit_file_t)
+	allow $1 hsqldb_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

@@ -1,0 +1,100 @@
+
+## <summary>libStorageMgmt  plug-in  daemon </summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the lsmd domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`lsmd_domtrans',`
+	gen_require(`
+		type lsmd_t, lsmd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, lsmd_exec_t, lsmd_t)
+')
+########################################
+## <summary>
+##	Read lsmd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lsmd_read_pid_files',`
+	gen_require(`
+		type lsmd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, lsmd_var_run_t, lsmd_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute lsmd server in the lsmd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`lsmd_systemctl',`
+	gen_require(`
+		type lsmd_t;
+		type lsmd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 lsmd_unit_file_t:file read_file_perms;
+	allow $1 lsmd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, lsmd_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an lsmd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lsmd_admin',`
+	gen_require(`
+		type lsmd_t;
+		type lsmd_var_run_t;
+		type lsmd_unit_file_t;
+	')
+
+	allow $1 lsmd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, lsmd_t)
+
+	files_search_pids($1)
+	admin_pattern($1, lsmd_var_run_t)
+
+	lsmd_systemctl($1)
+	admin_pattern($1, lsmd_unit_file_t)
+	allow $1 lsmd_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

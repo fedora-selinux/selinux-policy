@@ -1,0 +1,216 @@
+## <summary>Virtual Private Networking client</summary>
+
+########################################
+## <summary>
+##	Execute VPN clients in the vpnc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`vpn_domtrans',`
+	gen_require(`
+		type vpnc_t, vpnc_exec_t;
+	')
+
+	domtrans_pattern($1, vpnc_exec_t, vpnc_t)
+')
+
+########################################
+## <summary>
+##	Execute VPN clients in the vpnc domain, and
+##	allow the specified role the vpnc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`vpn_run',`
+	gen_require(`
+		attribute_role vpnc_roles;
+		type vpnc_t;
+	')
+
+	vpn_domtrans($1)
+	roleattribute $2 vpnc_roles;
+')
+
+########################################
+## <summary>
+##	Send VPN clients the kill signal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_kill',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	allow $1 vpnc_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Send generic signals to VPN clients.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_signal',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	allow $1 vpnc_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send signull to VPN clients.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_signull',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	allow $1 vpnc_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	Vpnc over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_dbus_chat',`
+	gen_require(`
+		type vpnc_t;
+		class dbus send_msg;
+	')
+
+	allow $1 vpnc_t:dbus send_msg;
+	allow vpnc_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Read vpnc PID dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpnc_manage_pid_dirs',`
+	gen_require(`
+		type vpnc_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_dirs_pattern($1, vpnc_var_run_t, vpnc_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read vpnc PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpnc_read_pid_files',`
+	gen_require(`
+		type vpnc_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, vpnc_var_run_t, vpnc_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read vpnc PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpnc_manage_pid_files',`
+	gen_require(`
+		type vpnc_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, vpnc_var_run_t, vpnc_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read vpnc PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpnc_manage_pid',`
+	gen_require(`
+		type vpnc_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, vpnc_var_run_t, vpnc_var_run_t)
+	manage_dirs_pattern($1, vpnc_var_run_t, vpnc_var_run_t)
+')
+
+########################################
+## <summary>
+##	Relabelfrom from vpnc socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_relabelfrom_tun_socket',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	allow $1 vpnc_t:tun_socket relabelfrom;
+')

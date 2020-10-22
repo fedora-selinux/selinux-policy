@@ -1,0 +1,198 @@
+
+## <summary>Detect motion using a video4linux device</summary>
+
+########################################
+## <summary>
+##	Execute motion in the motion domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`motion_domtrans',`
+	gen_require(`
+		type motion_t, motion_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, motion_exec_t, motion_t)
+')
+########################################
+## <summary>
+##	Read motion's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`motion_read_log',`
+	gen_require(`
+		type motion_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, motion_log_t, motion_log_t)
+')
+
+########################################
+## <summary>
+##	Append to motion log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`motion_append_log',`
+	gen_require(`
+		type motion_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, motion_log_t, motion_log_t)
+')
+
+########################################
+## <summary>
+##	Manage motion log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`motion_manage_log',`
+	gen_require(`
+		type motion_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, motion_log_t, motion_log_t)
+	manage_files_pattern($1, motion_log_t, motion_log_t)
+	manage_lnk_files_pattern($1, motion_log_t, motion_log_t)
+')
+
+########################################
+## <summary>
+## Manage motion pid files
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`motion_manage_pid',`
+    gen_require(`
+        type motion_var_run_t;
+    ')
+
+    manage_dirs_pattern($1, motion_var_run_t, motion_var_run_t)
+    manage_files_pattern($1, motion_var_run_t, motion_var_run_t)
+')
+
+########################################
+## <summary>
+## Manage motion data files
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`motion_manage_data',`
+    gen_require(`
+        type motion_data_t;
+    ')
+
+    manage_dirs_pattern($1, motion_data_t, motion_data_t)
+    manage_files_pattern($1, motion_data_t, motion_data_t)
+')
+
+########################################
+## <summary>
+##	Execute motion server in the motion domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`motion_systemctl',`
+	gen_require(`
+		type motion_t;
+		type motion_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 motion_unit_file_t:file read_file_perms;
+	allow $1 motion_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, motion_t)
+')
+
+########################################
+## <summary>
+## Manage all motion files.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`motion_manage_all_files',`
+
+    motion_manage_log($1)
+    motion_manage_pid($1)
+    motion_manage_data($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an motion environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`motion_admin',`
+	gen_require(`
+		type motion_t;
+		type motion_log_t;
+	    type motion_unit_file_t;
+	')
+
+	allow $1 motion_t:process { signal_perms };
+	ps_process_pattern($1, motion_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 motion_t:process ptrace;
+    ')
+
+	logging_search_logs($1)
+	admin_pattern($1, motion_log_t)
+
+	motion_systemctl($1)
+	admin_pattern($1, motion_unit_file_t)
+	allow $1 motion_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

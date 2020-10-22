@@ -1,0 +1,153 @@
+
+## <summary>policy for thumb</summary>
+
+########################################
+## <summary>
+##	Transition to thumb.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`thumb_domtrans',`
+	gen_require(`
+		type thumb_t, thumb_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, thumb_exec_t, thumb_t)
+	dontaudit thumb_t $1:unix_stream_socket { getattr read write };
+')
+
+########################################
+## <summary>
+##	NNP Transition to thumb.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`thumb_nnp_domtrans',`
+	gen_require(`
+		type thumb_t;
+	')
+
+	allow $1 thumb_t:process2 { nnp_transition nosuid_transition };
+
+')
+
+########################################
+## <summary>
+##	Execute thumb in the thumb domain, and
+##	allow the specified role the thumb domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the thumb domain.
+##	</summary>
+## </param>
+#
+interface(`thumb_run',`
+	gen_require(`
+		type thumb_t;
+	')
+
+	thumb_domtrans($1)
+	thumb_nnp_domtrans($1)
+	role $2 types thumb_t;
+
+	allow $1 thumb_t:process signal_perms;
+
+	dontaudit thumb_t $1:dir list_dir_perms;
+	dontaudit thumb_t $1:file read_file_perms;
+	dontaudit thumb_t $1:unix_stream_socket rw_socket_perms;
+    
+    allow thumb_t $1:shm create_shm_perms;
+	allow thumb_t $1:sem create_sem_perms;
+')
+
+########################################
+## <summary>
+##	Role access for thumb
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`thumb_role',`
+	gen_require(`
+		type thumb_t;
+		class dbus send_msg;
+	')
+
+	thumb_run($2, $1)
+
+	ps_process_pattern($2, thumb_t)
+	allow thumb_t $2:unix_stream_socket connectto;
+
+	thumb_dbus_chat($2)
+	thumb_filetrans_home_content($2)
+')
+
+########################################
+## <summary>
+##      Send and receive messages from
+##      thumb over dbus.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`thumb_dbus_chat',`
+        gen_require(`
+                type thumb_t;
+                class dbus send_msg;
+        ')
+
+        allow $1 thumb_t:dbus send_msg;
+        allow thumb_t $1:dbus send_msg;
+	ps_process_pattern(thumb_t, $1)
+')
+
+########################################
+## <summary>
+##	Create thumb content in the user home directory
+##	with an correct label.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`thumb_filetrans_home_content',`
+
+	gen_require(`
+		type thumb_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, thumb_home_t, dir, ".thumbnails")
+	userdom_user_home_dir_filetrans($1, thumb_home_t, file, "missfont.log")
+
+	optional_policy(`
+		gnome_cache_filetrans($1, thumb_home_t, dir, "thumbnails")
+	')
+')

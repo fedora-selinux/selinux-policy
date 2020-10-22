@@ -1,0 +1,63 @@
+policy_module(lttng-tools, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type lttng_sessiond_t;
+type lttng_sessiond_exec_t;
+init_daemon_domain(lttng_sessiond_t, lttng_sessiond_exec_t)
+
+type lttng_sessiond_tmpfs_t;
+files_tmpfs_file(lttng_sessiond_tmpfs_t)
+
+type lttng_sessiond_var_run_t;
+files_pid_file(lttng_sessiond_var_run_t)
+
+type lttng_sessiond_unit_file_t;
+systemd_unit_file(lttng_sessiond_unit_file_t)
+
+########################################
+#
+# lttng_sessiond local policy
+#
+
+allow lttng_sessiond_t self:capability { chown setgid setuid fsetid net_admin sys_resource };
+allow lttng_sessiond_t self:capability2 block_suspend;
+allow lttng_sessiond_t self:process { setrlimit signal_perms };
+allow lttng_sessiond_t self:fifo_file rw_fifo_file_perms;
+allow lttng_sessiond_t self:tcp_socket listen;
+allow lttng_sessiond_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+manage_dirs_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
+manage_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
+manage_lnk_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
+manage_sock_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
+files_pid_filetrans(lttng_sessiond_t, lttng_sessiond_var_run_t, { dir })
+
+allow lttng_sessiond_t lttng_sessiond_tmpfs_t:file map;
+manage_dirs_pattern(lttng_sessiond_t, lttng_sessiond_tmpfs_t, lttng_sessiond_tmpfs_t)
+manage_files_pattern(lttng_sessiond_t, lttng_sessiond_tmpfs_t, lttng_sessiond_tmpfs_t)
+fs_tmpfs_filetrans(lttng_sessiond_t, lttng_sessiond_tmpfs_t, { dir file })
+
+kernel_read_system_state(lttng_sessiond_t)
+kernel_read_net_sysctls(lttng_sessiond_t)
+kernel_read_fs_sysctls(lttng_sessiond_t)
+
+corecmd_exec_shell(lttng_sessiond_t)
+
+corenet_tcp_bind_generic_node(lttng_sessiond_t)
+corenet_tcp_bind_lltng_port(lttng_sessiond_t)
+
+dev_read_sysfs(lttng_sessiond_t)
+dev_read_rand(lttng_sessiond_t)
+
+fs_getattr_tmpfs(lttng_sessiond_t)
+
+auth_use_nsswitch(lttng_sessiond_t)
+
+modutils_exec_kmod(lttng_sessiond_t)
+modutils_read_module_config(lttng_sessiond_t)
+modutils_read_module_deps_files(lttng_sessiond_t)
+files_read_kernel_modules(lttng_sessiond_t)

@@ -1,0 +1,684 @@
+policy_module(abrt, 1.4.1)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow ABRT to modify public files
+## used for public file transfer services.
+## </p>
+## </desc>
+gen_tunable(abrt_anon_write, false)
+
+## <desc>
+##	<p>
+##	Determine whether abrt-handle-upload
+##	can modify public files used for public file
+##	transfer services in /var/spool/abrt-upload/.
+##	</p>
+## </desc>
+gen_tunable(abrt_upload_watch_anon_write, true)
+
+## <desc>
+##	<p>
+##	Determine whether ABRT can run in
+##	the abrt_handle_event_t domain to
+##	handle ABRT event scripts.
+##	</p>
+## </desc>
+gen_tunable(abrt_handle_event, false)
+
+attribute abrt_domain;
+
+attribute_role abrt_helper_roles;
+roleattribute system_r abrt_helper_roles;
+
+abrt_basic_types_template(abrt)
+init_daemon_domain(abrt_t, abrt_exec_t)
+
+type abrt_initrc_exec_t;
+init_script_file(abrt_initrc_exec_t)
+
+type abrt_unit_file_t;
+systemd_unit_file(abrt_unit_file_t)
+
+type abrt_etc_t;
+files_config_file(abrt_etc_t)
+
+type abrt_var_log_t;
+logging_log_file(abrt_var_log_t)
+
+type abrt_var_lib_t;
+files_type(abrt_var_lib_t)
+
+type abrt_tmp_t;
+files_tmp_file(abrt_tmp_t)
+
+type abrt_var_cache_t;
+files_type(abrt_var_cache_t)
+files_tmp_file(abrt_var_cache_t)
+userdom_user_tmp_content(abrt_var_cache_t)
+
+type abrt_var_run_t;
+files_pid_file(abrt_var_run_t)
+
+abrt_basic_types_template(abrt_dump_oops)
+init_system_domain(abrt_dump_oops_t, abrt_dump_oops_exec_t)
+domain_obj_id_change_exemption(abrt_dump_oops_t)
+
+abrt_basic_types_template(abrt_handle_event)
+application_domain(abrt_handle_event_t, abrt_handle_event_exec_t)
+role system_r types abrt_handle_event_t;
+
+# type needed to allow all domains
+# to handle /var/cache/abrt
+# type needed to allow all domains
+# to handle /var/cache/abrt
+abrt_basic_types_template(abrt_helper)
+application_domain(abrt_helper_t, abrt_helper_exec_t)
+role abrt_helper_roles types abrt_helper_t;
+
+abrt_basic_types_template(abrt_retrace_worker)
+application_domain(abrt_retrace_worker_t, abrt_retrace_worker_exec_t)
+role system_r types abrt_retrace_worker_t;
+
+abrt_basic_types_template(abrt_retrace_coredump)
+application_domain(abrt_retrace_coredump_t, abrt_retrace_coredump_exec_t)
+role system_r types abrt_retrace_coredump_t;
+
+type abrt_retrace_cache_t;
+files_type(abrt_retrace_cache_t)
+
+type abrt_retrace_spool_t;
+files_spool_file(abrt_retrace_spool_t)
+
+abrt_basic_types_template(abrt_watch_log)
+init_daemon_domain(abrt_watch_log_t, abrt_watch_log_exec_t)
+
+abrt_basic_types_template(abrt_upload_watch)
+init_daemon_domain(abrt_upload_watch_t, abrt_upload_watch_exec_t)
+
+type abrt_upload_watch_tmp_t;
+files_tmp_file(abrt_upload_watch_tmp_t)
+
+
+ifdef(`enable_mcs',`
+	init_ranged_daemon_domain(abrt_t, abrt_exec_t, s0 - mcs_systemhigh)
+')
+
+########################################
+#
+# abrt local policy
+#
+
+allow abrt_t self:capability { chown dac_read_search dac_override fowner fsetid ipc_lock kill setgid setuid sys_nice sys_ptrace };
+dontaudit abrt_t self:capability { net_admin sys_rawio sys_ptrace };
+allow abrt_t self:process { setpgid sigkill signal signull setsched getsched };
+
+allow abrt_t self:fifo_file rw_fifo_file_perms;
+allow abrt_t self:tcp_socket create_stream_socket_perms;
+allow abrt_t self:udp_socket create_socket_perms;
+allow abrt_t self:unix_dgram_socket create_socket_perms;
+allow abrt_t self:netlink_route_socket r_netlink_socket_perms;
+
+tunable_policy(`deny_execmem',`',`
+	allow abrt_t self:process execmem;
+')
+
+# abrt etc files
+list_dirs_pattern(abrt_t, abrt_etc_t, abrt_etc_t)
+rw_files_pattern(abrt_t, abrt_etc_t, abrt_etc_t)
+
+# log file
+manage_files_pattern(abrt_t, abrt_var_log_t, abrt_var_log_t)
+logging_log_filetrans(abrt_t, abrt_var_log_t, file)
+
+manage_dirs_pattern(abrt_t, abrt_tmp_t, abrt_tmp_t)
+manage_files_pattern(abrt_t, abrt_tmp_t, abrt_tmp_t)
+manage_lnk_files_pattern(abrt_t, abrt_tmp_t, abrt_tmp_t)
+files_tmp_filetrans(abrt_t, abrt_tmp_t, { file dir })
+can_exec(abrt_t, abrt_tmp_t)
+
+# abrt var/cache files
+manage_files_pattern(abrt_t, abrt_var_cache_t, abrt_var_cache_t)
+manage_dirs_pattern(abrt_t, abrt_var_cache_t, abrt_var_cache_t)
+manage_lnk_files_pattern(abrt_t, abrt_var_cache_t, abrt_var_cache_t)
+files_var_filetrans(abrt_t, abrt_var_cache_t, { file dir })
+files_spool_filetrans(abrt_t, abrt_var_cache_t, dir)
+files_tmp_filetrans(abrt_t, abrt_var_cache_t, dir, "abrt")
+allow abrt_t abrt_var_cache_t:file map;
+
+# abrt pid files
+manage_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
+manage_dirs_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
+manage_sock_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
+manage_lnk_files_pattern(abrt_t, abrt_var_run_t, abrt_var_run_t)
+files_pid_filetrans(abrt_t, abrt_var_run_t, { file dir sock_file })
+
+manage_files_pattern(abrt_t, abrt_upload_watch_tmp_t, abrt_upload_watch_tmp_t)
+manage_dirs_pattern(abrt_t, abrt_upload_watch_tmp_t, abrt_upload_watch_tmp_t)
+manage_lnk_files_pattern(abrt_t, abrt_upload_watch_tmp_t, abrt_upload_watch_tmp_t)
+
+kernel_read_all_proc(abrt_t)
+kernel_read_ring_buffer(abrt_t)
+kernel_read_network_state(abrt_t)
+kernel_read_software_raid_state(abrt_t)
+kernel_request_load_module(abrt_t)
+kernel_rw_usermodehelper_state(abrt_t)
+kernel_rw_kernel_sysctl(abrt_t)
+# needed by docker BZ #1194280
+kernel_read_net_sysctls(abrt_t)
+kernel_rw_usermodehelper_state(abrt_t)
+kernel_read_sysctl(abrt_t)
+
+corecmd_exec_bin(abrt_t)
+corecmd_exec_shell(abrt_t)
+corecmd_read_all_executables(abrt_t)
+
+corenet_all_recvfrom_netlabel(abrt_t)
+corenet_tcp_sendrecv_generic_if(abrt_t)
+corenet_tcp_sendrecv_generic_node(abrt_t)
+corenet_tcp_sendrecv_generic_port(abrt_t)
+corenet_tcp_bind_generic_node(abrt_t)
+corenet_tcp_connect_http_port(abrt_t)
+corenet_tcp_connect_ftp_port(abrt_t)
+corenet_tcp_connect_all_ports(abrt_t)
+corenet_sendrecv_http_client_packets(abrt_t)
+
+dev_getattr_all_chr_files(abrt_t)
+dev_getattr_all_blk_files(abrt_t)
+dev_read_rand(abrt_t)
+dev_read_urand(abrt_t)
+dev_rw_sysfs(abrt_t)
+dev_read_raw_memory(abrt_t)
+dev_write_kmsg(abrt_t)
+
+domain_getattr_all_domains(abrt_t)
+domain_read_all_domains_state(abrt_t)
+domain_signull_all_domains(abrt_t)
+
+files_getattr_all_files(abrt_t)
+files_read_config_files(abrt_t)
+files_read_etc_runtime_files(abrt_t)
+files_read_var_symlinks(abrt_t)
+files_read_var_lib_files(abrt_t)
+files_map_var_lib_files(abrt_t)
+files_read_generic_tmp_files(abrt_t)
+files_map_generic_tmp_files(abrt_t)
+files_read_kernel_modules(abrt_t)
+files_dontaudit_list_default(abrt_t)
+files_dontaudit_read_default_files(abrt_t)
+files_dontaudit_read_all_symlinks(abrt_t)
+files_dontaudit_write_usr_files(abrt_t)
+files_dontaudit_getattr_all_sockets(abrt_t)
+files_dontaudit_read_root_files(abrt_t)
+files_list_mnt(abrt_t)
+fs_list_all(abrt_t)
+files_manage_usr_files(abrt_t)
+files_manage_usr_dirs(abrt_t)
+
+fs_list_inotifyfs(abrt_t)
+fs_getattr_all_fs(abrt_t)
+fs_getattr_all_dirs(abrt_t)
+fs_read_fusefs_files(abrt_t)
+fs_mmap_fusefs_files(abrt_t)
+fs_read_noxattr_fs_files(abrt_t)
+fs_read_nfs_files(abrt_t)
+fs_read_nfs_symlinks(abrt_t)
+fs_search_all(abrt_t)
+fs_getattr_nsfs_files(abrt_t)
+fs_map_dos_files(abrt_t)
+
+storage_dontaudit_read_fixed_disk(abrt_t)
+
+logging_read_generic_logs(abrt_t)
+logging_mmap_journal(abrt_t)
+logging_send_syslog_msg(abrt_t)
+logging_stream_connect_syslog(abrt_t)
+logging_read_syslog_pid(abrt_t)
+
+libs_dontaudit_write_lib_dirs(abrt_t)
+
+auth_use_nsswitch(abrt_t)
+auth_map_passwd(abrt_t)
+
+init_read_utmp(abrt_t)
+
+miscfiles_read_generic_certs(abrt_t)
+miscfiles_read_public_files(abrt_t)
+miscfiles_dontaudit_access_check_cert(abrt_t)
+miscfiles_dontaudit_write_generic_cert_files(abrt_t)
+
+userdom_dontaudit_mmap_user_home_content_files(abrt_t)
+userdom_dontaudit_read_user_home_content_files(abrt_t)
+userdom_dontaudit_read_admin_home_files(abrt_t)
+
+tunable_policy(`abrt_anon_write',`
+	miscfiles_manage_public_files(abrt_t)
+')
+
+optional_policy(`
+	apache_list_modules(abrt_t)
+	apache_read_modules(abrt_t)
+')
+
+optional_policy(`
+	dbus_system_domain(abrt_t, abrt_exec_t)
+')
+
+optional_policy(`
+	dmesg_domtrans(abrt_t)
+')
+
+optional_policy(`
+	container_stream_connect(abrt_t)
+    virt_stub_container_image()
+    allow abrt_t container_file_t:file map;
+')
+
+optional_policy(`
+    gnome_map_generic_data_home_files(abrt_t)
+')
+
+optional_policy(`
+	kdump_manage_crash(abrt_t)
+')
+
+optional_policy(`
+	lvm_dontaudit_rw_lock_dir(abrt_t)
+')
+
+optional_policy(`
+    mta_send_mail(abrt_t)
+    mta_manage_home_rw(abrt_t)
+')
+
+optional_policy(`
+	mcelog_read_log(abrt_t)
+')
+
+optional_policy(`
+	mozilla_plugin_dontaudit_rw_tmp_files(abrt_t)
+	mozilla_plugin_read_rw_files(abrt_t)
+')
+
+optional_policy(`
+    pcp_read_lib_files(abrt_t)
+')
+
+optional_policy(`
+	policykit_dbus_chat(abrt_t)
+	policykit_domtrans_auth(abrt_t)
+	policykit_read_lib(abrt_t)
+	policykit_read_reload(abrt_t)
+')
+
+optional_policy(`
+	prelink_exec(abrt_t)
+	libs_exec_ld_so(abrt_t)
+	corecmd_exec_all_executables(abrt_t)
+')
+
+optional_policy(`
+    puppet_read_lib(abrt_t)
+')
+
+# to install debuginfo packages
+optional_policy(`
+	rpm_exec(abrt_t)
+	rpm_dontaudit_manage_db(abrt_t)
+	rpm_manage_cache(abrt_t)
+	rpm_manage_log(abrt_t)
+	rpm_manage_pid_files(abrt_t)
+	rpm_read_tmp_files(abrt_t)
+	rpm_read_db(abrt_t)
+	rpm_signull(abrt_t)
+')
+
+optional_policy(`
+    rhsmcertd_manage_pid_files(abrt_t)
+    rhsmcertd_read_log(abrt_t)
+    rhsmcertd_read_lib_files(abrt_t)
+
+')
+
+# to run mailx plugin
+#optional_policy(`
+#	sendmail_domtrans(abrt_t)
+#')
+
+optional_policy(`
+	sosreport_domtrans(abrt_t)
+	sosreport_read_tmp_files(abrt_t)
+	sosreport_delete_tmp_files(abrt_t)
+')
+
+optional_policy(`
+	sssd_stream_connect(abrt_t)
+')
+
+optional_policy(`
+	xserver_read_log(abrt_t)
+')
+
+optional_policy(`
+	udev_read_db(abrt_t)
+')
+
+#######################################
+#
+# abrt-handle-event local policy
+#
+
+allow abrt_handle_event_t self:fifo_file rw_fifo_file_perms;
+
+tunable_policy(`abrt_handle_event',`
+	domtrans_pattern(abrt_t, abrt_handle_event_exec_t, abrt_handle_event_t)
+',`
+	can_exec(abrt_t, abrt_handle_event_exec_t)
+')
+
+optional_policy(`
+	unconfined_domain(abrt_handle_event_t)
+')
+
+########################################
+#
+# abrt--helper local policy
+#
+
+allow abrt_helper_t self:capability { chown setgid sys_nice };
+allow abrt_helper_t self:process signal;
+
+read_files_pattern(abrt_helper_t, abrt_etc_t, abrt_etc_t)
+
+files_search_spool(abrt_helper_t)
+manage_dirs_pattern(abrt_helper_t, abrt_var_cache_t, abrt_var_cache_t)
+manage_files_pattern(abrt_helper_t, abrt_var_cache_t, abrt_var_cache_t)
+manage_lnk_files_pattern(abrt_helper_t, abrt_var_cache_t, abrt_var_cache_t)
+files_var_filetrans(abrt_helper_t, abrt_var_cache_t, { file dir })
+files_tmp_filetrans(abrt_helper_t, abrt_var_cache_t, dir, "abrt")
+
+read_files_pattern(abrt_helper_t, abrt_var_run_t, abrt_var_run_t)
+read_lnk_files_pattern(abrt_helper_t, abrt_var_run_t, abrt_var_run_t)
+
+corecmd_read_all_executables(abrt_helper_t)
+
+domain_read_all_domains_state(abrt_helper_t)
+
+files_dontaudit_all_non_security_leaks(abrt_helper_t)
+
+fs_list_inotifyfs(abrt_helper_t)
+fs_getattr_all_fs(abrt_helper_t)
+
+auth_use_nsswitch(abrt_helper_t)
+
+logging_send_syslog_msg(abrt_helper_t)
+
+term_dontaudit_use_all_ttys(abrt_helper_t)
+term_dontaudit_use_all_ptys(abrt_helper_t)
+
+ifdef(`hide_broken_symptoms',`
+	domain_dontaudit_leaks(abrt_helper_t)
+	userdom_dontaudit_read_user_home_content_files(abrt_helper_t)
+	userdom_dontaudit_read_user_tmp_files(abrt_helper_t)
+	dev_dontaudit_read_all_blk_files(abrt_helper_t)
+	dev_dontaudit_read_all_chr_files(abrt_helper_t)
+	dev_dontaudit_write_all_chr_files(abrt_helper_t)
+	dev_dontaudit_write_all_blk_files(abrt_helper_t)
+	fs_dontaudit_rw_anon_inodefs_files(abrt_helper_t)
+
+	optional_policy(`
+		rpm_dontaudit_leaks(abrt_helper_t)
+	')
+')
+
+ifdef(`hide_broken_symptoms',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow abrt_t self:capability sys_resource;
+	allow abrt_t domain:file write;
+	allow abrt_t domain:process setrlimit;
+')
+
+#######################################
+#
+# abrt retrace coredump policy
+#
+
+allow abrt_retrace_coredump_t self:fifo_file rw_fifo_file_perms;
+
+list_dirs_pattern(abrt_retrace_coredump_t, abrt_retrace_cache_t, abrt_retrace_cache_t)
+read_files_pattern(abrt_retrace_coredump_t, abrt_retrace_cache_t, abrt_retrace_cache_t)
+read_lnk_files_pattern(abrt_retrace_coredump_t, abrt_retrace_cache_t, abrt_retrace_cache_t)
+
+list_dirs_pattern(abrt_retrace_coredump_t, abrt_retrace_spool_t, abrt_retrace_spool_t)
+read_files_pattern(abrt_retrace_coredump_t, abrt_retrace_spool_t, abrt_retrace_spool_t)
+read_lnk_files_pattern(abrt_retrace_coredump_t, abrt_retrace_spool_t, abrt_retrace_spool_t)
+
+corecmd_exec_bin(abrt_retrace_coredump_t)
+corecmd_exec_shell(abrt_retrace_coredump_t)
+
+dev_read_urand(abrt_retrace_coredump_t)
+
+
+logging_send_syslog_msg(abrt_retrace_coredump_t)
+
+sysnet_dns_name_resolve(abrt_retrace_coredump_t)
+
+# to install debuginfo packages
+optional_policy(`
+	rpm_exec(abrt_retrace_coredump_t)
+	rpm_dontaudit_manage_db(abrt_retrace_coredump_t)
+	rpm_manage_cache(abrt_retrace_coredump_t)
+	rpm_manage_log(abrt_retrace_coredump_t)
+	rpm_manage_pid_files(abrt_retrace_coredump_t)
+	rpm_read_db(abrt_retrace_coredump_t)
+	rpm_signull(abrt_retrace_coredump_t)
+')
+
+#######################################
+#
+# abrt retrace worker policy
+#
+
+allow abrt_retrace_worker_t self:capability { setuid };
+
+allow abrt_retrace_worker_t self:fifo_file rw_fifo_file_perms;
+
+domtrans_pattern(abrt_retrace_worker_t, abrt_retrace_coredump_exec_t, abrt_retrace_coredump_t)
+allow abrt_retrace_worker_t abrt_retrace_coredump_exec_t:file ioctl;
+
+manage_dirs_pattern(abrt_retrace_worker_t, abrt_retrace_spool_t, abrt_retrace_spool_t)
+manage_files_pattern(abrt_retrace_worker_t, abrt_retrace_spool_t, abrt_retrace_spool_t)
+manage_lnk_files_pattern(abrt_retrace_worker_t, abrt_retrace_spool_t, abrt_retrace_spool_t)
+
+allow abrt_retrace_worker_t abrt_etc_t:file read_file_perms;
+
+can_exec(abrt_retrace_worker_t, abrt_retrace_worker_exec_t)
+
+corecmd_exec_bin(abrt_retrace_worker_t)
+corecmd_exec_shell(abrt_retrace_worker_t)
+
+dev_read_urand(abrt_retrace_worker_t)
+
+
+logging_send_syslog_msg(abrt_retrace_worker_t)
+
+sysnet_dns_name_resolve(abrt_retrace_worker_t)
+
+optional_policy(`
+	mock_domtrans(abrt_retrace_worker_t)
+	mock_manage_lib_files(abrt_t)
+')
+
+########################################
+#
+# abrt_dump_oops local policy
+#
+
+allow abrt_dump_oops_t self:capability { kill net_admin sys_ptrace ipc_lock fowner chown fsetid dac_read_search dac_override setuid setgid };
+allow abrt_dump_oops_t self:cap_userns { kill sys_ptrace };
+allow abrt_dump_oops_t self:process {setfscreate setcap};
+allow abrt_dump_oops_t self:fifo_file rw_fifo_file_perms;
+allow abrt_dump_oops_t self:unix_stream_socket create_stream_socket_perms;
+allow abrt_dump_oops_t self:udp_socket create_socket_perms;
+
+files_search_spool(abrt_dump_oops_t)
+manage_dirs_pattern(abrt_dump_oops_t, abrt_var_cache_t, abrt_var_cache_t)
+manage_files_pattern(abrt_dump_oops_t, abrt_var_cache_t, abrt_var_cache_t)
+manage_lnk_files_pattern(abrt_dump_oops_t, abrt_var_cache_t, abrt_var_cache_t)
+files_var_filetrans(abrt_dump_oops_t, abrt_var_cache_t, { file dir })
+files_tmp_filetrans(abrt_dump_oops_t, abrt_var_cache_t, dir, "abrt")
+
+manage_dirs_pattern(abrt_dump_oops_t, abrt_var_lib_t, abrt_var_lib_t)
+manage_files_pattern(abrt_dump_oops_t, abrt_var_lib_t, abrt_var_lib_t)
+
+read_files_pattern(abrt_dump_oops_t, abrt_var_run_t, abrt_var_run_t)
+read_lnk_files_pattern(abrt_dump_oops_t, abrt_var_run_t, abrt_var_run_t)
+
+read_files_pattern(abrt_dump_oops_t, abrt_etc_t, abrt_etc_t)
+
+kernel_read_debugfs(abrt_dump_oops_t)
+kernel_read_kernel_sysctls(abrt_dump_oops_t)
+kernel_read_ring_buffer(abrt_dump_oops_t)
+kernel_read_security_state(abrt_dump_oops_t)
+
+auth_read_passwd(abrt_dump_oops_t)
+
+corecmd_getattr_all_executables(abrt_dump_oops_t)
+corecmd_exec_bin(abrt_dump_oops_t)
+
+dev_read_urand(abrt_dump_oops_t)
+dev_read_rand(abrt_dump_oops_t)
+
+domain_use_interactive_fds(abrt_dump_oops_t)
+domain_signull_all_domains(abrt_dump_oops_t)
+domain_read_all_domains_state(abrt_dump_oops_t)
+domain_getattr_all_domains(abrt_dump_oops_t)
+
+tunable_policy(`deny_ptrace',`',`
+    domain_ptrace_all_domains(abrt_dump_oops_t)
+')
+
+files_manage_non_security_dirs(abrt_dump_oops_t)
+files_manage_non_security_files(abrt_dump_oops_t)
+files_map_non_security_files(abrt_dump_oops_t)
+
+fs_getattr_all_fs(abrt_dump_oops_t)
+fs_list_inotifyfs(abrt_dump_oops_t)
+fs_list_pstorefs(abrt_dump_oops_t)
+fs_getattr_nsfs_files(abrt_dump_oops_t)
+
+selinux_compute_create_context(abrt_dump_oops_t)
+
+logging_read_generic_logs(abrt_dump_oops_t)
+logging_read_syslog_pid(abrt_dump_oops_t)
+logging_send_syslog_msg(abrt_dump_oops_t)
+logging_mmap_generic_logs(abrt_dump_oops_t)
+logging_mmap_journal(abrt_dump_oops_t)
+
+init_read_var_lib_files(abrt_dump_oops_t)
+
+optional_policy(`
+    sssd_read_public_files(abrt_dump_oops_t)
+    sssd_stream_connect(abrt_dump_oops_t)
+')
+
+optional_policy(`
+	xserver_exec(abrt_dump_oops_t)
+')
+
+optional_policy(`
+    nscd_dontaudit_write_sock_file(abrt_dump_oops_t)
+')
+
+#######################################
+#
+# Watch log local policy
+#
+
+allow abrt_watch_log_t self:fifo_file rw_fifo_file_perms;
+allow abrt_watch_log_t self:unix_stream_socket create_stream_socket_perms;
+
+read_files_pattern(abrt_watch_log_t, abrt_etc_t, abrt_etc_t)
+
+auth_read_passwd(abrt_watch_log_t)
+auth_use_nsswitch(abrt_watch_log_t)
+
+domtrans_pattern(abrt_watch_log_t, abrt_dump_oops_exec_t, abrt_dump_oops_t)
+
+corecmd_exec_bin(abrt_watch_log_t)
+
+logging_read_all_logs(abrt_watch_log_t)
+logging_send_syslog_msg(abrt_watch_log_t)
+
+optional_policy(`
+    gnome_list_home_config(abrt_watch_log_t)
+')
+
+tunable_policy(`abrt_upload_watch_anon_write',`
+	miscfiles_manage_public_files(abrt_upload_watch_t)
+')
+
+#######################################
+#
+# Upload watch local policy
+#
+
+allow abrt_upload_watch_t self:capability { dac_read_search  chown fsetid };
+allow abrt_upload_watch_t self:unix_dgram_socket create_socket_perms;
+allow abrt_upload_watch_t self:udp_socket create_socket_perms;
+
+manage_files_pattern(abrt_upload_watch_t, abrt_upload_watch_tmp_t, abrt_upload_watch_tmp_t)
+manage_dirs_pattern(abrt_upload_watch_t, abrt_upload_watch_tmp_t, abrt_upload_watch_tmp_t)
+manage_lnk_files_pattern(abrt_upload_watch_t, abrt_upload_watch_tmp_t, abrt_upload_watch_tmp_t)
+files_tmp_filetrans(abrt_upload_watch_t, abrt_upload_watch_tmp_t, {file dir})
+
+read_files_pattern(abrt_upload_watch_t, abrt_etc_t, abrt_etc_t)
+
+manage_dirs_pattern(abrt_upload_watch_t, abrt_var_cache_t, abrt_var_cache_t)
+
+kernel_dgram_send(abrt_upload_watch_t)
+
+abrt_dbus_chat(abrt_upload_watch_t)
+
+corecmd_exec_bin(abrt_upload_watch_t)
+
+dev_read_urand(abrt_upload_watch_t)
+
+files_search_spool(abrt_upload_watch_t)
+
+auth_read_passwd(abrt_upload_watch_t)
+
+miscfiles_read_certs(abrt_upload_watch_t)
+
+logging_send_syslog_msg(abrt_upload_watch_t)
+logging_stream_connect_syslog(abrt_upload_watch_t)
+
+tunable_policy(`abrt_upload_watch_anon_write',`
+    miscfiles_manage_public_files(abrt_upload_watch_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(abrt_upload_watch_t)
+')
+
+optional_policy(`
+    gnome_list_home_config(abrt_upload_watch_t)
+')
+
+#######################################
+#
+# Global local policy
+#
+
+allow abrt_domain abrt_var_run_t:sock_file write_sock_file_perms;
+allow abrt_domain abrt_var_run_t:unix_stream_socket connectto;
+
+files_read_etc_files(abrt_domain)

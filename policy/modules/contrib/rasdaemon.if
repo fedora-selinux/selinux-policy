@@ -1,0 +1,157 @@
+
+## <summary>The rasdaemon program is a daemon with monitors the RAS trace events from /sys/kernel/debug/tracing</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the rasdaemon domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rasdaemon_domtrans',`
+	gen_require(`
+		type rasdaemon_t, rasdaemon_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rasdaemon_exec_t, rasdaemon_t)
+')
+
+########################################
+## <summary>
+##	Search rasdaemon lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rasdaemon_search_lib',`
+	gen_require(`
+		type rasdaemon_var_lib_t;
+	')
+
+	allow $1 rasdaemon_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read rasdaemon lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rasdaemon_read_lib_files',`
+	gen_require(`
+		type rasdaemon_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, rasdaemon_var_lib_t, rasdaemon_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage rasdaemon lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rasdaemon_manage_lib_files',`
+	gen_require(`
+		type rasdaemon_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, rasdaemon_var_lib_t, rasdaemon_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage rasdaemon lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rasdaemon_manage_lib_dirs',`
+	gen_require(`
+		type rasdaemon_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, rasdaemon_var_lib_t, rasdaemon_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Execute rasdaemon server in the rasdaemon domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`rasdaemon_systemctl',`
+	gen_require(`
+		type rasdaemon_t;
+		type rasdaemon_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 rasdaemon_unit_file_t:file read_file_perms;
+	allow $1 rasdaemon_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, rasdaemon_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an rasdaemon environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rasdaemon_admin',`
+	gen_require(`
+		type rasdaemon_t;
+		type rasdaemon_var_lib_t;
+	type rasdaemon_unit_file_t;
+	')
+
+	allow $1 rasdaemon_t:process { ptrace signal_perms };
+	ps_process_pattern($1, rasdaemon_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, rasdaemon_var_lib_t)
+
+	rasdaemon_systemctl($1)
+	admin_pattern($1, rasdaemon_unit_file_t)
+	allow $1 rasdaemon_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

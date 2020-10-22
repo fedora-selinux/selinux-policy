@@ -1,0 +1,535 @@
+policy_module(pegasus, 1.9.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute pegasus_openlmi_domain;
+
+type pegasus_t;
+type pegasus_exec_t;
+init_daemon_domain(pegasus_t, pegasus_exec_t)
+
+type pegasus_cache_t;
+files_type(pegasus_cache_t)
+
+type pegasus_data_t;
+files_type(pegasus_data_t)
+
+type pegasus_tmp_t;
+files_tmp_file(pegasus_tmp_t)
+
+type pegasus_conf_t;
+files_config_file(pegasus_conf_t)
+
+type pegasus_mof_t;
+files_type(pegasus_mof_t)
+
+type pegasus_var_run_t;
+files_pid_file(pegasus_var_run_t)
+
+# pegasus openlmi providers
+pegasus_openlmi_domain_template(admin)
+typealias pegasus_openlmi_admin_t alias pegasus_openlmi_service_t;
+typealias pegasus_openlmi_admin_exec_t alias pegasus_openlmi_service_exec_t;
+
+pegasus_openlmi_domain_template(account)
+domain_obj_id_change_exemption(pegasus_openlmi_account_t)
+domain_system_change_exemption(pegasus_openlmi_account_t)
+
+pegasus_openlmi_domain_template(logicalfile)
+pegasus_openlmi_domain_template(services)
+
+pegasus_openlmi_domain_template(storage)
+type pegasus_openlmi_storage_tmp_t;
+files_tmp_file(pegasus_openlmi_storage_tmp_t)
+
+type pegasus_openlmi_storage_lib_t;
+files_type(pegasus_openlmi_storage_lib_t)
+
+type pegasus_openlmi_storage_var_run_t;
+files_pid_file(pegasus_openlmi_storage_var_run_t)
+
+pegasus_openlmi_domain_template(system)
+typealias pegasus_openlmi_system_t alias pegasus_openlmi_networking_t;
+pegasus_openlmi_domain_template(unconfined)
+
+#######################################
+#
+# pegasus openlmi providers local policy
+#
+
+allow pegasus_openlmi_domain self:capability { setuid setgid };
+
+allow pegasus_openlmi_domain self:fifo_file rw_fifo_file_perms;
+allow pegasus_openlmi_domain self:udp_socket create_socket_perms;
+
+manage_files_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
+manage_dirs_pattern(pegasus_openlmi_domain, pegasus_data_t, pegasus_data_t)
+
+corecmd_exec_bin(pegasus_openlmi_domain)
+corecmd_exec_shell(pegasus_openlmi_domain)
+
+dev_read_sysfs(pegasus_openlmi_domain)
+
+auth_read_passwd(pegasus_openlmi_domain)
+
+sysnet_read_config(pegasus_openlmi_domain)
+
+optional_policy(`
+    pegasus_stream_connect(pegasus_openlmi_domain)
+')
+
+######################################
+#
+# pegasus openlmi account local policy
+#
+
+allow pegasus_openlmi_account_t self:capability { chown dac_read_search  fowner fsetid };
+allow pegasus_openlmi_account_t self:process setfscreate;
+
+auth_manage_passwd(pegasus_openlmi_account_t)
+auth_manage_shadow(pegasus_openlmi_account_t)
+auth_relabel_shadow(pegasus_openlmi_account_t)
+auth_read_login_records(pegasus_openlmi_account_t)
+auth_etc_filetrans_shadow(pegasus_openlmi_account_t)
+
+logging_send_audit_msgs(pegasus_openlmi_account_t)
+logging_send_syslog_msg(pegasus_openlmi_account_t)
+
+init_rw_utmp(pegasus_openlmi_account_t)
+
+seutil_semanage_policy(pegasus_openlmi_account_t)
+
+logging_send_syslog_msg(pegasus_openlmi_account_t)
+
+seutil_read_config(pegasus_openlmi_account_t)
+seutil_read_file_contexts(pegasus_openlmi_account_t)
+seutil_read_default_contexts(pegasus_openlmi_account_t)
+
+# Add/remove user home directories
+userdom_home_filetrans_user_home_dir(pegasus_openlmi_account_t)
+userdom_manage_home_role(system_r, pegasus_openlmi_account_t)
+userdom_delete_all_user_home_content(pegasus_openlmi_account_t)
+
+optional_policy(`
+    # run userdel
+    usermanage_domtrans_useradd(pegasus_openlmi_account_t)
+')
+
+######################################
+#
+# pegasus openlmi logicalfile local policy
+#
+
+allow pegasus_openlmi_logicalfile_t self:capability { dac_read_search  };
+files_manage_non_security_dirs(pegasus_openlmi_logicalfile_t)
+files_manage_non_security_files(pegasus_openlmi_logicalfile_t)
+
+dev_getattr_all_blk_files(pegasus_openlmi_logicalfile_t)
+dev_getattr_all_chr_files(pegasus_openlmi_logicalfile_t)
+
+files_list_all(pegasus_openlmi_logicalfile_t)
+files_read_all_files(pegasus_openlmi_logicalfile_t)
+files_read_all_symlinks(pegasus_openlmi_logicalfile_t)
+files_read_all_blk_files(pegasus_openlmi_logicalfile_t)
+files_read_all_chr_files(pegasus_openlmi_logicalfile_t)
+files_getattr_all_pipes(pegasus_openlmi_logicalfile_t)
+files_getattr_all_sockets(pegasus_openlmi_logicalfile_t)
+
+# Add/remove user home directories
+userdom_home_filetrans_user_home_dir(pegasus_openlmi_logicalfile_t)
+userdom_manage_home_role(system_r, pegasus_openlmi_logicalfile_t)
+userdom_delete_all_user_home_content(pegasus_openlmi_logicalfile_t)
+
+optional_policy(`
+    # it can delete/create empty dirs
+    # so we want to have unconfined_domain attribute for filename rules
+    unconfined_domain(pegasus_openlmi_logicalfile_t)
+')
+
+######################################
+#
+# pegasus openlmi services local policy
+#
+
+allow pegasus_openlmi_services_t self:netlink_route_socket r_netlink_socket_perms;
+
+kernel_read_network_state(pegasus_openlmi_services_t)
+
+miscfiles_read_certs(pegasus_openlmi_services_t)
+
+optional_policy(`
+    dbus_system_bus_client(pegasus_openlmi_services_t)
+')
+
+optional_policy(`
+    realmd_dbus_chat(pegasus_openlmi_services_t)
+')
+
+optional_policy(`
+	sssd_read_public_files(pegasus_openlmi_services_t)
+    sssd_stream_connect(pegasus_openlmi_services_t)
+')
+
+######################################
+#
+# pegasus openlmi system (networking) local policy
+#
+
+allow pegasus_openlmi_system_t self:capability { net_admin sys_boot };
+allow pegasus_openlmi_system_t self:process signal_perms;
+
+allow pegasus_openlmi_system_t self:netlink_route_socket r_netlink_socket_perms;
+
+kernel_read_network_state(pegasus_openlmi_system_t)
+
+auth_use_nsswitch(pegasus_openlmi_system_t)
+
+dev_rw_sysfs(pegasus_openlmi_system_t)
+dev_read_urand(pegasus_openlmi_system_t)
+
+fs_getattr_all_fs(pegasus_openlmi_system_t)
+
+init_read_utmp(pegasus_openlmi_system_t)
+
+systemd_config_power_services(pegasus_openlmi_system_t)
+systemd_dbus_chat_logind(pegasus_openlmi_system_t)
+
+optional_policy(`
+    dbus_system_bus_client(pegasus_openlmi_system_t)
+')
+
+optional_policy(`
+    networkmanager_dbus_chat(pegasus_openlmi_system_t)
+')
+
+######################################
+#
+# pegasus openlmi service local policy
+#
+
+fs_getattr_all_fs(pegasus_openlmi_admin_t)
+
+init_manage_transient_unit(pegasus_openlmi_admin_t)
+init_disable_services(pegasus_openlmi_admin_t)
+init_enable_services(pegasus_openlmi_admin_t)
+init_reload_services(pegasus_openlmi_admin_t)
+init_status(pegasus_openlmi_admin_t)
+init_reboot(pegasus_openlmi_admin_t)
+init_exec(pegasus_openlmi_admin_t)
+
+systemd_config_all_services(pegasus_openlmi_admin_t)
+systemd_manage_all_unit_files(pegasus_openlmi_admin_t)
+systemd_manage_all_unit_lnk_files(pegasus_openlmi_admin_t)
+
+allow pegasus_openlmi_service_t self:udp_socket create_socket_perms;
+
+logging_read_syslog_pid(pegasus_openlmi_admin_t)
+logging_read_generic_logs(pegasus_openlmi_admin_t)
+
+optional_policy(`
+    dbus_system_bus_client(pegasus_openlmi_admin_t)
+    
+    optional_policy(`
+        init_dbus_chat(pegasus_openlmi_admin_t)
+    ')
+')
+
+optional_policy(`
+    sssd_stream_connect(pegasus_openlmi_admin_t)
+')
+
+######################################
+#
+# pegasus openlmi storage local policy
+#
+
+allow pegasus_openlmi_storage_t self:capability { sys_admin sys_rawio sys_resource ipc_lock };
+allow pegasus_openlmi_storage_t self:process setrlimit;
+
+allow pegasus_openlmi_storage_t self:netlink_route_socket r_netlink_socket_perms;
+
+manage_files_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_lib_t, pegasus_openlmi_storage_lib_t)
+manage_dirs_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_lib_t, pegasus_openlmi_storage_lib_t)
+files_var_lib_filetrans(pegasus_openlmi_storage_t, pegasus_openlmi_storage_lib_t, file)
+
+manage_files_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t)
+manage_dirs_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t)
+files_tmp_filetrans(pegasus_openlmi_storage_tmp_t, pegasus_openlmi_storage_tmp_t, { file dir})
+
+manage_files_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_var_run_t, pegasus_openlmi_storage_var_run_t)
+manage_dirs_pattern(pegasus_openlmi_storage_t, pegasus_openlmi_storage_var_run_t, pegasus_openlmi_storage_var_run_t)
+files_pid_filetrans(pegasus_openlmi_storage_t, pegasus_openlmi_storage_var_run_t, dir, "openlmi-storage")
+
+kernel_read_all_sysctls(pegasus_openlmi_storage_t)
+kernel_read_network_state(pegasus_openlmi_storage_t)
+kernel_get_sysvipc_info(pegasus_openlmi_storage_t)
+kernel_request_load_module(pegasus_openlmi_storage_t)
+
+auth_use_nsswitch(pegasus_openlmi_storage_t)
+
+dev_read_raw_memory(pegasus_openlmi_storage_t)
+dev_read_rand(pegasus_openlmi_storage_t)
+dev_read_urand(pegasus_openlmi_storage_t)
+
+dev_rw_lvm_control(pegasus_openlmi_storage_t)
+dev_rw_sysfs(pegasus_openlmi_storage_t)
+
+selinux_validate_context(pegasus_openlmi_storage_t)
+
+seutil_read_file_contexts(pegasus_openlmi_storage_t)
+
+storage_raw_read_removable_device(pegasus_openlmi_storage_t)
+storage_raw_write_removable_device(pegasus_openlmi_storage_t)
+storage_raw_read_fixed_disk(pegasus_openlmi_storage_t)
+storage_raw_write_fixed_disk(pegasus_openlmi_storage_t)
+
+files_read_kernel_modules(pegasus_openlmi_storage_t)
+
+fs_getattr_all_fs(pegasus_openlmi_storage_t)
+
+modutils_domtrans_kmod(pegasus_openlmi_storage_t)
+
+udev_domtrans(pegasus_openlmi_storage_t)
+udev_read_pid_files(pegasus_openlmi_storage_t)
+
+init_read_state(pegasus_openlmi_storage_t)
+
+miscfiles_read_hwdata(pegasus_openlmi_storage_t)
+
+optional_policy(`
+    dmidecode_domtrans(pegasus_openlmi_storage_t)  
+')
+
+optional_policy(`
+    gnome_dontaudit_search_config(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    fstools_domtrans(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    iscsi_manage_lock(pegasus_openlmi_storage_t)
+    iscsi_read_lib_files(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    libs_exec_ldconfig(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    lvm_domtrans(pegasus_openlmi_storage_t)
+    lvm_read_metadata(pegasus_openlmi_storage_t)
+    lvm_write_metadata(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    mount_domtrans(pegasus_openlmi_storage_t)
+')
+
+optional_policy(`
+    raid_domtrans_mdadm(pegasus_openlmi_storage_t)   
+    raid_filetrans_named_content(pegasus_openlmi_storage_t)
+    raid_manage_conf_files(pegasus_openlmi_storage_t)
+')
+
+######################################
+#
+# pegasus openlmi unconfined local policy
+#
+
+optional_policy(`
+    unconfined_domain(pegasus_openlmi_unconfined_t)
+')
+
+########################################
+#
+# pegasus local policy
+#
+
+allow pegasus_t self:capability { chown kill ipc_lock sys_nice setuid setgid dac_read_search  net_admin net_bind_service sys_ptrace };
+dontaudit pegasus_t self:capability { sys_admin sys_tty_config };
+allow pegasus_t self:process { setsched signal };
+allow pegasus_t self:fifo_file rw_fifo_file_perms;
+allow pegasus_t self:unix_dgram_socket create_socket_perms;
+allow pegasus_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow pegasus_t self:tcp_socket create_stream_socket_perms;
+
+allow pegasus_t pegasus_conf_t:dir rw_dir_perms;
+allow pegasus_t pegasus_conf_t:file { read_file_perms link delete_file_perms rename_file_perms };
+allow pegasus_t pegasus_conf_t:lnk_file read_lnk_file_perms;
+
+manage_dirs_pattern(pegasus_t, pegasus_cache_t, pegasus_cache_t)
+manage_files_pattern(pegasus_t, pegasus_cache_t, pegasus_cache_t)
+manage_lnk_files_pattern(pegasus_t, pegasus_cache_t, pegasus_cache_t)
+files_var_filetrans(pegasus_t, pegasus_cache_t, { dir file lnk_file })
+
+manage_dirs_pattern(pegasus_t, pegasus_data_t, pegasus_data_t)
+manage_files_pattern(pegasus_t, pegasus_data_t, pegasus_data_t)
+manage_lnk_files_pattern(pegasus_t, pegasus_data_t, pegasus_data_t)
+filetrans_pattern(pegasus_t, pegasus_conf_t, pegasus_data_t, { file dir })
+
+can_exec(pegasus_t, pegasus_exec_t)
+
+allow pegasus_t pegasus_mof_t:dir list_dir_perms;
+read_files_pattern(pegasus_t, pegasus_mof_t, pegasus_mof_t)
+read_lnk_files_pattern(pegasus_t, pegasus_mof_t, pegasus_mof_t)
+
+manage_dirs_pattern(pegasus_t, pegasus_tmp_t, pegasus_tmp_t)
+manage_files_pattern(pegasus_t, pegasus_tmp_t, pegasus_tmp_t)
+files_tmp_filetrans(pegasus_t, pegasus_tmp_t, { file dir })
+
+manage_sock_files_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
+manage_dirs_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
+manage_files_pattern(pegasus_t, pegasus_var_run_t, pegasus_var_run_t)
+files_pid_filetrans(pegasus_t, pegasus_var_run_t, { file dir })
+
+kernel_read_network_state(pegasus_t)
+kernel_read_kernel_sysctls(pegasus_t)
+kernel_read_sysctl(pegasus_t)
+kernel_read_fs_sysctls(pegasus_t)
+kernel_read_system_state(pegasus_t)
+kernel_search_vm_sysctl(pegasus_t)
+kernel_read_net_sysctls(pegasus_t)
+kernel_read_xen_state(pegasus_t)
+kernel_write_xen_state(pegasus_t)
+
+corenet_all_recvfrom_netlabel(pegasus_t)
+corenet_tcp_sendrecv_generic_if(pegasus_t)
+corenet_tcp_sendrecv_generic_node(pegasus_t)
+corenet_tcp_sendrecv_all_ports(pegasus_t)
+corenet_tcp_bind_generic_node(pegasus_t)
+corenet_tcp_bind_pegasus_http_port(pegasus_t)
+corenet_tcp_bind_pegasus_https_port(pegasus_t)
+corenet_tcp_connect_pegasus_http_port(pegasus_t)
+corenet_tcp_connect_pegasus_https_port(pegasus_t)
+corenet_tcp_connect_generic_port(pegasus_t)
+corenet_sendrecv_generic_client_packets(pegasus_t)
+corenet_sendrecv_pegasus_http_client_packets(pegasus_t)
+corenet_sendrecv_pegasus_http_server_packets(pegasus_t)
+corenet_sendrecv_pegasus_https_client_packets(pegasus_t)
+corenet_sendrecv_pegasus_https_server_packets(pegasus_t)
+
+corecmd_exec_bin(pegasus_t)
+corecmd_exec_shell(pegasus_t)
+
+dev_rw_sysfs(pegasus_t)
+dev_read_urand(pegasus_t)
+dev_rw_lvm_control(pegasus_t)
+
+fs_getattr_all_fs(pegasus_t)
+fs_search_auto_mountpoints(pegasus_t)
+fs_mount_tracefs(pegasus_t)
+fs_unmount_tracefs(pegasus_t)
+files_getattr_all_dirs(pegasus_t)
+
+auth_use_nsswitch(pegasus_t)
+auth_domtrans_chk_passwd(pegasus_t)
+auth_read_shadow(pegasus_t)
+
+domain_use_interactive_fds(pegasus_t)
+domain_read_all_domains_state(pegasus_t)
+domain_named_filetrans(pegasus_t)
+
+files_list_var_lib(pegasus_t)
+files_read_var_lib_files(pegasus_t)
+files_read_var_lib_symlinks(pegasus_t)
+
+init_rw_utmp(pegasus_t)
+init_stream_connect_script(pegasus_t)
+
+logging_send_audit_msgs(pegasus_t)
+logging_send_syslog_msg(pegasus_t)
+
+mount_domtrans(pegasus_t)
+
+sysnet_read_config(pegasus_t)
+sysnet_domtrans_ifconfig(pegasus_t)
+
+userdom_dontaudit_use_unpriv_user_fds(pegasus_t)
+userdom_dontaudit_search_user_home_dirs(pegasus_t)
+
+optional_policy(`
+	dmidecode_domtrans(pegasus_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(pegasus_t)
+    dbus_connect_system_bus(pegasus_t)
+
+    optional_policy(`
+	networkmanager_dbus_chat(pegasus_t)
+    ')
+')
+
+optional_policy(`
+	rhcs_stream_connect_cluster(pegasus_t)
+')
+
+optional_policy(`
+	hostname_exec(pegasus_t)
+')
+
+optional_policy(`
+	lldpad_dgram_send(pegasus_t)
+')
+
+optional_policy(`
+	lvm_exec(pegasus_t)
+')
+
+optional_policy(`
+	ricci_stream_connect_modclusterd(pegasus_t)
+')
+
+optional_policy(`
+    realmd_dbus_chat(pegasus_t)
+')
+
+optional_policy(`
+    rpc_read_exports(pegasus_t)
+    rpc_read_nfs_state_data(pegasus_t)
+')
+
+optional_policy(`
+	rpm_domtrans(pegasus_t)
+')
+
+optional_policy(`
+	samba_manage_config(pegasus_t)
+')
+
+optional_policy(`
+	ssh_exec(pegasus_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(pegasus_t)
+')
+
+optional_policy(`
+	udev_read_db(pegasus_t)
+')
+
+optional_policy(`
+	unconfined_signull(pegasus_t)
+')
+
+optional_policy(`
+    virt_getattr_images(pegasus_t)
+	virt_domtrans(pegasus_t)
+	virt_stream_connect(pegasus_t)
+	virt_manage_config(pegasus_t)
+')
+
+optional_policy(`
+	qemu_getattr_exec(pegasus_t)
+')
+
+optional_policy(`
+	xen_stream_connect(pegasus_t)
+	xen_stream_connect_xenstore(pegasus_t)
+')

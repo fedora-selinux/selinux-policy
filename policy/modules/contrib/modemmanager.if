@@ -1,0 +1,96 @@
+## <summary>Provides a DBus interface to communicate with mobile broadband (GSM, CDMA, UMTS, ...) cards.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run modemmanager.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`modemmanager_domtrans',`
+	gen_require(`
+		type modemmanager_t, modemmanager_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, modemmanager_exec_t, modemmanager_t)
+')
+
+########################################
+## <summary>
+##	Execute modemmanager server in the modemmanager domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modemmanager_systemctl',`
+	gen_require(`
+		type modemmanager_t;
+		type modemmanager_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 modemmanager_unit_file_t:file read_file_perms;
+	allow $1 modemmanager_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, modemmanager_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	modemmanager over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modemmanager_dbus_chat',`
+	gen_require(`
+		type modemmanager_t;
+		class dbus send_msg;
+	')
+
+	allow $1 modemmanager_t:dbus send_msg;
+	allow modemmanager_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an modemmanager environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`modemmanager_admin',`
+	gen_require(`
+		type modemmanager_t;
+		type modemmanager_unit_file_t;
+	')
+
+	allow $1 modemmanager_t:process { ptrace signal_perms };
+	ps_process_pattern($1, modemmanager_t)
+
+	modemmanager_systemctl($1)
+	admin_pattern($1, modemmanager_unit_file_t)
+	allow $1 modemmanager_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

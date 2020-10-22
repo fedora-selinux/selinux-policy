@@ -1,0 +1,615 @@
+## <summary>System Security Services Daemon</summary>
+
+#######################################
+## <summary>
+##  Allow a domain to getattr on sssd binary.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`sssd_getattr_exec',`
+    gen_require(`
+        type sssd_t, sssd_exec_t;
+    ')
+
+	allow $1 sssd_exec_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run sssd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`sssd_domtrans',`
+	gen_require(`
+		type sssd_t, sssd_exec_t;
+	')
+
+	domtrans_pattern($1, sssd_exec_t, sssd_t)
+')
+
+########################################
+## <summary>
+##	Execute sssd server in the sssd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`sssd_initrc_domtrans',`
+	gen_require(`
+		type sssd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, sssd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##     Execute sssd server in the sssd domain.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed to transition.
+##     </summary>
+## </param>
+#
+interface(`sssd_systemctl',`
+       gen_require(`
+               type sssd_t;
+               type sssd_unit_file_t;
+       ')
+
+       systemd_exec_systemctl($1)
+	init_reload_services($1)
+       allow $1 sssd_unit_file_t:file read_file_perms;
+       allow $1 sssd_unit_file_t:service manage_service_perms;
+
+       ps_process_pattern($1, sssd_t)
+')
+
+#######################################
+## <summary>
+##  Read sssd configuration.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`sssd_read_config',`
+    gen_require(`
+        type sssd_conf_t;
+    ')
+
+    files_search_etc($1)
+    list_dirs_pattern($1, sssd_conf_t, sssd_conf_t)
+    read_files_pattern($1, sssd_conf_t, sssd_conf_t)
+')
+
+######################################
+## <summary>
+##  Write sssd configuration.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`sssd_write_config',`
+    gen_require(`
+        type sssd_conf_t;
+    ')
+
+    files_search_etc($1)
+    write_files_pattern($1, sssd_conf_t, sssd_conf_t)
+')
+
+#####################################
+## <summary>
+##  Write sssd configuration.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`sssd_create_config',`
+    gen_require(`
+        type sssd_conf_t;
+    ')
+
+    files_search_etc($1)
+    create_files_pattern($1, sssd_conf_t, sssd_conf_t)
+')
+
+####################################
+## <summary>
+##  Manage sssd configuration.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`sssd_manage_config',`
+    gen_require(`
+        type sssd_conf_t;
+    ')
+
+    files_search_etc($1)
+    manage_files_pattern($1, sssd_conf_t, sssd_conf_t)
+')
+
+########################################
+## <summary>
+##	Read sssd public files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_read_public_files',`
+	gen_require(`
+		type sssd_public_t;
+	')
+
+	sssd_search_lib($1)
+	list_dirs_pattern($1, sssd_public_t, sssd_public_t)
+	read_files_pattern($1, sssd_public_t, sssd_public_t)
+    allow $1 sssd_public_t:file map;
+')
+
+########################################
+## <summary>
+##	Delete sssd public files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_delete_public_files',`
+	gen_require(`
+		type sssd_public_t;
+	')
+
+	sssd_search_lib($1)
+	allow $1 sssd_public_t:file unlink;
+')
+
+########################################
+## <summary>
+##	Dontaudit read sssd public files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_dontaudit_read_public_files',`
+	gen_require(`
+		type sssd_public_t;
+	')
+
+	dontaudit $1 sssd_public_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  Manage sssd public files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`sssd_manage_public_files',`
+    gen_require(`
+        type sssd_public_t;
+    ')
+
+    sssd_search_lib($1)
+    manage_files_pattern($1, sssd_public_t, sssd_public_t)
+')
+
+########################################
+## <summary>
+##	Read sssd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_read_pid_files',`
+	gen_require(`
+		type sssd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 sssd_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage sssd var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_manage_pids',`
+	gen_require(`
+		type sssd_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_dirs_pattern($1, sssd_var_run_t, sssd_var_run_t)
+	manage_files_pattern($1, sssd_var_run_t, sssd_var_run_t)
+')
+
+########################################
+## <summary>
+##	Search sssd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_search_lib',`
+	gen_require(`
+		type sssd_var_lib_t;
+	')
+
+	allow $1 sssd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search sssd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sssd_dontaudit_search_lib',`
+	gen_require(`
+		type sssd_var_lib_t;
+	')
+
+	dontaudit $1 sssd_var_lib_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read sssd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sssd_dontaudit_read_lib',`
+	gen_require(`
+		type sssd_var_lib_t;
+	')
+
+	dontaudit $1 sssd_var_lib_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read sssd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_read_lib_files',`
+	gen_require(`
+		type sssd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, sssd_var_lib_t, sssd_var_lib_t)
+	read_lnk_files_pattern($1, sssd_var_lib_t, sssd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	sssd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_manage_lib_files',`
+	gen_require(`
+		type sssd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, sssd_var_lib_t, sssd_var_lib_t)
+	manage_lnk_files_pattern($1, sssd_var_lib_t, sssd_var_lib_t)
+    allow $1 sssd_var_lib_t:file map;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	sssd over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_dbus_chat',`
+	gen_require(`
+		type sssd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 sssd_t:dbus send_msg;
+	allow sssd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Connect to sssd over a unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_stream_connect',`
+	gen_require(`
+		type sssd_t, sssd_var_lib_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, sssd_var_lib_t, sssd_var_lib_t, sssd_t)
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to connect to sssd over a unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_dontaudit_stream_connect',`
+	gen_require(`
+		type sssd_t, sssd_var_lib_t;
+	')
+
+	dontaudit $1 sssd_t:unix_stream_socket connectto;
+	dontaudit $1 sssd_var_lib_t:sock_file { read write };
+')
+
+########################################
+## <summary>
+##	Connect to sssd over a unix stream socket in /var/run.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_run_stream_connect',`
+	gen_require(`
+		type sssd_t, sssd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, sssd_var_run_t, sssd_var_run_t, sssd_t)
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to connect to sssd over a unix stream socket in /var/run.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_dontaudit_run_stream_connect',`
+	gen_require(`
+		type sssd_t, sssd_var_lib_t;
+	')
+
+	dontaudit $1 sssd_t:unix_stream_socket connectto;
+	dontaudit $1 sssd_var_run_t:sock_file { read write };
+')
+
+#######################################
+## <summary>
+##     Manage keys for all user domains.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`sssd_manage_keys',`
+    gen_require(`
+        type sssd_t;
+    ')
+
+    allow $1 sssd_t:key manage_key_perms;
+    allow sssd_t $1:key manage_key_perms;
+')
+
+#######################################
+## <summary>
+##  Allow attempts to read and write to
+##  sssd pipes
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`sssd_rw_inherited_pipes',`
+    gen_require(`
+        type sssd_t;
+    ')
+
+    allow $1 sssd_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##  Allow caller to signal sssd.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`sssd_signal',`
+	gen_require(`
+		type sssd_t;
+	')
+
+	allow $1 sssd_t:process signal;
+')
+
+########################################
+## <summary>
+##  Allow caller to signull sssd.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`sssd_signull',`
+	gen_require(`
+		type sssd_t;
+	')
+
+	allow $1 sssd_t:process signull;
+')
+
+########################################
+## <summary>
+##	Transition to sssd named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sssd_filetrans_named_content',`
+	gen_require(`
+		type sssd_var_run_t;
+		type sssd_var_log_t;
+		type sssd_var_lib_t;
+		type sssd_public_t;
+		type sssd_conf_t;
+	')
+
+	files_pid_filetrans($1, sssd_var_run_t, sock_file, "secrets.socket")
+	files_pid_filetrans($1, sssd_var_run_t, sock_file, ".heim_org.h5l.kcm-socket")
+	logging_log_filetrans($1, sssd_var_log_t, dir, "sssd")
+	files_var_lib_filetrans($1, sssd_var_lib_t, dir, "sss")
+	filetrans_pattern($1, sssd_var_lib_t, sssd_public_t, dir, "mc")
+	filetrans_pattern($1, sssd_var_lib_t, sssd_public_t, dir, "pubconf")
+	files_etc_filetrans($1, sssd_conf_t, dir, "sssd")
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an sssd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the sssd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sssd_admin',`
+	gen_require(`
+		type sssd_t, sssd_public_t, sssd_initrc_exec_t;
+		type sssd_unit_file_t;
+	')
+
+	allow $1 sssd_t:process signal_perms;
+	ps_process_pattern($1, sssd_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 sssd_t:process ptrace;
+	')
+
+	# Allow sssd_t to restart the apache service
+	sssd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 sssd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	sssd_manage_pids($1)
+
+	sssd_manage_lib_files($1)
+
+	admin_pattern($1, sssd_public_t)
+
+	sssd_systemctl($1)
+	admin_pattern($1, sssd_unit_file_t)
+	allow $1 sssd_unit_file_t:service all_service_perms;
+
+')

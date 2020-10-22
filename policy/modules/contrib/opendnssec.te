@@ -1,0 +1,72 @@
+policy_module(opendnssec, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type opendnssec_t;
+type opendnssec_exec_t;
+init_daemon_domain(opendnssec_t, opendnssec_exec_t)
+
+type opendnssec_conf_t;
+files_config_file(opendnssec_conf_t)
+
+type opendnssec_var_t;
+files_type(opendnssec_var_t)
+
+type opendnssec_var_run_t;
+files_pid_file(opendnssec_var_run_t)
+
+type opendnssec_tmp_t;
+files_tmp_file(opendnssec_tmp_t)
+
+type opendnssec_unit_file_t;
+systemd_unit_file(opendnssec_unit_file_t)
+
+########################################
+#
+# opendnssec local policy
+#
+allow opendnssec_t self:capability { chown setgid setuid sys_chroot };
+allow opendnssec_t self:process { fork signal_perms };
+allow opendnssec_t self:fifo_file rw_fifo_file_perms;
+allow opendnssec_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+# allow daemon to execute ods-signer (RHBZ#1537971)
+allow opendnssec_t opendnssec_exec_t:file { execute execute_no_trans };
+
+manage_files_pattern(opendnssec_t, opendnssec_conf_t,opendnssec_conf_t)
+manage_dirs_pattern(opendnssec_t, opendnssec_conf_t,opendnssec_conf_t)
+
+manage_dirs_pattern(opendnssec_t, opendnssec_var_t, opendnssec_var_t)
+manage_files_pattern(opendnssec_t, opendnssec_var_t, opendnssec_var_t)
+files_var_filetrans(opendnssec_t, opendnssec_var_t, dir)
+
+manage_dirs_pattern(opendnssec_t, opendnssec_var_run_t, opendnssec_var_run_t)
+manage_files_pattern(opendnssec_t, opendnssec_var_run_t, opendnssec_var_run_t)
+manage_lnk_files_pattern(opendnssec_t, opendnssec_var_run_t, opendnssec_var_run_t)
+manage_sock_files_pattern(opendnssec_t, opendnssec_var_run_t, opendnssec_var_run_t)
+files_pid_filetrans(opendnssec_t, opendnssec_var_run_t, { dir file lnk_file })
+
+manage_dirs_pattern(opendnssec_t, opendnssec_tmp_t, opendnssec_tmp_t)
+manage_files_pattern(opendnssec_t, opendnssec_tmp_t, opendnssec_tmp_t)
+files_tmp_filetrans(opendnssec_t, opendnssec_tmp_t, { file dir })
+
+kernel_read_system_state(opendnssec_t)
+
+auth_use_nsswitch(opendnssec_t)
+
+corecmd_exec_bin(opendnssec_t)
+
+logging_send_syslog_msg(opendnssec_t)
+
+optional_policy(`
+	bind_manage_cache(opendnssec_t)
+')
+
+optional_policy(`
+    ipa_manage_lib(opendnssec_t)
+    ipa_stream_connect_ods_exporter(opendnssec_t)
+')
+

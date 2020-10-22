@@ -1,0 +1,82 @@
+policy_module(freeipmi, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute freeipmi_domain;
+attribute freeipmi_pid;
+
+freeipmi_domain_template(ipmidetectd)
+freeipmi_domain_template(ipmiseld)
+freeipmi_domain_template(bmc_watchdog)
+
+type freeipmi_var_lib_t;
+files_type(freeipmi_var_lib_t)
+
+type freeipmi_var_cache_t;
+files_type(freeipmi_var_cache_t)
+
+########################################
+#
+# freeipmi_domain local policy
+#
+
+allow freeipmi_domain self:fifo_file rw_fifo_file_perms;
+allow freeipmi_domain self:unix_stream_socket create_stream_socket_perms;
+allow freeipmi_domain self:sem create_sem_perms;
+
+manage_dirs_pattern(freeipmi_domain, freeipmi_var_cache_t, freeipmi_var_cache_t)
+manage_files_pattern(freeipmi_domain, freeipmi_var_cache_t, freeipmi_var_cache_t)
+manage_lnk_files_pattern(freeipmi_domain, freeipmi_var_cache_t, freeipmi_var_cache_t)
+files_var_filetrans(freeipmi_domain, freeipmi_var_cache_t, { dir })
+allow freeipmi_domain freeipmi_var_cache_t:file map;
+
+manage_dirs_pattern(freeipmi_domain, freeipmi_var_lib_t, freeipmi_var_lib_t)
+manage_files_pattern(freeipmi_domain, freeipmi_var_lib_t, freeipmi_var_lib_t)
+manage_lnk_files_pattern(freeipmi_domain, freeipmi_var_lib_t, freeipmi_var_lib_t)
+files_var_lib_filetrans(freeipmi_domain, freeipmi_var_lib_t, { dir })
+
+dev_read_rand(freeipmi_domain)
+dev_read_urand(freeipmi_domain)
+dev_rw_ipmi_dev(freeipmi_domain)
+dev_read_sysfs(freeipmi_domain)
+dev_map_sysfs(freeipmi_domain)
+
+sysnet_dns_name_resolve(freeipmi_domain)
+
+#######################################
+#
+# bmc-watchdog local policy
+#
+
+allow freeipmi_bmc_watchdog_t freeipmi_ipmiseld_t:sem rw_sem_perms;
+
+files_pid_filetrans(freeipmi_bmc_watchdog_t, freeipmi_bmc_watchdog_var_run_t, file, "bmc-watchdog.pid")
+
+dev_read_raw_memory(freeipmi_bmc_watchdog_t)
+
+#######################################
+#
+# ipmidetectd local policy
+#
+
+allow freeipmi_ipmidetectd_t self:tcp_socket listen;
+
+files_pid_filetrans(freeipmi_ipmidetectd_t, freeipmi_ipmidetectd_var_run_t, file, "ipmidetectd.pid")
+
+corenet_tcp_bind_freeipmi_port(freeipmi_ipmidetectd_t)
+
+#######################################
+#
+# ipmiseld local policy
+#
+
+allow freeipmi_ipmiseld_t self:capability sys_rawio;
+
+allow freeipmi_ipmiseld_t freeipmi_bmc_watchdog_t:sem rw_sem_perms;
+
+dev_read_raw_memory(freeipmi_ipmiseld_t)
+
+files_pid_filetrans(freeipmi_ipmiseld_t, freeipmi_ipmiseld_var_run_t, file, "ipmiseld.pid")

@@ -1,0 +1,75 @@
+## <summary>Policy for kpatch</summary>
+
+########################################
+## <summary>
+##	Transition to kpatch.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`kpatch_domtrans',`
+	gen_require(`
+		type kpatch_t, kpatch_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, kpatch_exec_t, kpatch_t)
+	dontaudit kpatch_t $1:unix_stream_socket { getattr read write };
+')
+
+########################################
+## <summary>
+##	NNP Transition to kpatch.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`kpatch_nnp_domtrans',`
+	gen_require(`
+		type kpatch_t;
+	')
+
+	allow $1 kpatch_t:process2 { nnp_transition nosuid_transition };
+
+')
+
+########################################
+## <summary>
+##	Execute kpatch in the kpatch domain, and
+##	allow the specified role the kpatch domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the kpatch domain.
+##	</summary>
+## </param>
+#
+interface(`kpatch_run',`
+	gen_require(`
+		type kpatch_t;
+	')
+
+	kpatch_domtrans($1)
+	kpatch_nnp_domtrans($1)
+	role $2 types kpatch_t;
+
+	allow $1 kpatch_t:process signal_perms;
+
+	dontaudit kpatch_t $1:dir list_dir_perms;
+	dontaudit kpatch_t $1:file read_file_perms;
+	dontaudit kpatch_t $1:unix_stream_socket rw_socket_perms;
+    
+    allow kpatch_t $1:shm create_shm_perms;
+	allow kpatch_t $1:sem create_sem_perms;
+')

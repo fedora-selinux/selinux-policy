@@ -1,0 +1,253 @@
+policy_module(sssd, 1.2.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Allow sssd read, view, and write access to kernel keys with kernel_t type
+##	</p>
+## </desc>
+gen_tunable(sssd_access_kernel_keys, false)
+
+## <desc>
+## <p>
+##	Allow sssd connect to all unreserved ports
+## </p>
+## </desc>
+gen_tunable(sssd_connect_all_unreserved_ports, false)
+
+type sssd_t;
+type sssd_exec_t;
+init_daemon_domain(sssd_t, sssd_exec_t)
+
+type sssd_initrc_exec_t;
+init_script_file(sssd_initrc_exec_t)
+
+type sssd_conf_t;
+files_config_file(sssd_conf_t)
+
+type sssd_public_t;
+files_pid_file(sssd_public_t)
+
+type sssd_var_lib_t;
+files_type(sssd_var_lib_t)
+mls_trusted_object(sssd_var_lib_t)
+
+type sssd_var_log_t;
+logging_log_file(sssd_var_log_t)
+
+type sssd_var_run_t;
+files_pid_file(sssd_var_run_t)
+
+type sssd_unit_file_t;
+systemd_unit_file(sssd_unit_file_t)
+
+type sssd_selinux_manager_t;
+type sssd_selinux_manager_exec_t;
+application_domain(sssd_selinux_manager_t, sssd_selinux_manager_exec_t)
+role system_r types sssd_selinux_manager_t;
+
+########################################
+#
+# sssd local policy
+#
+
+allow sssd_t self:capability { dac_override ipc_lock chown dac_read_search  kill net_admin sys_nice fowner setgid setuid sys_admin sys_resource };
+allow sssd_t self:process { setfscreate setsched sigkill signal getsched setrlimit setpgid setcap};
+allow sssd_t self:fifo_file rw_fifo_file_perms;
+allow sssd_t self:key manage_key_perms;
+allow sssd_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+# Allow sssd_t to execute responders; which has different context now
+allow sssd_t sssd_exec_t:file execute_no_trans;
+
+read_files_pattern(sssd_t, sssd_conf_t, sssd_conf_t)
+list_dirs_pattern(sssd_t, sssd_conf_t, sssd_conf_t)
+
+manage_dirs_pattern(sssd_t, sssd_public_t, sssd_public_t)
+manage_files_pattern(sssd_t, sssd_public_t, sssd_public_t)
+allow sssd_t sssd_public_t:file map;
+
+manage_dirs_pattern(sssd_t, sssd_var_lib_t, sssd_var_lib_t)
+manage_files_pattern(sssd_t, sssd_var_lib_t, sssd_var_lib_t)
+manage_lnk_files_pattern(sssd_t, sssd_var_lib_t, sssd_var_lib_t)
+manage_sock_files_pattern(sssd_t, sssd_var_lib_t, sssd_var_lib_t)
+allow sssd_t sssd_var_lib_t:file map;
+files_var_lib_filetrans(sssd_t, sssd_var_lib_t, { file dir })
+
+# Allow systemd to create sockets for socket activated responders
+create_sock_files_pattern(init_t, sssd_var_lib_t, sssd_var_lib_t)
+delete_sock_files_pattern(init_t, sssd_var_lib_t, sssd_var_lib_t)
+
+manage_files_pattern(sssd_t, sssd_var_log_t, sssd_var_log_t)
+logging_log_filetrans(sssd_t, sssd_var_log_t, file)
+
+manage_dirs_pattern(sssd_t, sssd_var_run_t, sssd_var_run_t)
+manage_files_pattern(sssd_t, sssd_var_run_t, sssd_var_run_t)
+manage_sock_files_pattern(sssd_t, sssd_var_run_t, sssd_var_run_t)
+files_pid_filetrans(sssd_t, sssd_var_run_t, { file dir sock_file })
+
+kernel_read_network_state(sssd_t)
+kernel_read_system_state(sssd_t)
+kernel_request_load_module(sssd_t)
+kernel_read_net_sysctls(sssd_t)
+
+corenet_udp_bind_generic_port(sssd_t)
+corenet_dontaudit_udp_bind_all_ports(sssd_t)
+corenet_tcp_connect_kerberos_password_port(sssd_t)
+corenet_tcp_connect_smbd_port(sssd_t)
+corenet_tcp_connect_http_port(sssd_t)
+corenet_tcp_connect_http_cache_port(sssd_t)
+
+corecmd_exec_bin(sssd_t)
+
+dev_read_urand(sssd_t)
+dev_read_sysfs(sssd_t)
+
+domain_read_all_domains_state(sssd_t)
+domain_obj_id_change_exemption(sssd_t)
+
+files_list_tmp(sssd_t)
+files_read_etc_runtime_files(sssd_t)
+files_list_var_lib(sssd_t)
+
+fs_list_inotifyfs(sssd_t)
+fs_getattr_xattr_fs(sssd_t)
+
+selinux_validate_context(sssd_t)
+seutil_read_config(sssd_t)
+
+seutil_read_file_contexts(sssd_t)
+# sssd wants to write /etc/selinux/<policy>/logins/ for SELinux PAM module
+seutil_rw_login_config_dirs(sssd_t)
+seutil_manage_login_config_files(sssd_t)
+
+seutil_dontaudit_access_check_load_policy(sssd_t)
+seutil_dontaudit_access_check_setfiles(sssd_t)
+seutil_dontaudit_access_check_semanage_read_lock(sssd_t)
+seutil_dontaudit_access_check_semanage_module_store(sssd_t)
+
+mls_file_read_to_clearance(sssd_t)
+mls_socket_read_to_clearance(sssd_t)
+mls_socket_write_to_clearance(sssd_t)
+mls_trusted_object(sssd_t)
+
+# auth_use_nsswitch(sssd_t)
+auth_domtrans_chk_passwd(sssd_t)
+auth_domtrans_upd_passwd(sssd_t)
+auth_manage_cache(sssd_t)
+# Bogus allow because we don't handle keyring properly in code.
+auth_login_manage_key(sssd_t)
+dontaudit sssd_t init_t:dbus send_msg;
+
+init_read_utmp(sssd_t)
+
+logging_send_syslog_msg(sssd_t)
+logging_send_audit_msgs(sssd_t)
+
+miscfiles_read_generic_certs(sssd_t)
+miscfiles_manage_cert_files(sssd_t)
+miscfiles_dontaudit_access_check_cert(sssd_t)
+miscfiles_map_generic_certs(sssd_t)
+
+sysnet_dns_name_resolve(sssd_t)
+sysnet_use_ldap(sssd_t)
+
+userdom_manage_tmp_role(system_r, sssd_t)
+userdom_manage_all_users_keys(sssd_t)
+userdom_dbus_send_all_users(sssd_t)
+userdom_home_reader(sssd_t)
+
+tunable_policy(`sssd_access_kernel_keys',`
+	kernel_rw_key(sssd_t)
+')
+
+tunable_policy(`sssd_connect_all_unreserved_ports',`
+	corenet_tcp_connect_all_unreserved_ports(sssd_t)
+')
+
+optional_policy(`
+    bind_read_cache(sssd_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(sssd_t)
+	dbus_connect_system_bus(sssd_t)
+')
+
+optional_policy(`
+	kerberos_manage_host_rcache(sssd_t)
+	kerberos_tmp_filetrans_host_rcache(sssd_t, "host_0")
+	kerberos_read_home_content(sssd_t)
+    kerberos_rw_config(sssd_t)
+    kerberos_rw_keytab(sssd_t)
+')
+
+optional_policy(`
+	dirsrv_stream_connect(sssd_t)
+')
+
+optional_policy(`
+    gnome_read_home_config(sssd_t)
+')
+
+optional_policy(`
+	ldap_stream_connect(sssd_t)
+	ldap_read_certs(sssd_t)
+')
+
+optional_policy(`
+	networkmanager_read_pid_files(sssd_t)
+')
+
+optional_policy(`
+    pkcs_read_lock(sssd_t)
+')
+
+optional_policy(`
+    samba_manage_var_dirs(sssd_t)
+    samba_manage_var_files(sssd_t)
+')
+
+optional_policy(`
+	systemd_login_read_pid_files(sssd_t)
+	systemd_resolved_read_pid(sssd_t)
+')
+
+optional_policy(`
+    realmd_read_var_lib(sssd_t)
+')
+
+########################################
+#
+# sssd SELinux manager local policy
+#
+
+# allow sssd_t to kill unresponsive selinux_child process
+allow sssd_t sssd_selinux_manager_t:process signal;
+
+allow sssd_selinux_manager_t self:capability { setgid setuid };
+dontaudit sssd_selinux_manager_t self:capability net_admin;
+
+domtrans_pattern(sssd_t, sssd_selinux_manager_exec_t, sssd_selinux_manager_t)
+
+init_rw_stream_sockets(sssd_selinux_manager_t)
+
+logging_send_audit_msgs(sssd_selinux_manager_t)
+
+seutil_semanage_policy(sssd_selinux_manager_t)
+seutil_manage_file_contexts(sssd_selinux_manager_t)
+seutil_manage_config(sssd_selinux_manager_t)
+seutil_manage_login_config(sssd_selinux_manager_t)
+seutil_manage_default_contexts(sssd_selinux_manager_t)
+
+seutil_exec_setfiles(sssd_selinux_manager_t)
+logging_dontaudit_search_audit_logs(sssd_selinux_manager_t)
+# allow to communicate with systemd via libnss_systemd.so.2
+optional_policy(`
+    dbus_system_bus_client(sssd_selinux_manager_t)
+    init_dbus_chat(sssd_selinux_manager_t)
+')

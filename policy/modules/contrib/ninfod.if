@@ -1,0 +1,80 @@
+
+## <summary>Respond to IPv6 Node Information Queries</summary>
+
+########################################
+## <summary>
+##	Execute ninfod in the ninfod domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ninfod_domtrans',`
+	gen_require(`
+		type ninfod_t, ninfod_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ninfod_exec_t, ninfod_t)
+')
+########################################
+## <summary>
+##	Execute ninfod server in the ninfod domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ninfod_systemctl',`
+	gen_require(`
+		type ninfod_t;
+		type ninfod_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 ninfod_unit_file_t:file read_file_perms;
+	allow $1 ninfod_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, ninfod_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ninfod environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ninfod_admin',`
+	gen_require(`
+		type ninfod_t;
+	    type ninfod_unit_file_t;
+	')
+
+	allow $1 ninfod_t:process { signal_perms };
+	ps_process_pattern($1, ninfod_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 ninfod_t:process ptrace;
+    ')
+
+	ninfod_systemctl($1)
+	admin_pattern($1, ninfod_unit_file_t)
+	allow $1 ninfod_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

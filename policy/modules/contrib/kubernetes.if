@@ -1,0 +1,87 @@
+## <summary>SELinux policy for Kubernetes container management</summary>
+
+######################################
+## <summary>
+##	Creates types and rules for a basic
+##	kube init daemon domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`kubernetes_domain_template',`
+    gen_require(`
+	    attribute kubernetes_domain;
+    ')
+
+    ##############################
+    #
+    # $1_t declarations
+    #
+
+    type $1_t, kubernetes_domain;
+    type $1_exec_t;
+    init_daemon_domain($1_t, $1_exec_t)
+
+    type $1_unit_file_t;
+    systemd_unit_file($1_unit_file_t)
+')
+
+########################################
+## <summary>
+##	Search kubernetes lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kubernetes_search_lib_kubelet',`
+	gen_require(`
+		type kubelet_var_lib_t;
+	')
+
+	allow $1 kubelet_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read kubernetes lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kubernetes_read_lib_files_kubelet',`
+	gen_require(`
+		type kubelet_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, kubelet_var_lib_t, kubelet_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage kubernetes lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kubernetes_manage_lib_files_kubelet',`
+	gen_require(`
+		type kubelet_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, kubelet_var_lib_t, kubelet_var_lib_t)
+')

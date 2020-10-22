@@ -1,0 +1,139 @@
+## <summary>Daemon for Linux systems providing a stable D-BUS interface to manage the deployment of Server Roles. </summary>
+
+########################################
+## <summary>
+##	Execute rolekit in the rolekit domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rolekit_domtrans',`
+	gen_require(`
+		type rolekit_t, rolekit_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rolekit_exec_t, rolekit_t)
+')
+
+########################################
+## <summary>
+##	Execute rolekit server in the rolekit domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`rolekit_systemctl',`
+	gen_require(`
+		type rolekit_t;
+		type rolekit_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 rolekit_unit_file_t:file read_file_perms;
+	allow $1 rolekit_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, rolekit_t)
+')
+#######################################
+## <summary>
+##     Manage rolekit kernel keyrings.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`rolekit_manage_keys',`
+    gen_require(`
+        type rolekit_t;
+    ')
+
+    allow $1 rolekit_t:key manage_key_perms;
+    allow rolekit_t $1:key manage_key_perms;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	policykit over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rolekit_dbus_chat',`
+	gen_require(`
+		type rolekit_t;
+		class dbus send_msg;
+	')
+
+	ps_process_pattern(rolekit_t, $1)
+
+	allow $1 rolekit_t:dbus send_msg;
+	allow rolekit_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an rolekit environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rolekit_admin',`
+	gen_require(`
+		type rolekit_t;
+	type rolekit_unit_file_t;
+	')
+
+	allow $1 rolekit_t:process { signal_perms };
+	ps_process_pattern($1, rolekit_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 rolekit_t:process ptrace;
+    ')
+
+	rolekit_systemctl($1)
+	admin_pattern($1, rolekit_unit_file_t)
+	allow $1 rolekit_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+#######################################
+## <summary>
+##	Send to rolekit with a unix dgram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rolekit_dgram_send',`
+	gen_require(`
+		type rolekit_t;
+	')
+
+    allow $1 rolekit_t:unix_dgram_socket sendto;
+
+')

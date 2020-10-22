@@ -1,0 +1,88 @@
+# KMSCon SELinux policy module
+# Contributed by Lubomir Rintel <lkundrak@v3.sk>
+
+########################################
+#
+# Declarations
+#
+policy_module(kmscon, 1.0)
+
+type kmscon_t;
+type kmscon_exec_t;
+init_daemon_domain(kmscon_t, kmscon_exec_t)
+
+type kmscon_conf_t;
+files_config_file(kmscon_conf_t)
+
+type kmscon_unit_file_t;
+systemd_unit_file(kmscon_unit_file_t)
+
+type kmscon_devpts_t;
+term_pty(kmscon_devpts_t)
+# Label this as t, so that login_t can read our terminal with use_all_ttys()
+term_tty(kmscon_devpts_t)
+
+########################################
+#
+# zoneminder local policy
+#
+
+# Switch the VT into a graphics mode ; Set DRM master
+allow kmscon_t self:capability {sys_admin sys_tty_config};
+
+dontaudit kmscon_t self:capability2 block_suspend;
+
+# Create an udev monitor
+allow kmscon_t self:netlink_kobject_uevent_socket { bind create setopt getattr };
+
+allow kmscon_t kmscon_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms };
+term_create_pty(kmscon_t, kmscon_devpts_t)
+
+list_dirs_pattern(kmscon_t, kmscon_conf_t, kmscon_conf_t)
+read_files_pattern(kmscon_t, kmscon_conf_t, kmscon_conf_t)
+
+kernel_read_system_state(kmscon_t)
+
+auth_read_passwd(kmscon_t)
+
+dev_rw_dri(kmscon_t)
+dev_read_sysfs(kmscon_t)
+dev_read_framebuffer(kmscon_t)
+dev_write_framebuffer(kmscon_t)
+dev_rw_input_dev(kmscon_t)
+
+# Get allowed path length for directory with modules
+fs_getattr_xattr_fs(kmscon_t)
+
+locallogin_domtrans(kmscon_t)
+
+miscfiles_read_fonts(kmscon_t)
+miscfiles_manage_fonts_cache(kmscon_t)
+
+# Open the tty, so that it can be handed over to the seat manager
+term_use_unallocated_ttys(kmscon_t)
+
+optional_policy(`
+    # Learn about the input devices
+    udev_read_db(kmscon_t)
+')
+
+optional_policy(`
+    # Fontconfig and Pango configuration
+    gnome_read_home_config(kmscon_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(kmscon_t)
+    init_dbus_chat(kmscon_t)
+
+    optional_policy(`
+        systemd_dbus_chat_logind(kmscon_t)
+
+        # List seats
+        systemd_login_list_pid_dirs(kmscon_t)
+        systemd_login_read_pid_files(kmscon_t)
+
+        kmscon_systemctl(systemd_logind_t)
+    ')
+')

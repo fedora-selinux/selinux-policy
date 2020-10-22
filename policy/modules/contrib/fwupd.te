@@ -1,0 +1,71 @@
+policy_module(fwupd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type fwupd_t;
+type fwupd_exec_t;
+init_daemon_domain(fwupd_t, fwupd_exec_t)
+
+type fwupd_cache_t;
+files_type(fwupd_cache_t)
+systemd_mount_dir(fwupd_cache_t)
+
+type fwupd_cert_t;
+miscfiles_cert_type(fwupd_cert_t)
+
+type fwupd_var_lib_t;
+files_type(fwupd_var_lib_t)
+files_mountpoint(fwupd_var_lib_t)
+
+type fwupd_unit_file_t;
+systemd_unit_file(fwupd_unit_file_t)
+
+########################################
+#
+# fwupd local policy
+#
+allow fwupd_t self:fifo_file rw_fifo_file_perms;
+allow fwupd_t self:unix_stream_socket create_stream_socket_perms;
+allow fwupd_t self:netlink_kobject_uevent_socket create_socket_perms;;
+
+manage_dirs_pattern(fwupd_t, fwupd_cache_t, fwupd_cache_t)
+manage_files_pattern(fwupd_t, fwupd_cache_t, fwupd_cache_t)
+manage_lnk_files_pattern(fwupd_t, fwupd_cache_t, fwupd_cache_t)
+files_var_filetrans(fwupd_t, fwupd_cache_t, { dir })
+
+allow fwupd_t fwupd_cert_t:dir list_dir_perms;
+read_files_pattern(fwupd_t, fwupd_cert_t, fwupd_cert_t)
+read_lnk_files_pattern(fwupd_t, fwupd_cert_t, fwupd_cert_t)
+
+manage_dirs_pattern(fwupd_t, fwupd_var_lib_t, fwupd_var_lib_t)
+manage_files_pattern(fwupd_t, fwupd_var_lib_t, fwupd_var_lib_t)
+manage_lnk_files_pattern(fwupd_t, fwupd_var_lib_t, fwupd_var_lib_t)
+files_var_lib_filetrans(fwupd_t, fwupd_var_lib_t, { dir })
+
+kernel_dgram_send(fwupd_t)
+
+auth_read_passwd(fwupd_t)
+
+dev_rw_sysfs(fwupd_t)
+dev_rw_generic_usb_dev(fwupd_t)
+dev_read_raw_memory(fwupd_t)
+
+fs_getattr_all_fs(fwupd_t)
+
+logging_send_syslog_msg(fwupd_t)
+
+udev_read_pid_files(fwupd_t)
+
+optional_policy(`
+	dbus_system_domain(fwupd_t,fwupd_exec_t)
+	optional_policy(`
+		policykit_dbus_chat(fwupd_t)
+	')
+')
+
+optional_policy(`
+	unconfined_domain(fwupd_t)
+')

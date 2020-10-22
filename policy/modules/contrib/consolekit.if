@@ -1,0 +1,201 @@
+## <summary>Framework for facilitating multiple user sessions on desktops.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run consolekit.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`consolekit_domtrans',`
+	gen_require(`
+		type consolekit_t, consolekit_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, consolekit_exec_t, consolekit_t)
+')
+
+########################################
+## <summary>
+##	dontaudit Send and receive messages from
+##	consolekit over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`consolekit_dontaudit_dbus_chat',`
+	gen_require(`
+		type consolekit_t;
+		class dbus send_msg;
+	')
+
+	dontaudit $1 consolekit_t:dbus send_msg;
+	dontaudit consolekit_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	consolekit over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_dbus_chat',`
+	gen_require(`
+		type consolekit_t;
+		class dbus send_msg;
+	')
+
+	allow $1 consolekit_t:dbus send_msg;
+	allow consolekit_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to read consolekit log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`consolekit_dontaudit_read_log',`
+	gen_require(`
+		type consolekit_log_t;
+	')
+
+	dontaudit $1 consolekit_log_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read consolekit log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_read_log',`
+	gen_require(`
+		type consolekit_log_t;
+	')
+
+	read_files_pattern($1, consolekit_log_t, consolekit_log_t)
+	logging_search_logs($1)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	consolekit log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_manage_log',`
+	gen_require(`
+		type consolekit_log_t;
+	')
+
+	manage_files_pattern($1, consolekit_log_t, consolekit_log_t)
+	files_search_pids($1)
+')
+
+########################################
+## <summary>
+##	Read consolekit PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_read_pid_files',`
+	gen_require(`
+		type consolekit_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 consolekit_var_run_t:dir list_dir_perms;
+	read_files_pattern($1, consolekit_var_run_t, consolekit_var_run_t)
+')
+
+########################################
+## <summary>
+##	List consolekit PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_list_pid_files',`
+	gen_require(`
+		type consolekit_var_run_t;
+	')
+
+	files_search_pids($1)
+	list_dirs_pattern($1, consolekit_var_run_t, consolekit_var_run_t)
+')
+
+########################################
+## <summary>
+##	Allow the domain to read consolekit state files in /proc.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_read_state',`
+	gen_require(`
+		type consolekit_t;
+	')
+
+	kernel_search_proc($1)
+	ps_process_pattern($1, consolekit_t)
+')
+
+########################################
+## <summary>
+##	Execute consolekit server in the consolekit domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`consolekit_systemctl',`
+	gen_require(`
+		type consolekit_t;
+		type consolekit_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 consolekit_unit_file_t:file read_file_perms;
+	allow $1 consolekit_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, consolekit_t)
+')

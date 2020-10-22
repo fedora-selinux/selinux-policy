@@ -1,0 +1,175 @@
+
+## <summary>pkcs11proxyd-softhsm-ctl - manage the isolated PKCS #11 daemon with softhsm</summary>
+
+########################################
+## <summary>
+##	Execute pkcs11proxyd_exec_t in the pkcs11proxyd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`pkcs11proxyd_domtrans',`
+	gen_require(`
+		type pkcs11proxyd_t, pkcs11proxyd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, pkcs11proxyd_exec_t, pkcs11proxyd_t)
+')
+
+######################################
+## <summary>
+##	Execute pkcs11proxyd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs11proxyd_exec',`
+	gen_require(`
+		type pkcs11proxyd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, pkcs11proxyd_exec_t)
+')
+
+########################################
+## <summary>
+##	Search pkcs11proxyd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs11proxyd_search_lib',`
+	gen_require(`
+		type pkcs11proxyd_var_lib_t;
+	')
+
+	allow $1 pkcs11proxyd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read pkcs11proxyd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs11proxyd_read_lib_files',`
+	gen_require(`
+		type pkcs11proxyd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, pkcs11proxyd_var_lib_t, pkcs11proxyd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage pkcs11proxyd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs11proxyd_manage_lib_files',`
+	gen_require(`
+		type pkcs11proxyd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, pkcs11proxyd_var_lib_t, pkcs11proxyd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage pkcs11proxyd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs11proxyd_manage_lib_dirs',`
+	gen_require(`
+		type pkcs11proxyd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, pkcs11proxyd_var_lib_t, pkcs11proxyd_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an pkcs11proxyd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`pkcs11proxyd_admin',`
+	gen_require(`
+		type pkcs11proxyd_t;
+		type pkcs11proxyd_var_lib_t;
+	')
+
+	allow $1 pkcs11proxyd_t:process { signal_perms };
+	ps_process_pattern($1, pkcs11proxyd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 pkcs11proxyd_t:process ptrace;
+    ')
+
+	files_search_var_lib($1)
+	admin_pattern($1, pkcs11proxyd_var_lib_t)
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+########################################
+## <summary>
+##	Connect to pkcs11proxyd over an unix
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs11proxyd_stream_connect',`
+	gen_require(`
+		type pkcs11proxyd_t, pkcs11proxyd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, pkcs11proxyd_var_run_t, pkcs11proxyd_var_run_t, pkcs11proxyd_t)
+')

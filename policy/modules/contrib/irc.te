@@ -1,0 +1,210 @@
+policy_module(irc, 2.3.1)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether irc clients can
+##	listen on and connect to any
+##	unreserved TCP ports.
+##	</p>
+## </desc>
+gen_tunable(irc_use_any_tcp_ports, false)
+
+attribute_role irc_roles;
+
+type irc_t;
+type irc_exec_t;
+typealias irc_t alias { user_irc_t staff_irc_t sysadm_irc_t };
+typealias irc_t alias { auditadm_irc_t secadm_irc_t };
+userdom_user_application_domain(irc_t, irc_exec_t)
+role irc_roles types irc_t;
+
+type irc_conf_t;
+files_config_file(irc_conf_t)
+
+type irc_home_t;
+typealias irc_home_t alias { user_irc_home_t staff_irc_home_t sysadm_irc_home_t };
+typealias irc_home_t alias { auditadm_irc_home_t secadm_irc_home_t };
+userdom_user_home_content(irc_home_t)
+
+type irc_tmp_t;
+typealias irc_tmp_t alias { user_irc_tmp_t staff_irc_tmp_t sysadm_irc_tmp_t };
+typealias irc_tmp_t alias { auditadm_irc_tmp_t secadm_irc_tmp_t };
+userdom_user_home_content(irc_tmp_t)
+
+########################################
+#
+# Irssi personal declarations.
+#
+
+## <desc>
+## <p>
+## Allow the Irssi IRC Client to connect to any port,
+## and to bind to any unreserved port.
+## </p>
+## </desc>
+gen_tunable(irssi_use_full_network, false)
+
+type irssi_t;
+type irssi_exec_t;
+application_domain(irssi_t, irssi_exec_t)
+ubac_constrained(irssi_t)
+role irc_roles types irssi_t;
+
+type irssi_etc_t;
+files_config_file(irssi_etc_t)
+
+type irssi_home_t alias irc_log_home_t;
+userdom_user_home_content(irssi_home_t)
+
+########################################
+#
+# Local policy
+#
+
+allow irc_t self:process { signal sigkill };
+allow irc_t self:fifo_file rw_fifo_file_perms;
+allow irc_t self:unix_stream_socket { accept listen };
+
+allow irc_t irc_conf_t:file read_file_perms;
+
+manage_dirs_pattern(irc_t, irc_home_t, irc_home_t)
+manage_files_pattern(irc_t, irc_home_t, irc_home_t)
+manage_lnk_files_pattern(irc_t, irc_home_t, irc_home_t)
+irc_filetrans_home_content(irc_t)
+
+manage_dirs_pattern(irc_t, irc_tmp_t, irc_tmp_t)
+manage_files_pattern(irc_t, irc_tmp_t, irc_tmp_t)
+manage_lnk_files_pattern(irc_t, irc_tmp_t, irc_tmp_t)
+manage_fifo_files_pattern(irc_t, irc_tmp_t, irc_tmp_t)
+manage_sock_files_pattern(irc_t, irc_tmp_t, irc_tmp_t)
+files_tmp_filetrans(irc_t, irc_tmp_t, { file dir lnk_file sock_file fifo_file })
+
+kernel_read_system_state(irc_t)
+
+corecmd_exec_shell(irc_t)
+corecmd_exec_bin(irc_t)
+
+corenet_all_recvfrom_netlabel(irc_t)
+corenet_tcp_sendrecv_generic_if(irc_t)
+corenet_tcp_sendrecv_generic_node(irc_t)
+corenet_tcp_sendrecv_all_ports(irc_t)
+
+corenet_sendrecv_gatekeeper_client_packets(irc_t)
+corenet_tcp_sendrecv_gatekeeper_port(irc_t)
+corenet_tcp_connect_gatekeeper_port(irc_t)
+
+corenet_sendrecv_http_cache_client_packets(irc_t)
+corenet_tcp_connect_http_cache_port(irc_t)
+corenet_tcp_sendrecv_http_cache_port(irc_t)
+
+corenet_sendrecv_ircd_client_packets(irc_t)
+corenet_tcp_connect_ircd_port(irc_t)
+corenet_tcp_sendrecv_ircd_port(irc_t)
+
+dev_read_urand(irc_t)
+dev_read_rand(irc_t)
+
+domain_use_interactive_fds(irc_t)
+
+fs_getattr_all_fs(irc_t)
+fs_search_auto_mountpoints(irc_t)
+
+term_use_controlling_term(irc_t)
+term_list_ptys(irc_t)
+
+auth_use_nsswitch(irc_t)
+
+init_read_utmp(irc_t)
+init_dontaudit_lock_utmp(irc_t)
+
+userdom_use_inherited_user_terminals(irc_t)
+
+userdom_manage_user_home_content_dirs(irc_t)
+userdom_manage_user_home_content_files(irc_t)
+userdom_filetrans_home_content(irc_t)
+
+# Write to the user domain tty.
+userdom_use_inherited_user_terminals(irc_t)
+
+userdom_home_manager(irc_t)
+
+tunable_policy(`irc_use_any_tcp_ports',`
+	allow irc_t self:tcp_socket { accept listen };
+	corenet_sendrecv_all_server_packets(irc_t)
+	corenet_tcp_bind_all_unreserved_ports(irc_t)
+	corenet_sendrecv_all_client_packets(irc_t)
+	corenet_tcp_connect_all_unreserved_ports(irc_t)
+	corenet_tcp_sendrecv_all_ports(irc_t)
+')
+
+optional_policy(`
+	nis_use_ypbind(irc_t)
+')
+
+########################################
+#
+# Irssi personal declarations.
+#
+
+allow irssi_t self:process { signal sigkill };
+allow irssi_t self:fifo_file rw_fifo_file_perms;
+allow irssi_t self:tcp_socket create_stream_socket_perms;
+
+read_files_pattern(irssi_t, irssi_etc_t, irssi_etc_t)
+
+manage_dirs_pattern(irssi_t, irssi_home_t, irssi_home_t)
+manage_files_pattern(irssi_t, irssi_home_t, irssi_home_t)
+manage_lnk_files_pattern(irssi_t, irssi_home_t, irssi_home_t)
+irc_filetrans_home_content(irssi_t)
+userdom_search_user_home_dirs(irssi_t)
+
+kernel_read_system_state(irssi_t)
+
+corecmd_exec_shell(irssi_t)
+corecmd_read_bin_symlinks(irssi_t)
+
+corenet_tcp_connect_ircd_port(irssi_t)
+corenet_tcp_sendrecv_ircd_port(irssi_t)
+corenet_sendrecv_ircd_client_packets(irssi_t)
+
+# tcp:7000 is often used for SSL irc
+corenet_tcp_connect_gatekeeper_port(irssi_t)
+corenet_tcp_sendrecv_gatekeeper_port(irssi_t)
+corenet_sendrecv_gatekeeper_client_packets(irssi_t)
+
+# Privoxy
+corenet_tcp_connect_http_cache_port(irssi_t)
+corenet_tcp_sendrecv_http_cache_port(irssi_t)
+corenet_sendrecv_http_cache_client_packets(irssi_t)
+
+corenet_tcp_bind_generic_node(irssi_t)
+
+dev_read_urand(irssi_t)
+# irssi-otr genkey.
+dev_read_rand(irssi_t)
+
+
+fs_search_auto_mountpoints(irssi_t)
+
+auth_use_nsswitch(irssi_t)
+
+
+userdom_use_inherited_user_terminals(irssi_t)
+
+tunable_policy(`irssi_use_full_network', `
+	corenet_tcp_bind_all_unreserved_ports(irssi_t)
+	corenet_tcp_connect_all_ports(irssi_t)
+	corenet_sendrecv_generic_server_packets(irssi_t)
+	corenet_sendrecv_all_client_packets(irssi_t)
+')
+
+userdom_home_manager(irssi_t)
+
+optional_policy(`
+	seutil_use_newrole_fds(irc_t)
+')

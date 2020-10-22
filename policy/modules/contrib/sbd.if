@@ -1,0 +1,126 @@
+
+## <summary>policy for sbd</summary>
+
+########################################
+## <summary>
+##	Execute sbd_exec_t in the sbd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`sbd_domtrans',`
+	gen_require(`
+		type sbd_t, sbd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, sbd_exec_t, sbd_t)
+')
+
+######################################
+## <summary>
+##	Execute sbd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sbd_exec',`
+	gen_require(`
+		type sbd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, sbd_exec_t)
+')
+########################################
+## <summary>
+##	Read sbd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sbd_read_pid_files',`
+	gen_require(`
+		type sbd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, sbd_var_run_t, sbd_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute sbd server in the sbd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`sbd_systemctl',`
+	gen_require(`
+		type sbd_t;
+		type sbd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 sbd_unit_file_t:file read_file_perms;
+	allow $1 sbd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, sbd_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an sbd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sbd_admin',`
+	gen_require(`
+		type sbd_t;
+		type sbd_var_run_t;
+	type sbd_unit_file_t;
+	')
+
+	allow $1 sbd_t:process { signal_perms };
+	ps_process_pattern($1, sbd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 sbd_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+	admin_pattern($1, sbd_var_run_t)
+
+	sbd_systemctl($1)
+	admin_pattern($1, sbd_unit_file_t)
+	allow $1 sbd_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

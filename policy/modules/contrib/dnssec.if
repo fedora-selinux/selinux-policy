@@ -1,0 +1,123 @@
+
+## <summary>policy for dnssec_trigger</summary>
+
+########################################
+## <summary>
+##	Transition to dnssec_trigger.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`dnssec_trigger_domtrans',`
+	gen_require(`
+		type dnssec_trigger_t, dnssec_trigger_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, dnssec_trigger_exec_t, dnssec_trigger_t)
+')
+########################################
+## <summary>
+##	Read dnssec_trigger PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnssec_trigger_read_pid_files',`
+	gen_require(`
+		type dnssec_trigger_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 dnssec_trigger_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage dnssec_trigger PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnssec_trigger_manage_pid_files',`
+	gen_require(`
+		type dnssec_trigger_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_dirs_pattern($1, dnssec_trigger_var_run_t, dnssec_trigger_var_run_t)
+	manage_files_pattern($1, dnssec_trigger_var_run_t, dnssec_trigger_var_run_t)
+	manage_lnk_files_pattern($1, dnssec_trigger_var_run_t, dnssec_trigger_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	Send signull to dnssec_trigger.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`dnssec_trigger_signull',`
+	gen_require(`
+		type dnssec_trigger_t;
+	')
+
+    allow $1 dnssec_trigger_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send sigkill to dnssec_trigger.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`dnssec_trigger_sigkill',`
+	gen_require(`
+		type dnssec_trigger_t;
+	')
+
+    allow $1 dnssec_trigger_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an dnssec_trigger environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnssec_trigger_admin',`
+	gen_require(`
+		type dnssec_trigger_t;
+		type dnssec_trigger_var_run_t;
+	')
+
+	allow $1 dnssec_trigger_t:process { ptrace signal_perms };
+	ps_process_pattern($1, dnssec_trigger_t)
+
+	files_search_pids($1)
+	admin_pattern($1, dnssec_trigger_var_run_t)
+')

@@ -1,0 +1,122 @@
+## <summary>policy for bumblebee</summary>
+
+########################################
+## <summary>
+##	Execute bumblebee in the bumblebee domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`bumblebee_domtrans',`
+	gen_require(`
+		type bumblebee_t, bumblebee_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, bumblebee_exec_t, bumblebee_t)
+')
+
+########################################
+## <summary>
+##	Read bumblebee PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bumblebee_read_pid_files',`
+	gen_require(`
+		type bumblebee_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, bumblebee_var_run_t, bumblebee_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute bumblebee server in the bumblebee domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`bumblebee_systemctl',`
+	gen_require(`
+		type bumblebee_t;
+		type bumblebee_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 bumblebee_unit_file_t:file read_file_perms;
+	allow $1 bumblebee_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, bumblebee_t)
+')
+
+########################################
+## <summary>
+##	Connect to bumblebee over a unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bumblebee_stream_connect',`
+	gen_require(`
+		type bumblebee_t, bumblebee_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, bumblebee_var_run_t, bumblebee_var_run_t, bumblebee_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an bumblebee environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bumblebee_admin',`
+	gen_require(`
+		type bumblebee_t;
+		type bumblebee_var_run_t;
+		type bumblebee_unit_file_t;
+	')
+
+	allow $1 bumblebee_t:process { signal_perms };
+	ps_process_pattern($1, bumblebee_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 bumblebee_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+	admin_pattern($1, bumblebee_var_run_t)
+
+	bumblebee_systemctl($1)
+	admin_pattern($1, bumblebee_unit_file_t)
+	allow $1 bumblebee_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

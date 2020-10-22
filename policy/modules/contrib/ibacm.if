@@ -1,0 +1,179 @@
+
+## <summary>policy for ibacm</summary>
+
+########################################
+## <summary>
+##	Execute ibacm_exec_t in the ibacm domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ibacm_domtrans',`
+	gen_require(`
+		type ibacm_t, ibacm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ibacm_exec_t, ibacm_t)
+')
+
+######################################
+## <summary>
+##	Execute ibacm in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ibacm_exec',`
+	gen_require(`
+		type ibacm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, ibacm_exec_t)
+')
+########################################
+## <summary>
+##	Read ibacm's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ibacm_read_log',`
+	gen_require(`
+		type ibacm_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, ibacm_log_t, ibacm_log_t)
+')
+
+########################################
+## <summary>
+##	Append to ibacm log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ibacm_append_log',`
+	gen_require(`
+		type ibacm_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, ibacm_log_t, ibacm_log_t)
+')
+
+########################################
+## <summary>
+##	Manage ibacm log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ibacm_manage_log',`
+	gen_require(`
+		type ibacm_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, ibacm_log_t, ibacm_log_t)
+	manage_files_pattern($1, ibacm_log_t, ibacm_log_t)
+	manage_lnk_files_pattern($1, ibacm_log_t, ibacm_log_t)
+')
+########################################
+## <summary>
+##	Read ibacm PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ibacm_read_pid_files',`
+	gen_require(`
+		type ibacm_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, ibacm_var_run_t, ibacm_var_run_t)
+	read_lnk_files_pattern($1, ibacm_var_run_t, ibacm_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ibacm environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ibacm_admin',`
+	gen_require(`
+		type ibacm_t;
+		type ibacm_log_t;
+		type ibacm_var_run_t;
+	')
+
+	allow $1 ibacm_t:process { signal_perms };
+	ps_process_pattern($1, ibacm_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 ibacm_t:process ptrace;
+    ')
+
+	logging_search_logs($1)
+	admin_pattern($1, ibacm_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, ibacm_var_run_t)
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+#######################################
+## <summary>
+##	Allow caller to create netlink rdma socket for ibacm
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ibacm_create_netlink_rdma_socket',`
+	gen_require(`
+		type ibacm_t;
+	')
+
+	allow $1 ibacm_t:netlink_rdma_socket create_socket_perms;
+')

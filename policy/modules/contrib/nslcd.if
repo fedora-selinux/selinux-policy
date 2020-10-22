@@ -1,0 +1,154 @@
+## <summary>nslcd - local LDAP name service daemon.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run nslcd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`nslcd_domtrans',`
+	gen_require(`
+		type nslcd_t, nslcd_exec_t;
+	')
+
+	domtrans_pattern($1, nslcd_exec_t, nslcd_t)
+')
+
+########################################
+## <summary>
+##	Execute nslcd server in the nslcd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`nslcd_initrc_domtrans',`
+	gen_require(`
+		type nslcd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, nslcd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read nslcd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nslcd_read_pid_files',`
+	gen_require(`
+		type nslcd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 nslcd_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Dontaudit write to nslcd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nslcd_dontaudit_write_ock_file',`
+	gen_require(`
+		type nslcd_var_run_t;
+	')
+
+	dontaudit $1 nslcd_var_run_t:sock_file write;
+')
+
+########################################
+## <summary>
+##	Connect to nslcd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nslcd_stream_connect',`
+	gen_require(`
+		type nslcd_t, nslcd_var_run_t;
+	')
+
+	stream_connect_pattern($1, nslcd_var_run_t, nslcd_var_run_t, nslcd_t)
+	files_search_pids($1)
+')
+
+#######################################
+## <summary>
+##  Do not audit attempts to write nslcd sock files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`nslcd_dontaudit_write_sock_file',`
+    gen_require(`
+            type nslcd_t, nslcd_var_run_t;
+                ')
+
+    dontaudit $1 nslcd_t:sock_file write;
+    dontaudit $1 nslcd_var_run_t:sock_file write;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an nslcd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`nslcd_admin',`
+	gen_require(`
+		type nslcd_t, nslcd_initrc_exec_t, nslcd_var_run_t;
+		type nslcd_conf_t;
+	')
+
+	ps_process_pattern($1, nslcd_t)
+	allow $1 nslcd_t:process signal_perms;
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 nslcd_t:process ptrace;
+	')
+
+	# Allow nslcd_t to restart the apache service
+	nslcd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 nslcd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, nslcd_conf_t)
+
+	files_list_pids($1)
+	admin_pattern($1, nslcd_var_run_t, nslcd_var_run_t)
+')

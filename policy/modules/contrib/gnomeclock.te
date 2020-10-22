@@ -1,0 +1,100 @@
+policy_module(gnomeclock, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type gnomeclock_t;
+type gnomeclock_exec_t;
+init_daemon_domain(gnomeclock_t, gnomeclock_exec_t)
+
+type gnomeclock_tmp_t;
+files_tmp_file(gnomeclock_tmp_t)
+
+########################################
+#
+# gnomeclock local policy
+#
+
+allow gnomeclock_t self:capability { sys_nice sys_time dac_read_search  };
+allow gnomeclock_t self:process { getattr getsched signal };
+allow gnomeclock_t self:fifo_file rw_fifo_file_perms;
+allow gnomeclock_t self:unix_stream_socket create_stream_socket_perms;
+allow gnomeclock_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(gnomeclock_t, gnomeclock_tmp_t, gnomeclock_tmp_t)
+manage_files_pattern(gnomeclock_t, gnomeclock_tmp_t, gnomeclock_tmp_t)
+manage_lnk_files_pattern(gnomeclock_t, gnomeclock_tmp_t, gnomeclock_tmp_t)
+files_tmp_filetrans(gnomeclock_t, gnomeclock_tmp_t, { file dir })
+
+kernel_read_system_state(gnomeclock_t)
+
+corecmd_exec_bin(gnomeclock_t)
+corecmd_exec_shell(gnomeclock_t)
+corecmd_dontaudit_access_check_bin(gnomeclock_t)
+
+corenet_tcp_connect_time_port(gnomeclock_t)
+
+dev_rw_realtime_clock(gnomeclock_t)
+dev_read_urand(gnomeclock_t)
+dev_write_kmsg(gnomeclock_t)
+dev_read_sysfs(gnomeclock_t)
+
+files_read_etc_runtime_files(gnomeclock_t)
+
+fs_getattr_xattr_fs(gnomeclock_t)
+
+auth_use_nsswitch(gnomeclock_t)
+
+init_dbus_chat(gnomeclock_t)
+
+logging_stream_connect_syslog(gnomeclock_t)
+logging_send_syslog_msg(gnomeclock_t)
+
+miscfiles_manage_localization(gnomeclock_t)
+miscfiles_etc_filetrans_localization(gnomeclock_t)
+
+userdom_read_all_users_state(gnomeclock_t)
+
+optional_policy(`
+	chronyd_systemctl(gnomeclock_t)
+')
+
+optional_policy(`
+	clock_read_adjtime(gnomeclock_t)
+	clock_domtrans(gnomeclock_t)
+')
+
+optional_policy(`
+	consolekit_dbus_chat(gnomeclock_t)
+')
+
+optional_policy(`
+    consoletype_exec(gnomeclock_t)
+')
+
+optional_policy(`
+dbus_system_domain(gnomeclock_t, gnomeclock_exec_t)
+')
+
+optional_policy(`
+	gnome_manage_usr_config(gnomeclock_t)
+	gnome_manage_home_config(gnomeclock_t)
+	gnome_filetrans_admin_home_content(gnomeclock_t)
+')
+
+optional_policy(`
+	ntp_domtrans_ntpdate(gnomeclock_t)
+	ntp_initrc_domtrans(gnomeclock_t)
+	init_dontaudit_getattr_all_script_files(gnomeclock_t)
+	init_dontaudit_getattr_exec(gnomeclock_t)
+	ntp_systemctl(gnomeclock_t)
+')
+
+optional_policy(`
+	policykit_dbus_chat(gnomeclock_t)
+	policykit_domtrans_auth(gnomeclock_t)
+	policykit_read_lib(gnomeclock_t)
+	policykit_read_reload(gnomeclock_t)
+')

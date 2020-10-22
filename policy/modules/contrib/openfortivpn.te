@@ -1,0 +1,85 @@
+policy_module(openfortivpn, 1.0.0)
+
+## <desc>
+##      <p>
+##      Determine whether openfortivpn can
+##      connect to the TCP network.
+##      </p>
+## </desc>
+gen_tunable(openfortivpn_can_network_connect, true)
+
+########################################
+#
+# Declarations
+#
+
+type openfortivpn_t;
+role system_r types openfortivpn_t;
+type openfortivpn_exec_t;
+init_daemon_domain(openfortivpn_t, openfortivpn_exec_t)
+
+type openfortivpn_var_lib_t;
+files_type(openfortivpn_var_lib_t)
+
+type openfortivpn_devpts_t;
+term_pty(openfortivpn_devpts_t)
+
+########################################
+#
+# Local policy
+#
+
+# User certificates are typically not world-readable and are owned by the user
+allow openfortivpn_t self:capability { dac_read_search  };
+
+# Talking to pppd via the PTY
+allow openfortivpn_t openfortivpn_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms };
+
+manage_dirs_pattern(openfortivpn_t, openfortivpn_var_lib_t, openfortivpn_var_lib_t)
+manage_files_pattern(openfortivpn_t, openfortivpn_var_lib_t, openfortivpn_var_lib_t)
+
+kernel_read_network_state(openfortivpn_t)
+
+can_exec(openfortivpn_t, openfortivpn_exec_t)
+
+corecmd_exec_shell(openfortivpn_t)
+
+# No standard port for SSLVPN
+corenet_all_recvfrom_unlabeled(openfortivpn_t)
+corenet_sendrecv_all_client_packets(openfortivpn_t)
+corenet_tcp_sendrecv_generic_if(openfortivpn_t)
+corenet_tcp_sendrecv_generic_node(openfortivpn_t)
+
+fs_dontaudit_getattr_xattr_fs(openfortivpn_t)
+
+# PTY to pppd
+term_create_pty(openfortivpn_t, openfortivpn_devpts_t)
+
+auth_dontaudit_read_passwd(openfortivpn_t)
+auth_use_nsswitch(openfortivpn_t)
+
+logging_send_syslog_msg(openfortivpn_t)
+
+sysnet_manage_config(openfortivpn_t)
+
+userdom_read_home_certs(openfortivpn_t)
+
+tunable_policy(`openfortivpn_can_network_connect',`
+        corenet_tcp_connect_all_ports(openfortivpn_t)
+        corenet_tcp_sendrecv_all_ports(openfortivpn_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(openfortivpn_t)
+	dbus_connect_system_bus(openfortivpn_t)
+
+	optional_policy(`
+		networkmanager_dbus_chat(openfortivpn_t)
+	')
+')
+
+optional_policy(`
+	ppp_domtrans(openfortivpn_t)
+	ppp_signal(openfortivpn_t)
+	ppp_kill(openfortivpn_t)
+')

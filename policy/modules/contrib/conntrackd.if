@@ -1,0 +1,118 @@
+## <summary>Conntrackd connection tracking service</summary>
+
+########################################
+## <summary>
+##	Read the configuration files for conntrackd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`conntrackd_read_config',`
+	gen_require(`
+		type conntrackd_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 conntrackd_conf_t:dir list_dir_perms;
+	read_files_pattern($1, conntrackd_conf_t, conntrackd_conf_t)
+	read_lnk_files_pattern($1, conntrackd_conf_t, conntrackd_conf_t)
+')
+
+########################################
+## <summary>
+##	Connect to conntrackd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`conntrackd_stream_connect',`
+	gen_require(`
+		type conntrackd_t, conntrackd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, conntrackd_var_run_t, conntrackd_var_run_t, conntrackd_t)
+')
+
+#######################################
+## <summary>
+##  Execute conntrackd services in the conntrackd domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`conntrackd_systemctl',`
+    gen_require(`
+        type conntrackd_t;
+        type conntrackd_unit_file_t;
+    ')
+
+        systemd_exec_systemctl($1)
+	init_reload_services($1)
+        allow $1 conntrackd_unit_file_t:file read_file_perms;
+        allow $1 conntrackd_unit_file_t:service manage_service_perms;
+
+        ps_process_pattern($1, conntrackd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an conntrackd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the conntrackd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`conntrackd_admin',`
+	gen_require(`
+		type conntrackd_t, conntrackd_tmp_t, conntrackd_log_t;
+		type conntrackd_conf_t, conntrackd_var_run_t, conntrackd_initrc_exec_t;
+	')
+
+	allow $1 conntrackd_t:process signal_perms;
+	ps_process_pattern($1, conntrackd_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 conntrackd_t:process ptrace;
+	')
+
+	init_labeled_script_domtrans($1, conntrackd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 conntrackd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, conntrackd_conf_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, conntrackd_log_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, conntrackd_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, conntrackd_var_run_t)
+
+    conntrackd_systemctl($1)
+    admin_pattern($1, conntrackd_unit_file_t)
+    allow $1 conntrackd_unit_file_t:service all_service_perms;
+')

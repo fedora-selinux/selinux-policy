@@ -1,0 +1,120 @@
+## <summary>IPMI event daemon for sending events to syslog.</summary>
+
+########################################
+## <summary>
+##	Execute ipmievd_exec_t in the ipmievd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ipmievd_domtrans',`
+	gen_require(`
+		type ipmievd_t, ipmievd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ipmievd_exec_t, ipmievd_t)
+')
+
+######################################
+## <summary>
+##	Execute ipmievd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ipmievd_exec',`
+	gen_require(`
+		type ipmievd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, ipmievd_exec_t)
+')
+
+########################################
+## <summary>
+##	Read ipmievd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ipmievd_read_pid_files',`
+	gen_require(`
+		type ipmievd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, ipmievd_var_run_t, ipmievd_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute ipmievd server in the ipmievd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ipmievd_systemctl',`
+	gen_require(`
+		type ipmievd_t;
+		type ipmievd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 ipmievd_unit_file_t:file read_file_perms;
+	allow $1 ipmievd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, ipmievd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ipmievd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ipmievd_admin',`
+	gen_require(`
+		type ipmievd_t;
+		type ipmievd_var_run_t;
+	type ipmievd_unit_file_t;
+	')
+
+	allow $1 ipmievd_t:process { signal_perms };
+	ps_process_pattern($1, ipmievd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 ipmievd_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+	admin_pattern($1, ipmievd_var_run_t)
+
+	ipmievd_systemctl($1)
+	admin_pattern($1, ipmievd_unit_file_t)
+	allow $1 ipmievd_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

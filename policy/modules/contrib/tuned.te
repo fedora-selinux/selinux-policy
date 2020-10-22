@@ -1,0 +1,149 @@
+policy_module(tuned, 1.2.0)
+
+########################################
+#
+# Declarations
+#
+
+type tuned_t;
+type tuned_exec_t;
+init_daemon_domain(tuned_t, tuned_exec_t)
+
+type tuned_initrc_exec_t;
+init_script_file(tuned_initrc_exec_t)
+
+type tuned_etc_t;
+files_config_file(tuned_etc_t)
+
+type tuned_rw_etc_t;
+files_config_file(tuned_rw_etc_t)
+
+type tuned_log_t;
+logging_log_file(tuned_log_t)
+
+type tuned_tmp_t;
+files_tmp_file(tuned_tmp_t)
+
+type tuned_var_run_t;
+files_pid_file(tuned_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow tuned_t self:capability { net_admin sys_admin sys_nice sys_rawio };
+dontaudit tuned_t self:capability { dac_read_search  sys_tty_config };
+allow tuned_t self:process {  setsched signal };
+allow tuned_t self:fifo_file rw_fifo_file_perms;
+allow tuned_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow tuned_t self:netlink_socket create_socket_perms;
+allow tuned_t self:udp_socket create_socket_perms;
+allow tuned_t self:socket create_socket_perms;
+
+read_files_pattern(tuned_t, tuned_etc_t, tuned_etc_t)
+exec_files_pattern(tuned_t, tuned_etc_t, tuned_etc_t)
+
+manage_files_pattern(tuned_t, tuned_etc_t, tuned_rw_etc_t)
+files_etc_filetrans(tuned_t, tuned_rw_etc_t, file, "active_profile")
+
+manage_dirs_pattern(tuned_t, tuned_log_t, tuned_log_t)
+manage_files_pattern(tuned_t, tuned_log_t, tuned_log_t)
+logging_log_filetrans(tuned_t, tuned_log_t, file, "tuned.log")
+
+manage_dirs_pattern(tuned_t, tuned_tmp_t, tuned_tmp_t)
+manage_files_pattern(tuned_t, tuned_tmp_t, tuned_tmp_t)
+files_tmp_filetrans(tuned_t, tuned_tmp_t, { file dir })
+can_exec(tuned_t, tuned_tmp_t)
+
+manage_files_pattern(tuned_t, tuned_var_run_t, tuned_var_run_t)
+manage_dirs_pattern(tuned_t, tuned_var_run_t, tuned_var_run_t)
+files_pid_filetrans(tuned_t, tuned_var_run_t, { dir file })
+allow tuned_t tuned_var_run_t:file  relabel_file_perms;
+can_exec(tuned_t, tuned_var_run_t)
+
+kernel_read_system_state(tuned_t)
+kernel_read_network_state(tuned_t)
+kernel_read_kernel_sysctls(tuned_t)
+kernel_request_load_module(tuned_t)
+kernel_rw_kernel_sysctl(tuned_t)
+kernel_rw_usermodehelper_state(tuned_t)
+kernel_rw_vm_sysctls(tuned_t)
+kernel_setsched(tuned_t)
+kernel_rw_all_sysctls(tuned_t)
+
+corecmd_exec_bin(tuned_t)
+corecmd_exec_shell(tuned_t)
+
+dev_getattr_all_blk_files(tuned_t)
+dev_getattr_all_chr_files(tuned_t)
+dev_read_urand(tuned_t)
+dev_rw_cpu_microcode(tuned_t)
+dev_rw_sysfs(tuned_t)
+dev_rw_netcontrol(tuned_t)
+
+files_dontaudit_all_access_check(tuned_t)
+files_dontaudit_search_home(tuned_t)
+files_list_tmp(tuned_t)
+
+fs_getattr_all_fs(tuned_t)
+fs_search_all(tuned_t)
+fs_rw_hugetlbfs_files(tuned_t)
+
+auth_use_nsswitch(tuned_t)
+
+logging_send_syslog_msg(tuned_t)
+#bug in tuned
+logging_manage_syslog_config(tuned_t)
+logging_filetrans_named_conf(tuned_t)
+
+mount_read_pid_files(tuned_t)
+
+modutils_domtrans_kmod(tuned_t)
+
+udev_read_pid_files(tuned_t)
+
+userdom_dontaudit_search_user_home_dirs(tuned_t)
+
+optional_policy(`
+	dbus_system_bus_client(tuned_t)
+	dbus_connect_system_bus(tuned_t)
+')
+
+optional_policy(`
+	dmidecode_domtrans(tuned_t)
+')
+
+# to allow disk tuning
+optional_policy(`
+	fstools_domtrans(tuned_t)
+')
+
+optional_policy(`
+	gnome_dontaudit_search_config(tuned_t)
+')
+
+optional_policy(`
+	libs_exec_ldconfig(tuned_t)
+')
+
+optional_policy(`
+	mount_domtrans(tuned_t)
+')
+
+optional_policy(`
+	policykit_dbus_chat(tuned_t)
+')
+
+# to allow network interface tuning
+optional_policy(`
+	sysnet_domtrans_ifconfig(tuned_t)
+')
+
+optional_policy(`
+	unconfined_dbus_send(tuned_t)
+')
+
+optional_policy(`
+    unconfined_domain(tuned_t)
+')

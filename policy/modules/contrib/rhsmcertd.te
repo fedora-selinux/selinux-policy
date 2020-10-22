@@ -1,0 +1,161 @@
+policy_module(rhsmcertd, 1.1.1)
+
+########################################
+#
+# Declarations
+#
+
+type rhsmcertd_t;
+type rhsmcertd_exec_t;
+init_daemon_domain(rhsmcertd_t, rhsmcertd_exec_t)
+
+type rhsmcertd_initrc_exec_t;
+init_script_file(rhsmcertd_initrc_exec_t)
+
+type rhsmcertd_log_t;
+logging_log_file(rhsmcertd_log_t)
+
+type rhsmcertd_lock_t;
+files_lock_file(rhsmcertd_lock_t)
+
+type rhsmcertd_tmp_t;
+files_tmp_file(rhsmcertd_tmp_t)
+
+type rhsmcertd_var_lib_t;
+files_type(rhsmcertd_var_lib_t)
+
+type rhsmcertd_var_run_t;
+files_pid_file(rhsmcertd_var_run_t)
+
+type rhsmcertd_config_t;
+files_config_file(rhsmcertd_config_t)
+
+########################################
+#
+# Local policy
+#
+
+allow rhsmcertd_t self:capability { kill sys_nice };
+allow rhsmcertd_t self:process { signal_perms setsched };
+
+allow rhsmcertd_t self:fifo_file rw_fifo_file_perms;
+allow rhsmcertd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(rhsmcertd_t, rhsmcertd_config_t, rhsmcertd_config_t)
+manage_files_pattern(rhsmcertd_t, rhsmcertd_config_t, rhsmcertd_config_t)
+files_etc_filetrans(rhsmcertd_t, rhsmcertd_config_t, { dir file })
+
+manage_dirs_pattern(rhsmcertd_t, rhsmcertd_log_t, rhsmcertd_log_t)
+manage_files_pattern(rhsmcertd_t, rhsmcertd_log_t, rhsmcertd_log_t)
+
+manage_files_pattern(rhsmcertd_t, rhsmcertd_lock_t, rhsmcertd_lock_t)
+files_lock_filetrans(rhsmcertd_t, rhsmcertd_lock_t, file)
+
+manage_dirs_pattern(rhsmcertd_t, rhsmcertd_tmp_t, rhsmcertd_tmp_t)
+manage_files_pattern(rhsmcertd_t, rhsmcertd_tmp_t, rhsmcertd_tmp_t)
+files_tmp_filetrans(rhsmcertd_t, rhsmcertd_tmp_t, { dir file })
+
+manage_dirs_pattern(rhsmcertd_t, rhsmcertd_var_lib_t, rhsmcertd_var_lib_t)
+manage_files_pattern(rhsmcertd_t, rhsmcertd_var_lib_t, rhsmcertd_var_lib_t)
+
+manage_dirs_pattern(rhsmcertd_t, rhsmcertd_var_run_t, rhsmcertd_var_run_t)
+manage_files_pattern(rhsmcertd_t, rhsmcertd_var_run_t, rhsmcertd_var_run_t)
+files_pid_filetrans(rhsmcertd_t, rhsmcertd_var_run_t, { file dir })
+
+kernel_read_network_state(rhsmcertd_t)
+kernel_read_net_sysctls(rhsmcertd_t)
+kernel_read_state(rhsmcertd_t)
+kernel_read_system_state(rhsmcertd_t)
+kernel_read_sysctl(rhsmcertd_t)
+kernel_signull(rhsmcertd_t)
+
+corenet_tcp_connect_http_port(rhsmcertd_t)
+corenet_tcp_connect_http_cache_port(rhsmcertd_t)
+corenet_tcp_connect_squid_port(rhsmcertd_t)
+corenet_tcp_connect_netport_port(rhsmcertd_t)
+corenet_tcp_connect_websm_port(rhsmcertd_t)
+
+corecmd_exec_bin(rhsmcertd_t)
+corecmd_exec_shell(rhsmcertd_t)
+
+dev_read_sysfs(rhsmcertd_t)
+dev_read_rand(rhsmcertd_t)
+dev_read_urand(rhsmcertd_t)
+dev_read_raw_memory(rhsmcertd_t)
+
+domain_obj_id_change_exemption(rhsmcertd_t)
+domain_read_all_domains_state(rhsmcertd_t)
+domain_signull_all_domains(rhsmcertd_t)
+
+files_list_tmp(rhsmcertd_t)
+files_manage_generic_locks(rhsmcertd_t)
+files_manage_system_conf_files(rhsmcertd_t)
+files_create_boot_flag(rhsmcertd_t)
+files_dontaudit_write_all_mountpoints(rhsmcertd_t)
+
+fs_dontaudit_write_configfs_dirs(rhsmcertd_t)
+fs_read_xenfs_files(rhsmcertd_t)
+
+auth_map_passwd(rhsmcertd_t)
+auth_read_passwd(rhsmcertd_t)
+
+libs_exec_ldconfig(rhsmcertd_t)
+libs_dontaudit_write_lib_dirs(rhsmcertd_t)
+
+init_read_state(rhsmcertd_t)
+
+logging_send_syslog_msg(rhsmcertd_t)
+
+miscfiles_manage_generic_cert_files(rhsmcertd_t)
+miscfiles_manage_generic_cert_dirs(rhsmcertd_t)
+miscfiles_relabel_generic_cert(rhsmcertd_t)
+
+nis_use_ypbind(rhsmcertd_t)
+
+sysnet_dns_name_resolve(rhsmcertd_t)
+
+ifdef(`hide_broken_symptoms',`
+    exec_files_pattern(rhsmcertd_t, rhsmcertd_tmp_t, rhsmcertd_tmp_t)
+    exec_files_pattern(rhsmcertd_t, rhsmcertd_var_run_t, rhsmcertd_var_run_t)
+')
+
+optional_policy(`
+    dbus_system_domain(rhsmcertd_t,rhsmcertd_exec_t)
+')
+
+optional_policy(`
+	dmidecode_domtrans(rhsmcertd_t)
+')
+
+optional_policy(`
+	gnome_dontaudit_search_config(rhsmcertd_t)
+')
+
+optional_policy(`
+	hostname_exec(rhsmcertd_t)
+')
+
+optional_policy(`
+    rhnsd_manage_config(rhsmcertd_t)
+')
+
+optional_policy(`
+	rpm_manage_db(rhsmcertd_t)
+    rpm_read_log(rhsmcertd_t)
+    rpm_read_cache(rhsmcertd_t)
+    rpm_manage_cache(rhsmcertd_t)
+    rpm_dbus_chat(rhsmcertd_t)
+')
+
+optional_policy(`
+    rtas_errd_rw_lock(rhsmcertd_t)
+')
+
+optional_policy(`
+    sssd_read_public_files(rhsmcertd_t)
+    sssd_stream_connect(rhsmcertd_t)
+')
+
+optional_policy(`
+    container_manage_config_files(rhsmcertd_t)
+')

@@ -1,0 +1,120 @@
+policy_module(keystone, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type keystone_t;
+type keystone_exec_t;
+init_daemon_domain(keystone_t, keystone_exec_t)
+
+type keystone_initrc_exec_t;
+init_script_file(keystone_initrc_exec_t)
+
+type keystone_log_t;
+logging_log_file(keystone_log_t)
+
+type keystone_var_lib_t;
+files_type(keystone_var_lib_t)
+
+type keystone_var_run_t;
+files_pid_file(keystone_var_run_t)
+
+type keystone_tmp_t;
+files_tmp_file(keystone_tmp_t)
+
+type keystone_unit_file_t;
+systemd_unit_file(keystone_unit_file_t)
+
+########################################
+#
+# Local policy
+#
+allow keystone_t self:process { getsched setsched signal };
+
+allow keystone_t self:fifo_file rw_fifo_file_perms;
+allow keystone_t self:unix_stream_socket { accept listen };
+allow keystone_t self:tcp_socket { accept listen };
+
+manage_dirs_pattern(keystone_t, keystone_log_t, keystone_log_t)
+append_files_pattern(keystone_t, keystone_log_t, keystone_log_t)
+create_files_pattern(keystone_t, keystone_log_t, keystone_log_t)
+setattr_files_pattern(keystone_t, keystone_log_t, keystone_log_t)
+logging_log_filetrans(keystone_t, keystone_log_t, dir)
+
+manage_dirs_pattern(keystone_t, keystone_tmp_t, keystone_tmp_t)
+manage_files_pattern(keystone_t, keystone_tmp_t, keystone_tmp_t)
+manage_lnk_files_pattern(keystone_t, keystone_tmp_t, keystone_tmp_t)
+files_tmp_filetrans(keystone_t, keystone_tmp_t, { dir file lnk_file })
+
+manage_dirs_pattern(keystone_t, keystone_var_lib_t, keystone_var_lib_t)
+manage_files_pattern(keystone_t, keystone_var_lib_t, keystone_var_lib_t)
+files_var_lib_filetrans(keystone_t, keystone_var_lib_t, dir)
+
+manage_dirs_pattern(keystone_t, keystone_var_run_t, keystone_var_run_t)
+manage_files_pattern(keystone_t, keystone_var_run_t, keystone_var_run_t)
+files_pid_filetrans(keystone_t, keystone_var_run_t, { dir })
+
+can_exec(keystone_t, keystone_tmp_t)
+
+kernel_read_system_state(keystone_t)
+
+corecmd_exec_bin(keystone_t)
+corecmd_exec_shell(keystone_t)
+
+corenet_all_recvfrom_unlabeled(keystone_t)
+corenet_all_recvfrom_netlabel(keystone_t)
+corenet_tcp_sendrecv_generic_if(keystone_t)
+corenet_tcp_sendrecv_generic_node(keystone_t)
+corenet_tcp_bind_generic_node(keystone_t)
+corenet_tcp_connect_mysqld_port(keystone_t)
+corenet_tcp_connect_ldap_port(keystone_t)
+corenet_tcp_connect_keystone_port(keystone_t)
+corenet_tcp_connect_amqp_port(keystone_t)
+corenet_tcp_connect_osapi_compute_port(keystone_t)
+
+corenet_sendrecv_commplex_main_server_packets(keystone_t)
+corenet_tcp_bind_commplex_main_port(keystone_t)
+corenet_tcp_sendrecv_commplex_main_port(keystone_t)
+
+corenet_tcp_bind_keystone_port(keystone_t)
+
+auth_use_pam(keystone_t)
+
+libs_exec_ldconfig(keystone_t)
+
+optional_policy(`
+	ldap_stream_connect(keystone_t)
+')
+
+optional_policy(`
+	mysql_stream_connect(keystone_t)
+	mysql_tcp_connect(keystone_t)
+	mysql_read_db_lnk_files(keystone_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(keystone_t)
+')
+
+optional_policy(`
+    rpm_exec(keystone_t)
+')
+
+#######################################
+#
+# Cgi local policy
+#
+
+optional_policy(`
+	apache_content_template(keystone_cgi)
+	apache_content_alias_template(keystone_cgi, keystone_cgi)
+
+	getattr_dirs_pattern(keystone_cgi_script_t, keystone_var_lib_t, keystone_var_lib_t)
+
+	read_files_pattern(keystone_cgi_script_t, keystone_log_t, keystone_log_t)
+
+    corenet_tcp_bind_commplex_main_port(keystone_cgi_script_t)
+    corenet_tcp_sendrecv_commplex_main_port(keystone_cgi_script_t)
+')

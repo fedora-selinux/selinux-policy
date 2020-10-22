@@ -1,0 +1,74 @@
+policy_module(nslcd, 1.4.1)
+
+########################################
+#
+# Declarations
+#
+
+type nslcd_t;
+type nslcd_exec_t;
+init_daemon_domain(nslcd_t, nslcd_exec_t)
+
+type nslcd_initrc_exec_t;
+init_script_file(nslcd_initrc_exec_t)
+
+type nslcd_var_run_t;
+files_pid_file(nslcd_var_run_t)
+
+type nslcd_conf_t;
+files_config_file(nslcd_conf_t)
+
+########################################
+#
+# nslcd local policy
+#
+
+allow nslcd_t self:capability { chown dac_read_search  setgid setuid sys_nice sys_resource };
+allow nslcd_t self:process { setsched signal signull };
+allow nslcd_t self:unix_stream_socket create_stream_socket_perms;
+
+allow nslcd_t nslcd_conf_t:file read_file_perms;
+
+manage_dirs_pattern(nslcd_t, nslcd_var_run_t, nslcd_var_run_t)
+manage_files_pattern(nslcd_t, nslcd_var_run_t, nslcd_var_run_t)
+manage_sock_files_pattern(nslcd_t, nslcd_var_run_t, nslcd_var_run_t)
+files_pid_filetrans(nslcd_t, nslcd_var_run_t, { file dir })
+
+kernel_read_system_state(nslcd_t)
+kernel_view_key(nslcd_t)
+
+dev_read_sysfs(nslcd_t)
+
+corenet_all_recvfrom_unlabeled(nslcd_t)
+corenet_all_recvfrom_netlabel(nslcd_t)
+corenet_tcp_connect_ldap_port(nslcd_t)
+corenet_sendrecv_ldap_client_packets(nslcd_t)
+
+dev_read_sysfs(nslcd_t)
+dev_read_urand(nslcd_t)
+
+corecmd_exec_bin(nslcd_t)
+
+files_read_usr_symlinks(nslcd_t)
+files_list_tmp(nslcd_t)
+
+init_view_key(nslcd_t)
+
+auth_use_nsswitch(nslcd_t)
+
+logging_send_syslog_msg(nslcd_t)
+
+userdom_read_user_tmp_files(nslcd_t)
+
+optional_policy(`
+	dirsrv_stream_connect(nslcd_t)
+')
+
+optional_policy(`
+	ldap_stream_connect(nslcd_t)
+')
+
+optional_policy(`
+	nscd_exec(nslcd_t)
+')
+
