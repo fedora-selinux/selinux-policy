@@ -1,4 +1,4 @@
-policy_module(pcp, 1.0.0)
+policy_module(pcp, 1.1.0)
 
 ########################################
 #
@@ -25,9 +25,7 @@ attribute pcp_domain;
 pcp_domain_template(pmcd)
 pcp_domain_template(pmlogger)
 pcp_domain_template(pmproxy)
-pcp_domain_template(pmwebd)
 pcp_domain_template(pmie)
-pcp_domain_template(pmmgr)
 pcp_domain_template(plugin)
 
 type pcp_log_t;
@@ -215,50 +213,6 @@ optional_policy(`
     optional_policy(`
         avahi_dbus_chat(pcp_pmproxy_t)
     ')
-')
-
-########################################
-#
-# pcp_pmwebd local  policy
-#
-
-kernel_read_system_state(pcp_pmwebd_t)
-
-corecmd_exec_shell(pcp_pmwebd_t)
-
-corenet_tcp_bind_generic_node(pcp_pmwebd_t)
-
-optional_policy(`
-    dbus_system_bus_client(pcp_pmwebd_t)
-
-    optional_policy(`
-        avahi_dbus_chat(pcp_pmwebd_t)
-    ')
-')
-
-########################################
-#
-# pcp_pmmgr local  policy
-#
-
-allow pcp_pmmgr_t self:process { setpgid };
-allow pcp_pmmgr_t self:unix_dgram_socket create_socket_perms;
-allow pcp_pmmgr_t pcp_pmcd_t:unix_stream_socket connectto;
-
-kernel_read_system_state(pcp_pmmgr_t)
-
-corenet_udp_bind_dey_sapi_port(pcp_pmmgr_t)
-
-corenet_tcp_bind_commplex_link_port(pcp_pmmgr_t)
-corenet_tcp_bind_dey_sapi_port(pcp_pmmgr_t)
-
-corecmd_exec_bin(pcp_pmmgr_t)
-
-logging_send_syslog_msg(pcp_pmmgr_t)
-
-optional_policy(`
-    pcp_pmie_exec(pcp_pmmgr_t)
-    pcp_pmlogger_exec(pcp_pmmgr_t)
 ')
 
 ########################################
