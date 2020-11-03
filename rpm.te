@@ -3,6 +3,8 @@ policy_module(rpm, 1.16.0)
 attribute rpm_transition_domain;
 attribute_role rpm_script_roles;
 roleattribute system_r rpm_script_roles;
+attribute_role rpmdb_roles;
+roleattribute system_r rpmdb_roles;
 
 ########################################
 #
@@ -16,6 +18,11 @@ domain_role_change_exemption(rpm_t)
 domain_system_change_exemption(rpm_t)
 domain_interactive_fd(rpm_t)
 role rpm_script_roles types rpm_t;
+
+type rpmdb_t;
+type rpmdb_exec_t;
+init_system_domain(rpmdb_t, rpmdb_exec_t)
+role rpmdb_roles types rpmdb_t;
 
 type debuginfo_exec_t;
 domain_entry_file(rpm_t, debuginfo_exec_t)
@@ -41,6 +48,9 @@ files_type(rpm_var_cache_t)
 
 type rpm_var_run_t;
 files_pid_file(rpm_var_run_t)
+
+type rpmdb_tmp_t;
+files_tmp_file(rpmdb_tmp_t)
 
 type rpm_script_t;
 type rpm_script_exec_t;
@@ -249,6 +259,28 @@ optional_policy(`
 	unconfined_dbus_chat(rpm_t)
 	unconfined_dbus_chat(rpm_script_t)
 ')
+
+########################################
+#
+# rpmdb local policy
+#
+
+allow rpmdb_t rpm_var_lib_t:file map;
+allow rpmdb_t rpmdb_tmp_t:file map;
+
+manage_dirs_pattern(rpmdb_t, rpm_var_lib_t, rpm_var_lib_t)
+manage_files_pattern(rpmdb_t, rpm_var_lib_t, rpm_var_lib_t)
+files_var_lib_filetrans(rpmdb_t, rpm_var_lib_t, dir)
+
+manage_dirs_pattern(rpmdb_t, rpmdb_tmp_t, rpmdb_tmp_t)
+manage_files_pattern(rpmdb_t, rpmdb_tmp_t, rpmdb_tmp_t)
+files_tmp_filetrans(rpmdb_t, rpmdb_tmp_t, { file dir })
+
+auth_dontaudit_read_passwd(rpmdb_t)
+
+files_rw_inherited_non_security_files(rpmdb_t)
+
+sysnet_dontaudit_read_config(rpmdb_t)
 
 ########################################
 #
