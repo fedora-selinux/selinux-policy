@@ -1,0 +1,89 @@
+policy_module(knot, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type knot_t;
+type knot_exec_t;
+init_daemon_domain(knot_t, knot_exec_t)
+
+permissive knot_t;
+
+type knot_conf_t;
+files_type(knot_conf_t)
+
+type knot_var_lib_t;
+files_type(knot_var_lib_t)
+
+type knot_var_run_t;
+files_pid_file(knot_var_run_t)
+
+type knot_tmp_t;
+files_tmp_file(knot_tmp_t)
+
+########################################
+#
+# knot local policy
+#
+allow knot_t self:fifo_file rw_fifo_file_perms;
+allow knot_t self:unix_stream_socket create_stream_socket_perms;
+
+allow knot_t self:tcp_socket create_stream_socket_perms;
+allow knot_t self:udp_socket create_socket_perms;
+allow knot_t self:unix_dgram_socket create_socket_perms;
+
+allow knot_t self:process { setcap };
+allow knot_t self:capability { setpcap };
+
+domain_use_interactive_fds(knot_t)
+
+files_read_etc_files(knot_t)
+fs_getattr_all_fs(knot_t)
+
+miscfiles_read_localization(knot_t)
+allow knot_t knot_var_lib_t:file { map } ;
+
+corenet_all_recvfrom_netlabel(knot_t)
+corenet_tcp_sendrecv_generic_if(knot_t)
+corenet_udp_sendrecv_generic_if(knot_t)
+corenet_tcp_sendrecv_generic_node(knot_t)
+corenet_udp_sendrecv_generic_node(knot_t)
+corenet_tcp_sendrecv_all_ports(knot_t)
+corenet_udp_sendrecv_all_ports(knot_t)
+corenet_tcp_bind_generic_node(knot_t)
+corenet_udp_bind_generic_node(knot_t)
+corenet_tcp_bind_dns_port(knot_t)
+corenet_udp_bind_dns_port(knot_t)
+corenet_sendrecv_dns_server_packets(knot_t)
+corenet_tcp_connect_all_ports(knot_t)
+
+
+sysnet_read_config(knot_t)
+
+auth_use_nsswitch(knot_t)
+
+logging_send_syslog_msg(knot_t)
+
+manage_dirs_pattern(knot_t, knot_conf_t, knot_conf_t)
+manage_files_pattern(knot_t, knot_conf_t, knot_conf_t)
+read_lnk_files_pattern(knot_t, knot_conf_t, knot_conf_t)
+allow knot_t knot_conf_t:file map;
+
+manage_dirs_pattern(knot_t, knot_var_lib_t, knot_var_lib_t)
+manage_files_pattern(knot_t, knot_var_lib_t, knot_var_lib_t)
+manage_lnk_files_pattern(knot_t, knot_var_lib_t, knot_var_lib_t)
+files_var_lib_filetrans(knot_t, knot_var_lib_t, dir)
+
+manage_files_pattern(knot_t, knot_var_run_t, knot_var_run_t)
+manage_sock_files_pattern(knot_t, knot_var_run_t, knot_var_run_t)
+files_pid_filetrans(knot_t, knot_var_run_t, file)
+
+manage_files_pattern(knot_t, knot_tmp_t, knot_tmp_t)
+manage_dirs_pattern(knot_t, knot_tmp_t, knot_tmp_t)
+files_tmp_filetrans(knot_t, knot_tmp_t, file)
+files_tmp_filetrans(knot_t, knot_tmp_t, dir)
+allow knot_t knot_tmp_t:file map;
+
+
