@@ -1,0 +1,146 @@
+policy_module(jabber, 1.10.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute jabberd_domain;
+
+jabber_domain_template(jabberd)
+jabber_domain_template(jabberd_router)
+jabber_domain_template(pyicqt)
+
+type jabberd_initrc_exec_t;
+init_script_file(jabberd_initrc_exec_t)
+
+# type which includes log/pid files pro jabberd components
+type jabberd_var_lib_t;
+files_type(jabberd_var_lib_t)
+
+# pyicq-t types
+type pyicqt_log_t;
+logging_log_file(pyicqt_log_t);
+
+type pyicqt_var_spool_t;
+files_spool_file(pyicqt_var_spool_t)
+
+type pyicqt_var_run_t;
+files_pid_file(pyicqt_var_run_t)
+
+######################################
+#
+# Local policy for jabberd-router and c2s components
+#
+
+allow jabberd_router_t self:netlink_route_socket r_netlink_socket_perms;
+
+manage_files_pattern(jabberd_router_t, jabberd_var_lib_t, jabberd_var_lib_t)
+manage_dirs_pattern(jabberd_router_t, jabberd_var_lib_t, jabberd_var_lib_t)
+
+kernel_read_network_state(jabberd_router_t)
+
+corenet_tcp_bind_jabber_client_port(jabberd_router_t)
+corenet_tcp_bind_jabber_router_port(jabberd_router_t)
+corenet_tcp_connect_jabber_router_port(jabberd_router_t)
+corenet_sendrecv_jabber_router_server_packets(jabberd_router_t)
+corenet_sendrecv_jabber_client_server_packets(jabberd_router_t)
+corenet_tcp_connect_postgresql_port(jabberd_router_t)
+
+fs_getattr_all_fs(jabberd_router_t)
+
+miscfiles_read_generic_certs(jabberd_router_t)
+
+optional_policy(`
+	kerberos_use(jabberd_router_t)
+	kerberos_read_keytab(jabberd_router_t)
+')
+
+optional_policy(`
+	nis_use_ypbind(jabberd_router_t)
+')
+
+#####################################
+#
+# Local policy for other jabberd components
+#
+
+allow jabberd_t self:netlink_route_socket { create_socket_perms nlmsg_read };
+
+manage_files_pattern(jabberd_t, jabberd_var_lib_t, jabberd_var_lib_t)
+manage_dirs_pattern(jabberd_t, jabberd_var_lib_t, jabberd_var_lib_t)
+
+corenet_tcp_bind_jabber_interserver_port(jabberd_t)
+corenet_tcp_connect_jabber_interserver_port(jabberd_t)
+corenet_tcp_connect_jabber_router_port(jabberd_t)
+corenet_tcp_connect_postgresql_port(jabberd_t)
+
+userdom_dontaudit_use_unpriv_user_fds(jabberd_t)
+userdom_dontaudit_search_user_home_dirs(jabberd_t)
+
+miscfiles_read_certs(jabberd_t)
+
+optional_policy(`
+	seutil_sigchld_newrole(jabberd_t)
+')
+
+optional_policy(`
+	udev_read_db(jabberd_t)
+')
+
+######################################
+#
+# Local policy for pyicq-t
+#
+
+# need for /var/log/pyicq-t.log
+manage_files_pattern(pyicqt_t, pyicqt_log_t, pyicqt_log_t)
+logging_log_filetrans(pyicqt_t, pyicqt_log_t, file)
+
+manage_files_pattern(pyicqt_t, pyicqt_var_run_t, pyicqt_var_run_t);
+
+files_search_spool(pyicqt_t)
+manage_files_pattern(pyicqt_t, pyicqt_var_spool_t, pyicqt_var_spool_t);
+
+corenet_tcp_bind_jabber_router_port(pyicqt_t)
+corenet_tcp_connect_jabber_router_port(pyicqt_t)
+
+corecmd_exec_bin(pyicqt_t)
+
+dev_read_urand(pyicqt_t)
+
+auth_use_nsswitch(pyicqt_t)
+
+# needed for pyicq-t-mysql
+optional_policy(`
+	corenet_tcp_connect_mysqld_port(pyicqt_t)
+')
+
+optional_policy(`
+	sysnet_use_ldap(pyicqt_t)
+')
+
+#######################################
+#
+# Local policy for jabberd domains
+#
+
+allow jabberd_domain self:process signal_perms;
+allow jabberd_domain self:fifo_file rw_fifo_file_perms;
+allow jabberd_domain self:tcp_socket create_stream_socket_perms;
+allow jabberd_domain self:udp_socket create_socket_perms;
+
+corenet_tcp_sendrecv_generic_if(jabberd_domain)
+corenet_udp_sendrecv_generic_if(jabberd_domain)
+corenet_tcp_sendrecv_generic_node(jabberd_domain)
+corenet_udp_sendrecv_generic_node(jabberd_domain)
+corenet_tcp_sendrecv_all_ports(jabberd_domain)
+corenet_udp_sendrecv_all_ports(jabberd_domain)
+corenet_tcp_bind_generic_node(jabberd_domain)
+
+dev_read_sysfs(jabberd_domain)
+dev_read_urand(jabberd_domain)
+
+files_read_etc_runtime_files(jabberd_domain)
+
+sysnet_read_config(jabberd_domain)

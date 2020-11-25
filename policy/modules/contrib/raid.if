@@ -1,0 +1,230 @@
+## <summary>RAID array management tools</summary>
+
+########################################
+## <summary>
+##	Execute software raid tools in the mdadm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`raid_domtrans_mdadm',`
+	gen_require(`
+		type mdadm_t, mdadm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mdadm_exec_t, mdadm_t)
+')
+
+######################################
+## <summary>
+##	Execute a domain transition to mdadm_t for the
+##	specified role, allowing it to use the mdadm_t
+##	domain
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed to access mdadm_t domain
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition to mdadm_t
+##	</summary>
+## </param>
+#
+interface(`raid_run_mdadm',`
+	gen_require(`
+		type mdadm_t;
+	')
+
+	role $1 types mdadm_t;
+	raid_domtrans_mdadm($2)
+')
+
+######################################
+## <summary>
+##	Execute mdadm server in the mdadm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`mdadm_systemctl',`
+	gen_require(`
+		type mdadm_t;
+		type mdadm_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 mdadm_unit_file_t:file read_file_perms;
+	allow $1 mdadm_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, mdadm_t)
+')
+
+########################################
+## <summary>
+##	read the mdadm pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`raid_read_mdadm_pid',`
+	gen_require(`
+		type mdadm_var_run_t;
+	')
+
+	read_files_pattern($1, mdadm_var_run_t, mdadm_var_run_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the mdadm pid files.
+## </summary>
+## <desc>
+##	<p>
+##	Create, read, write, and delete the mdadm pid files.
+##	</p>
+##	<p>
+##	Added for use in the init module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`raid_manage_mdadm_pid',`
+	gen_require(`
+		type mdadm_var_run_t;
+	')
+
+	# FIXME: maybe should have a type_transition.  not
+	# clear what this is doing, from the original
+	# mdadm policy
+	allow $1 mdadm_var_run_t:file manage_file_perms;
+')
+
+#######################################
+## <summary>
+##      Check access to the mdadm executable.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`raid_access_check_mdadm',`
+	gen_require(`
+		type mdadm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	allow $1 mdadm_exec_t:file { getattr_file_perms execute };
+    dontaudit $1 mdadm_exec_t:file map;
+')
+
+########################################
+## <summary>
+##	Read mdadm config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`raid_read_conf_files',`
+	gen_require(`
+		type mdadm_conf_t;
+	')
+
+    read_files_pattern($1, mdadm_conf_t, mdadm_conf_t)
+')
+
+########################################
+## <summary>
+##	Manage mdadm config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`raid_manage_conf_files',`
+	gen_require(`
+		type mdadm_conf_t;
+	')
+
+    manage_files_pattern($1, mdadm_conf_t, mdadm_conf_t)
+')
+
+########################################
+## <summary>
+##	Transition to mdadm named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`raid_filetrans_named_content',`
+	gen_require(`
+		type mdadm_conf_t;
+	')
+
+    files_etc_filetrans($1, mdadm_conf_t, file, "mdadm.conf")
+    files_etc_filetrans($1, mdadm_conf_t, file, "mdadm.conf.anacbak")
+')
+
+########################################
+## <summary>
+##	Relabel from mdadm_var_run_t sock file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`raid_relabel_mdadm_var_run_content',`
+	gen_require(`
+		type mdadm_var_run_t;
+	')
+
+	allow $1 mdadm_var_run_t:sock_file relabel_sock_file_perms;
+')
+
+#####################################
+## <summary>
+##	Connect to raid with a unix
+##	domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`raid_stream_connect',`
+	gen_require(`
+		type mdadm_t, mdadm_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, mdadm_var_run_t, mdadm_var_run_t, mdadm_t)
+')

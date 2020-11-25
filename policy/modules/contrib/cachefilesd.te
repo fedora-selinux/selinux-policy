@@ -1,0 +1,118 @@
+policy_module(cachefilesd, 1.1.0)
+
+###############################################################################
+#
+# Declarations
+#
+
+#
+# Files in the cache are created by the cachefiles module with security ID
+# cachefiles_var_t
+#
+type cachefiles_var_t;
+files_type(cachefiles_var_t)
+
+#
+# The cachefilesd daemon normally runs with security ID cachefilesd_t
+#
+type cachefilesd_t;
+type cachefilesd_exec_t;
+init_daemon_domain(cachefilesd_t, cachefilesd_exec_t)
+
+#
+# The cachefilesd daemon pid file context
+#
+type cachefilesd_var_run_t;
+files_pid_file(cachefilesd_var_run_t)
+
+#
+# The CacheFiles kernel module causes processes accessing the cache files to do
+# so acting as security ID cachefiles_kernel_t
+#
+type cachefiles_kernel_t;
+domain_type(cachefiles_kernel_t)
+domain_obj_id_change_exemption(cachefiles_kernel_t)
+role system_r types cachefiles_kernel_t;
+
+###############################################################################
+#
+# Permit RPM to deal with files in the cache
+#
+optional_policy(`
+	rpm_use_script_fds(cachefilesd_t)
+')
+
+###############################################################################
+#
+# cachefilesd local policy
+#
+# These define what cachefilesd is permitted to do.  This doesn't include very
+# much: startup stuff, logging, pid file, scanning the cache superstructure and
+# deleting files from the cache.  It is not permitted to read/write files in
+# the cache.
+#
+# Check in /usr/share/selinux/devel/include/ for macros to use instead of allow
+# rules.
+#
+allow cachefilesd_t self:capability { setuid setgid sys_admin dac_read_search dac_override };
+allow cachefilesd_t self:process signal_perms;
+
+# Allow manipulation of pid file
+allow cachefilesd_t cachefilesd_var_run_t:file create_file_perms;
+manage_files_pattern(cachefilesd_t, cachefilesd_var_run_t, cachefilesd_var_run_t)
+manage_dirs_pattern(cachefilesd_t, cachefilesd_var_run_t, cachefilesd_var_run_t)
+files_pid_filetrans(cachefilesd_t, cachefilesd_var_run_t, file)
+files_create_as_is_all_files(cachefilesd_t)
+
+# Allow access to cache superstructure
+manage_dirs_pattern(cachefilesd_t, cachefiles_var_t, cachefiles_var_t)
+manage_files_pattern(cachefilesd_t, cachefiles_var_t, cachefiles_var_t)
+
+dev_rw_cachefiles(cachefilesd_t)
+
+# Permit statfs on the backing filesystem
+fs_getattr_xattr_fs(cachefilesd_t)
+
+# Basic access
+logging_send_syslog_msg(cachefilesd_t)
+init_dontaudit_use_script_ptys(cachefilesd_t)
+term_dontaudit_use_generic_ptys(cachefilesd_t)
+term_dontaudit_getattr_unallocated_ttys(cachefilesd_t)
+
+###############################################################################
+#
+# When cachefilesd invokes the kernel module to begin caching, it has to tell
+# the kernel module the security context in which it should act, and this
+# policy has to approve that.
+#
+# There are two parts to this:
+#
+#   (1) the security context used by the module to access files in the cache,
+#       as set by the 'secctx' command in /etc/cachefilesd.conf, and
+#
+allow cachefilesd_t cachefiles_kernel_t:kernel_service { use_as_override };
+
+#
+#   (2) the label that will be assigned to new files and directories created in
+#       the cache by the module, which will be the same as the label on the
+#       directory pointed to by the 'dir' command.
+#
+allow cachefilesd_t cachefiles_var_t:kernel_service { create_files_as };
+
+###############################################################################
+#
+# cachefiles kernel module local policy
+#
+# This governs what the kernel module is allowed to do the contents of the
+# cache.
+#
+allow cachefiles_kernel_t self:capability {  dac_read_search dac_override };
+
+manage_dirs_pattern(cachefiles_kernel_t, cachefiles_var_t, cachefiles_var_t)
+manage_files_pattern(cachefiles_kernel_t, cachefiles_var_t, cachefiles_var_t)
+
+fs_getattr_xattr_fs(cachefiles_kernel_t)
+
+dev_search_sysfs(cachefiles_kernel_t)
+
+init_sigchld_script(cachefiles_kernel_t)

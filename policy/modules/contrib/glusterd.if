@@ -1,0 +1,319 @@
+
+## <summary>policy for glusterd</summary>
+
+
+########################################
+## <summary>
+##	Transition to glusterd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`glusterd_domtrans',`
+	gen_require(`
+		type glusterd_t, glusterd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, glusterd_exec_t, glusterd_t)
+')
+
+
+########################################
+## <summary>
+##	Execute glusterd server in the glusterd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glusterd_initrc_domtrans',`
+	gen_require(`
+		type glusterd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, glusterd_initrc_exec_t)
+')
+
+#######################################
+## <summary>
+##  Connect to glusterd over a unix stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`glusterd_stream_connect',`
+	gen_require(`
+		type glusterd_t;
+	')
+
+	allow $1 glusterd_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Read glusterd's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`glusterd_read_log',`
+	gen_require(`
+		type glusterd_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, glusterd_log_t, glusterd_log_t)
+')
+
+########################################
+## <summary>
+##	Append to glusterd log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glusterd_append_log',`
+	gen_require(`
+		type glusterd_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, glusterd_log_t, glusterd_log_t)
+')
+
+#######################################
+## <summary>
+##  Transition content labels to glusterd named content
+## </summary>
+## <param name="domain">
+##  <summary>
+##      Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`glusterd_filetrans_named_pid',`
+    gen_require(`
+        type glusterd_var_run_t;
+    ')
+    files_pid_filetrans($1, glusterd_var_run_t , sock_file, "glusterd.socket")
+')
+
+########################################
+## <summary>
+##	Manage glusterd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glusterd_manage_pid',`
+	gen_require(`
+		type glusterd_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_dirs_pattern($1, glusterd_var_run_t, glusterd_var_run_t)
+	manage_files_pattern($1, glusterd_var_run_t, glusterd_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage glusterd log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glusterd_manage_log',`
+	gen_require(`
+		type glusterd_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, glusterd_log_t, glusterd_log_t)
+	manage_files_pattern($1, glusterd_log_t, glusterd_log_t)
+	manage_lnk_files_pattern($1, glusterd_log_t, glusterd_log_t)
+')
+
+######################################
+## <summary>
+##  Allow the specified domain to execute gluster's lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`gluster_execute_lib',`
+    gen_require(`
+        type glusterd_var_lib_t;
+    ')
+
+    files_list_var_lib($1)
+    allow $1 glusterd_var_lib_t:dir search_dir_perms;
+    can_exec($1, glusterd_var_lib_t)
+')
+
+######################################
+## <summary>
+##  Read glusterd's config files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`glusterd_read_conf',`
+       gen_require(`
+               type glusterd_conf_t;
+       ')
+
+    files_search_etc($1)
+    read_files_pattern($1, glusterd_conf_t, glusterd_conf_t)
+')
+
+######################################
+## <summary>
+##  Dontaudit Read  /var/lib/glusterd files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`glusterd_dontaudit_read_lib_dirs',`
+       gen_require(`
+               type glusterd_var_lib_t;
+       ')
+
+    dontaudit $1 glusterd_var_lib_t:dir list_dir_perms;
+')
+
+######################################
+## <summary>
+##  Read and write /var/lib/glusterd files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`glusterd_rw_lib',`
+       gen_require(`
+               type glusterd_var_lib_t;
+       ')
+
+    files_search_var_lib($1)
+    rw_files_pattern($1, glusterd_var_lib_t, glusterd_var_lib_t)
+')
+
+######################################
+## <summary>
+## Read /var/lib/glusterd files.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`glusterd_read_lib_files',`
+       gen_require(`
+               type glusterd_var_lib_t;
+       ')
+
+    files_search_var_lib($1)
+	allow $1 glusterd_var_lib_t:dir search_dir_perms;
+    read_files_pattern($1, glusterd_var_lib_t, glusterd_var_lib_t)
+')
+
+######################################
+## <summary>
+## Read and write /var/lib/glusterd files.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`glusterd_manage_lib_files',`
+       gen_require(`
+               type glusterd_var_lib_t;
+       ')
+
+    files_search_var_lib($1)
+	allow $1 glusterd_var_lib_t:dir search_dir_perms;
+    manage_files_pattern($1, glusterd_var_lib_t, glusterd_var_lib_t)
+')
+
+######################################
+## <summary>
+##	All of the rules required to administrate
+##	an glusterd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`glusterd_admin',`
+	gen_require(`
+		type glusterd_t;
+		type glusterd_initrc_exec_t;
+		type glusterd_log_t;
+		type glusterd_tmp_t;
+		type glusterd_conf_t; 
+	')
+
+	allow $1 glusterd_t:process { signal_perms };
+	ps_process_pattern($1, glusterd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 glusterd_t:process ptrace;
+    ')
+
+	glusterd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 glusterd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, glusterd_log_t)
+
+	admin_pattern($1, glusterd_tmp_t)
+
+	admin_pattern($1, glusterd_conf_t)
+
+')

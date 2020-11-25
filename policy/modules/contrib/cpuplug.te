@@ -1,0 +1,40 @@
+policy_module(cpuplug, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type cpuplug_t;
+type cpuplug_exec_t;
+init_daemon_domain(cpuplug_t, cpuplug_exec_t)
+
+type cpuplug_initrc_exec_t;
+init_script_file(cpuplug_initrc_exec_t)
+
+type cpuplug_lock_t;
+files_lock_file(cpuplug_lock_t)
+
+type cpuplug_var_run_t;
+files_pid_file(cpuplug_var_run_t)
+
+########################################
+#
+# cpuplug local policy
+#
+allow cpuplug_t self:fifo_file rw_fifo_file_perms;
+allow cpuplug_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_files_pattern(cpuplug_t, cpuplug_lock_t, cpuplug_lock_t)
+files_lock_filetrans(cpuplug_t, cpuplug_lock_t, { file })
+
+manage_files_pattern(cpuplug_t, cpuplug_var_run_t, cpuplug_var_run_t)
+files_pid_filetrans(cpuplug_t, cpuplug_var_run_t, { file })
+
+kernel_read_system_state(cpuplug_t)
+kernel_rw_vm_sysctls(cpuplug_t)
+
+dev_rw_sysfs(cpuplug_t)
+
+logging_send_syslog_msg(cpuplug_t)
+

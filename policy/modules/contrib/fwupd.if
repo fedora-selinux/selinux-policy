@@ -1,0 +1,299 @@
+
+## <summary>fwupd is a daemon to allow session software to update device firmware</summary>
+
+########################################
+## <summary>
+##	Execute fwupd_exec_t in the fwupd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`fwupd_domtrans',`
+	gen_require(`
+		type fwupd_t, fwupd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, fwupd_exec_t, fwupd_t)
+')
+
+######################################
+## <summary>
+##	Execute fwupd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_exec',`
+	gen_require(`
+		type fwupd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, fwupd_exec_t)
+')
+
+########################################
+## <summary>
+##	Read fwupd process state files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_read_state',`
+	gen_require(`
+		type fwupd_t;
+	')
+
+	ps_process_pattern($1, fwupd_t)
+')
+
+########################################
+## <summary>
+##	Search fwupd cache directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_search_cache',`
+	gen_require(`
+		type fwupd_cache_t;
+	')
+
+	allow $1 fwupd_cache_t:dir search_dir_perms;
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Read fwupd cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_read_cache_files',`
+	gen_require(`
+		type fwupd_cache_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, fwupd_cache_t, fwupd_cache_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	fwupd cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_manage_cache_files',`
+	gen_require(`
+		type fwupd_cache_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, fwupd_cache_t, fwupd_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage fwupd cache dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_manage_cache_dirs',`
+	gen_require(`
+		type fwupd_cache_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, fwupd_cache_t, fwupd_cache_t)
+')
+
+
+########################################
+## <summary>
+##	Search fwupd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_search_lib',`
+	gen_require(`
+		type fwupd_var_lib_t;
+	')
+
+	allow $1 fwupd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read fwupd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_read_lib_files',`
+	gen_require(`
+		type fwupd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, fwupd_var_lib_t, fwupd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage fwupd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_manage_lib_files',`
+	gen_require(`
+		type fwupd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, fwupd_var_lib_t, fwupd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage fwupd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_manage_lib_dirs',`
+	gen_require(`
+		type fwupd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, fwupd_var_lib_t, fwupd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Execute fwupd server in the fwupd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`fwupd_systemctl',`
+	gen_require(`
+		type fwupd_t;
+		type fwupd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 fwupd_unit_file_t:file read_file_perms;
+	allow $1 fwupd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, fwupd_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an fwupd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_admin',`
+	gen_require(`
+		type fwupd_t;
+		type fwupd_cache_t;
+		type fwupd_var_lib_t;
+	type fwupd_unit_file_t;
+	')
+
+	allow $1 fwupd_t:process { signal_perms };
+	ps_process_pattern($1, fwupd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 fwupd_t:process ptrace;
+    ')
+
+	files_search_var($1)
+	admin_pattern($1, fwupd_cache_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, fwupd_var_lib_t)
+
+	fwupd_systemctl($1)
+	admin_pattern($1, fwupd_unit_file_t)
+	allow $1 fwupd_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	fwupd over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fwupd_dbus_chat',`
+	gen_require(`
+		type fwupd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 fwupd_t:dbus send_msg;
+	allow fwupd_t $1:dbus send_msg;
+')

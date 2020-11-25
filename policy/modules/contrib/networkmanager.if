@@ -1,0 +1,624 @@
+## <summary>Manager for dynamically switching between networks.</summary>
+
+########################################
+## <summary>
+##	Read and write NetworkManager UDP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for named.
+interface(`networkmanager_rw_udp_sockets',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:udp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Read and write NetworkManager packet sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for named.
+interface(`networkmanager_rw_packet_sockets',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:packet_socket { read write };
+')
+
+#######################################
+## <summary>
+## Allow caller to relabel tun_socket
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_attach_tun_iface',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:tun_socket relabelfrom;
+	allow $1 self:tun_socket relabelto;
+')
+
+########################################
+## <summary>
+##	Read and write NetworkManager netlink
+##	routing sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for named.
+interface(`networkmanager_rw_routing_sockets',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:netlink_route_socket { read write };
+')
+
+########################################
+## <summary>
+##	Execute NetworkManager with a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_domtrans',`
+	gen_require(`
+		type NetworkManager_t, NetworkManager_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, NetworkManager_exec_t, NetworkManager_t)
+')
+
+#######################################
+## <summary>
+##      Execute NetworkManager scripts with an automatic domain transition to initrc.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to transition.
+##      </summary>
+## </param>
+#
+interface(`networkmanager_initrc_domtrans',`
+        gen_require(`
+                type NetworkManager_initrc_exec_t;
+        ')
+
+        init_labeled_script_domtrans($1, NetworkManager_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute NetworkManager server in the NetworkManager domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_systemctl',`
+	gen_require(`
+		type NetworkManager_unit_file_t;
+		type NetworkManager_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 NetworkManager_unit_file_t:file read_file_perms;
+	allow $1 NetworkManager_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, NetworkManager_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	NetworkManager over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_dbus_chat',`
+	gen_require(`
+		type NetworkManager_t;
+		class dbus send_msg;
+	')
+
+	allow $1 NetworkManager_t:dbus send_msg;
+	allow NetworkManager_t $1:dbus send_msg;
+')
+
+#######################################
+## <summary>
+##	Read metworkmanager process state files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_read_state',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:dir search_dir_perms;
+	allow $1 NetworkManager_t:file read_file_perms;
+	allow $1 NetworkManager_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to send and
+##	receive messages from NetworkManager
+##	over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_dontaudit_dbus_chat',`
+	gen_require(`
+		type NetworkManager_t;
+		class dbus send_msg;
+	')
+
+	dontaudit $1 NetworkManager_t:dbus send_msg;
+	dontaudit NetworkManager_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send a generic signal to NetworkManager
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_signal',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+	allow $1 NetworkManager_t:process signal;
+')
+
+########################################
+## <summary>
+##	Create, read, and write
+##	networkmanager library files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_manage_lib_files',`
+	gen_require(`
+		type NetworkManager_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
+	allow $1 NetworkManager_var_lib_t:file map;
+')
+
+########################################
+## <summary>
+##	Read networkmanager lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_read_lib_files',`
+	gen_require(`
+		type NetworkManager_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	list_dirs_pattern($1, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
+	read_files_pattern($1, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
+	allow $1 NetworkManager_var_lib_t:file map;
+')
+
+#######################################
+## <summary>
+##  Read NetworkManager conf files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`networkmanager_read_conf',`
+    gen_require(`
+        type NetworkManager_etc_t;
+        type NetworkManager_etc_rw_t;
+    ')
+
+	allow $1 NetworkManager_etc_t:dir list_dir_perms;
+	read_files_pattern($1,NetworkManager_etc_t,NetworkManager_etc_t)
+	read_files_pattern($1,NetworkManager_etc_rw_t,NetworkManager_etc_rw_t)
+')
+
+########################################
+## <summary>
+##	Read NetworkManager PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_read_pid_files',`
+	gen_require(`
+		type NetworkManager_var_run_t;
+	')
+
+	files_search_pids($1)
+	list_dirs_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t)
+	read_files_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage NetworkManager PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_manage_pid_files',`
+	gen_require(`
+		type NetworkManager_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_dirs_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t)
+	manage_files_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage NetworkManager PID sock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_manage_pid_sock_files',`
+	gen_require(`
+		type NetworkManager_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_sock_files_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t)
+')
+
+########################################
+## <summary>
+##	Create objects in /etc with a private
+##	type using a type_transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="file_type">
+##	<summary>
+##	Private file type.
+##	</summary>
+## </param>
+## <param name="class">
+##	<summary>
+##	Object classes to be created.
+##	</summary>
+## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_pid_filetrans',`
+	gen_require(`
+		type NetworkManager_var_run_t;
+	')
+
+	filetrans_pattern($1, NetworkManager_var_run_t, $2, $3, $4)
+')
+
+####################################
+## <summary>
+##  Connect to networkmanager over
+##	a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`networkmanager_stream_connect',`
+	gen_require(`
+		type NetworkManager_t, NetworkManager_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t, NetworkManager_t)
+')
+
+########################################
+## <summary>
+##	Delete NetworkManager PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_delete_pid_files',`
+	gen_require(`
+		type NetworkManager_var_run_t;
+	')
+
+	files_search_pids($1)
+    delete_files_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute NetworkManager in the NetworkManager domain, and
+##	allow the specified role the NetworkManager domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`networkmanager_run',`
+	gen_require(`
+		type NetworkManager_t, NetworkManager_exec_t;
+	')
+
+	networkmanager_domtrans($1)
+	role $2 types NetworkManager_t;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	to Network Manager log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_append_log',`
+	gen_require(`
+		type NetworkManager_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 NetworkManager_log_t:dir list_dir_perms;
+	append_files_pattern($1, NetworkManager_log_t, NetworkManager_log_t)
+	allow $1 NetworkManager_log_t:file map;
+
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to manage
+##  to Network Manager lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`networkmanager_manage_lib',`
+    gen_require(`
+        type NetworkManager_var_lib_t;
+    ')
+
+    manage_files_pattern($1, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
+    allow $1 NetworkManager_var_lib_t:file map;
+
+')
+
+#######################################
+## <summary>
+##      Read the process state (/proc/pid) of NetworkManager.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`NetworkManager_read_state',`
+        gen_require(`
+            type NetworkManager_t;
+    ')
+
+    allow $1 NetworkManager_t:dir search_dir_perms;
+    allow $1 NetworkManager_t:file read_file_perms;
+    allow $1 NetworkManager_t:lnk_file read_lnk_file_perms;
+')
+
+#######################################
+## <summary>
+##	Send to NetworkManager with a unix dgram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_dgram_send',`
+	gen_require(`
+		type NetworkManager_t, NetworkManager_var_run_t;
+	')
+
+	files_search_pids($1)
+	dgram_send_pattern($1, NetworkManager_var_run_t, NetworkManager_var_run_t, NetworkManager_t)
+')
+
+########################################
+## <summary>
+##	Send sigchld to networkmanager.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`networkmanager_sigchld',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+    allow $1 NetworkManager_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send signull to networkmanager.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`networkmanager_signull',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+    allow $1 NetworkManager_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send sigkill to networkmanager.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`networkmanager_sigkill',`
+	gen_require(`
+		type NetworkManager_t;
+	')
+
+    allow $1 NetworkManager_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Transition to networkmanager named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_filetrans_named_content',`
+	gen_require(`
+		type NetworkManager_var_run_t;
+		type NetworkManager_var_lib_t;
+	')
+
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth0.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth1.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth2.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth3.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth4.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth5.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth6.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth7.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth8.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-eth9.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em0.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em1.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em2.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em3.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em4.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em5.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em6.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em7.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "nm-dhclient-em8.conf")
+	files_pid_filetrans($1, NetworkManager_var_run_t, dir, "teamd")
+	files_pid_filetrans($1, NetworkManager_var_run_t, file, "wicd.pid")
+	files_etc_filetrans($1, NetworkManager_var_lib_t, file, "manager-settings.conf")
+	files_etc_filetrans($1, NetworkManager_var_lib_t, file, "wireless-settings.conf")
+	files_etc_filetrans($1, NetworkManager_var_lib_t, file, "wired-settings.conf")
+	logging_log_filetrans($1, NetworkManager_var_lib_t, file, "wpa_supplicant.log")
+')

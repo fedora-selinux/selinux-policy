@@ -1,0 +1,288 @@
+policy_module(mock,1.0.0)
+
+## <desc>
+##  <p>
+##  Allow mock to read files in home directories.
+##  </p>
+## </desc>
+gen_tunable(mock_enable_homedirs, false)
+
+########################################
+#
+# Declarations
+#
+
+type mock_t;
+type mock_exec_t;
+application_domain(mock_t, mock_exec_t)
+domain_role_change_exemption(mock_t)
+domain_system_change_exemption(mock_t)
+role system_r types mock_t;
+
+type mock_build_t;
+type mock_build_exec_t;
+application_domain(mock_build_t, mock_build_exec_t)
+role system_r types mock_build_t;
+
+type mock_cache_t;
+files_type(mock_cache_t)
+
+type mock_tmp_t;
+files_tmp_file(mock_tmp_t)
+
+type mock_var_lib_t;
+files_type(mock_var_lib_t)
+
+type mock_var_run_t;
+files_pid_file(mock_var_run_t)
+
+type mock_etc_t;
+files_config_file(mock_etc_t)
+
+########################################
+#
+# mock local policy
+#
+
+allow mock_t self:capability { sys_admin sys_ptrace setfcap setuid sys_chroot chown audit_write dac_read_search   sys_nice mknod fsetid setgid fowner };
+allow mock_t self:capability2 block_suspend;
+allow mock_t self:process { siginh noatsecure signal_perms transition rlimitinh setsched setpgid };
+# Needed because mock can run java and mono withing build environment
+allow mock_t self:process { execmem execstack };
+dontaudit mock_t self:process { siginh noatsecure rlimitinh };
+allow mock_t self:fifo_file manage_fifo_file_perms;
+allow mock_t self:unix_stream_socket create_stream_socket_perms;
+allow mock_t self:unix_dgram_socket create_socket_perms;
+
+allow mock_t mock_build_t:process { siginh noatsecure rlimitinh };
+
+manage_dirs_pattern(mock_t, mock_cache_t, mock_cache_t)
+manage_files_pattern(mock_t, mock_cache_t, mock_cache_t)
+manage_lnk_files_pattern(mock_t, mock_cache_t, mock_cache_t)
+files_var_filetrans(mock_t, mock_cache_t, { dir file } )
+
+read_files_pattern(mock_t, mock_etc_t, mock_etc_t)
+read_lnk_files_pattern(mock_t, mock_etc_t, mock_etc_t)
+
+manage_dirs_pattern(mock_t, mock_tmp_t, mock_tmp_t)
+manage_files_pattern(mock_t, mock_tmp_t, mock_tmp_t)
+manage_lnk_files_pattern(mock_t, mock_tmp_t, mock_tmp_t)
+files_tmp_filetrans(mock_t, mock_tmp_t, { dir file lnk_file })
+
+manage_dirs_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+manage_files_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+manage_lnk_files_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+manage_blk_files_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+manage_chr_files_pattern(mock_t, mock_var_lib_t, mock_var_lib_t)
+files_var_lib_filetrans(mock_t, mock_var_lib_t, { dir file })
+allow mock_t mock_var_lib_t:dir mounton;
+allow mock_t mock_var_lib_t:dir relabel_dir_perms;
+allow mock_t mock_var_lib_t:file relabel_file_perms;
+
+manage_files_pattern(mock_t, mock_var_run_t, mock_var_run_t)
+manage_dirs_pattern(mock_t, mock_var_run_t, mock_var_run_t)
+manage_sock_files_pattern(mock_t, mock_var_run_t, mock_var_run_t)
+manage_lnk_files_pattern(mock_t, mock_var_run_t, mock_var_run_t)
+files_pid_filetrans(mock_t, mock_var_run_t, { file dir sock_file })
+
+kernel_read_irq_sysctls(mock_t)
+kernel_read_system_state(mock_t)
+kernel_read_network_state(mock_t)
+kernel_read_kernel_sysctls(mock_t)
+kernel_request_load_module(mock_t)
+kernel_dontaudit_setattr_proc_dirs(mock_t)
+kernel_read_fs_sysctls(mock_t)
+# we run mount in mock_t
+kernel_mount_proc(mock_t)
+kernel_unmount_proc(mock_t)
+
+fs_mount_tmpfs(mock_t)
+fs_unmount_tmpfs(mock_t)
+fs_unmount_xattr_fs(mock_t)
+
+corecmd_exec_bin(mock_t)
+corecmd_exec_shell(mock_t)
+corecmd_dontaudit_exec_all_executables(mock_t)
+
+corenet_tcp_connect_git_port(mock_t)
+corenet_tcp_connect_http_port(mock_t)
+corenet_tcp_connect_ftp_port(mock_t)
+corenet_tcp_connect_all_ephemeral_ports(mock_t)
+
+dev_read_urand(mock_t)
+dev_rw_sysfs(mock_t)
+dev_setattr_sysfs_dirs(mock_t)
+dev_mount_sysfs_fs(mock_t)
+dev_unmount_sysfs_fs(mock_t)
+
+domain_read_all_domains_state(mock_t)
+domain_use_interactive_fds(mock_t)
+
+files_read_etc_runtime_files(mock_t)
+files_dontaudit_list_boot(mock_t)
+files_list_isid_type_dirs(mock_t)
+
+fs_getattr_all_fs(mock_t)
+fs_manage_cgroup_dirs(mock_t)
+fs_search_all(mock_t)
+fs_setattr_tmpfs_dirs(mock_t)
+	
+selinux_get_enforce_mode(mock_t)
+
+term_search_ptys(mock_t)
+term_use_generic_ptys(mock_t)
+term_mount_pty_fs(mock_t)
+term_unmount_pty_fs(mock_t)
+term_use_ptmx(mock_t)
+
+auth_use_nsswitch(mock_t)
+
+init_exec(mock_t)
+init_dontaudit_stream_connect(mock_t)
+
+libs_exec_ldconfig(mock_t)
+
+logging_send_audit_msgs(mock_t)
+logging_send_syslog_msg(mock_t)
+
+lvm_manage_lock(mock_t)
+lvm_read_config(mock_t)
+lvm_read_metadata(mock_t)
+lvm_getattr_exec_files(mock_t)
+
+miscfiles_dontaudit_write_generic_cert_files(mock_t)
+
+userdom_use_user_ptys(mock_t)
+userdom_use_user_ttys(mock_t)
+
+files_search_home(mock_t)
+
+tunable_policy(`mock_enable_homedirs',`
+	userdom_manage_user_home_content_dirs(mock_t)
+	userdom_manage_user_home_content_files(mock_t)
+')
+
+tunable_policy(`mock_enable_homedirs && use_nfs_home_dirs',`
+    rpc_search_nfs_state_data(mock_t)
+    fs_list_auto_mountpoints(mock_t)
+    fs_manage_nfs_files(mock_t)
+')
+
+tunable_policy(`mock_enable_homedirs && use_samba_home_dirs',`
+    fs_list_auto_mountpoints(mock_t)
+    fs_read_cifs_files(mock_t)
+    fs_manage_cifs_files(mock_t)
+')
+
+optional_policy(`
+	abrt_read_spool_retrace(mock_t)
+	abrt_read_cache_retrace(mock_t)
+	abrt_stream_connect(mock_t)
+')
+
+optional_policy(`
+	apache_read_sys_content_rw_files(mock_t)
+')
+
+optional_policy(`
+	rpm_exec(mock_t)
+    rpm_manage_cache(mock_t)
+    rpm_manage_db(mock_t)
+    rpm_manage_tmp_files(mock_t)
+    rpm_read_log(mock_t)
+')
+
+optional_policy(`
+	mount_exec(mock_t)
+    mount_rw_pid_files(mock_t)
+')
+
+
+########################################
+#
+# mock_build local policy
+#
+allow mock_build_t self:capability { sys_admin setfcap setuid sys_chroot chown dac_read_search  sys_nice mknod fsetid setgid fowner sys_ptrace };
+dontaudit mock_build_t self:capability audit_write;
+allow mock_build_t self:process { fork setsched setpgid signal_perms };
+allow mock_build_t self:netlink_audit_socket { create_socket_perms nlmsg_relay };
+# Needed because mock can run java and mono withing build environment
+allow mock_build_t self:process { execmem execstack };
+dontaudit mock_build_t self:process { siginh noatsecure rlimitinh };
+allow mock_build_t self:fifo_file manage_fifo_file_perms;
+allow mock_build_t self:unix_stream_socket create_stream_socket_perms;
+allow mock_build_t self:unix_dgram_socket create_socket_perms;
+allow mock_build_t self:dir list_dir_perms;
+allow mock_build_t self:dir read_file_perms;
+      
+ps_process_pattern(mock_t, mock_build_t)
+allow mock_t mock_build_t:process signal_perms;
+domtrans_pattern(mock_t, mock_build_exec_t, mock_build_t)
+domtrans_pattern(mock_t, mock_tmp_t, mock_build_t)
+domain_entry_file(mock_build_t, mock_tmp_t)
+domtrans_pattern(mock_t, mock_var_lib_t, mock_build_t)
+domain_entry_file(mock_build_t, mock_var_lib_t)
+
+manage_dirs_pattern(mock_build_t, mock_cache_t, mock_cache_t)
+manage_files_pattern(mock_build_t, mock_cache_t, mock_cache_t)
+manage_lnk_files_pattern(mock_build_t, mock_cache_t, mock_cache_t)
+files_var_filetrans(mock_build_t, mock_cache_t, { dir file } )
+
+manage_dirs_pattern(mock_build_t, mock_tmp_t, mock_tmp_t)
+manage_files_pattern(mock_build_t, mock_tmp_t, mock_tmp_t)
+files_tmp_filetrans(mock_build_t, mock_tmp_t, { dir file })
+can_exec(mock_build_t, mock_tmp_t)
+
+manage_dirs_pattern(mock_build_t, mock_var_lib_t, mock_var_lib_t)
+manage_files_pattern(mock_build_t, mock_var_lib_t, mock_var_lib_t)
+manage_lnk_files_pattern(mock_build_t, mock_var_lib_t, mock_var_lib_t)
+manage_blk_files_pattern(mock_build_t, mock_var_lib_t, mock_var_lib_t)
+manage_chr_files_pattern(mock_build_t, mock_var_lib_t, mock_var_lib_t)
+files_var_lib_filetrans(mock_build_t, mock_var_lib_t, { dir file })
+can_exec(mock_build_t, mock_var_lib_t)
+allow mock_build_t mock_var_lib_t:dir mounton;
+allow mock_build_t mock_var_lib_t:dir relabel_dir_perms;
+allow mock_build_t mock_var_lib_t:file relabel_file_perms;
+
+kernel_list_proc(mock_build_t)
+kernel_read_irq_sysctls(mock_build_t)
+kernel_read_system_state(mock_build_t)
+kernel_read_network_state(mock_build_t)
+kernel_read_kernel_sysctls(mock_build_t)
+kernel_request_load_module(mock_build_t)
+kernel_dontaudit_setattr_proc_dirs(mock_build_t)
+
+corecmd_exec_bin(mock_build_t)
+corecmd_exec_shell(mock_build_t)
+corecmd_dontaudit_exec_all_executables(mock_build_t)
+
+dev_getattr_all_chr_files(mock_build_t)
+dev_dontaudit_list_all_dev_nodes(mock_build_t)
+dev_dontaudit_getattr_all(mock_build_t)
+fs_getattr_all_dirs(mock_build_t)
+dev_read_sysfs(mock_build_t)
+
+domain_dontaudit_read_all_domains_state(mock_build_t)
+domain_use_interactive_fds(mock_build_t)
+
+files_dontaudit_list_boot(mock_build_t)
+
+fs_getattr_all_fs(mock_build_t)
+fs_manage_cgroup_dirs(mock_build_t)
+
+selinux_get_enforce_mode(mock_build_t)
+
+auth_use_nsswitch(mock_build_t)
+
+init_exec(mock_build_t)
+init_dontaudit_stream_connect(mock_build_t)
+
+libs_exec_ldconfig(mock_build_t)
+
+term_use_all_inherited_terms(mock_build_t)
+userdom_use_inherited_user_ptys(mock_build_t)
+term_dontaudit_manage_pty_dirs(mock_build_t)
+
+tunable_policy(`mock_enable_homedirs',`
+	userdom_read_user_home_content_files(mock_build_t)
+')

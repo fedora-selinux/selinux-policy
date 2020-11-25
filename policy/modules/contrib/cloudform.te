@@ -1,0 +1,251 @@
+policy_module(cloudform, 1.0)
+########################################
+#
+# Declarations
+#
+
+attribute cloudform_domain;
+
+cloudform_domain_template(deltacloudd)
+cloudform_domain_template(iwhd)
+cloudform_domain_template(cloud_init)
+
+type cloud_init_tmp_t;
+files_tmp_file(cloud_init_tmp_t)
+
+type cloud_init_unit_file_t;
+systemd_unit_file(cloud_init_unit_file_t)
+
+type cloud_var_lib_t;
+files_type(cloud_var_lib_t)
+
+type cloud_log_t;
+logging_log_file(cloud_log_t)
+
+type deltacloudd_log_t;
+logging_log_file(deltacloudd_log_t)
+
+type deltacloudd_var_run_t;
+files_pid_file(deltacloudd_var_run_t)
+
+type deltacloudd_tmp_t;
+files_tmp_file(deltacloudd_tmp_t)
+
+type iwhd_initrc_exec_t;
+init_script_file(iwhd_initrc_exec_t)
+
+type iwhd_var_lib_t;
+files_type(iwhd_var_lib_t)
+
+type iwhd_var_run_t;
+files_pid_file(iwhd_var_run_t)
+
+type iwhd_log_t;
+logging_log_file(iwhd_log_t)
+
+########################################
+#
+# cloudform_domain local policy
+#
+
+allow cloudform_domain self:fifo_file rw_fifo_file_perms;
+allow cloudform_domain self:tcp_socket create_stream_socket_perms;
+
+dev_read_rand(cloudform_domain)
+dev_read_urand(cloudform_domain)
+dev_read_sysfs(cloudform_domain)
+
+auth_read_passwd(cloudform_domain)
+
+miscfiles_read_certs(cloudform_domain)
+
+#################################
+#
+# cloud-init local policy
+#
+
+allow cloud_init_t self:capability { fowner chown fsetid dac_read_search  };
+
+allow cloud_init_t self:udp_socket create_socket_perms;
+
+manage_files_pattern(cloud_init_t, cloud_init_tmp_t, cloud_init_tmp_t)
+manage_dirs_pattern(cloud_init_t, cloud_init_tmp_t, cloud_init_tmp_t)
+files_tmp_filetrans(cloud_init_t, cloud_init_tmp_t, { file dir })
+
+manage_dirs_pattern(cloud_init_t, cloud_var_lib_t, cloud_var_lib_t)
+manage_files_pattern(cloud_init_t, cloud_var_lib_t, cloud_var_lib_t)
+manage_lnk_files_pattern(cloud_init_t, cloud_var_lib_t, cloud_var_lib_t)
+
+manage_files_pattern(cloud_init_t, cloud_log_t, cloud_log_t)
+logging_log_filetrans(cloud_init_t, cloud_log_t, { file })
+
+init_dbus_chat(cloud_init_t)
+
+kernel_read_network_state(cloud_init_t)
+
+corenet_tcp_connect_http_port(cloud_init_t)
+
+corecmd_exec_bin(cloud_init_t)
+corecmd_exec_shell(cloud_init_t)
+
+domain_read_all_domains_state(cloud_init_t)
+
+fs_getattr_all_fs(cloud_init_t)
+
+storage_raw_read_fixed_disk(cloud_init_t)
+
+auth_use_nsswitch(cloud_init_t)
+
+libs_exec_ldconfig(cloud_init_t)
+
+logging_send_syslog_msg(cloud_init_t)
+
+miscfiles_read_localization(cloud_init_t)
+
+selinux_validate_context(cloud_init_t)
+
+systemd_dbus_chat_hostnamed(cloud_init_t)
+systemd_dbus_chat_timedated(cloud_init_t)
+systemd_exec_systemctl(cloud_init_t)
+systemd_start_all_services(cloud_init_t)
+
+usermanage_domtrans_passwd(cloud_init_t)
+
+optional_policy(`
+    certmonger_dbus_chat(cloud_init_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(cloud_init_t)
+')
+
+optional_policy(`
+	rhsmcertd_dbus_chat(cloud_init_t)
+')
+
+optional_policy(`
+    networkmanager_dbus_chat(cloud_init_t)
+')
+
+optional_policy(`
+    dmidecode_domtrans(cloud_init_t)
+')
+
+optional_policy(`
+    fstools_domtrans(cloud_init_t)
+')
+
+optional_policy(`
+    hostname_exec(cloud_init_t)
+')
+
+optional_policy(`
+    mount_domtrans(cloud_init_t)
+')
+
+optional_policy(`
+    # it check file context and run restorecon
+    seutil_read_file_contexts(cloud_init_t)
+    seutil_domtrans_setfiles(cloud_init_t)
+')
+
+optional_policy(`
+    ssh_exec_keygen(cloud_init_t)
+    ssh_read_user_home_files(cloud_init_t)
+')
+
+optional_policy(`
+    sysnet_domtrans_ifconfig(cloud_init_t)
+    sysnet_read_dhcpc_state(cloud_init_t)
+    sysnet_dns_name_resolve(cloud_init_t)
+    sysnet_filetrans_cloud_net_conf(cloud_init_t)
+')
+
+optional_policy(`
+    rpm_run(cloud_init_t, system_r)
+')
+
+optional_policy(`
+    unconfined_domain(cloud_init_t)
+')
+
+########################################
+#
+# deltacloudd local policy
+#
+
+allow deltacloudd_t self:capability { dac_read_search  setuid setgid };
+
+allow deltacloudd_t self:netlink_route_socket r_netlink_socket_perms;
+allow deltacloudd_t self:udp_socket create_socket_perms;
+
+allow deltacloudd_t self:process signal;
+
+allow deltacloudd_t self:fifo_file rw_fifo_file_perms;
+allow deltacloudd_t self:tcp_socket create_stream_socket_perms;
+allow deltacloudd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(deltacloudd_t, deltacloudd_tmp_t, deltacloudd_tmp_t)
+manage_files_pattern(deltacloudd_t, deltacloudd_tmp_t, deltacloudd_tmp_t)
+files_tmp_filetrans(deltacloudd_t, deltacloudd_tmp_t, { file dir })
+
+manage_files_pattern(deltacloudd_t, deltacloudd_var_run_t, deltacloudd_var_run_t)
+manage_dirs_pattern(deltacloudd_t, deltacloudd_var_run_t, deltacloudd_var_run_t)
+manage_lnk_files_pattern(deltacloudd_t, deltacloudd_var_run_t, deltacloudd_var_run_t)
+files_pid_filetrans(deltacloudd_t, deltacloudd_var_run_t, { file dir })
+
+manage_files_pattern(deltacloudd_t, deltacloudd_log_t, deltacloudd_log_t)
+manage_dirs_pattern(deltacloudd_t, deltacloudd_log_t, deltacloudd_log_t)
+logging_log_filetrans(deltacloudd_t, deltacloudd_log_t, { file dir })
+
+kernel_read_kernel_sysctls(deltacloudd_t)
+kernel_read_system_state(deltacloudd_t)
+kernel_read_network_state(deltacloudd_t)
+
+corecmd_exec_bin(deltacloudd_t)
+
+corenet_tcp_bind_generic_node(deltacloudd_t)
+corenet_tcp_bind_generic_port(deltacloudd_t)
+corenet_tcp_connect_http_port(deltacloudd_t)
+corenet_tcp_connect_keystone_port(deltacloudd_t)
+
+auth_use_nsswitch(deltacloudd_t)
+
+logging_send_syslog_msg(deltacloudd_t)
+
+optional_policy(`
+	sysnet_read_config(deltacloudd_t)
+')
+
+########################################
+#
+# iwhd local policy
+#
+
+allow iwhd_t self:capability { chown kill };
+allow iwhd_t self:process { fork };
+
+allow iwhd_t self:netlink_route_socket r_netlink_socket_perms;
+allow iwhd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(iwhd_t, iwhd_var_lib_t, iwhd_var_lib_t)
+manage_files_pattern(iwhd_t, iwhd_var_lib_t, iwhd_var_lib_t)
+
+manage_files_pattern(iwhd_t, iwhd_log_t, iwhd_log_t)
+logging_log_filetrans(iwhd_t, iwhd_log_t, { file })
+
+manage_dirs_pattern(iwhd_t, iwhd_var_run_t, iwhd_var_run_t)
+manage_files_pattern(iwhd_t, iwhd_var_run_t, iwhd_var_run_t)
+files_pid_filetrans(iwhd_t, iwhd_var_run_t, { dir file })
+
+kernel_read_system_state(iwhd_t)
+
+corenet_tcp_bind_generic_node(iwhd_t)
+corenet_tcp_bind_websm_port(iwhd_t)
+corenet_tcp_connect_all_ports(iwhd_t)
+
+dev_read_rand(iwhd_t)
+dev_read_urand(iwhd_t)
+
+userdom_home_manager(iwhd_t)
+

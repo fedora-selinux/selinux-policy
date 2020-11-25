@@ -1,0 +1,513 @@
+policy_module(networkmanager, 1.15.3)
+
+########################################
+#
+# Declarations
+#
+
+type NetworkManager_t;
+type NetworkManager_exec_t;
+init_daemon_domain(NetworkManager_t, NetworkManager_exec_t)
+
+type NetworkManager_initrc_exec_t;
+init_script_file(NetworkManager_initrc_exec_t)
+
+type NetworkManager_unit_file_t;
+systemd_unit_file(NetworkManager_unit_file_t)
+
+type NetworkManager_etc_t;
+files_config_file(NetworkManager_etc_t)
+
+type NetworkManager_etc_rw_t;
+files_config_file(NetworkManager_etc_rw_t)
+
+type NetworkManager_log_t;
+logging_log_file(NetworkManager_log_t)
+
+type NetworkManager_tmp_t;
+files_tmp_file(NetworkManager_tmp_t)
+
+type NetworkManager_var_lib_t;
+files_type(NetworkManager_var_lib_t)
+
+type NetworkManager_var_run_t;
+files_pid_file(NetworkManager_var_run_t)
+
+type wpa_cli_t;
+type wpa_cli_exec_t;
+init_system_domain(wpa_cli_t, wpa_cli_exec_t)
+
+########################################
+#
+# Local policy
+#
+
+# networkmanager will ptrace itself if gdb is installed
+# and it receives a unexpected signal (rh bug #204161)
+allow NetworkManager_t self:capability { fowner chown fsetid kill setgid setuid sys_admin sys_nice dac_read_search dac_override net_admin net_raw net_bind_service ipc_lock sys_chroot };
+dontaudit NetworkManager_t self:capability sys_tty_config;
+
+allow NetworkManager_t self:bpf { map_create map_read map_write prog_load prog_run };
+
+ifdef(`hide_broken_symptoms',`
+	# caused by some bogus kernel code
+	dontaudit NetworkManager_t self:capability sys_module;
+')
+
+allow NetworkManager_t self:process { getcap setcap setpgid getsched setsched signal_perms };
+
+allow NetworkManager_t self:process setfscreate;
+selinux_validate_context(NetworkManager_t)
+
+tunable_policy(`deny_ptrace',`',`
+	allow NetworkManager_t self:capability sys_ptrace;
+	allow NetworkManager_t self:process ptrace;
+')
+
+allow NetworkManager_t self:fifo_file rw_fifo_file_perms;
+allow NetworkManager_t self:unix_dgram_socket { sendto create_socket_perms };
+allow NetworkManager_t self:unix_stream_socket{ create_stream_socket_perms connectto };
+allow NetworkManager_t self:netlink_generic_socket create_socket_perms;
+allow NetworkManager_t self:netlink_route_socket create_netlink_socket_perms;
+allow NetworkManager_t self:netlink_xfrm_socket create_netlink_socket_perms;
+allow NetworkManager_t self:netlink_socket create_socket_perms;
+allow NetworkManager_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow NetworkManager_t self:tcp_socket create_stream_socket_perms;
+allow NetworkManager_t self:tun_socket { create_socket_perms relabelfrom relabelto };
+allow NetworkManager_t self:udp_socket create_socket_perms;
+allow NetworkManager_t self:packet_socket create_socket_perms;
+allow NetworkManager_t self:rawip_socket create_socket_perms;
+allow NetworkManager_t self:socket create_socket_perms;
+
+tunable_policy(`deny_bluetooth',`',`
+    allow NetworkManager_t self:bluetooth_socket create_stream_socket_perms;
+')
+
+allow NetworkManager_t NetworkManager_unit_file_t:file read_file_perms;
+allow NetworkManager_t NetworkManager_unit_file_t:service manage_service_perms;
+
+allow NetworkManager_t wpa_cli_t:unix_dgram_socket sendto;
+
+can_exec(NetworkManager_t, NetworkManager_exec_t)
+#wicd
+can_exec(NetworkManager_t, wpa_cli_exec_t)
+
+list_dirs_pattern(NetworkManager_t, NetworkManager_initrc_exec_t, NetworkManager_initrc_exec_t)
+read_files_pattern(NetworkManager_t, NetworkManager_initrc_exec_t, NetworkManager_initrc_exec_t)
+read_lnk_files_pattern(NetworkManager_t, NetworkManager_initrc_exec_t, NetworkManager_initrc_exec_t)
+
+list_dirs_pattern(NetworkManager_t, NetworkManager_etc_t, NetworkManager_etc_t)
+read_files_pattern(NetworkManager_t, NetworkManager_etc_t, NetworkManager_etc_t)
+read_lnk_files_pattern(NetworkManager_t, NetworkManager_etc_t, NetworkManager_etc_t)
+
+read_lnk_files_pattern(NetworkManager_t, NetworkManager_etc_rw_t, NetworkManager_etc_rw_t)
+manage_dirs_pattern(NetworkManager_t, NetworkManager_etc_rw_t, NetworkManager_etc_rw_t)
+manage_files_pattern(NetworkManager_t, NetworkManager_etc_rw_t, NetworkManager_etc_rw_t)
+filetrans_pattern(NetworkManager_t, NetworkManager_etc_t, NetworkManager_etc_rw_t, { dir file })
+
+allow NetworkManager_t NetworkManager_log_t:dir setattr_dir_perms;
+append_files_pattern(NetworkManager_t, NetworkManager_log_t, NetworkManager_log_t)
+create_files_pattern(NetworkManager_t, NetworkManager_log_t, NetworkManager_log_t)
+setattr_files_pattern(NetworkManager_t, NetworkManager_log_t, NetworkManager_log_t)
+logging_log_filetrans(NetworkManager_t, NetworkManager_log_t, file)
+
+can_exec(NetworkManager_t, NetworkManager_tmp_t)
+manage_files_pattern(NetworkManager_t, NetworkManager_tmp_t, NetworkManager_tmp_t)
+manage_sock_files_pattern(NetworkManager_t, NetworkManager_tmp_t, NetworkManager_tmp_t)
+files_tmp_filetrans(NetworkManager_t, NetworkManager_tmp_t, { sock_file file })
+
+manage_dirs_pattern(NetworkManager_t, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
+manage_files_pattern(NetworkManager_t, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
+manage_lnk_files_pattern(NetworkManager_t, NetworkManager_var_lib_t, NetworkManager_var_lib_t)
+files_var_lib_filetrans(NetworkManager_t, NetworkManager_var_lib_t, { dir file lnk_file })
+
+manage_dirs_pattern(NetworkManager_t, NetworkManager_var_run_t, NetworkManager_var_run_t)
+manage_files_pattern(NetworkManager_t, NetworkManager_var_run_t, NetworkManager_var_run_t)
+manage_sock_files_pattern(NetworkManager_t, NetworkManager_var_run_t, NetworkManager_var_run_t)
+files_pid_filetrans(NetworkManager_t, NetworkManager_var_run_t, { dir file sock_file })
+
+kernel_read_system_state(NetworkManager_t)
+kernel_read_network_state(NetworkManager_t)
+kernel_read_kernel_sysctls(NetworkManager_t)
+kernel_request_load_module(NetworkManager_t)
+kernel_read_debugfs(NetworkManager_t)
+kernel_rw_net_sysctls(NetworkManager_t)
+kernel_dontaudit_setsched(NetworkManager_t)
+kernel_signull(NetworkManager_t)
+
+corenet_ib_manage_subnet_unlabeled_endports(NetworkManager_t)
+corenet_ib_access_unlabeled_pkeys(NetworkManager_t)
+corenet_all_recvfrom_netlabel(NetworkManager_t)
+corenet_tcp_sendrecv_generic_if(NetworkManager_t)
+corenet_udp_sendrecv_generic_if(NetworkManager_t)
+corenet_raw_sendrecv_generic_if(NetworkManager_t)
+corenet_tcp_sendrecv_generic_node(NetworkManager_t)
+corenet_udp_sendrecv_generic_node(NetworkManager_t)
+corenet_raw_sendrecv_generic_node(NetworkManager_t)
+corenet_tcp_sendrecv_all_ports(NetworkManager_t)
+corenet_udp_sendrecv_all_ports(NetworkManager_t)
+corenet_udp_bind_generic_node(NetworkManager_t)
+corenet_udp_bind_isakmp_port(NetworkManager_t)
+corenet_udp_bind_dhcpc_port(NetworkManager_t)
+corenet_tcp_connect_all_ports(NetworkManager_t)
+corenet_sendrecv_isakmp_server_packets(NetworkManager_t)
+corenet_sendrecv_dhcpc_server_packets(NetworkManager_t)
+corenet_sendrecv_all_client_packets(NetworkManager_t)
+corenet_rw_tun_tap_dev(NetworkManager_t)
+corenet_getattr_ppp_dev(NetworkManager_t)
+
+dev_access_check_sysfs(NetworkManager_t)
+dev_rw_sysfs(NetworkManager_t)
+dev_write_sysfs_dirs(NetworkManager_t)
+dev_read_rand(NetworkManager_t)
+dev_read_urand(NetworkManager_t)
+dev_dontaudit_getattr_generic_blk_files(NetworkManager_t)
+dev_getattr_all_chr_files(NetworkManager_t)
+dev_rw_wireless(NetworkManager_t)
+
+fs_getattr_all_fs(NetworkManager_t)
+fs_search_auto_mountpoints(NetworkManager_t)
+fs_list_inotifyfs(NetworkManager_t)
+fs_read_nsfs_files(NetworkManager_t)
+
+mls_file_read_all_levels(NetworkManager_t)
+
+selinux_dontaudit_search_fs(NetworkManager_t)
+
+corecmd_exec_shell(NetworkManager_t)
+corecmd_exec_bin(NetworkManager_t)
+
+domain_use_interactive_fds(NetworkManager_t)
+domain_read_all_domains_state(NetworkManager_t)
+
+files_read_etc_runtime_files(NetworkManager_t)
+files_read_system_conf_files(NetworkManager_t)
+files_read_usr_src_files(NetworkManager_t)
+files_read_isid_type_files(NetworkManager_t)
+
+storage_getattr_fixed_disk_dev(NetworkManager_t)
+
+term_open_unallocated_ttys(NetworkManager_t)
+
+init_read_utmp(NetworkManager_t)
+init_dontaudit_write_utmp(NetworkManager_t)
+init_domtrans_script(NetworkManager_t)
+init_signull_script(NetworkManager_t)
+init_signal_script(NetworkManager_t)
+init_sigkill_script(NetworkManager_t)
+
+auth_use_nsswitch(NetworkManager_t)
+
+libs_exec_ldconfig(NetworkManager_t)
+
+logging_send_syslog_msg(NetworkManager_t)
+logging_send_audit_msgs(NetworkManager_t)
+
+miscfiles_read_generic_certs(NetworkManager_t)
+
+seutil_read_config(NetworkManager_t)
+seutil_run_setfiles(NetworkManager_t, system_r)
+
+sysnet_domtrans_ifconfig(NetworkManager_t)
+sysnet_domtrans_dhcpc(NetworkManager_t)
+sysnet_signal_dhcpc(NetworkManager_t)
+sysnet_signull_dhcpc(NetworkManager_t)
+sysnet_read_dhcpc_pid(NetworkManager_t)
+sysnet_read_dhcp_config(NetworkManager_t)
+sysnet_delete_dhcpc_pid(NetworkManager_t)
+sysnet_kill_dhcpc(NetworkManager_t)
+sysnet_read_dhcpc_state(NetworkManager_t)
+sysnet_delete_dhcpc_state(NetworkManager_t)
+sysnet_search_dhcp_state(NetworkManager_t)
+# in /etc created by NetworkManager will be labelled net_conf_t.
+sysnet_manage_config(NetworkManager_t)
+sysnet_filetrans_named_content(NetworkManager_t)
+sysnet_filetrans_net_conf(NetworkManager_t)
+
+systemd_machined_read_pid_files(NetworkManager_t)
+
+term_use_unallocated_ttys(NetworkManager_t)
+
+userdom_stream_connect(NetworkManager_t)
+userdom_dontaudit_use_unpriv_user_fds(NetworkManager_t)
+userdom_dontaudit_use_user_ttys(NetworkManager_t)
+# Read gnome-keyring
+userdom_read_home_certs(NetworkManager_t)
+userdom_read_user_home_content_files(NetworkManager_t)
+userdom_dgram_send(NetworkManager_t)
+
+tunable_policy(`use_nfs_home_dirs',`
+    fs_read_nfs_files(NetworkManager_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+    fs_read_cifs_files(NetworkManager_t)
+')
+
+optional_policy(`
+	avahi_domtrans(NetworkManager_t)
+	avahi_kill(NetworkManager_t)
+	avahi_signal(NetworkManager_t)
+	avahi_signull(NetworkManager_t)
+	avahi_dbus_chat(NetworkManager_t)
+')
+
+optional_policy(`
+	bind_domtrans(NetworkManager_t)
+	bind_manage_cache(NetworkManager_t)
+	bind_kill(NetworkManager_t)
+	bind_signal(NetworkManager_t)
+	bind_signull(NetworkManager_t)
+')
+
+optional_policy(`
+	bluetooth_dontaudit_read_helper_state(NetworkManager_t)
+')
+
+optional_policy(`
+	consoletype_exec(NetworkManager_t)
+')
+
+optional_policy(`
+	cron_read_system_job_lib_files(NetworkManager_t)
+')
+
+optional_policy(`
+	chronyd_domtrans_chronyc(NetworkManager_t)
+	chronyd_domtrans(NetworkManager_t)
+')
+
+optional_policy(`
+	dbus_system_domain(NetworkManager_t, NetworkManager_exec_t)
+
+	init_dbus_chat(NetworkManager_t)
+
+	optional_policy(`
+		consolekit_dbus_chat(NetworkManager_t)
+		consolekit_read_pid_files(NetworkManager_t)
+	')
+')
+
+optional_policy(`
+	dhcpd_systemctl(NetworkManager_t)
+')
+
+optional_policy(`
+	dnsmasq_read_pid_files(NetworkManager_t)
+	dnsmasq_dbus_chat(NetworkManager_t)
+	dnsmasq_delete_pid_files(NetworkManager_t)
+	dnsmasq_domtrans(NetworkManager_t)
+	dnsmasq_initrc_domtrans(NetworkManager_t)
+	dnsmasq_kill(NetworkManager_t)
+	dnsmasq_signal(NetworkManager_t)
+	dnsmasq_signull(NetworkManager_t)
+	dnsmasq_systemctl(NetworkManager_t)
+')
+
+optional_policy(`
+    dnssec_trigger_domtrans(NetworkManager_t)
+    dnssec_trigger_signull(NetworkManager_t)
+    dnssec_trigger_sigkill(NetworkManager_t)
+')
+
+optional_policy(`
+    fcoe_dgram_send_fcoemon(NetworkManager_t)
+')
+
+optional_policy(`
+	hal_write_log(NetworkManager_t)
+')
+
+optional_policy(`
+	howl_signal(NetworkManager_t)
+')
+
+optional_policy(`
+	gnome_dontaudit_search_config(NetworkManager_t)
+')
+
+optional_policy(`
+    iscsid_domtrans(NetworkManager_t)
+')
+
+optional_policy(`
+    iodined_domtrans(NetworkManager_t)
+')
+
+optional_policy(`
+	ipsec_domtrans_mgmt(NetworkManager_t)
+	ipsec_kill_mgmt(NetworkManager_t)
+	ipsec_signal_mgmt(NetworkManager_t)
+	ipsec_signull_mgmt(NetworkManager_t)
+	ipsec_domtrans(NetworkManager_t)
+	ipsec_kill(NetworkManager_t)
+	ipsec_signal(NetworkManager_t)
+	ipsec_signull(NetworkManager_t)
+')
+
+optional_policy(`
+	iptables_domtrans(NetworkManager_t)
+')
+
+optional_policy(`
+	l2tpd_domtrans(NetworkManager_t)
+    l2tpd_sigkill(NetworkManager_t)
+    l2tpd_signal(NetworkManager_t)
+    l2tpd_signull(NetworkManager_t)
+')
+
+optional_policy(`
+    lldpad_dgram_send(NetworkManager_t)
+')
+
+optional_policy(`
+    kdump_dontaudit_inherited_kdumpctl_tmp_pipes(NetworkManager_t)
+')
+
+optional_policy(`
+	netutils_exec_ping(NetworkManager_t)
+    netutils_exec(NetworkManager_t)
+')
+
+optional_policy(`
+	nscd_domtrans(NetworkManager_t)
+	nscd_signal(NetworkManager_t)
+	nscd_signull(NetworkManager_t)
+	nscd_kill(NetworkManager_t)
+	nscd_initrc_domtrans(NetworkManager_t)
+	nscd_systemctl(NetworkManager_t)
+')
+
+optional_policy(`
+	# Dispatcher starting and stoping ntp
+	ntp_initrc_domtrans(NetworkManager_t)
+	ntp_systemctl(NetworkManager_t)
+')
+
+optional_policy(`
+	modutils_domtrans_kmod(NetworkManager_t)
+')
+
+optional_policy(`
+	openvpn_read_config(NetworkManager_t)
+	openvpn_domtrans(NetworkManager_t)
+	openvpn_kill(NetworkManager_t)
+	openvpn_signal(NetworkManager_t)
+	openvpn_signull(NetworkManager_t)
+	openvpn_stream_connect(NetworkManager_t)
+	openvpn_noatsecure(NetworkManager_t)
+')
+
+optional_policy(`
+	policykit_dbus_chat(NetworkManager_t)
+	policykit_domtrans_auth(NetworkManager_t)
+	policykit_read_lib(NetworkManager_t)
+	policykit_read_reload(NetworkManager_t)
+	userdom_read_all_users_state(NetworkManager_t)
+')
+
+optional_policy(`
+	polipo_systemctl(NetworkManager_t)
+')
+
+optional_policy(`
+	ppp_initrc_domtrans(NetworkManager_t)
+	ppp_domtrans(NetworkManager_t)
+	ppp_manage_pid_files(NetworkManager_t)
+	ppp_kill(NetworkManager_t)
+	ppp_signal(NetworkManager_t)
+	ppp_signull(NetworkManager_t)
+	ppp_read_config(NetworkManager_t)
+	ppp_systemctl(NetworkManager_t)
+')
+
+optional_policy(`
+	rpm_exec(NetworkManager_t)
+	rpm_read_db(NetworkManager_t)
+	rpm_dontaudit_manage_db(NetworkManager_t)
+')
+
+optional_policy(`
+    samba_service_status(NetworkManager_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(NetworkManager_t)
+')
+
+optional_policy(`
+	sysnet_manage_dhcpc_state(NetworkManager_t)
+')
+
+optional_policy(`
+	systemd_write_inhibit_pipes(NetworkManager_t)
+	systemd_read_logind_sessions_files(NetworkManager_t)
+	systemd_dbus_chat_logind(NetworkManager_t)
+	systemd_dbus_chat_hostnamed(NetworkManager_t)
+    systemd_hostnamed_manage_config(NetworkManager_t)
+')
+
+optional_policy(`
+    ssh_basic_client_template(NetworkManager, NetworkManager_t, system_r)
+    modutils_domtrans_kmod(NetworkManager_ssh_t)
+    corenet_rw_tun_tap_dev(NetworkManager_ssh_t)
+    dbus_connect_system_bus(NetworkManager_ssh_t)
+    dbus_system_bus_client(NetworkManager_ssh_t)
+    init_rw_stream_sockets(NetworkManager_ssh_t)
+    networkmanager_dbus_chat(NetworkManager_ssh_t)
+    sysnet_domtrans_ifconfig(NetworkManager_ssh_t)
+')
+
+optional_policy(`
+	tlp_filetrans_named_content(NetworkManager_t)
+')
+
+optional_policy(`
+	udev_exec(NetworkManager_t)
+	udev_read_db(NetworkManager_t)
+	udev_read_pid_files(NetworkManager_t)
+')
+
+optional_policy(`
+	vpn_domtrans(NetworkManager_t)
+	vpn_kill(NetworkManager_t)
+	vpn_signal(NetworkManager_t)
+	vpn_signull(NetworkManager_t)
+	vpn_relabelfrom_tun_socket(NetworkManager_t)
+')
+
+optional_policy(`
+	openfortivpn_domtrans(NetworkManager_t)
+	openfortivpn_sigkill(NetworkManager_t)
+	openfortivpn_signal(NetworkManager_t)
+	openfortivpn_signull(NetworkManager_t)
+')
+
+optional_policy(`
+	openvswitch_stream_connect(NetworkManager_t)
+')
+
+tunable_policy(`use_ecryptfs_home_dirs',`
+	fs_manage_ecryptfs_files(NetworkManager_t)
+')
+
+########################################
+#
+# wpa_cli local policy
+#
+
+allow wpa_cli_t self:capability { dac_read_search  };
+allow wpa_cli_t self:unix_dgram_socket create_socket_perms;
+
+allow wpa_cli_t NetworkManager_t:unix_dgram_socket sendto;
+
+manage_sock_files_pattern(wpa_cli_t, NetworkManager_tmp_t, NetworkManager_tmp_t)
+files_tmp_filetrans(wpa_cli_t, NetworkManager_tmp_t, sock_file)
+
+list_dirs_pattern(wpa_cli_t, NetworkManager_var_run_t, NetworkManager_var_run_t)
+rw_sock_files_pattern(wpa_cli_t, NetworkManager_var_run_t, NetworkManager_var_run_t)
+
+init_dontaudit_use_fds(wpa_cli_t)
+init_use_script_ptys(wpa_cli_t)
+
+term_dontaudit_use_console(wpa_cli_t)

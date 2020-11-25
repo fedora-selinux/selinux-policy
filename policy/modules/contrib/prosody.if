@@ -1,0 +1,255 @@
+
+## <summary>policy for prosody</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the prosody domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`prosody_domtrans',`
+	gen_require(`
+		type prosody_t, prosody_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, prosody_exec_t, prosody_t)
+')
+
+########################################
+## <summary>
+##	Search prosody lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prosody_search_lib',`
+	gen_require(`
+		type prosody_var_lib_t;
+	')
+
+	allow $1 prosody_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read prosody lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prosody_read_lib_files',`
+	gen_require(`
+		type prosody_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, prosody_var_lib_t, prosody_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage prosody lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prosody_manage_lib_files',`
+	gen_require(`
+		type prosody_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, prosody_var_lib_t, prosody_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage prosody lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prosody_manage_lib_dirs',`
+	gen_require(`
+		type prosody_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, prosody_var_lib_t, prosody_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read prosody PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prosody_read_pid_files',`
+	gen_require(`
+		type prosody_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, prosody_var_run_t, prosody_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute prosody server in the prosody domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`prosody_systemctl',`
+	gen_require(`
+		type prosody_t;
+		type prosody_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 prosody_unit_file_t:file read_file_perms;
+	allow $1 prosody_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, prosody_t)
+')
+
+
+########################################
+## <summary>
+##	Execute prosody in the prosody domain, and
+##	allow the specified role the prosody domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the prosody domain.
+##	</summary>
+## </param>
+#
+interface(`prosody_run',`
+	gen_require(`
+		type prosody_t;
+		attribute_role prosody_roles;
+	')
+
+	prosody_domtrans($1)
+	roleattribute $2 prosody_roles;
+')
+
+######################################
+## <summary>
+##	Connect to prosody with a unix
+##	domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prosody_stream_connect',`
+	gen_require(`
+		type prosody_t, prosody_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, prosody_var_run_t, prosody_var_run_t, prosody_t)
+')
+
+########################################
+## <summary>
+##	Role access for prosody
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`prosody_role',`
+	gen_require(`
+		type prosody_t;
+		attribute_role prosody_roles;
+	')
+
+	roleattribute $1 prosody_roles;
+
+	prosody_domtrans($2)
+
+	ps_process_pattern($2, prosody_t)
+	allow $2 prosody_t:process { signull signal sigkill };
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an prosody environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`prosody_admin',`
+	gen_require(`
+		type prosody_t;
+		type prosody_var_lib_t;
+		type prosody_var_run_t;
+	type prosody_unit_file_t;
+	')
+
+	allow $1 prosody_t:process { ptrace signal_perms };
+	ps_process_pattern($1, prosody_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, prosody_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, prosody_var_run_t)
+
+	prosody_systemctl($1)
+	admin_pattern($1, prosody_unit_file_t)
+	allow $1 prosody_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

@@ -1,0 +1,72 @@
+policy_module(conntrackd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type conntrackd_t;
+type conntrackd_exec_t;
+init_daemon_domain(conntrackd_t, conntrackd_exec_t)
+
+type conntrackd_conf_t;
+files_config_file(conntrackd_conf_t)
+
+type conntrackd_initrc_exec_t;
+init_script_file(conntrackd_initrc_exec_t)
+
+type conntrackd_unit_file_t;
+systemd_unit_file(conntrackd_unit_file_t)
+
+type conntrackd_log_t;
+logging_log_file(conntrackd_log_t)
+
+type conntrackd_var_run_t;
+files_pid_file(conntrackd_var_run_t)
+
+type conntrackd_var_lock_t;
+files_lock_file(conntrackd_var_lock_t)
+
+########################################
+#
+# Local policy
+#
+#
+
+allow conntrackd_t self:capability { sys_nice net_admin };
+allow conntrackd_t self:netlink_route_socket rw_netlink_socket_perms;
+allow conntrackd_t self:netlink_netfilter_socket create_socket_perms;
+allow conntrackd_t self:udp_socket create_socket_perms;
+allow conntrackd_t self:unix_dgram_socket create_socket_perms;
+allow conntrackd_t self:process { setsched signal };
+
+allow conntrackd_t conntrackd_conf_t:dir list_dir_perms;
+read_files_pattern(conntrackd_t, conntrackd_conf_t, conntrackd_conf_t)
+read_lnk_files_pattern(conntrackd_t, conntrackd_conf_t, conntrackd_conf_t)
+
+allow conntrackd_t conntrackd_log_t:dir setattr_dir_perms;
+manage_files_pattern(conntrackd_t, conntrackd_log_t, conntrackd_log_t)
+manage_sock_files_pattern(conntrackd_t, conntrackd_log_t, conntrackd_log_t)
+logging_log_filetrans(conntrackd_t, conntrackd_log_t, { sock_file file dir })
+
+manage_dirs_pattern(conntrackd_t, conntrackd_var_run_t, conntrackd_var_run_t)
+manage_files_pattern(conntrackd_t, conntrackd_var_run_t, conntrackd_var_run_t)
+manage_sock_files_pattern(conntrackd_t, conntrackd_var_run_t, conntrackd_var_run_t)
+files_pid_filetrans(conntrackd_t, conntrackd_var_run_t, { dir file sock_file })
+
+manage_dirs_pattern(conntrackd_t, conntrackd_var_lock_t, conntrackd_var_lock_t)
+manage_files_pattern(conntrackd_t, conntrackd_var_lock_t, conntrackd_var_lock_t)
+
+files_lock_filetrans(conntrackd_t, conntrackd_var_lock_t, { dir file sock_file })
+
+kernel_read_network_state(conntrackd_t)
+kernel_request_load_module(conntrackd_t)
+corenet_udp_sendrecv_generic_if(conntrackd_t)
+corenet_udp_sendrecv_generic_node(conntrackd_t)
+corenet_udp_sendrecv_all_ports(conntrackd_t)
+corenet_udp_bind_generic_node(conntrackd_t)
+
+corenet_udp_bind_conntrackd_port(conntrackd_t)
+corenet_udp_sendrecv_conntrackd_port(conntrackd_t)
+
+logging_send_syslog_msg(conntrackd_t)

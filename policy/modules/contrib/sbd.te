@@ -1,0 +1,71 @@
+policy_module(sbd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type sbd_t;
+type sbd_exec_t;
+init_daemon_domain(sbd_t, sbd_exec_t)
+
+type sbd_var_run_t;
+files_pid_file(sbd_var_run_t)
+
+type sbd_unit_file_t;
+systemd_unit_file(sbd_unit_file_t)
+
+type sbd_tmpfs_t;
+userdom_user_tmpfs_file(sbd_tmpfs_t)
+
+########################################
+#
+# sbd local policy
+#
+allow sbd_t self:capability { dac_read_search dac_override ipc_lock kill sys_boot sys_nice sys_admin};
+allow sbd_t self:process { fork setsched signal_perms };
+allow sbd_t self:fifo_file rw_fifo_file_perms;
+allow sbd_t self:unix_stream_socket create_stream_socket_perms;
+allow sbd_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(sbd_t, sbd_var_run_t, sbd_var_run_t)
+manage_files_pattern(sbd_t, sbd_var_run_t, sbd_var_run_t)
+manage_lnk_files_pattern(sbd_t, sbd_var_run_t, sbd_var_run_t)
+files_pid_filetrans(sbd_t, sbd_var_run_t, { dir file lnk_file })
+
+manage_files_pattern(sbd_t, sbd_tmpfs_t, sbd_tmpfs_t)
+manage_dirs_pattern(sbd_t, sbd_tmpfs_t, sbd_tmpfs_t)
+fs_tmpfs_filetrans(sbd_t, sbd_tmpfs_t, { file dir })
+
+auth_use_nsswitch(sbd_t)
+
+kernel_read_system_state(sbd_t)
+kernel_dgram_send(sbd_t)
+kernel_rw_all_sysctls(sbd_t)
+kernel_create_rpc_sysctls(sbd_t)
+
+dev_read_rand(sbd_t)
+dev_write_watchdog(sbd_t)
+dev_getattr_all_chr_files(sbd_t)
+dev_read_sysfs(sbd_t)
+
+domain_read_all_domains_state(sbd_t)
+
+files_read_etc_files(sbd_t)
+
+fs_read_tmpfs_symlinks(sbd_t)
+fs_manage_cgroup_files(sbd_t)
+fs_manage_cgroup_dirs(sbd_t)
+
+miscfiles_read_localization(sbd_t)
+
+logging_send_syslog_msg(sbd_t)
+
+storage_raw_rw_fixed_disk(sbd_t)
+
+optional_policy(`
+    rhcs_rw_cluster_tmpfs(sbd_t)
+    rhcs_stream_connect_cluster(sbd_t)
+    rhcs_signull_cluster(sbd_t)
+
+')

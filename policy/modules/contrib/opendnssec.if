@@ -1,0 +1,228 @@
+
+## <summary>policy for opendnssec</summary>
+
+########################################
+## <summary>
+##	Execute opendnssec_exec_t in the opendnssec domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`opendnssec_domtrans',`
+	gen_require(`
+		type opendnssec_t, opendnssec_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, opendnssec_exec_t, opendnssec_t)
+')
+
+######################################
+## <summary>
+##	Execute opendnssec in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opendnssec_exec',`
+	gen_require(`
+		type opendnssec_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, opendnssec_exec_t)
+')
+
+########################################
+## <summary>
+##      Read the opendnssec configuration files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+## <rolecap/>
+#
+interface(`opendnssec_read_config',`
+        gen_require(`
+                type opendnssec_conf_t;
+        ')
+
+        files_search_etc($1)
+        allow $1 opendnssec_conf_t:dir list_dir_perms;
+        allow $1 opendnssec_conf_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##      Read the opendnssec configuration files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+## <rolecap/>
+#
+interface(`opendnssec_manage_config',`
+        gen_require(`
+                type opendnssec_conf_t;
+        ')
+
+        files_search_etc($1)
+        allow $1 opendnssec_conf_t:dir manage_dir_perms;
+        allow $1 opendnssec_conf_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##      Allow the specified domain to
+##      read and write opendnssec /var files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`opendnssec_manage_var_files',`
+        gen_require(`
+                type opendnssec_var_t;
+        ')
+
+        files_search_var($1)
+        files_search_var_lib($1)
+        manage_files_pattern($1, opendnssec_var_t, opendnssec_var_t)
+')
+
+########################################
+## <summary>
+##	Read opendnssec PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opendnssec_read_pid_files',`
+	gen_require(`
+		type opendnssec_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, opendnssec_var_run_t, opendnssec_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute opendnssec server in the opendnssec domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`opendnssec_systemctl',`
+	gen_require(`
+		type opendnssec_t;
+		type opendnssec_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 opendnssec_unit_file_t:file read_file_perms;
+	allow $1 opendnssec_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, opendnssec_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an opendnssec environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`opendnssec_admin',`
+	gen_require(`
+		type opendnssec_t;
+		type opendnssec_var_run_t;
+	type opendnssec_unit_file_t;
+	')
+
+	allow $1 opendnssec_t:process { signal_perms };
+	ps_process_pattern($1, opendnssec_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 opendnssec_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+	admin_pattern($1, opendnssec_var_run_t)
+
+	opendnssec_systemctl($1)
+	admin_pattern($1, opendnssec_unit_file_t)
+	allow $1 opendnssec_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+########################################
+## <summary>
+##      Transition to quota named content
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`opendnssec_filetrans_etc_content',`
+        gen_require(`
+                type opendnssec_conf_t;
+        ')
+
+        files_etc_filetrans($1, opendnssec_conf_t, file)
+')
+
+########################################
+## <summary>
+##	Connect to opendnssec over an unix
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opendnssec_stream_connect',`
+	gen_require(`
+		type opendnssec_t, opendnssec_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, opendnssec_var_run_t, opendnssec_var_run_t, opendnssec_t)
+')

@@ -1,0 +1,60 @@
+policy_module(ajaxterm, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type ajaxterm_t;
+type ajaxterm_exec_t;
+init_daemon_domain(ajaxterm_t, ajaxterm_exec_t)
+
+type ajaxterm_initrc_exec_t;
+init_script_file(ajaxterm_initrc_exec_t)
+
+type ajaxterm_var_run_t;
+files_pid_file(ajaxterm_var_run_t)
+
+type ajaxterm_devpts_t;
+term_login_pty(ajaxterm_devpts_t)
+
+########################################
+#
+# ajaxterm local policy
+#
+allow ajaxterm_t self:capability setuid;
+allow ajaxterm_t self:process { setpgid signal };
+allow ajaxterm_t self:fifo_file rw_fifo_file_perms;
+allow ajaxterm_t self:unix_stream_socket create_stream_socket_perms;
+allow ajaxterm_t self:tcp_socket create_stream_socket_perms;
+
+allow ajaxterm_t ajaxterm_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms relabelfrom };
+term_create_pty(ajaxterm_t, ajaxterm_devpts_t)
+
+manage_dirs_pattern(ajaxterm_t, ajaxterm_var_run_t, ajaxterm_var_run_t)
+manage_files_pattern(ajaxterm_t, ajaxterm_var_run_t, ajaxterm_var_run_t)
+files_pid_filetrans(ajaxterm_t, ajaxterm_var_run_t, { file dir })
+
+kernel_read_system_state(ajaxterm_t)
+
+corecmd_exec_bin(ajaxterm_t)
+
+corenet_tcp_bind_generic_node(ajaxterm_t)
+corenet_tcp_bind_oa_system_port(ajaxterm_t)
+
+dev_read_urand(ajaxterm_t)
+
+domain_use_interactive_fds(ajaxterm_t)
+
+
+sysnet_dns_name_resolve(ajaxterm_t)
+
+#######################################
+#
+# SSH component local policy
+#
+
+optional_policy(`
+	ssh_basic_client_template(ajaxterm, ajaxterm_t, system_r)
+')
+

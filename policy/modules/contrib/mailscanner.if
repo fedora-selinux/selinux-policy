@@ -1,0 +1,61 @@
+## <summary>E-mail security and anti-spam package for e-mail gateway systems.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run
+## 	MailScanner.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`mailscanner_initrc_domtrans',`
+	gen_require(`
+		type mscan_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, mscan_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an mailscanner environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mailscanner_admin',`
+	gen_require(`
+		type mscan_t, mscan_var_run_t, mscan_etc_t;
+		type mscan_initrc_exec_t;
+	')
+
+	mailscanner_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 mscan_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	allow $1 mscan_t:process signal_perms;
+	ps_process_pattern($1, mscan_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 mscan_t:process ptrace;
+	')
+
+	admin_pattern($1, mscan_etc_t)
+	files_list_etc($1)
+
+	admin_pattern($1, mscan_var_run_t)
+	files_list_pids($1)
+')

@@ -1,0 +1,523 @@
+
+## <summary>policy for pki</summary>
+
+########################################
+## <summary>
+##      Allow read and write pki cert files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`pki_rw_tomcat_cert',`
+        gen_require(`
+                type pki_tomcat_cert_t;
+				type pki_tomcat_etc_rw_t;
+        ')
+
+		allow $1 pki_tomcat_etc_rw_t:dir search_dir_perms;
+        rw_files_pattern($1, pki_tomcat_cert_t, pki_tomcat_cert_t)
+        create_lnk_files_pattern($1, pki_tomcat_cert_t, pki_tomcat_cert_t)
+')
+
+########################################
+## <summary>
+##      Allow read and write pki cert files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`pki_manage_tomcat_cert',`
+        gen_require(`
+                type pki_tomcat_cert_t;
+				type pki_tomcat_etc_rw_t;
+        ')
+
+		allow $1 pki_tomcat_etc_rw_t:dir manage_dir_perms;
+        manage_files_pattern($1, pki_tomcat_cert_t, pki_tomcat_cert_t)
+        manage_lnk_files_pattern($1, pki_tomcat_cert_t, pki_tomcat_cert_t)
+')
+
+########################################
+## <summary>
+##      Allow read and write pki cert files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`pki_manage_tomcat_etc_rw',`
+        gen_require(`
+				type pki_tomcat_etc_rw_t;
+        ')
+
+        manage_files_pattern($1, pki_tomcat_etc_rw_t, pki_tomcat_etc_rw_t)
+        manage_lnk_files_pattern($1, pki_tomcat_etc_rw_t, pki_tomcat_etc_rw_t)
+')
+
+########################################
+## <summary>
+##      Allow domain to read pki cert files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`pki_read_tomcat_cert',`
+        gen_require(`
+                type pki_tomcat_cert_t;
+        ')
+
+        read_files_pattern($1, pki_tomcat_cert_t, pki_tomcat_cert_t)
+        read_lnk_files_pattern($1, pki_tomcat_cert_t, pki_tomcat_cert_t)
+')
+
+########################################
+## <summary>
+##	Create a set of derived types for apache
+##	web content.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix to be used for deriving type names.
+##	</summary>
+## </param>
+#
+template(`pki_apache_template',`
+	gen_require(`
+		attribute pki_apache_domain;
+		attribute pki_apache_config, pki_apache_var_lib, pki_apache_var_run;
+		attribute pki_apache_executable, pki_apache_script, pki_apache_var_log;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	type $1_t, pki_apache_domain;
+	type $1_exec_t, pki_apache_executable;
+	domain_type($1_t)
+	init_daemon_domain($1_t, $1_exec_t)
+
+	type $1_script_exec_t, pki_apache_script;
+	init_script_file($1_script_exec_t)
+
+	type $1_etc_rw_t, pki_apache_config;
+	files_type($1_etc_rw_t)
+
+	type $1_var_run_t, pki_apache_var_run;
+	files_pid_file($1_var_run_t)
+
+	type $1_var_lib_t, pki_apache_var_lib;
+	files_type($1_var_lib_t)
+
+	type $1_log_t, pki_apache_var_log;
+	logging_log_file($1_log_t)
+
+	type $1_lock_t;
+	files_lock_file($1_lock_t)
+
+    type $1_tmp_t;
+    files_tmpfs_file($1_tmp_t)
+
+	########################################
+	#
+	# $1 local policy
+	#
+
+	files_read_etc_files($1_t)
+	allow $1_t $1_etc_rw_t:lnk_file read;
+
+	manage_dirs_pattern($1_t, $1_etc_rw_t, $1_etc_rw_t)
+	manage_files_pattern($1_t, $1_etc_rw_t, $1_etc_rw_t)
+	files_etc_filetrans($1_t,$1_etc_rw_t, { file dir })
+
+	manage_dirs_pattern($1_t, $1_var_run_t,  $1_var_run_t)
+	manage_files_pattern($1_t, $1_var_run_t,  $1_var_run_t)
+	files_pid_filetrans($1_t,$1_var_run_t, { file dir })
+
+	manage_dirs_pattern($1_t, $1_var_lib_t,  $1_var_lib_t)
+	manage_files_pattern($1_t, $1_var_lib_t,  $1_var_lib_t)
+	read_lnk_files_pattern($1_t, $1_var_lib_t, $1_var_lib_t)
+	files_var_lib_filetrans($1_t, $1_var_lib_t, { file dir } )
+
+	manage_dirs_pattern($1_t, $1_log_t,  $1_log_t)
+	manage_files_pattern($1_t, $1_log_t,  $1_log_t)
+	logging_log_filetrans($1_t, $1_log_t, { file dir } )
+
+	manage_dirs_pattern($1_t, $1_lock_t, $1_lock_t)
+	manage_files_pattern($1_t, $1_lock_t, $1_lock_t)
+	manage_lnk_files_pattern($1_t, $1_lock_t, $1_lock_t)
+	files_lock_filetrans($1_t, $1_lock_t, { dir file lnk_file })
+
+    manage_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
+    manage_dirs_pattern($1_t, $1_tmp_t, $1_tmp_t)
+    files_tmp_filetrans($1_t, $1_tmp_t, { file dir })
+
+	#talk to lunasa hsm
+	logging_send_syslog_msg($1_t)
+
+	kernel_read_kernel_sysctls($1_t)
+	kernel_read_system_state($1_t)
+
+	corenet_all_recvfrom_unlabeled($1_t)
+
+	# need to resolve addresses?
+	auth_use_nsswitch($1_t)
+')
+
+#######################################
+## <summary>
+##  Send a null signal to pki apache domains.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_apache_domain_signal',`
+    gen_require(`
+        attribute pki_apache_domain;
+    ')
+
+    allow $1 pki_apache_domain:process signal;
+')
+
+#######################################
+## <summary>
+##  Send a null signal to pki apache domains.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_apache_domain_signull',`
+    gen_require(`
+        attribute pki_apache_domain;
+    ')
+
+    allow $1 pki_apache_domain:process signull;
+')
+
+###################################
+## <summary>
+##  Allow domain to read pki apache subsystem pid files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_apache_run',`
+    gen_require(`
+        attribute pki_apache_var_run;
+    ')
+
+    files_search_var_lib($1)
+    read_files_pattern($1, pki_apache_var_run, pki_apache_var_run)
+')
+
+####################################
+## <summary>
+##  Allow domain to manage pki apache subsystem lib files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_apache_lib',`
+    gen_require(`
+        attribute pki_apache_var_lib;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, pki_apache_var_lib, pki_apache_var_lib)
+	manage_lnk_files_pattern($1, pki_apache_var_lib, pki_apache_var_lib)
+')
+
+##################################
+## <summary>
+##  Dontaudit domain to write pki log files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_search_log_dirs',`
+    gen_require(`
+        type pki_log_t;
+    ')
+
+    search_dirs_pattern($1, pki_log_t, pki_log_t)
+
+')
+
+##################################
+## <summary>
+##  Dontaudit domain to write pki log files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_dontaudit_write_log',`
+    gen_require(`
+        type pki_log_t;
+    ')
+
+	dontaudit $1 pki_log_t:file write;
+')
+
+###################################
+## <summary>
+##  Allow domain to manage pki apache subsystem log files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_apache_log_files',`
+    gen_require(`
+        attribute pki_apache_var_log;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, pki_apache_var_log, pki_apache_var_log)
+')
+
+##################################
+## <summary>
+##  Allow domain to manage pki apache subsystem config files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_apache_config_files',`
+    gen_require(`
+        attribute pki_apache_config;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, pki_apache_config, pki_apache_config)
+')
+
+#################################
+## <summary>
+##  Allow domain to read pki tomcat lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_read_tomcat_lib_files',`
+    gen_require(`
+        type pki_tomcat_var_lib_t;
+    ')
+
+    read_files_pattern($1, pki_tomcat_var_lib_t, pki_tomcat_var_lib_t)
+    read_lnk_files_pattern($1, pki_tomcat_var_lib_t, pki_tomcat_var_lib_t)
+')
+
+
+#################################
+## <summary>
+##  Allow domain to manage pki tomcat lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_tomcat_lib',`
+    gen_require(`
+        type pki_tomcat_var_lib_t;
+    ')
+
+    manage_dirs_pattern($1, pki_tomcat_var_lib_t, pki_tomcat_var_lib_t)
+    manage_files_pattern($1, pki_tomcat_var_lib_t, pki_tomcat_var_lib_t)
+    manage_lnk_files_pattern($1, pki_tomcat_var_lib_t, pki_tomcat_var_lib_t)
+')
+
+#################################
+## <summary>
+##  Allow domain to manage pki tomcat lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_manage_tomcat_log',`
+    gen_require(`
+        type pki_tomcat_log_t;
+    ')
+
+    manage_dirs_pattern($1, pki_tomcat_log_t, pki_tomcat_log_t)
+    manage_files_pattern($1, pki_tomcat_log_t, pki_tomcat_log_t)
+')
+
+#################################
+## <summary>
+##  Allow domain to read pki tomcat lib dirs
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pki_read_tomcat_lib_dirs',`
+    gen_require(`
+        type pki_tomcat_var_lib_t;
+    ')
+
+    list_dirs_pattern($1, pki_tomcat_var_lib_t, pki_tomcat_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Allow read pki_common_t files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pki_read_common_files',`
+	gen_require(`
+		type pki_common_t;
+	')
+
+	read_files_pattern($1, pki_common_t, pki_common_t)
+')
+
+########################################
+## <summary>
+##	Allow execute pki_common_t files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pki_exec_common_files',`
+	gen_require(`
+		type pki_common_t;
+	')
+
+	exec_files_pattern($1, pki_common_t, pki_common_t)
+')
+
+########################################
+## <summary>
+##	Allow read pki_common_t files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pki_manage_common_files',`
+	gen_require(`
+		type pki_common_t;
+	')
+
+	manage_files_pattern($1, pki_common_t, pki_common_t)
+	manage_dirs_pattern($1, pki_common_t, pki_common_t)
+')
+
+########################################
+## <summary>
+##	Connect to pki over an unix
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pki_stream_connect',`
+	gen_require(`
+		type pki_tomcat_t, pki_common_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, pki_common_t, pki_common_t, pki_tomcat_t)
+')
+
+########################################
+## <summary>
+##	Execute pki in the pkit_tomcat_t domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`pki_tomcat_systemctl',`
+	gen_require(`
+		type pki_tomcat_t;
+		type pki_tomcat_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 pki_tomcat_unit_file_t:file read_file_perms;
+	allow $1 pki_tomcat_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, pki_tomcat_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	pki tomcat pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pki_manage_tomcat_pid',`
+	gen_require(`
+		type pki_tomcat_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, pki_tomcat_var_run_t, pki_tomcat_var_run_t)
+')

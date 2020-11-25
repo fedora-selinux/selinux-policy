@@ -1,0 +1,98 @@
+## <summary>IP over DNS tunneling daemon.</summary>
+
+########################################
+## <summary>
+##	Execute NetworkManager with a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`iodined_domtrans',`
+	gen_require(`
+		type iodined_t, iodined_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, iodined_exec_t, iodined_t)
+')
+
+########################################
+## <summary>
+##  Execute iodined server in the iodined domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`iodined_systemctl',`
+    gen_require(`
+        type iodined_t;
+        type iodined_unit_file_t;
+    ')
+
+        systemd_exec_systemctl($1)
+	init_reload_services($1)
+        systemd_read_fifo_file_passwd_run($1)
+        allow $1 iodined_unit_file_t:file read_file_perms;
+        allow $1 iodined_unit_file_t:service manage_service_perms;
+
+        ps_process_pattern($1, iodined_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an iodined environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`iodined_admin',`
+	refpolicywarn(`$0($*) has been deprecated, use iodine_admin() instead.')
+	iodine_admin($1, $2)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an iodined environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`iodine_admin',`
+	gen_require(`
+		type iodined_t, iodined_initrc_exec_t;
+	')
+
+	allow $1 iodined_t:process { ptrace signal_perms };
+	ps_process_pattern($1, iodined_t)
+
+	init_labeled_script_domtrans($1, iodined_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 iodined_initrc_exec_t system_r;
+	allow $2 system_r;
+')

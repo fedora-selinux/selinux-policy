@@ -1,0 +1,182 @@
+policy_module(kdump, 1.3.0)
+
+#######################################
+#
+# Declarations
+#
+
+type kdump_t;
+type kdump_exec_t;
+init_system_domain(kdump_t, kdump_exec_t)
+init_nnp_daemon_domain(kdump_t)
+
+type kdump_etc_t;
+files_config_file(kdump_etc_t)
+
+type kdump_crash_t;
+files_type(kdump_crash_t)
+
+type kdump_initrc_exec_t;
+init_script_file(kdump_initrc_exec_t)
+
+type kdump_unit_file_t alias kdumpctl_unit_file_t;
+systemd_unit_file(kdump_unit_file_t)
+
+type kdump_lock_t;
+files_lock_file(kdump_lock_t)
+
+type kdumpctl_t;
+type kdumpctl_exec_t;
+init_daemon_domain(kdumpctl_t, kdumpctl_exec_t)
+init_initrc_domain(kdumpctl_t)
+
+type kdumpctl_tmp_t;
+files_tmp_file(kdumpctl_tmp_t)
+
+#####################################
+#
+# kdump local policy
+#
+
+allow kdump_t self:capability { sys_admin sys_boot dac_read_search  };
+#allow kdump_t self:capability2 compromise_kernel;
+
+allow kdump_t self:udp_socket create_socket_perms;
+allow kdump_t self:netlink_route_socket create_netlink_socket_perms;
+
+manage_dirs_pattern(kdump_t, kdump_crash_t, kdump_crash_t)
+manage_files_pattern(kdump_t, kdump_crash_t, kdump_crash_t)
+manage_lnk_files_pattern(kdump_t, kdump_crash_t, kdump_crash_t)
+files_var_filetrans(kdump_t, kdump_crash_t, dir, "crash")
+
+read_files_pattern(kdump_t, kdump_etc_t, kdump_etc_t)
+
+manage_dirs_pattern(kdump_t, kdump_lock_t, kdump_lock_t)
+manage_files_pattern(kdump_t, kdump_lock_t, kdump_lock_t)
+manage_lnk_files_pattern(kdump_t, kdump_lock_t, kdump_lock_t)
+files_lock_filetrans(kdump_t, kdump_lock_t, { dir file lnk_file })
+
+files_manage_generic_tmp_files(kdump_t)
+files_read_etc_runtime_files(kdump_t)
+files_read_kernel_symbol_table(kdump_t)
+files_read_kernel_modules(kdump_t)
+files_read_kernel_img(kdump_t)
+files_map_boot_files(kdump_t)
+
+kernel_read_system_state(kdump_t)
+kernel_read_core_if(kdump_t)
+kernel_read_debugfs(kdump_t)
+kernel_request_load_module(kdump_t)
+kernel_read_ring_buffer(kdump_t)
+
+mls_file_read_all_levels(kdump_t)
+
+dev_read_framebuffer(kdump_t)
+dev_read_sysfs(kdump_t)
+
+term_use_console(kdump_t)
+
+#######################################
+#
+# kdumpctl local policy
+#
+
+#cjp:almost all rules are needed by dracut
+
+kdump_domtrans(kdumpctl_t)
+
+allow kdumpctl_t self:capability { dac_read_search dac_override sys_chroot };
+allow kdumpctl_t self:process setfscreate;
+
+allow kdumpctl_t self:fifo_file rw_fifo_file_perms;
+allow kdumpctl_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_files_pattern(kdumpctl_t, kdump_lock_t, kdump_lock_t)
+files_lock_filetrans(kdumpctl_t, kdump_lock_t, file, "kdump")
+
+manage_dirs_pattern(kdumpctl_t, kdumpctl_tmp_t, kdumpctl_tmp_t)
+manage_chr_files_pattern(kdumpctl_t, kdumpctl_tmp_t, kdumpctl_tmp_t)
+manage_files_pattern(kdumpctl_t, kdumpctl_tmp_t, kdumpctl_tmp_t)
+manage_lnk_files_pattern(kdumpctl_t, kdumpctl_tmp_t, kdumpctl_tmp_t)
+manage_fifo_files_pattern(kdumpctl_t, kdumpctl_tmp_t, kdumpctl_tmp_t)
+files_tmp_filetrans(kdumpctl_t, kdumpctl_tmp_t, { file dir lnk_file })
+can_exec(kdumpctl_t, kdumpctl_tmp_t)
+
+manage_dirs_pattern(kdumpctl_t, kdump_crash_t, kdump_crash_t)
+manage_files_pattern(kdumpctl_t, kdump_crash_t, kdump_crash_t)
+manage_lnk_files_pattern(kdumpctl_t, kdump_crash_t, kdump_crash_t)
+files_var_filetrans(kdumpctl_t, kdump_crash_t, dir, "crash")
+
+read_files_pattern(kdumpctl_t, kdump_etc_t, kdump_etc_t)
+
+kernel_read_system_state(kdumpctl_t)
+kernel_stream_connect(kdumpctl_t)
+
+mls_file_read_all_levels(kdumpctl_t)
+
+corecmd_exec_bin(kdumpctl_t)
+corecmd_exec_shell(kdumpctl_t)
+
+dev_read_sysfs(kdumpctl_t)
+# dracut
+dev_manage_all_dev_nodes(kdumpctl_t)
+
+domain_use_interactive_fds(kdumpctl_t)
+
+files_create_kernel_img(kdumpctl_t)
+files_read_etc_runtime_files(kdumpctl_t)
+files_read_kernel_modules(kdumpctl_t)
+files_getattr_all_dirs(kdumpctl_t)
+files_delete_kernel(kdumpctl_t)
+
+fs_getattr_all_fs(kdumpctl_t)
+fs_search_all(kdumpctl_t)
+
+application_executable_ioctl(kdumpctl_t)
+
+auth_read_passwd(kdumpctl_t)
+
+init_exec(kdumpctl_t)
+systemd_exec_systemctl(kdumpctl_t)
+systemd_read_unit_files(kdumpctl_t)
+
+libs_exec_ld_so(kdumpctl_t)
+
+logging_send_syslog_msg(kdumpctl_t)
+# Need log file from /var/log/dracut.log
+logging_write_generic_logs(kdumpctl_t)
+
+selinux_get_enforce_mode(kdumpctl_t)
+
+storage_raw_read_fixed_disk(kdumpctl_t)
+storage_getattr_fixed_disk_dev(kdumpctl_t)
+
+optional_policy(`
+	networkmanager_dbus_chat(kdumpctl_t)
+')
+
+optional_policy(`
+        gpg_exec(kdumpctl_t)
+')
+
+optional_policy(`
+        lvm_read_config(kdumpctl_t)
+')
+
+optional_policy(`
+        modutils_domtrans_kmod(kdumpctl_t)
+        modutils_list_module_config(kdumpctl_t)
+        modutils_read_module_config(kdumpctl_t)
+')
+
+optional_policy(`
+        plymouthd_domtrans_plymouth(kdumpctl_t)
+')
+
+optional_policy(`
+        ssh_exec(kdumpctl_t)
+')
+
+optional_policy(`
+	unconfined_domain(kdumpctl_t)
+')

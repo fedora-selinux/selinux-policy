@@ -1,0 +1,80 @@
+
+## <summary>brltty is refreshable braille display driver for Linux/Unix</summary>
+
+########################################
+## <summary>
+##	Execute brltty in the brltty domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`brltty_domtrans',`
+	gen_require(`
+		type brltty_t, brltty_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, brltty_exec_t, brltty_t)
+')
+########################################
+## <summary>
+##	Execute brltty server in the brltty domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`brltty_systemctl',`
+	gen_require(`
+		type brltty_t;
+		type brltty_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 brltty_unit_file_t:file read_file_perms;
+	allow $1 brltty_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, brltty_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an brltty environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`brltty_admin',`
+	gen_require(`
+		type brltty_t;
+	type brltty_unit_file_t;
+	')
+
+	allow $1 brltty_t:process { signal_perms };
+	ps_process_pattern($1, brltty_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 brltty_t:process ptrace;
+    ')
+
+	brltty_systemctl($1)
+	admin_pattern($1, brltty_unit_file_t)
+	allow $1 brltty_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

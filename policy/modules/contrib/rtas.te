@@ -1,0 +1,95 @@
+policy_module(rtas, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type rtas_errd_t;
+type rtas_errd_exec_t;
+init_daemon_domain(rtas_errd_t, rtas_errd_exec_t)
+
+type rtas_errd_log_t;
+logging_log_file(rtas_errd_log_t)
+
+type rtas_errd_var_run_t;
+files_pid_file(rtas_errd_var_run_t)
+
+type rtas_errd_var_lock_t;
+files_lock_file(rtas_errd_var_lock_t)
+
+type rtas_errd_unit_file_t;
+systemd_unit_file(rtas_errd_unit_file_t)
+
+type rtas_errd_tmp_t;
+files_tmp_file(rtas_errd_tmp_t)
+
+type rtas_errd_tmpfs_t;
+files_tmpfs_file(rtas_errd_tmpfs_t)
+
+########################################
+#
+# rtas_errd local policy
+#
+
+allow rtas_errd_t self:capability { net_admin chown sys_admin };
+allow rtas_errd_t self:process { fork signull };
+allow rtas_errd_t self:fifo_file rw_fifo_file_perms;
+allow rtas_errd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(rtas_errd_t, rtas_errd_log_t, rtas_errd_log_t)
+manage_files_pattern(rtas_errd_t, rtas_errd_log_t, rtas_errd_log_t)
+manage_lnk_files_pattern(rtas_errd_t, rtas_errd_log_t, rtas_errd_log_t)
+logging_log_filetrans(rtas_errd_t, rtas_errd_log_t, { dir file lnk_file })
+
+manage_files_pattern(rtas_errd_t,rtas_errd_var_lock_t,rtas_errd_var_lock_t)
+manage_lnk_files_pattern(rtas_errd_t,rtas_errd_var_lock_t,rtas_errd_var_lock_t)
+files_lock_filetrans(rtas_errd_t,rtas_errd_var_lock_t, { dir file } )
+
+manage_dirs_pattern(rtas_errd_t, rtas_errd_var_run_t, rtas_errd_var_run_t)
+manage_files_pattern(rtas_errd_t, rtas_errd_var_run_t, rtas_errd_var_run_t)
+manage_lnk_files_pattern(rtas_errd_t, rtas_errd_var_run_t, rtas_errd_var_run_t)
+files_pid_filetrans(rtas_errd_t, rtas_errd_var_run_t, { dir file lnk_file })
+
+manage_files_pattern(rtas_errd_t, rtas_errd_tmp_t, rtas_errd_tmp_t)
+manage_dirs_pattern(rtas_errd_t, rtas_errd_tmp_t, rtas_errd_tmp_t)
+files_tmp_filetrans(rtas_errd_t, rtas_errd_tmp_t, { file dir })
+
+manage_files_pattern(rtas_errd_t, rtas_errd_tmpfs_t, rtas_errd_tmpfs_t)
+manage_dirs_pattern(rtas_errd_t, rtas_errd_tmpfs_t, rtas_errd_tmpfs_t)
+fs_tmpfs_filetrans(rtas_errd_t, rtas_errd_tmpfs_t, { file dir })
+
+kernel_read_all_sysctls(rtas_errd_t)
+kernel_read_system_state(rtas_errd_t)
+kernel_read_network_state(rtas_errd_t)
+
+domain_read_all_domains_state(rtas_errd_t)
+
+auth_use_nsswitch(rtas_errd_t)
+
+corecmd_exec_bin(rtas_errd_t)
+
+dev_read_rand(rtas_errd_t)
+dev_read_urand(rtas_errd_t)
+dev_read_raw_memory(rtas_errd_t)
+dev_write_raw_memory(rtas_errd_t)
+dev_read_sysfs(rtas_errd_t)
+dev_rw_nvram(rtas_errd_t)
+
+files_manage_system_db_files(rtas_errd_t)
+
+logging_send_syslog_msg(rtas_errd_t)
+logging_read_generic_logs(rtas_errd_t)
+
+optional_policy(`
+    hostname_exec(rtas_errd_t)
+')
+
+optional_policy(`
+    rpm_exec(rtas_errd_t)
+    rpm_dontaudit_manage_db(rtas_errd_t)
+')
+
+optional_policy(`
+    unconfined_domain(rtas_errd_t)
+')

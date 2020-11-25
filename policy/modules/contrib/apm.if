@@ -1,0 +1,218 @@
+## <summary>Advanced power management.</summary>
+
+########################################
+## <summary>
+##	Execute apm in the apm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`apm_domtrans_client',`
+	gen_require(`
+		type apm_t, apm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, apm_exec_t, apm_t)
+')
+
+########################################
+## <summary>
+##	Execute apm in the apm domain
+##	and allow the specified role
+##	the apm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_run_client',`
+	gen_require(`
+		attribute_role apm_roles;
+	')
+
+	apm_domtrans_client($1)
+	roleattribute $2 apm_roles;
+')
+
+########################################
+## <summary>
+##	Use apmd file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_use_fds',`
+	gen_require(`
+		type apmd_t;
+	')
+
+	allow $1 apmd_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Write apmd unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_write_pipes',`
+	gen_require(`
+		type apmd_t;
+	')
+
+	allow $1 apmd_t:fifo_file write; 
+')
+
+########################################
+## <summary>
+##	Read and write to apmd unix
+##	stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_rw_stream_sockets',`
+	gen_require(`
+		type apmd_t;
+	')
+
+	allow $1 apmd_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Append apmd log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_append_log',`
+	gen_require(`
+		type apmd_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 apmd_log_t:file append_file_perms;
+')
+
+########################################
+## <summary>
+##	Connect to apmd over an unix
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_stream_connect',`
+	gen_require(`
+		type apmd_t, apmd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, apmd_var_run_t, apmd_var_run_t, apmd_t)
+')
+
+########################################
+## <summary>
+##	Execute apmd server in the apmd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`apmd_systemctl',`
+	gen_require(`
+		type apmd_t;
+		type apmd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 apmd_unit_file_t:file read_file_perms;
+	allow $1 apmd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, apmd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an apm environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apm_admin',`
+	gen_require(`
+		type apmd_t, apmd_initrc_exec_t, apmd_log_t;
+		type apmd_lock_t, apmd_var_run_t, apmd_var_lib_t;
+		type apmd_tmp_t;
+	')
+
+	allow $1 apmd_t:process { signal_perms };
+	ps_process_pattern($1, apmd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 apmd_t:process ptrace;
+    ')
+
+	init_labeled_script_domtrans($1, apmd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 apmd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, apmd_log_t)
+
+	files_search_locks($1)
+	admin_pattern($1, apmd_lock_t)
+
+	files_search_pids($1)
+	admin_pattern($1, apmd_var_run_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, apmd_var_lib_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, apmd_tmp_t)
+
+	apm_run_client($1, $2)
+')

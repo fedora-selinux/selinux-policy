@@ -1,0 +1,47 @@
+policy_module(rolekit, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type rolekit_t;
+type rolekit_exec_t;
+init_daemon_domain(rolekit_t, rolekit_exec_t)
+
+type rolekit_tmp_t;
+files_tmp_file(rolekit_tmp_t)
+
+type rolekit_unit_file_t;
+systemd_unit_file(rolekit_unit_file_t)
+
+########################################
+#
+# rolekit local policy
+#
+
+allow rolekit_t self:fifo_file rw_fifo_file_perms;
+allow rolekit_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_files_pattern(rolekit_t, rolekit_tmp_t, rolekit_tmp_t)
+manage_dirs_pattern(rolekit_t, rolekit_tmp_t, rolekit_tmp_t)
+files_tmp_filetrans(rolekit_t, rolekit_tmp_t, { file dir })
+
+kernel_read_system_state(rolekit_t)
+
+auth_use_nsswitch(rolekit_t)
+
+optional_policy(`
+    sssd_domtrans(rolekit_t)
+')
+
+optional_policy(`
+    rpm_transition_script(rolekit_t, system_r)
+')
+
+optional_policy(`
+    unconfined_domain_noaudit(rolekit_t)
+    #should be changed for debugging
+    #unconfined_domain(rolekit_t)
+    domain_named_filetrans(rolekit_t)
+')

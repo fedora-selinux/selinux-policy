@@ -1,0 +1,145 @@
+## <summary>System shutdown command</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run shutdown.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`shutdown_domtrans',`
+	gen_require(`
+		type shutdown_t, shutdown_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, shutdown_exec_t, shutdown_t)
+
+	init_reboot($1)
+	init_halt($1)
+
+	optional_policy(`
+		systemd_exec_systemctl($1)
+	init_reload_services($1)
+		init_stream_connect($1)
+		systemd_login_reboot($1)
+		systemd_login_halt($1)
+	')
+
+	ifdef(`hide_broken_symptoms', `
+		dontaudit shutdown_t $1:fifo_file rw_inherited_fifo_file_perms;
+	')
+')
+
+########################################
+## <summary>
+##	Execute shutdown in the shutdown domain, and
+##	allow the specified role the shutdown domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`shutdown_run',`
+	gen_require(`
+		type shutdown_t;
+		attribute_role shutdown_roles;
+	')
+
+    shutdown_domtrans($1)
+    roleattribute $2 shutdown_roles;
+')
+
+########################################
+## <summary>
+##	Role access for shutdown
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`shutdown_role',`
+	gen_require(`
+              type shutdown_t;
+	')
+
+    shutdown_run($2, $1)
+
+    allow $2 shutdown_t:process { ptrace signal_perms };
+    ps_process_pattern($2, shutdown_t)
+')
+
+########################################
+## <summary>
+##	Recieve sigchld from shutdown
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`shutdown_send_sigchld',`
+	gen_require(`
+              type shutdown_t;
+	')
+
+	allow shutdown_t $1:process signal;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	shutdown over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shutdown_dbus_chat',`
+	gen_require(`
+		type shutdown_t;
+		class dbus send_msg;
+	')
+
+	allow $1 shutdown_t:dbus send_msg;
+	allow shutdown_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Get attributes of shutdown executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shutdown_getattr_exec_files',`
+	gen_require(`
+		type shutdown_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	allow $1 shutdown_exec_t:file getattr_file_perms;
+')

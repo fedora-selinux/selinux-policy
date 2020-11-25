@@ -1,0 +1,153 @@
+
+## <summary>Geoclue is a D-Bus service that provides location information</summary>
+
+########################################
+## <summary>
+##	Execute geoclue in the geoclue domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`geoclue_domtrans',`
+	gen_require(`
+		type geoclue_t, geoclue_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, geoclue_exec_t, geoclue_t)
+')
+
+########################################
+## <summary>
+##	Search geoclue lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`geoclue_search_lib',`
+	gen_require(`
+		type geoclue_var_lib_t;
+	')
+
+	allow $1 geoclue_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read geoclue lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`geoclue_read_lib_files',`
+	gen_require(`
+		type geoclue_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, geoclue_var_lib_t, geoclue_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage geoclue lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`geoclue_manage_lib_files',`
+	gen_require(`
+		type geoclue_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, geoclue_var_lib_t, geoclue_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage geoclue lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`geoclue_manage_lib_dirs',`
+	gen_require(`
+		type geoclue_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, geoclue_var_lib_t, geoclue_var_lib_t)
+')
+
+########################################
+## <summary>
+##  Send and receive messages from
+##  geoclue over dbus.
+## </summary>
+## <param name="domain">
+##  <summary>
+##      Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`geoclue_dbus_chat',`
+        gen_require(`
+                type geoclue_t;
+                class dbus send_msg;
+        ')
+
+        allow $1 geoclue_t:dbus send_msg;
+        allow geoclue_t $1:dbus send_msg;
+	    ps_process_pattern(geoclue_t, $1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an geoclue environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`geoclue_admin',`
+	gen_require(`
+		type geoclue_t;
+		type geoclue_var_lib_t;
+	')
+
+	allow $1 geoclue_t:process { signal_perms };
+	ps_process_pattern($1, geoclue_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 geoclue_t:process ptrace;
+    ')
+
+	files_search_var_lib($1)
+	admin_pattern($1, geoclue_var_lib_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

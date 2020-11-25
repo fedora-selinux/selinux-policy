@@ -1,0 +1,220 @@
+policy_module(dirsrv,1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+# main daemon
+type dirsrv_t;
+type dirsrv_exec_t;
+
+type dirsrv_unit_file_t;
+systemd_unit_file(dirsrv_unit_file_t)
+
+domain_type(dirsrv_t)
+init_daemon_domain(dirsrv_t, dirsrv_exec_t)
+
+type dirsrv_snmp_t;
+type dirsrv_snmp_exec_t;
+domain_type(dirsrv_snmp_t)
+init_daemon_domain(dirsrv_snmp_t, dirsrv_snmp_exec_t)
+
+type dirsrv_var_lib_t;
+files_type(dirsrv_var_lib_t)
+
+type dirsrv_var_log_t;
+logging_log_file(dirsrv_var_log_t)
+
+type dirsrv_snmp_var_log_t;
+logging_log_file(dirsrv_snmp_var_log_t)
+
+type dirsrv_var_run_t;
+files_pid_file(dirsrv_var_run_t)
+
+type dirsrv_snmp_var_run_t;
+files_pid_file(dirsrv_snmp_var_run_t)
+
+type dirsrv_var_lock_t;
+files_lock_file(dirsrv_var_lock_t)
+
+type dirsrv_config_t;
+files_type(dirsrv_config_t)
+
+type dirsrv_tmp_t;
+files_tmp_file(dirsrv_tmp_t)
+
+type dirsrv_tmpfs_t;
+files_tmpfs_file(dirsrv_tmpfs_t)
+
+type dirsrv_share_t;
+files_type(dirsrv_share_t);
+
+########################################
+#
+# dirsrv local policy
+#
+allow dirsrv_t self:process { getsched setsched setfscreate setrlimit signal_perms};
+allow dirsrv_t self:capability { sys_nice setuid setgid fsetid chown dac_read_search dac_override fowner };
+allow dirsrv_t self:fifo_file manage_fifo_file_perms;
+allow dirsrv_t self:sem create_sem_perms;
+allow dirsrv_t self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(dirsrv_t, dirsrv_tmpfs_t, dirsrv_tmpfs_t)
+manage_files_pattern(dirsrv_t, dirsrv_tmpfs_t, dirsrv_tmpfs_t)
+manage_lnk_files_pattern(dirsrv_t, dirsrv_tmpfs_t, dirsrv_tmpfs_t)
+fs_tmpfs_filetrans(dirsrv_t, dirsrv_tmpfs_t, { dir file })
+allow dirsrv_t dirsrv_tmpfs_t:file map;
+
+manage_dirs_pattern(dirsrv_t, dirsrv_var_lib_t, dirsrv_var_lib_t)
+manage_files_pattern(dirsrv_t, dirsrv_var_lib_t, dirsrv_var_lib_t)
+manage_sock_files_pattern(dirsrv_t, dirsrv_var_lib_t, dirsrv_var_lib_t)
+files_var_lib_filetrans(dirsrv_t,dirsrv_var_lib_t, { file dir sock_file })
+allow dirsrv_t dirsrv_var_lib_t:file map;
+
+manage_dirs_pattern(dirsrv_t, dirsrv_var_log_t, dirsrv_var_log_t)
+manage_files_pattern(dirsrv_t, dirsrv_var_log_t, dirsrv_var_log_t)
+manage_fifo_files_pattern(dirsrv_t, dirsrv_var_log_t, dirsrv_var_log_t)
+allow dirsrv_t dirsrv_var_log_t:dir { setattr };
+logging_log_filetrans(dirsrv_t,dirsrv_var_log_t,{ sock_file file dir })
+
+manage_dirs_pattern(dirsrv_t, dirsrv_var_run_t, dirsrv_var_run_t)
+manage_files_pattern(dirsrv_t, dirsrv_var_run_t, dirsrv_var_run_t)
+manage_sock_files_pattern(dirsrv_t, dirsrv_var_run_t, dirsrv_var_run_t)
+files_pid_filetrans(dirsrv_t, dirsrv_var_run_t, { file dir sock_file })
+allow dirsrv_t dirsrv_var_run_t:file map;
+
+manage_files_pattern(dirsrv_t, dirsrv_var_lock_t, dirsrv_var_lock_t)
+manage_dirs_pattern(dirsrv_t, dirsrv_var_lock_t, dirsrv_var_lock_t)
+files_lock_filetrans(dirsrv_t, dirsrv_var_lock_t, { dir file })
+files_setattr_lock_dirs(dirsrv_t)
+
+manage_files_pattern(dirsrv_t, dirsrv_config_t, dirsrv_config_t)
+manage_dirs_pattern(dirsrv_t, dirsrv_config_t, dirsrv_config_t)
+manage_lnk_files_pattern(dirsrv_t, dirsrv_config_t, dirsrv_config_t)
+
+manage_files_pattern(dirsrv_t, dirsrv_tmp_t, dirsrv_tmp_t)
+exec_files_pattern(dirsrv_t, dirsrv_tmp_t, dirsrv_tmp_t)
+manage_lnk_files_pattern(dirsrv_t, dirsrv_tmp_t, dirsrv_tmp_t)
+manage_dirs_pattern(dirsrv_t, dirsrv_tmp_t, dirsrv_tmp_t)
+files_tmp_filetrans(dirsrv_t, dirsrv_tmp_t, { file dir lnk_file })
+allow dirsrv_t dirsrv_tmp_t:file relabel_file_perms;
+
+read_files_pattern(dirsrv_t, dirsrv_share_t, dirsrv_share_t)
+list_dirs_pattern(dirsrv_t, dirsrv_share_t, dirsrv_share_t)
+
+kernel_read_network_state(dirsrv_t)
+kernel_read_system_state(dirsrv_t)
+kernel_read_kernel_sysctls(dirsrv_t)
+
+corecmd_search_bin(dirsrv_t)
+
+corenet_all_recvfrom_netlabel(dirsrv_t)
+corenet_tcp_sendrecv_generic_if(dirsrv_t)
+corenet_tcp_sendrecv_generic_node(dirsrv_t)
+corenet_tcp_sendrecv_all_ports(dirsrv_t)
+corenet_tcp_bind_generic_node(dirsrv_t)
+corenet_tcp_bind_ldap_port(dirsrv_t)
+corenet_tcp_bind_dogtag_port(dirsrv_t)
+corenet_tcp_bind_all_rpc_ports(dirsrv_t)
+corenet_udp_bind_all_rpc_ports(dirsrv_t)
+corenet_tcp_connect_all_ports(dirsrv_t)
+corenet_sendrecv_ldap_server_packets(dirsrv_t)
+corenet_sendrecv_all_client_packets(dirsrv_t)
+
+dev_read_sysfs(dirsrv_t)
+dev_read_urand(dirsrv_t)
+
+files_read_usr_symlinks(dirsrv_t)
+
+fs_getattr_all_fs(dirsrv_t)
+fs_list_cgroup_dirs(dirsrv_t)
+fs_read_cgroup_files(dirsrv_t)
+
+auth_use_pam(dirsrv_t)
+
+logging_send_syslog_msg(dirsrv_t)
+
+sysnet_dns_name_resolve(dirsrv_t)
+
+usermanage_read_crack_db(dirsrv_t)
+
+optional_policy(`
+	apache_dontaudit_leaks(dirsrv_t)
+')
+
+optional_policy(`
+	dirsrvadmin_read_tmp(dirsrv_t)
+')
+
+optional_policy(`
+	kerberos_use(dirsrv_t)
+	kerberos_tmp_filetrans_host_rcache(dirsrv_t, "ldapmap1_0")
+	kerberos_tmp_filetrans_host_rcache(dirsrv_t, "ldap_487")
+	kerberos_tmp_filetrans_host_rcache(dirsrv_t, "ldap_55")
+')
+
+# FIPS mode
+optional_policy(`
+	prelink_exec(dirsrv_t)
+')
+
+optional_policy(`
+	rpcbind_stream_connect(dirsrv_t)
+')
+
+optional_policy(`
+    uuidd_stream_connect_manager(dirsrv_t)
+')
+
+optional_policy(`
+	systemd_manage_passwd_run(dirsrv_t)
+	systemd_private_tmp(dirsrv_tmp_t)
+')
+
+########################################
+#
+# dirsrv-snmp local policy
+#
+allow dirsrv_snmp_t self:capability {  dac_read_search };
+allow dirsrv_snmp_t self:fifo_file rw_fifo_file_perms;
+
+rw_files_pattern(dirsrv_snmp_t, dirsrv_tmpfs_t, dirsrv_tmpfs_t)
+
+read_files_pattern(dirsrv_snmp_t, dirsrv_var_run_t, dirsrv_var_run_t)
+
+read_files_pattern(dirsrv_snmp_t, dirsrv_config_t, dirsrv_config_t)
+
+manage_files_pattern(dirsrv_snmp_t, dirsrv_snmp_var_run_t, dirsrv_snmp_var_run_t)
+files_pid_filetrans(dirsrv_snmp_t, dirsrv_snmp_var_run_t, { file sock_file })
+search_dirs_pattern(dirsrv_snmp_t, dirsrv_var_run_t, dirsrv_var_run_t)
+
+manage_files_pattern(dirsrv_snmp_t, dirsrv_var_log_t, dirsrv_snmp_var_log_t);
+filetrans_pattern(dirsrv_snmp_t, dirsrv_var_log_t, dirsrv_snmp_var_log_t, file)
+
+kernel_read_system_state(dirsrv_snmp_t)
+
+corenet_tcp_connect_agentx_port(dirsrv_snmp_t)
+
+dev_read_rand(dirsrv_snmp_t)
+dev_read_urand(dirsrv_snmp_t)
+
+domain_use_interactive_fds(dirsrv_snmp_t)
+
+#files_manage_var_files(dirsrv_snmp_t)
+
+fs_getattr_tmpfs(dirsrv_snmp_t)
+fs_search_tmpfs(dirsrv_snmp_t)
+
+sysnet_read_config(dirsrv_snmp_t)
+sysnet_dns_name_resolve(dirsrv_snmp_t)
+
+userdom_use_inherited_user_ptys(dirsrv_snmp_t)
+
+optional_policy(`
+	snmp_dontaudit_read_snmp_var_lib_files(dirsrv_snmp_t)
+	snmp_dontaudit_write_snmp_var_lib_files(dirsrv_snmp_t)
+	snmp_manage_var_lib_dirs(dirsrv_snmp_t)
+	snmp_manage_var_lib_files(dirsrv_snmp_t)
+	snmp_stream_connect(dirsrv_snmp_t)
+')

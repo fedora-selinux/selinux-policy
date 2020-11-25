@@ -1,0 +1,59 @@
+## <summary>Network scanning daemon.</summary>
+
+########################################
+## <summary>
+##	Connect to nessus over a TCP socket  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nessus_tcp_connect',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an nessus environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`nessus_admin',`
+	gen_require(`
+		type nessusd_t, nessusd_db_t, nessusd_initrc_exec_t;
+		type nessusd_etc_t, nessusd_log_t, nessusd_var_run_t;
+	')
+
+	allow $1 nessusd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, nessusd_t)
+
+	init_labeled_script_domtrans($1, nessusd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 nessusd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, nessusd_log_t)
+
+	files_search_etc($1)
+	admin_pattern($1, nessusd_etc_t)
+
+	files_search_pids($1)
+	admin_pattern($1, nessusd_var_run_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, nessusd_db_t)
+')

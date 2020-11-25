@@ -1,0 +1,251 @@
+policy_module(openvpn, 1.12.2)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow openvpn to run unconfined scripts
+## </p>
+## </desc>
+gen_tunable(openvpn_run_unconfined, false)
+
+## <desc>
+##	<p>
+##	Determine whether openvpn can
+##	read generic user home content files.
+##	</p>
+## </desc>
+gen_tunable(openvpn_enable_homedirs, false)
+
+## <desc>
+##	<p>
+##	Determine whether openvpn can
+##	connect to the TCP network.
+##	</p>
+## </desc>
+gen_tunable(openvpn_can_network_connect, true)
+
+attribute_role openvpn_roles;
+
+type openvpn_t;
+type openvpn_exec_t;
+init_daemon_domain(openvpn_t, openvpn_exec_t)
+role openvpn_roles types openvpn_t;
+
+type openvpn_etc_t;
+files_config_file(openvpn_etc_t)
+
+type openvpn_etc_rw_t;
+files_config_file(openvpn_etc_rw_t)
+
+type openvpn_initrc_exec_t;
+init_script_file(openvpn_initrc_exec_t)
+
+type openvpn_status_t;
+logging_log_file(openvpn_status_t)
+
+type openvpn_var_lib_t;
+files_type(openvpn_var_lib_t)
+
+type openvpn_tmp_t;
+files_tmp_file(openvpn_tmp_t)
+
+type openvpn_var_log_t;
+logging_log_file(openvpn_var_log_t)
+
+type openvpn_var_run_t;
+files_pid_file(openvpn_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow openvpn_t self:capability { dac_read_search dac_override ipc_lock net_bind_service net_admin setgid setuid sys_chroot sys_tty_config sys_nice };
+allow openvpn_t self:process { signal getsched setcap setsched };
+allow openvpn_t self:fifo_file rw_fifo_file_perms;
+allow openvpn_t self:unix_dgram_socket sendto;
+allow openvpn_t self:unix_stream_socket { accept connectto listen };
+allow openvpn_t self:tcp_socket server_stream_socket_perms;
+allow openvpn_t self:tun_socket { create_socket_perms relabelfrom relabelto };
+allow openvpn_t self:netlink_route_socket nlmsg_write;
+
+dontaudit openvpn_t self:capability2  block_suspend ;
+
+allow openvpn_t openvpn_etc_t:dir list_dir_perms;
+allow openvpn_t openvpn_etc_t:file read_file_perms;
+allow openvpn_t openvpn_etc_t:lnk_file read_lnk_file_perms;
+
+manage_files_pattern(openvpn_t, openvpn_etc_t, openvpn_etc_rw_t)
+filetrans_pattern(openvpn_t, openvpn_etc_t, openvpn_etc_rw_t, file)
+
+allow openvpn_t openvpn_status_t:file manage_file_perms;
+logging_log_filetrans(openvpn_t, openvpn_status_t, file, "openvpn-status.log")
+
+manage_files_pattern(openvpn_t, openvpn_tmp_t, openvpn_tmp_t)
+files_tmp_filetrans(openvpn_t, openvpn_tmp_t, file)
+
+manage_files_pattern(openvpn_t, openvpn_var_lib_t, openvpn_var_lib_t)
+manage_dirs_pattern(openvpn_t, openvpn_var_lib_t, openvpn_var_lib_t)
+files_var_lib_filetrans(openvpn_t, openvpn_var_lib_t, { dir file })
+
+allow openvpn_t openvpn_tmp_t:file manage_file_perms;
+files_tmp_filetrans(openvpn_t, openvpn_tmp_t, file)
+
+manage_dirs_pattern(openvpn_t, openvpn_var_log_t, openvpn_var_log_t)
+manage_files_pattern(openvpn_t, openvpn_var_log_t, openvpn_var_log_t)
+logging_log_filetrans(openvpn_t, openvpn_var_log_t, file)
+
+manage_dirs_pattern(openvpn_t, openvpn_var_run_t, openvpn_var_run_t)
+manage_files_pattern(openvpn_t, openvpn_var_run_t, openvpn_var_run_t)
+manage_sock_files_pattern(openvpn_t, openvpn_var_run_t, openvpn_var_run_t)
+files_pid_filetrans(openvpn_t, openvpn_var_run_t, { sock_file file dir })
+
+can_exec(openvpn_t, openvpn_etc_t)
+
+kernel_read_kernel_sysctls(openvpn_t)
+kernel_read_net_sysctls(openvpn_t)
+kernel_read_network_state(openvpn_t)
+kernel_read_system_state(openvpn_t)
+kernel_request_load_module(openvpn_t)
+
+corecmd_exec_bin(openvpn_t)
+corecmd_exec_shell(openvpn_t)
+
+corenet_all_recvfrom_netlabel(openvpn_t)
+corenet_tcp_sendrecv_generic_if(openvpn_t)
+corenet_udp_sendrecv_generic_if(openvpn_t)
+corenet_tcp_sendrecv_generic_node(openvpn_t)
+corenet_udp_sendrecv_generic_node(openvpn_t)
+corenet_tcp_bind_generic_node(openvpn_t)
+corenet_udp_bind_generic_node(openvpn_t)
+
+corenet_sendrecv_openvpn_server_packets(openvpn_t)
+corenet_tcp_bind_openvpn_port(openvpn_t)
+corenet_udp_bind_openvpn_port(openvpn_t)
+corenet_sendrecv_openvpn_client_packets(openvpn_t)
+corenet_tcp_connect_openvpn_port(openvpn_t)
+corenet_tcp_sendrecv_openvpn_port(openvpn_t)
+corenet_udp_sendrecv_openvpn_port(openvpn_t)
+
+corenet_sendrecv_http_server_packets(openvpn_t)
+corenet_tcp_bind_http_port(openvpn_t)
+corenet_sendrecv_http_client_packets(openvpn_t)
+corenet_tcp_connect_squid_port(openvpn_t)
+corenet_tcp_connect_http_port(openvpn_t)
+corenet_tcp_sendrecv_http_port(openvpn_t)
+corenet_sendrecv_http_cache_client_packets(openvpn_t)
+corenet_tcp_connect_http_cache_port(openvpn_t)
+corenet_tcp_sendrecv_http_cache_port(openvpn_t)
+
+corenet_tcp_connect_tor_port(openvpn_t)
+
+corenet_rw_tun_tap_dev(openvpn_t)
+
+dev_read_rand(openvpn_t)
+
+files_read_etc_runtime_files(openvpn_t)
+
+fs_getattr_all_fs(openvpn_t)
+fs_search_auto_mountpoints(openvpn_t)
+fs_list_cgroup_dirs(openvpn_t)
+
+auth_use_pam(openvpn_t)
+
+init_read_state(openvpn_t)
+
+logging_send_syslog_msg(openvpn_t)
+
+miscfiles_read_all_certs(openvpn_t)
+
+sysnet_dns_name_resolve(openvpn_t)
+sysnet_exec_ifconfig(openvpn_t)
+sysnet_manage_config(openvpn_t)
+sysnet_etc_filetrans_config(openvpn_t)
+sysnet_use_ldap(openvpn_t)
+
+systemd_passwd_agent_domtrans(openvpn_t)
+systemd_manage_passwd_run(openvpn_t)
+
+userdom_use_inherited_user_terminals(openvpn_t)
+userdom_read_home_certs(openvpn_t)
+userdom_attach_admin_tun_iface(openvpn_t)
+userdom_read_inherited_user_tmp_files(openvpn_t)
+userdom_read_inherited_user_home_content_files(openvpn_t)
+
+tunable_policy(`openvpn_enable_homedirs',`
+	userdom_search_user_home_dirs(openvpn_t)
+')
+
+tunable_policy(`openvpn_enable_homedirs && use_nfs_home_dirs',`
+	fs_read_nfs_files(openvpn_t)
+')
+
+tunable_policy(`openvpn_enable_homedirs && use_samba_home_dirs',`
+	fs_read_cifs_files(openvpn_t)
+')
+
+tunable_policy(`openvpn_can_network_connect',`
+	corenet_sendrecv_all_client_packets(openvpn_t)
+	corenet_tcp_connect_all_ports(openvpn_t)
+	corenet_tcp_sendrecv_all_ports(openvpn_t)
+')
+
+optional_policy(`
+	brctl_domtrans(openvpn_t)
+')
+
+optional_policy(`
+	daemontools_service_domain(openvpn_t, openvpn_exec_t)
+')
+
+optional_policy(`
+    networkmanager_stream_connect(openvpn_t)
+    networkmanager_manage_pid_files(openvpn_t)
+    networkmanager_manage_pid_sock_files(openvpn_t)
+    networkmanager_attach_tun_iface(openvpn_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(openvpn_t)
+	dbus_connect_system_bus(openvpn_t)
+
+	optional_policy(`
+		networkmanager_dbus_chat(openvpn_t)
+	')
+')
+
+optional_policy(`
+    vpnc_manage_pid(openvpn_t)
+')
+
+optional_policy(`
+	unconfined_attach_tun_iface(openvpn_t)
+')
+
+tunable_policy(`use_ecryptfs_home_dirs',`
+	fs_manage_ecryptfs_files(openvpn_t)
+')
+
+type openvpn_unconfined_script_t;
+type openvpn_unconfined_script_exec_t;
+domain_type(openvpn_unconfined_script_t)
+domain_entry_file(openvpn_unconfined_script_t, openvpn_unconfined_script_exec_t)
+corecmd_shell_entry_type(openvpn_unconfined_script_t)
+role system_r types openvpn_unconfined_script_t;
+
+allow openvpn_t openvpn_unconfined_script_exec_t:dir search_dir_perms;
+allow openvpn_t openvpn_unconfined_script_exec_t:file ioctl;
+
+optional_policy(`
+	unconfined_domain(openvpn_unconfined_script_t)
+')
+
+tunable_policy(`openvpn_run_unconfined',`
+		domtrans_pattern(openvpn_t, openvpn_unconfined_script_exec_t, openvpn_unconfined_script_t)
+',`
+	can_exec(openvpn_t, openvpn_unconfined_script_exec_t)
+')

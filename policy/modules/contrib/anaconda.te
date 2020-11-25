@@ -1,0 +1,133 @@
+policy_module(anaconda, 1.7.0)
+
+gen_require(`
+	class passwd all_passwd_perms;
+')
+
+gen_require(`
+	class passwd { passwd chfn chsh rootok crontab };
+')
+
+########################################
+#
+# Declarations
+#
+
+type anaconda_t;
+type anaconda_exec_t;
+domain_type(anaconda_t)
+domain_entry_file(anaconda_t, anaconda_exec_t)
+domain_obj_id_change_exemption(anaconda_t)
+role system_r types anaconda_t;
+
+attribute_role install_roles;
+roleattribute system_r install_roles;
+
+type install_t;
+type install_exec_t;
+application_domain(install_t, install_exec_t)
+role install_roles types install_t;
+
+type preupgrade_t;
+type preupgrade_exec_t;
+application_domain(preupgrade_t, preupgrade_exec_t)
+role system_r types preupgrade_t;
+
+type preupgrade_data_t;
+files_type(preupgrade_data_t)
+
+########################################
+#
+# Local policy
+#
+
+allow anaconda_t self:process execmem;
+allow anaconda_t self:passwd { rootok passwd chfn chsh };
+
+kernel_domtrans_to(anaconda_t, anaconda_exec_t)
+
+init_domtrans_script(anaconda_t)
+
+logging_send_syslog_msg(anaconda_t)
+
+modutils_domtrans_kmod(anaconda_t)
+modutils_domtrans_kmod(anaconda_t)
+
+seutil_domtrans_semanage(anaconda_t)
+seutil_domtrans_setsebool(anaconda_t)
+
+userdom_filetrans_home_content(anaconda_t)
+
+optional_policy(`
+	rpm_domtrans(anaconda_t)
+	rpm_domtrans_script(anaconda_t)
+')
+
+optional_policy(`
+	ssh_domtrans_keygen(anaconda_t)
+')
+
+optional_policy(`
+	udev_domtrans(anaconda_t)
+')
+
+optional_policy(`
+	unconfined_domain_noaudit(anaconda_t)
+')
+
+########################################
+#
+# Local policy
+#
+
+allow install_t self:capability2 mac_admin;
+
+systemd_dbus_chat_localed(install_t)
+systemd_dbus_chat_logind(install_t)
+init_dbus_chat(install_t)
+
+tunable_policy(`deny_ptrace',`',`
+	domain_ptrace_all_domains(install_t)
+')
+
+optional_policy(`
+    iscsid_run(install_t, install_roles)
+')
+
+optional_policy(`
+    mount_run(install_t, install_roles)
+')
+
+optional_policy(`
+    networkmanager_dbus_chat(install_t)
+')
+
+optional_policy(`
+    policykit_dbus_chat(install_t)
+')
+
+optional_policy(`
+    rtkit_scheduled(install_t)
+')
+
+optional_policy(`
+	seutil_run_setfiles_mac(install_t, install_roles)
+')
+
+optional_policy(`
+	unconfined_domain_noaudit(install_t)
+')
+
+
+########################################
+#
+# Local policy
+#
+
+manage_files_pattern(preupgrade_t, preupgrade_data_t, preupgrade_data_t)
+manage_dirs_pattern(preupgrade_t, preupgrade_data_t, preupgrade_data_t)
+manage_lnk_files_pattern(preupgrade_t, preupgrade_data_t, preupgrade_data_t)
+
+optional_policy(`
+    unconfined_domain_noaudit(preupgrade_t)
+')

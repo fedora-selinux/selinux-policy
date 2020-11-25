@@ -1,0 +1,188 @@
+## <summary>Service daemon with a D-BUS interface that provides a dynamic managed firewall.</summary>
+
+########################################
+## <summary>
+##	Read firewalld config
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`firewalld_read_config',`
+	gen_require(`
+		type firewalld_etc_rw_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, firewalld_etc_rw_t, firewalld_etc_rw_t)
+')
+
+########################################
+## <summary>
+##	Execute firewalld server in the firewalld domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firewalld_initrc_domtrans',`
+	gen_require(`
+		type firewalld_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, firewalld_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute firewalld server in the firewalld domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`firewalld_systemctl',`
+	gen_require(`
+		type firewalld_t;
+		type firewalld_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 firewalld_unit_file_t:file read_file_perms;
+	allow $1 firewalld_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, firewalld_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	firewalld over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`firewalld_dbus_chat',`
+	gen_require(`
+		type firewalld_t;
+		class dbus send_msg;
+	')
+
+	allow $1 firewalld_t:dbus send_msg;
+	allow firewalld_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to write
+##	firewalld tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`firewalld_dontaudit_write_tmp_files',`
+	gen_require(`
+		type firewalld_tmp_t;
+	')
+
+	dontaudit $1 firewalld_tmp_t:file write;
+')
+
+########################################
+## <summary>
+##	Read firewalld PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`firewalld_read_pid_files',`
+	gen_require(`
+		type firewalld_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 firewalld_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Dontaudit read and write leaked firewalld file descriptors 
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`firewalld_dontaudit_leaks',`
+	gen_require(`
+		type firewalld_tmpfs_t;
+	')
+
+	dontaudit $1 firewalld_tmpfs_t:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an firewalld environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`firewalld_admin',`
+	gen_require(`
+		type firewalld_t, firewalld_initrc_exec_t;
+		type firewalld_etc_rw_t, firewalld_var_run_t;
+		type firewalld_var_log_t;
+	')
+
+	allow $1 firewalld_t:process signal_perms;
+	ps_process_pattern($1, firewalld_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 firewalld_t:process ptrace;
+	')
+
+	firewalld_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 firewalld_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, firewalld_var_run_t)
+	
+	logging_search_logs($1)
+	admin_pattern($1, firewalld_var_log_t)
+
+	admin_pattern($1, firewalld_etc_rw_t)
+
+	admin_pattern($1, firewalld_unit_file_t)
+	firewalld_systemctl($1)
+	allow $1 firewalld_unit_file_t:service all_service_perms;
+')

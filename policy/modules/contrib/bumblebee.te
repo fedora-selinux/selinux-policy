@@ -1,0 +1,63 @@
+policy_module(bumblebee, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type bumblebee_t;
+type bumblebee_exec_t;
+init_daemon_domain(bumblebee_t, bumblebee_exec_t)
+
+type bumblebee_var_run_t;
+files_pid_file(bumblebee_var_run_t)
+
+type bumblebee_unit_file_t;
+systemd_unit_file(bumblebee_unit_file_t)
+
+########################################
+#
+# bumblebee local policy
+#
+
+allow bumblebee_t self:capability { setgid };
+allow bumblebee_t self:process { fork signal_perms };
+allow bumblebee_t self:fifo_file rw_fifo_file_perms;
+allow bumblebee_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(bumblebee_t, bumblebee_var_run_t, bumblebee_var_run_t)
+manage_files_pattern(bumblebee_t, bumblebee_var_run_t, bumblebee_var_run_t)
+manage_sock_files_pattern(bumblebee_t, bumblebee_var_run_t, bumblebee_var_run_t)
+manage_lnk_files_pattern(bumblebee_t, bumblebee_var_run_t, bumblebee_var_run_t)
+files_pid_filetrans(bumblebee_t, bumblebee_var_run_t, { dir file lnk_file sock_file })
+
+kernel_read_system_state(bumblebee_t)
+kernel_read_network_state(bumblebee_t)
+kernel_dontaudit_access_check_proc(bumblebee_t)
+kernel_dontaudit_write_proc_files(bumblebee_t)
+kernel_manage_debugfs(bumblebee_t)
+
+corecmd_exec_shell(bumblebee_t)
+corecmd_exec_bin(bumblebee_t)
+
+dev_read_sysfs(bumblebee_t)
+
+auth_use_nsswitch(bumblebee_t)
+
+logging_send_syslog_msg(bumblebee_t)
+
+modutils_domtrans_kmod(bumblebee_t)
+modutils_signal_kmod(bumblebee_t)
+
+sysnet_dns_name_resolve(bumblebee_t)
+
+xserver_domtrans(bumblebee_t)
+xserver_kill(bumblebee_t)
+xserver_signal(bumblebee_t)
+xserver_stream_connect(bumblebee_t)
+xserver_manage_xkb_libs(bumblebee_t)
+corenet_tcp_connect_xserver_port(bumblebee_t)
+
+optional_policy(`
+    apm_stream_connect(bumblebee_t)
+')

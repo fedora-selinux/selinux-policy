@@ -1,0 +1,340 @@
+policy_module(zabbix, 1.6.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##  <p>
+##	Determine whether zabbix can
+##	connect to all TCP ports
+##	</p>
+## </desc>
+gen_tunable(zabbix_can_network, false)
+
+
+## <desc>
+## <p>
+## Allow Zabbix to run su/sudo.
+## </p>
+## </desc>
+gen_tunable(zabbix_run_sudo, false)
+
+gen_require(`
+    class passwd rootok;
+    class passwd passwd;
+')
+
+attribute zabbix_domain;
+
+type zabbix_t, zabbix_domain;
+type zabbix_exec_t;
+init_daemon_domain(zabbix_t, zabbix_exec_t)
+
+type zabbix_initrc_exec_t;
+init_script_file(zabbix_initrc_exec_t)
+
+type zabbix_agent_t, zabbix_domain;
+type zabbix_agent_exec_t;
+init_daemon_domain(zabbix_agent_t, zabbix_agent_exec_t)
+
+type zabbix_agent_initrc_exec_t;
+init_script_file(zabbix_agent_initrc_exec_t)
+
+type zabbixd_var_lib_t;
+files_type(zabbixd_var_lib_t)
+
+type zabbix_log_t;
+logging_log_file(zabbix_log_t)
+
+type zabbix_tmp_t;
+files_tmp_file(zabbix_tmp_t)
+
+type zabbix_tmpfs_t;
+files_tmpfs_file(zabbix_tmpfs_t)
+
+type zabbix_var_lib_t;
+files_type(zabbix_var_lib_t)
+
+type zabbix_var_run_t;
+files_pid_file(zabbix_var_run_t)
+
+type zabbix_script_t;
+type zabbix_script_exec_t;
+domain_type(zabbix_script_t)
+domain_entry_file(zabbix_script_t, zabbix_script_exec_t)
+application_executable_file(zabbix_script_exec_t)
+role system_r types zabbix_script_t;
+
+########################################
+#
+# zabbix domain local policy
+#
+
+allow zabbix_domain self:capability { setuid setgid };
+allow zabbix_domain self:process { setpgid setsched getsched signal_perms };
+allow zabbix_domain self:fifo_file rw_fifo_file_perms;
+allow zabbix_domain self:sem create_sem_perms;
+allow zabbix_domain self:shm create_shm_perms;
+allow zabbix_domain self:tcp_socket { accept listen };
+allow zabbix_domain self:unix_stream_socket create_stream_socket_perms;
+
+kernel_read_all_sysctls(zabbix_domain)
+kernel_read_network_state(zabbix_domain)
+
+corenet_tcp_sendrecv_generic_if(zabbix_domain)
+corenet_tcp_sendrecv_generic_node(zabbix_domain)
+corenet_tcp_bind_generic_node(zabbix_domain)
+
+corecmd_exec_shell(zabbix_domain)
+corecmd_exec_bin(zabbix_domain)
+
+dev_read_sysfs(zabbix_domain)
+dev_read_urand(zabbix_domain)
+
+########################################
+#
+# Local policy
+#
+
+allow zabbix_t self:capability { dac_read_search  };
+allow zabbix_t self:process { setrlimit };
+allow zabbix_t self:unix_stream_socket connectto;
+
+manage_dirs_pattern(zabbix_t, zabbix_var_lib_t, zabbix_var_lib_t)
+manage_files_pattern(zabbix_t, zabbix_var_lib_t, zabbix_var_lib_t)
+manage_lnk_files_pattern(zabbix_t, zabbix_var_lib_t, zabbix_var_lib_t)
+manage_sock_files_pattern(zabbix_t, zabbix_var_lib_t, zabbix_var_lib_t)
+files_var_lib_filetrans(zabbix_t, zabbix_var_lib_t, dir, "zabbixsrv")
+
+manage_dirs_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
+manage_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
+manage_lnk_files_pattern(zabbix_t, zabbix_log_t, zabbix_log_t)
+logging_log_filetrans(zabbix_t, zabbix_log_t, { dir file })
+
+manage_dirs_pattern(zabbix_t, zabbix_tmp_t, zabbix_tmp_t)
+manage_files_pattern(zabbix_t, zabbix_tmp_t, zabbix_tmp_t)
+manage_sock_files_pattern(zabbix_t, zabbix_tmp_t, zabbix_tmp_t)
+files_tmp_filetrans(zabbix_t, zabbix_tmp_t, { dir file sock_file })
+
+rw_files_pattern(zabbix_t, zabbix_tmpfs_t, zabbix_tmpfs_t)
+fs_tmpfs_filetrans(zabbix_t, zabbix_tmpfs_t, file)
+
+manage_dirs_pattern(zabbix_t, zabbix_var_run_t, zabbix_var_run_t)
+manage_files_pattern(zabbix_t, zabbix_var_run_t, zabbix_var_run_t)
+manage_sock_files_pattern(zabbix_t, zabbix_var_run_t, zabbix_var_run_t)
+files_pid_filetrans(zabbix_t, zabbix_var_run_t, { dir file sock_file })
+
+kernel_read_system_state(zabbix_t)
+
+corenet_all_recvfrom_unlabeled(zabbix_t)
+corenet_all_recvfrom_netlabel(zabbix_t)
+
+corenet_sendrecv_ftp_client_packets(zabbix_t)
+corenet_tcp_connect_ftp_port(zabbix_t)
+corenet_tcp_sendrecv_ftp_port(zabbix_t)
+
+corenet_sendrecv_http_client_packets(zabbix_t)
+corenet_tcp_connect_http_port(zabbix_t)
+corenet_tcp_sendrecv_http_port(zabbix_t)
+corenet_tcp_connect_smtp_port(zabbix_t)
+
+corenet_sendrecv_zabbix_server_packets(zabbix_t)
+corenet_tcp_bind_zabbix_port(zabbix_t)
+corenet_tcp_sendrecv_zabbix_port(zabbix_t)
+
+auth_use_nsswitch(zabbix_t)
+
+zabbix_agent_tcp_connect(zabbix_t)
+
+logging_send_syslog_msg(zabbix_t)
+
+tunable_policy(`zabbix_can_network',`
+	corenet_sendrecv_all_client_packets(zabbix_t)
+	corenet_tcp_connect_all_ports(zabbix_t)
+	corenet_tcp_sendrecv_all_ports(zabbix_t)
+')
+
+tunable_policy(`zabbix_run_sudo',`
+    allow zabbix_t self:capability { setuid setgid sys_resource };
+    allow zabbix_t self:process { setrlimit setsched };
+    allow zabbix_t self:key write;
+    allow zabbix_t self:passwd { passwd rootok };
+
+    auth_rw_lastlog(zabbix_t)
+    auth_rw_faillog(zabbix_t)
+    auth_exec_chkpwd(zabbix_t)
+
+    selinux_compute_access_vector(zabbix_t)
+
+    systemd_write_inherited_logind_sessions_pipes(zabbix_t)
+    systemd_dbus_chat_logind(zabbix_t)
+
+    xserver_exec_xauth(zabbix_t)
+')
+
+optional_policy(`
+    tunable_policy(`zabbix_run_sudo',`
+        sudo_exec(zabbix_t)
+        su_exec(zabbix_t)
+    ')
+')
+
+optional_policy(`
+	mysql_stream_connect(zabbix_t)
+')
+
+optional_policy(`
+	netutils_domtrans_ping(zabbix_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(zabbix_t)
+	postgresql_tcp_connect(zabbix_t)
+')
+
+optional_policy(`
+	snmp_read_snmp_var_lib_files(zabbix_t)
+	snmp_read_snmp_var_lib_dirs(zabbix_t)
+')
+
+########################################
+#
+# Agent local policy
+#
+
+allow zabbix_agent_t self:process { setrlimit };
+
+manage_files_pattern(zabbix_agent_t, zabbix_log_t, zabbix_log_t)
+
+rw_files_pattern(zabbix_agent_t, zabbix_tmpfs_t, zabbix_tmpfs_t)
+fs_tmpfs_filetrans(zabbix_agent_t, zabbix_tmpfs_t, file)
+
+manage_files_pattern(zabbix_agent_t, zabbix_var_run_t, zabbix_var_run_t)
+files_pid_filetrans(zabbix_agent_t, zabbix_var_run_t, file)
+
+kernel_read_system_state(zabbix_agent_t)
+kernel_read_network_state(zabbix_agent_t)
+
+corenet_all_recvfrom_unlabeled(zabbix_agent_t)
+corenet_all_recvfrom_netlabel(zabbix_agent_t)
+
+corecmd_read_all_executables(zabbix_agent_t)
+
+corenet_sendrecv_zabbix_agent_server_packets(zabbix_agent_t)
+corenet_tcp_bind_zabbix_agent_port(zabbix_agent_t)
+corenet_tcp_sendrecv_zabbix_agent_port(zabbix_agent_t)
+
+corenet_sendrecv_ssh_client_packets(zabbix_agent_t)
+corenet_tcp_connect_ssh_port(zabbix_agent_t)
+corenet_tcp_sendrecv_ssh_port(zabbix_agent_t)
+
+corenet_sendrecv_ftp_client_packets(zabbix_agent_t)
+corenet_tcp_connect_ftp_port(zabbix_agent_t)
+corenet_tcp_sendrecv_ftp_port(zabbix_agent_t)
+
+corenet_sendrecv_http_client_packets(zabbix_agent_t)
+corenet_tcp_connect_http_port(zabbix_agent_t)
+corenet_tcp_sendrecv_http_port(zabbix_agent_t)
+
+corenet_sendrecv_innd_client_packets(zabbix_agent_t)
+corenet_tcp_connect_innd_port(zabbix_agent_t)
+corenet_tcp_sendrecv_innd_port(zabbix_agent_t)
+
+corenet_sendrecv_pop_client_packets(zabbix_agent_t)
+corenet_tcp_connect_pop_port(zabbix_agent_t)
+corenet_tcp_sendrecv_pop_port(zabbix_agent_t)
+
+corenet_sendrecv_postgresql_client_packets(zabbix_agent_t)
+corenet_tcp_connect_postgresql_port(zabbix_agent_t)
+corenet_tcp_sendrecv_postgresql_port(zabbix_agent_t)
+
+corenet_sendrecv_smtp_client_packets(zabbix_agent_t)
+corenet_tcp_connect_smtp_port(zabbix_agent_t)
+corenet_tcp_sendrecv_smtp_port(zabbix_agent_t)
+
+corenet_sendrecv_zabbix_client_packets(zabbix_agent_t)
+corenet_tcp_connect_zabbix_port(zabbix_agent_t)
+corenet_tcp_sendrecv_zabbix_port(zabbix_agent_t)
+
+corenet_tcp_connect_redis_port(zabbix_agent_t)
+corenet_tcp_sendrecv_redis_port(zabbix_agent_t)
+
+dev_getattr_all_blk_files(zabbix_agent_t)
+dev_getattr_all_chr_files(zabbix_agent_t)
+
+domain_read_all_domains_state(zabbix_agent_t)
+
+files_getattr_all_dirs(zabbix_agent_t)
+files_getattr_all_files(zabbix_agent_t)
+files_read_all_symlinks(zabbix_agent_t)
+
+fs_getattr_all_fs(zabbix_agent_t)
+
+auth_use_nsswitch(zabbix_agent_t)
+
+init_read_utmp(zabbix_agent_t)
+
+logging_search_logs(zabbix_agent_t)
+
+sysnet_dns_name_resolve(zabbix_agent_t)
+
+zabbix_tcp_connect(zabbix_agent_t)
+
+zabbix_script_domtrans(zabbix_agent_t)
+
+tunable_policy(`zabbix_run_sudo',`
+    allow zabbix_agent_t self:capability { setuid setgid sys_resource };
+    allow zabbix_agent_t self:process { setrlimit setsched };
+    allow zabbix_agent_t self:key write;
+    allow zabbix_agent_t self:passwd { passwd rootok };
+
+    auth_rw_lastlog(zabbix_agent_t)
+    auth_rw_faillog(zabbix_agent_t)
+    auth_exec_chkpwd(zabbix_agent_t)
+
+    selinux_compute_access_vector(zabbix_agent_t)
+
+    systemd_write_inherited_logind_sessions_pipes(zabbix_agent_t)
+    systemd_dbus_chat_logind(zabbix_agent_t)
+
+    xserver_exec_xauth(zabbix_agent_t)
+')
+
+optional_policy(`
+    tunable_policy(`zabbix_run_sudo',`
+        sudo_exec(zabbix_agent_t)
+        su_exec(zabbix_agent_t)
+    ')
+')
+
+optional_policy(`
+	dmidecode_domtrans(zabbix_agent_t)
+')
+
+optional_policy(`
+	hostname_exec(zabbix_agent_t)
+')
+
+########################################
+#
+# zabbix_script_t local policy
+#
+
+domtrans_pattern(zabbix_t, zabbix_script_exec_t, zabbix_script_t)
+
+allow zabbix_t zabbix_script_exec_t:dir search_dir_perms;
+allow zabbix_t zabbix_script_exec_t:dir read_file_perms;
+allow zabbix_t zabbix_script_exec_t:file ioctl;
+allow zabbix_t zabbix_script_t:process signal;
+
+init_domtrans_script(zabbix_script_t)
+
+optional_policy(`
+    mta_send_mail(zabbix_script_t)
+')
+
+optional_policy(`
+    unconfined_domain(zabbix_script_t)
+')

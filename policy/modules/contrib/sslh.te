@@ -1,0 +1,104 @@
+
+policy_module(sslh,1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether sslh can connect
+##	to any tcp port or if it is restricted
+##      to the standard http, openvpn and jabber ports.
+##	</p>
+## </desc>
+gen_tunable(sslh_can_connect_any_port, false)
+
+## <desc>
+##      <p>
+##      Determine whether sslh can listen
+##      on any tcp port or if it is restricted
+##      to the standard http.
+##      </p>
+## </desc>
+gen_tunable(sslh_can_bind_any_port, false)
+
+
+type sslh_t;
+type sslh_exec_t;
+init_daemon_domain(sslh_t, sslh_exec_t)
+
+type sslh_config_t;
+files_config_file(sslh_config_t)
+
+type sslh_initrc_exec_t;
+init_script_file(sslh_initrc_exec_t)
+
+type sslh_var_run_t;
+files_pid_file(sslh_var_run_t)
+
+type sslh_unit_file_t;
+systemd_unit_file(sslh_unit_file_t)
+
+########################################
+#
+# sslh local policy
+#
+
+read_files_pattern(sslh_t, sslh_config_t, sslh_config_t)
+
+auth_read_passwd(sslh_t)
+miscfiles_read_localization(sslh_t)
+
+manage_files_pattern(sslh_t, sslh_var_run_t, sslh_var_run_t)
+
+logging_send_syslog_msg(sslh_t);
+
+allow sslh_t self:capability { setuid setgid };
+allow sslh_t self:process { setcap getcap signal };
+
+allow sslh_t self:tcp_socket create_stream_socket_perms;
+
+sysnet_dns_name_resolve(sslh_t)
+
+corenet_all_recvfrom_unlabeled(sslh_t)
+corenet_all_recvfrom_netlabel(sslh_t)
+corenet_tcp_sendrecv_generic_if(sslh_t)
+corenet_udp_sendrecv_generic_if(sslh_t)
+corenet_tcp_sendrecv_generic_node(sslh_t)
+corenet_udp_sendrecv_generic_node(sslh_t)
+corenet_tcp_bind_generic_node(sslh_t)
+corenet_udp_bind_generic_node(sslh_t)
+
+corenet_tcp_bind_http_port(sslh_t)
+
+corenet_tcp_sendrecv_http_port(sslh_t)
+corenet_tcp_connect_http_port(sslh_t)
+
+corenet_tcp_connect_ssh_port(sslh_t)
+corenet_tcp_sendrecv_ssh_port(sslh_t)
+
+corenet_tcp_connect_openvpn_port(sslh_t)
+corenet_tcp_sendrecv_openvpn_port(sslh_t)
+
+corenet_tcp_connect_jabber_client_port(sslh_t)
+corenet_tcp_sendrecv_jabber_client_port(sslh_t)
+
+
+tunable_policy(`sslh_can_connect_any_port',`
+    # allow sslh to connect to any port
+    corenet_tcp_sendrecv_all_ports(sslh_t) 
+    corenet_tcp_connect_all_ports(sslh_t)
+')
+
+tunable_policy(`sslh_can_bind_any_port',`
+    # allow sslh to bind to any port
+    corenet_tcp_sendrecv_all_ports(sslh_t)
+    corenet_tcp_bind_all_ports(sslh_t)
+')
+
+optional_policy(`
+    sssd_read_public_files(sslh_t)
+    sssd_stream_connect(sslh_t)
+')

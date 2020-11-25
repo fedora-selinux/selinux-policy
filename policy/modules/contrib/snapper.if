@@ -1,0 +1,99 @@
+
+## <summary>policy for snapperd</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the snapperd domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`snapper_domtrans',`
+	gen_require(`
+		type snapperd_t, snapperd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, snapperd_exec_t, snapperd_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	snapperd over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`snapper_dbus_chat',`
+	gen_require(`
+		type snapperd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 snapperd_t:dbus send_msg;
+	allow snapperd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Allow a domain to read inherited snapper pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`snapper_read_inherited_pipe',`
+	gen_require(`
+		type snapperd_t;
+	')
+
+	allow $1 snapperd_t:fifo_file read_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow a domain to relabel snapshots to snapperd_data_t 
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`snapper_relabel_snapshots',`
+	gen_require(`
+		type snapperd_data_t;
+	')
+
+	kernel_relabelfrom_unlabeled_dirs($1)
+	allow $1 snapperd_data_t:dir relabelto;
+')
+
+#######################################
+## <summary>
+##      Allow domain to create .smapshot
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`snapper_filetrans_named_content',`
+
+    gen_require(`
+        type snapperd_data_t;
+    ')
+    
+    files_mountpoint_filetrans($1, snapperd_data_t, dir, ".snapshots")
+')
+

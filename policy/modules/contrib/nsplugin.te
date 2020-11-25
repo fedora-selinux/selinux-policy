@@ -1,0 +1,318 @@
+policy_module(nsplugin, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow nsplugin code to execmem/execstack
+## </p>
+## </desc>
+gen_tunable(nsplugin_execmem, false)
+
+## <desc>
+## <p>
+## Allow nsplugin code to connect to unreserved ports
+## </p>
+## </desc>
+gen_tunable(nsplugin_can_network, true)
+
+type nsplugin_exec_t;
+application_executable_file(nsplugin_exec_t)
+
+type nsplugin_config_exec_t;
+application_executable_file(nsplugin_config_exec_t)
+
+type nsplugin_rw_t;
+files_poly_member(nsplugin_rw_t)
+files_type(nsplugin_rw_t)
+
+type nsplugin_tmp_t;
+files_tmp_file(nsplugin_tmp_t)
+
+type nsplugin_home_t;
+files_poly_member(nsplugin_home_t)
+userdom_user_home_content(nsplugin_home_t)
+typealias nsplugin_home_t alias user_nsplugin_home_t;
+
+type nsplugin_t;
+application_domain(nsplugin_t, nsplugin_exec_t)
+
+type nsplugin_config_t;
+domain_type(nsplugin_config_t)
+domain_entry_file(nsplugin_config_t, nsplugin_config_exec_t)
+
+########################################
+#
+# nsplugin local policy
+#
+dontaudit nsplugin_t self:capability { sys_nice sys_tty_config };
+allow nsplugin_t self:fifo_file rw_file_perms;
+allow nsplugin_t self:process { setpgid getsched setsched signal_perms };
+
+allow nsplugin_t self:sem create_sem_perms;
+allow nsplugin_t self:shm create_shm_perms;
+allow nsplugin_t self:msgq create_msgq_perms;
+allow nsplugin_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow nsplugin_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow nsplugin_t self:unix_dgram_socket { sendto create_socket_perms };
+allow nsplugin_t self:tcp_socket create_stream_socket_perms;
+allow nsplugin_t nsplugin_rw_t:dir list_dir_perms;
+read_lnk_files_pattern(nsplugin_t, nsplugin_rw_t, nsplugin_rw_t)
+read_files_pattern(nsplugin_t, nsplugin_rw_t, nsplugin_rw_t)
+
+tunable_policy(`nsplugin_execmem',`
+	allow nsplugin_t self:process { execstack execmem };
+	allow nsplugin_config_t self:process { execstack execmem };
+')
+	
+tunable_policy(`nsplugin_can_network',`
+	corenet_tcp_connect_all_unreserved_ports(nsplugin_t)
+	corenet_tcp_connect_all_ephemeral_ports(nsplugin_t)
+')
+
+manage_dirs_pattern(nsplugin_t, nsplugin_home_t, nsplugin_home_t)
+exec_files_pattern(nsplugin_t, nsplugin_home_t, nsplugin_home_t)
+manage_files_pattern(nsplugin_t, nsplugin_home_t, nsplugin_home_t)
+manage_fifo_files_pattern(nsplugin_t, nsplugin_home_t, nsplugin_home_t)
+manage_sock_files_pattern(nsplugin_t, nsplugin_home_t, nsplugin_home_t)
+manage_lnk_files_pattern(nsplugin_t, nsplugin_home_t, nsplugin_home_t)
+userdom_user_home_dir_filetrans(nsplugin_t, nsplugin_home_t, {file dir})
+userdom_user_home_content_filetrans(nsplugin_t, nsplugin_home_t, {file dir})
+userdom_dontaudit_getattr_user_home_content(nsplugin_t)
+userdom_dontaudit_search_user_bin_dirs(nsplugin_t)
+userdom_dontaudit_write_user_home_content_files(nsplugin_t)
+userdom_dontaudit_search_admin_dir(nsplugin_t)
+
+corecmd_exec_bin(nsplugin_t)
+corecmd_exec_shell(nsplugin_t)
+
+corenet_all_recvfrom_netlabel(nsplugin_t)
+corenet_tcp_connect_flash_port(nsplugin_t)
+corenet_tcp_connect_ms_streaming_port(nsplugin_t)
+corenet_tcp_connect_rtsp_port(nsplugin_t)
+corenet_tcp_connect_pulseaudio_port(nsplugin_t)
+corenet_tcp_connect_http_port(nsplugin_t)
+corenet_tcp_connect_http_cache_port(nsplugin_t)
+corenet_tcp_connect_squid_port(nsplugin_t)
+corenet_tcp_sendrecv_generic_if(nsplugin_t)
+corenet_tcp_sendrecv_generic_node(nsplugin_t)
+corenet_tcp_connect_ipp_port(nsplugin_t)
+corenet_tcp_connect_speech_port(nsplugin_t)
+
+domain_dontaudit_read_all_domains_state(nsplugin_t)
+
+dev_read_urand(nsplugin_t)
+dev_read_rand(nsplugin_t)
+dev_read_sound(nsplugin_t)
+dev_write_sound(nsplugin_t)
+dev_read_video_dev(nsplugin_t)
+dev_write_video_dev(nsplugin_t)
+dev_getattr_dri_dev(nsplugin_t)
+dev_getattr_mouse_dev(nsplugin_t)
+dev_rwx_zero(nsplugin_t)
+dev_read_sysfs(nsplugin_t)
+dev_dontaudit_getattr_all(nsplugin_t)
+
+kernel_read_kernel_sysctls(nsplugin_t)
+kernel_read_system_state(nsplugin_t)
+kernel_read_network_state(nsplugin_t)
+
+files_dontaudit_getattr_lost_found_dirs(nsplugin_t)
+files_dontaudit_list_home(nsplugin_t)
+files_read_config_files(nsplugin_t)
+
+fs_getattr_tmpfs(nsplugin_t)
+fs_getattr_xattr_fs(nsplugin_t)
+fs_search_auto_mountpoints(nsplugin_t)
+fs_rw_anon_inodefs_files(nsplugin_t)
+fs_list_inotifyfs(nsplugin_t)
+fs_dontaudit_list_fusefs(nsplugin_t)
+
+storage_dontaudit_getattr_fixed_disk_dev(nsplugin_t)
+storage_dontaudit_getattr_removable_dev(nsplugin_t)
+
+term_dontaudit_getattr_all_ptys(nsplugin_t)
+term_dontaudit_getattr_all_ttys(nsplugin_t)
+
+auth_use_nsswitch(nsplugin_t)
+
+libs_exec_ld_so(nsplugin_t)
+
+miscfiles_read_fonts(nsplugin_t)
+miscfiles_dontaudit_write_fonts(nsplugin_t)
+miscfiles_setattr_fonts_cache_dirs(nsplugin_t)
+
+userdom_manage_user_tmp_dirs(nsplugin_t)
+userdom_manage_user_tmp_files(nsplugin_t)
+userdom_manage_user_tmp_sockets(nsplugin_t)
+userdom_tmp_filetrans_user_tmp(nsplugin_t, { file dir sock_file })
+userdom_rw_semaphores(nsplugin_t)
+userdom_dontaudit_rw_user_tmp_pipes(nsplugin_t)
+
+userdom_read_user_home_content_symlinks(nsplugin_t)
+userdom_read_user_home_content_files(nsplugin_t)
+userdom_read_user_tmp_files(nsplugin_t)
+userdom_write_user_tmp_sockets(nsplugin_t)
+userdom_dontaudit_append_user_home_content_files(nsplugin_t)
+userdom_read_home_audio_files(nsplugin_t)
+
+optional_policy(`
+	alsa_read_rw_config(nsplugin_t)
+	alsa_read_home_files(nsplugin_t)
+')
+
+optional_policy(`
+	chrome_dontaudit_sandbox_leaks(nsplugin_t)
+')
+
+optional_policy(`
+	cups_stream_connect(nsplugin_t)
+')
+
+optional_policy(`
+	dbus_session_bus_client(nsplugin_t)
+	dbus_connect_session_bus(nsplugin_t)
+	dbus_system_bus_client(nsplugin_t)
+')
+
+optional_policy(`
+	gnome_exec_gconf(nsplugin_t)
+	gnome_manage_config(nsplugin_t)
+	gnome_read_gconf_home_files(nsplugin_t)
+	gnome_read_usr_config(nsplugin_t)
+')
+
+optional_policy(`
+	gpm_getattr_gpmctl(nsplugin_t)
+')
+
+optional_policy(`
+	mozilla_exec_user_home_files(nsplugin_t)
+	mozilla_read_user_home_files(nsplugin_t)
+	mozilla_write_user_home_files(nsplugin_t)
+	mozilla_plugin_delete_tmpfs_files(nsplugin_t)
+')
+
+optional_policy(`
+	mplayer_exec(nsplugin_t)
+	mplayer_read_user_home_files(nsplugin_t)
+')
+
+optional_policy(`
+	sandbox_read_tmpfs_files(nsplugin_t)
+')
+
+optional_policy(`
+	gen_require(`
+		type user_tmpfs_t;
+	')
+	xserver_user_x_domain_template(nsplugin, nsplugin_t, user_tmpfs_t)
+	xserver_rw_shm(nsplugin_t)
+	xserver_read_xdm_pid(nsplugin_t)
+	xserver_read_xdm_tmp_files(nsplugin_t)
+	xserver_read_user_xauth(nsplugin_t)
+	xserver_read_user_iceauth(nsplugin_t)
+	xserver_use_user_fonts(nsplugin_t)
+	xserver_rw_inherited_user_fonts(nsplugin_t)
+')
+
+########################################
+#
+# nsplugin_config local policy
+#
+
+allow nsplugin_config_t self:capability {  dac_read_search sys_nice setuid setgid };
+allow nsplugin_config_t self:process { setsched signal_perms getsched execmem };
+#execing pulseaudio
+dontaudit nsplugin_t self:process { getcap setcap };
+
+allow nsplugin_config_t self:fifo_file rw_file_perms;
+allow nsplugin_config_t self:unix_stream_socket create_stream_socket_perms;
+
+dev_search_sysfs(nsplugin_config_t)
+dev_read_urand(nsplugin_config_t)
+dev_dontaudit_read_rand(nsplugin_config_t)
+dev_dontaudit_rw_dri(nsplugin_config_t)
+
+fs_search_auto_mountpoints(nsplugin_config_t)
+fs_list_inotifyfs(nsplugin_config_t)
+
+can_exec(nsplugin_config_t, nsplugin_rw_t)
+manage_dirs_pattern(nsplugin_config_t, nsplugin_rw_t, nsplugin_rw_t)
+manage_files_pattern(nsplugin_config_t, nsplugin_rw_t, nsplugin_rw_t)
+manage_lnk_files_pattern(nsplugin_config_t, nsplugin_rw_t, nsplugin_rw_t)
+
+manage_dirs_pattern(nsplugin_config_t, nsplugin_home_t, nsplugin_home_t)
+manage_files_pattern(nsplugin_config_t, nsplugin_home_t, nsplugin_home_t)
+manage_lnk_files_pattern(nsplugin_config_t, nsplugin_home_t, nsplugin_home_t)
+
+corecmd_exec_bin(nsplugin_config_t)
+corecmd_exec_shell(nsplugin_config_t)
+
+kernel_read_system_state(nsplugin_config_t)
+kernel_request_load_module(nsplugin_config_t)
+
+domain_use_interactive_fds(nsplugin_config_t)
+
+files_dontaudit_search_home(nsplugin_config_t)
+files_list_tmp(nsplugin_config_t)
+
+auth_use_nsswitch(nsplugin_config_t)
+
+miscfiles_read_fonts(nsplugin_config_t)
+
+userdom_search_user_home_content(nsplugin_config_t)
+userdom_read_user_home_content_symlinks(nsplugin_config_t)
+userdom_read_user_home_content_files(nsplugin_config_t)
+userdom_dontaudit_search_admin_dir(nsplugin_config_t)
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_getattr_nfs(nsplugin_t)
+	fs_manage_nfs_dirs(nsplugin_t)
+	fs_manage_nfs_files(nsplugin_t)
+	fs_manage_nfs_symlinks(nsplugin_t)
+	fs_manage_nfs_named_pipes(nsplugin_t)
+	fs_manage_nfs_dirs(nsplugin_config_t)
+	fs_manage_nfs_files(nsplugin_config_t)
+	fs_manage_nfs_named_pipes(nsplugin_config_t)
+	fs_manage_nfs_symlinks(nsplugin_config_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_getattr_cifs(nsplugin_t)
+	fs_manage_cifs_dirs(nsplugin_t)
+	fs_manage_cifs_files(nsplugin_t)
+	fs_manage_cifs_symlinks(nsplugin_t)
+	fs_manage_cifs_named_pipes(nsplugin_t)
+	fs_manage_cifs_dirs(nsplugin_config_t)
+	fs_manage_cifs_files(nsplugin_config_t)
+	fs_manage_cifs_named_pipes(nsplugin_config_t)
+	fs_manage_cifs_symlinks(nsplugin_config_t)
+')
+
+domtrans_pattern(nsplugin_config_t, nsplugin_exec_t, nsplugin_t)
+
+optional_policy(`
+	xserver_use_user_fonts(nsplugin_config_t)
+')
+
+optional_policy(`
+	mozilla_read_user_home_files(nsplugin_config_t)
+	mozilla_write_user_home_files(nsplugin_config_t)
+')
+
+application_signull(nsplugin_t)
+
+optional_policy(`
+	devicekit_dbus_chat_power(nsplugin_t)
+')
+
+optional_policy(`
+	pulseaudio_exec(nsplugin_t)
+	pulseaudio_stream_connect(nsplugin_t)
+	pulseaudio_manage_home_files(nsplugin_t)
+	pulseaudio_setattr_home_dir(nsplugin_t)
+')

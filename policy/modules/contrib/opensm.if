@@ -1,0 +1,224 @@
+
+## <summary>Opensm is an InfiniBand compliant Subnet Manager and Administration, and runs on top of OpenIB</summary>
+
+########################################
+## <summary>
+##	Execute opensm in the opensm domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`opensm_domtrans',`
+	gen_require(`
+		type opensm_t, opensm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, opensm_exec_t, opensm_t)
+')
+
+########################################
+## <summary>
+##	Search opensm cache directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opensm_search_cache',`
+	gen_require(`
+		type opensm_cache_t;
+	')
+
+	allow $1 opensm_cache_t:dir search_dir_perms;
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Read opensm cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opensm_read_cache_files',`
+	gen_require(`
+		type opensm_cache_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, opensm_cache_t, opensm_cache_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	opensm cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opensm_manage_cache_files',`
+	gen_require(`
+		type opensm_cache_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, opensm_cache_t, opensm_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage opensm cache dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opensm_manage_cache_dirs',`
+	gen_require(`
+		type opensm_cache_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, opensm_cache_t, opensm_cache_t)
+')
+
+########################################
+## <summary>
+##	Read opensm's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opensm_read_log',`
+	gen_require(`
+		type opensm_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, opensm_log_t, opensm_log_t)
+')
+
+########################################
+## <summary>
+##	Append to opensm log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opensm_append_log',`
+	gen_require(`
+		type opensm_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, opensm_log_t, opensm_log_t)
+')
+
+########################################
+## <summary>
+##	Manage opensm log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`opensm_manage_log',`
+	gen_require(`
+		type opensm_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, opensm_log_t, opensm_log_t)
+	manage_files_pattern($1, opensm_log_t, opensm_log_t)
+	manage_lnk_files_pattern($1, opensm_log_t, opensm_log_t)
+')
+########################################
+## <summary>
+##	Execute opensm server in the opensm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`opensm_systemctl',`
+	gen_require(`
+		type opensm_t;
+		type opensm_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 opensm_unit_file_t:file read_file_perms;
+	allow $1 opensm_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, opensm_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an opensm environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`opensm_admin',`
+	gen_require(`
+		type opensm_t;
+		type opensm_cache_t;
+		type opensm_log_t;
+	    type opensm_unit_file_t;
+	')
+
+	allow $1 opensm_t:process { signal_perms };
+	ps_process_pattern($1, opensm_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 opensm_t:process ptrace;
+    ')
+
+	files_search_var($1)
+	admin_pattern($1, opensm_cache_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, opensm_log_t)
+
+	opensm_systemctl($1)
+	admin_pattern($1, opensm_unit_file_t)
+	allow $1 opensm_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

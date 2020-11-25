@@ -1,0 +1,99 @@
+
+## <summary>pesign utility for signing UEFI binaries as well as other associated tools</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the pesign domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`pesign_domtrans',`
+	gen_require(`
+		type pesign_t, pesign_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, pesign_exec_t, pesign_t)
+')
+########################################
+## <summary>
+##	Read pesign PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pesign_read_pid_files',`
+	gen_require(`
+		type pesign_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, pesign_var_run_t, pesign_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute pesign server in the pesign domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`pesign_systemctl',`
+	gen_require(`
+		type pesign_t;
+		type pesign_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 pesign_unit_file_t:file read_file_perms;
+	allow $1 pesign_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, pesign_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an pesign environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`pesign_admin',`
+	gen_require(`
+		type pesign_t;
+		type pesign_var_run_t;
+		type pesign_unit_file_t;
+	')
+
+	allow $1 pesign_t:process { ptrace signal_perms };
+	ps_process_pattern($1, pesign_t)
+
+	files_search_pids($1)
+	admin_pattern($1, pesign_var_run_t)
+
+	pesign_systemctl($1)
+	admin_pattern($1, pesign_unit_file_t)
+	allow $1 pesign_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
