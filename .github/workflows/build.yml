@@ -11,3 +11,23 @@ jobs:
       - run: git clone --depth=1 https://github.com/containers/container-selinux.git /tmp/container-selinux
       - run: cp /tmp/container-selinux/container.* policy/modules/contrib
       - run: make policy -j $(nproc)
+  build-rpm:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:rawhide
+    steps:
+      - run: dnf install --nogpgcheck -y make git-core rpm-build 'dnf-command(builddep)'
+      - uses: actions/checkout@v2
+      - run: make -C .copr srpm outdir="$PWD"
+      - name: Store the SRPM as an artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: srpm
+          path: "*.src.rpm"
+      - run: dnf builddep -y --srpm *.src.rpm
+      - run: rpmbuild --define "_topdir $PWD/rpmbuild" -rb *.src.rpm
+      - name: Store binary RPMs as artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: rpms
+          path: rpmbuild/RPMS
