@@ -35,3 +35,29 @@ jobs:
         with:
           name: rpms
           path: rpmbuild/RPMS
+  selint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y uthash-dev libconfuse-dev autoconf-archive m4
+      - name: Build templated .if and .te files
+        run: make generate
+      - name: Clone the SELint repo
+        run: git clone https://github.com/TresysTechnology/selint /tmp/selint
+      - name: Build SELint
+        run: |
+          cd /tmp/selint
+          git checkout d939a02e7528e623c8f8a091c392ed021047dba4
+          autoreconf -i
+          ./configure --without-check
+          make -j $(nproc)
+          sudo make -j $(nproc) install
+      - name: Run SELint
+        run: |
+          selint -s -r . -F \
+            -d W-001 -d W-002 -d W-003 -d W-004 -d W-005 -d W-006 -d W-008 -d W-011 \
+            -d S-001 -d S-002 -d S-009 -d S-010 \
+            -d C-001 -d C-005 -d C-006
