@@ -16,7 +16,7 @@ rpm -q rpm-build git-core || dnf install -y rpm-build git-core
 
 base_head_id="$(git -C "$dirname/.." rev-parse HEAD)"
 base_short_head_id="${base_head_id:0:7}"
-base_date="$(git show -s --format=%cs HEAD | tr -d -)"
+base_date="$(TZ=UTC git show -s --format=%cd --date=format-local:%F_%T HEAD | tr -d :-)"
 
 tmpdir="$(mktemp -d)"
 
