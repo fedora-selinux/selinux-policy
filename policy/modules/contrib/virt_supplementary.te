@@ -1,0 +1,288 @@
+policy_module(virt_supplementary, 1.5.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow qemu-ga to read qemu-ga date.
+## </p>
+## </desc>
+gen_tunable(virt_read_qemu_ga_data, false)
+
+## <desc>
+## <p>
+## Allow qemu-ga to manage qemu-ga date.
+## </p>
+## </desc>
+gen_tunable(virt_rw_qemu_ga_data, false)
+
+## <desc>
+## <p>
+## Allow qemu-ga read all non-security file types.
+## </p>
+## </desc>
+gen_tunable(virt_qemu_ga_read_nonsecurity_files, false)
+
+gen_require(`
+    class passwd passwd;
+')
+
+type virt_qmf_t;
+type virt_qmf_exec_t;
+init_daemon_domain(virt_qmf_t, virt_qmf_exec_t)
+
+type virt_bridgehelper_t;
+domain_type(virt_bridgehelper_t)
+
+type virt_bridgehelper_exec_t;
+domain_entry_file(virt_bridgehelper_t, virt_bridgehelper_exec_t)
+role system_r types virt_bridgehelper_t;
+
+# policy for qemu_ga
+type virt_qemu_ga_t;
+type virt_qemu_ga_exec_t;
+init_daemon_domain(virt_qemu_ga_t, virt_qemu_ga_exec_t)
+
+type virt_qemu_ga_var_run_t;
+files_pid_file(virt_qemu_ga_var_run_t)
+
+type virt_qemu_ga_log_t;
+logging_log_file(virt_qemu_ga_log_t)
+
+type virt_qemu_ga_tmp_t;
+files_tmp_file(virt_qemu_ga_tmp_t)
+
+type virt_qemu_ga_data_t;
+files_type(virt_qemu_ga_data_t)
+
+type virt_qemu_ga_unconfined_exec_t;
+application_executable_file(virt_qemu_ga_unconfined_exec_t)
+
+optional_policy(`
+	virt_file_types(virt_qemu_ga_exec_t)
+	virt_file_types(virt_qemu_ga_var_run_t)
+	virt_file_types(virt_qemu_ga_log_t)
+	virt_file_types(virt_qemu_ga_tmp_t)
+	virt_file_types(virt_qemu_ga_data_t)
+	virt_file_types(virt_qemu_ga_unconfined_exec_t)
+')
+
+########################################
+#
+# virt_qmf local policy
+#
+allow virt_qmf_t self:capability { sys_nice sys_tty_config };
+allow virt_qmf_t self:process { setsched signal };
+allow virt_qmf_t self:fifo_file rw_fifo_file_perms;
+allow virt_qmf_t self:unix_stream_socket create_stream_socket_perms;
+allow virt_qmf_t self:tcp_socket create_stream_socket_perms;
+allow virt_qmf_t self:netlink_route_socket create_netlink_socket_perms;
+
+kernel_read_system_state(virt_qmf_t)
+kernel_read_network_state(virt_qmf_t)
+
+corenet_tcp_connect_matahari_port(virt_qmf_t)
+
+dev_read_sysfs(virt_qmf_t)
+dev_read_rand(virt_qmf_t)
+dev_read_urand(virt_qmf_t)
+
+domain_use_interactive_fds(virt_qmf_t)
+
+logging_send_syslog_msg(virt_qmf_t)
+
+sysnet_read_config(virt_qmf_t)
+
+optional_policy(`
+	dbus_read_lib_files(virt_qmf_t)
+')
+
+optional_policy(`
+	virt_exec(virt_qmf_t)
+	virt_file_types(virt_qmf_exec_t)
+	virt_stream_connect(virt_qmf_t)
+	virt_system_domain_type(virt_qmf_t)
+')
+
+########################################
+#
+# virt_bridgehelper local policy
+#
+
+allow virt_bridgehelper_t self:process { getcap setcap };
+allow virt_bridgehelper_t self:capability { net_admin setgid setpcap setuid };
+allow virt_bridgehelper_t self:tcp_socket create_stream_socket_perms;
+allow virt_bridgehelper_t self:tun_socket create_socket_perms;
+allow virt_bridgehelper_t self:unix_dgram_socket create_socket_perms;
+
+kernel_read_network_state(virt_bridgehelper_t)
+kernel_read_system_state(virt_bridgehelper_t)
+
+corenet_rw_tun_tap_dev(virt_bridgehelper_t)
+
+dev_read_urand(virt_bridgehelper_t)
+dev_read_rand(virt_bridgehelper_t)
+dev_read_sysfs(virt_bridgehelper_t)
+
+userdom_use_inherited_user_ptys(virt_bridgehelper_t)
+
+optional_policy(`
+	virt_file_types(virt_bridgehelper_exec_t)
+	virt_rw_stream_sockets_virt_domain(virt_bridgehelper_t)
+	virt_svirt_manage_home(virt_bridgehelper_t)
+	virt_system_domain_type(virt_bridgehelper_t)
+')
+
+#######################################
+#
+# virt_qemu_ga local policy
+#
+
+allow virt_qemu_ga_t self:capability { sys_admin sys_time sys_tty_config };
+
+allow virt_qemu_ga_t self:passwd passwd;
+
+allow virt_qemu_ga_t self:fifo_file rw_fifo_file_perms;
+allow virt_qemu_ga_t self:unix_stream_socket create_stream_socket_perms;
+
+allow virt_qemu_ga_t virt_qemu_ga_exec_t:dir search_dir_perms;
+can_exec(virt_qemu_ga_t, virt_qemu_ga_exec_t)
+
+manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_tmp_t, virt_qemu_ga_tmp_t)
+manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_tmp_t, virt_qemu_ga_tmp_t)
+files_tmp_filetrans(virt_qemu_ga_t, virt_qemu_ga_tmp_t, { file dir })
+
+manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_var_run_t, virt_qemu_ga_var_run_t)
+manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_var_run_t, virt_qemu_ga_var_run_t)
+files_pid_filetrans(virt_qemu_ga_t, virt_qemu_ga_var_run_t, { dir file } )
+
+manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_log_t, virt_qemu_ga_log_t)
+manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_log_t, virt_qemu_ga_log_t)
+logging_log_filetrans(virt_qemu_ga_t, virt_qemu_ga_log_t, { dir file })
+
+kernel_read_system_state(virt_qemu_ga_t)
+kernel_read_network_state(virt_qemu_ga_t)
+kernel_rw_kernel_sysctl(virt_qemu_ga_t)
+
+corecmd_exec_shell(virt_qemu_ga_t)
+corecmd_exec_bin(virt_qemu_ga_t)
+
+dev_getattr_apm_bios_dev(virt_qemu_ga_t)
+dev_rw_sysfs(virt_qemu_ga_t)
+dev_rw_realtime_clock(virt_qemu_ga_t)
+
+files_list_all_mountpoints(virt_qemu_ga_t)
+files_write_all_mountpoints(virt_qemu_ga_t)
+
+fs_list_all(virt_qemu_ga_t)
+fs_getattr_all_fs(virt_qemu_ga_t)
+
+term_use_virtio_console(virt_qemu_ga_t)
+term_use_all_ttys(virt_qemu_ga_t)
+term_use_unallocated_ttys(virt_qemu_ga_t)
+
+auth_use_nsswitch(virt_qemu_ga_t)
+
+clock_read_adjtime(virt_qemu_ga_t)
+
+init_read_utmp(virt_qemu_ga_t)
+
+logging_send_syslog_msg(virt_qemu_ga_t)
+logging_send_audit_msgs(virt_qemu_ga_t)
+
+modutils_exec_kmod(virt_qemu_ga_t)
+
+sysnet_dns_name_resolve(virt_qemu_ga_t)
+
+systemd_exec_systemctl(virt_qemu_ga_t)
+systemd_start_power_services(virt_qemu_ga_t)
+systemd_dbus_chat_logind(virt_qemu_ga_t)
+
+userdom_use_user_ptys(virt_qemu_ga_t)
+
+usermanage_domtrans_passwd(virt_qemu_ga_t)
+
+tunable_policy(`virt_read_qemu_ga_data',`
+	read_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+	read_lnk_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+')
+
+tunable_policy(`virt_rw_qemu_ga_data',`
+	manage_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+	manage_lnk_files_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+	manage_dirs_pattern(virt_qemu_ga_t, virt_qemu_ga_data_t, virt_qemu_ga_data_t)
+')
+
+tunable_policy(`virt_qemu_ga_read_nonsecurity_files',`
+	files_read_non_security_files(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	bootloader_domtrans(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	clock_domtrans(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	cron_initrc_domtrans(virt_qemu_ga_t)
+	cron_domtrans(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	devicekit_manage_pid_files(virt_qemu_ga_t)
+	devicekit_read_log_files(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	fstools_domtrans(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	rpm_dbus_chat(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	shutdown_domtrans(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	udev_read_pid_files(virt_qemu_ga_t)
+')
+
+optional_policy(`
+	virt_system_domain_type(virt_qemu_ga_t)
+')
+
+#######################################
+#
+# qemu-ga  unconfined hook script local policy
+#
+
+optional_policy(`
+	type virt_qemu_ga_unconfined_t;
+	domain_type(virt_qemu_ga_unconfined_t)
+
+	domain_entry_file(virt_qemu_ga_unconfined_t, virt_qemu_ga_unconfined_exec_t)
+	role system_r types virt_qemu_ga_unconfined_t;
+
+	domtrans_pattern(virt_qemu_ga_t, virt_qemu_ga_unconfined_exec_t, virt_qemu_ga_unconfined_t)
+
+	allow virt_qemu_ga_t virt_qemu_ga_unconfined_exec_t:dir search_dir_perms;
+	allow virt_qemu_ga_t virt_qemu_ga_unconfined_exec_t:dir read_file_perms;
+	allow virt_qemu_ga_t virt_qemu_ga_unconfined_exec_t:file ioctl;
+
+	init_domtrans_script(virt_qemu_ga_unconfined_t)
+
+	optional_policy(`
+		unconfined_domain(virt_qemu_ga_unconfined_t)
+	')
+')
