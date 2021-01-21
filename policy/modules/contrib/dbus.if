@@ -97,7 +97,7 @@ template(`dbus_role_template',`
     allow $3 $1_dbusd_t:process { noatsecure rlimitinh siginh };
     allow $1_dbusd_t $3:dbus send_msg;
     allow $3 $1_dbusd_t:dbus send_msg;
-    allow $1_dbusd_t $3:system start;
+    allow $1_dbusd_t $3:system { start reload };
     allow $1_dbusd_t session_dbusd_tmp_t:service { start stop };
     allow $3 session_dbusd_tmp_t:dir manage_dir_perms;
     allow $3 session_dbusd_tmp_t:file manage_file_perms;
@@ -122,12 +122,18 @@ template(`dbus_role_template',`
 
 	auth_use_nsswitch($1_dbusd_t)
 
+	files_config_all_files($1_dbusd_t)
+
 	logging_send_syslog_msg($1_dbusd_t)
 
 	dontaudit $1_dbusd_t self:capability net_admin;
 
 	optional_policy(`
 		mozilla_domtrans_spec($1_dbusd_t, $1_t)
+	')
+
+	optional_policy(`
+		systemd_start_systemd_services($1_dbusd_t)
 	')
 ')
 
