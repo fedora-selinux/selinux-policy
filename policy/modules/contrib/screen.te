@@ -5,6 +5,14 @@ policy_module(screen, 2.6.0)
 # Declarations
 #
 
+## <desc>
+##	<p>
+##	Determine whether screen can
+##	use fsetid/setuid/setgid capability.
+##	</p>
+## </desc>
+gen_tunable(screen_allow_session_sharing, false)
+
 attribute  screen_domain;
 
 type screen_exec_t;
@@ -26,7 +34,7 @@ ubac_constrained(screen_var_run_t)
 # Local policy
 #
 
-allow screen_domain self:capability { fsetid setgid setuid sys_tty_config };
+allow screen_domain self:capability { sys_tty_config };
 dontaudit screen_domain self:capability { dac_read_search  };
 allow screen_domain self:process signal_perms;
 allow screen_domain self:fifo_file rw_fifo_file_perms;
@@ -96,3 +104,7 @@ userdom_use_user_terminals(screen_domain)
 userdom_create_user_pty(screen_domain)
 userdom_setattr_user_ptys(screen_domain)
 userdom_setattr_user_ttys(screen_domain)
+
+tunable_policy(`screen_allow_session_sharing',`
+    allow screen_domain self:capability { fsetid setgid setuid };
+')
