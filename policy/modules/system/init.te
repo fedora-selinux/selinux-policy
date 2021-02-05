@@ -63,6 +63,9 @@ attribute init_run_all_scripts_domain;
 attribute initrc_transition_domain;
 # Attribute used for systemd so domains can allow systemd to create sock_files
 attribute init_sock_file_type;
+# Attribute for directories that systemd will watch based on path units
+# (see systemd.path(5) for more info)
+attribute init_watch_path_type;
 
 # Mark process types as daemons
 attribute daemon;
@@ -222,6 +225,8 @@ allow init_t init_var_run_t:blk_file { getattr relabelto };
 allow init_t init_var_run_t:chr_file { getattr relabelto };
 allow init_t init_var_run_t:fifo_file { getattr relabelto };
 
+allow init_t init_watch_path_type:dir { search_dir_perms watch_dir_perms };
+
 allow init_t machineid_t:file manage_file_perms;
 files_pid_filetrans(init_t, machineid_t, file, "machine-id")
 files_etc_filetrans(init_t, machineid_t, file, "machine-id")
@@ -302,7 +307,9 @@ files_manage_etc_symlinks(init_t)
 files_etc_filetrans_etc_runtime(init_t, file)
 # Run /etc/X11/prefdm:
 files_exec_etc_files(init_t)
+files_watch_etc_dirs(init_t)
 files_read_usr_files(init_t)
+files_watch_root_dirs(init_t)
 files_write_root_dirs(init_t)
 # file descriptors inherited from the rootfs:
 files_dontaudit_rw_root_files(init_t)
@@ -315,6 +322,8 @@ files_mounton_etc(init_t)
 files_create_default_dir(init_t)
 files_remount_rootfs(init_t)
 files_create_var_dirs(init_t)
+files_watch_home(init_t)
+files_watch_all_pid(init_t)
 
 fs_list_inotifyfs(init_t)
 # cjp: this may be related to /dev/log
@@ -782,7 +791,7 @@ optional_policy(`
 
 optional_policy(`
 	mount_manage_pid_files(init_t)
-	mount_watch_pid_dirs(init_t)
+	mount_watch_reads_pid_dirs(init_t)
 ')
 
 optional_policy(`
