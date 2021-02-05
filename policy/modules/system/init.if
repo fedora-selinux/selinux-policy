@@ -2449,6 +2449,25 @@ interface(`init_dontaudit_rw_utmp',`
 
 ########################################
 ## <summary>
+##	Watch the utmp file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`init_watch_utmp',`
+	gen_require(`
+		type initrc_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 initrc_var_run_t:file watch_file_perms;
+')
+
+########################################
+## <summary>
 ##	Create, read, write, and delete utmp.
 ## </summary>
 ## <param name="domain">
@@ -3320,3 +3339,21 @@ interface(`init_prog_run_bpf',`
     allow $1 init_t:bpf { map_create map_read map_write prog_load prog_run };
 ')
 
+#######################################
+# <summary>
+#     Allow systemd to watch directories of given type.
+#     Intended for systemd path units - see systemd.path(5).
+# </summary>
+# <param name="type">
+#     <summary>
+#     Type allowed to watch.
+#     </summary>
+# </param>
+#
+interface(`init_watch_dir',`
+      gen_require(`
+              attribute init_watch_path_type;
+      ')
+
+      typeattribute $1 init_watch_path_type;
+')
