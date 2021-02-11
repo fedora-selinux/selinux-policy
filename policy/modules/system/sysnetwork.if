@@ -442,20 +442,18 @@ interface(`sysnet_read_config',`
 	')
 
 	files_search_etc($1)
-	allow $1 net_conf_t:file read_file_perms;
+	read_files_pattern($1, net_conf_t, net_conf_t)
+	read_lnk_files_pattern($1, net_conf_t, net_conf_t)
 
 	ifdef(`distro_debian',`
 		files_search_pids($1)
-		allow $1 net_conf_t:dir list_dir_perms;
-		read_files_pattern($1, net_conf_t, net_conf_t)
+		list_dirs_pattern($1, net_conf_t, net_conf_t)
 	')
 
 	ifdef(`distro_redhat',`
-        files_search_all_pids($1)
-        init_search_pid_dirs($1)
-		allow $1 net_conf_t:dir list_dir_perms;
-		read_files_pattern($1, net_conf_t, net_conf_t)
-		read_lnk_files_pattern($1, net_conf_t, net_conf_t)
+		files_search_all_pids($1)
+		init_search_pid_dirs($1)
+		list_dirs_pattern($1, net_conf_t, net_conf_t)
 	')
 ')
 
@@ -475,6 +473,7 @@ interface(`sysnet_dontaudit_read_config',`
 	')
 
 	dontaudit $1 net_conf_t:file read_file_perms;
+	dontaudit $1 net_conf_t:lnk_file read_lnk_file_perms;
 ')
 
 #######################################
@@ -511,8 +510,9 @@ interface(`sysnet_create_config',`
 		type net_conf_t;
 	')
 
-	files_search_etc($1)
+	files_rw_etc_dirs($1)
 	allow $1 net_conf_t:file create_file_perms;
+	allow $1 net_conf_t:lnk_file create_lnk_file_perms;
 ')
 
 #######################################
@@ -588,22 +588,11 @@ interface(`sysnet_filetrans_config_fromdir',`
 interface(`sysnet_manage_config',`
 	gen_require(`
 		type net_conf_t;
-        ')
-
-	allow $1 net_conf_t:file manage_file_perms;
-
-	ifdef(`distro_debian',`
-		files_search_pids($1)
-		manage_files_pattern($1, net_conf_t, net_conf_t)
 	')
 
-	ifdef(`distro_redhat',`
-        files_search_all_pids($1)
-        init_search_pid_dirs($1)
-		allow $1 net_conf_t:dir list_dir_perms;
-		manage_files_pattern($1, net_conf_t, net_conf_t)
-		manage_lnk_files_pattern($1, net_conf_t, net_conf_t)
-	')
+	sysnet_read_config($1)
+	manage_files_pattern($1, net_conf_t, net_conf_t)
+	manage_lnk_files_pattern($1, net_conf_t, net_conf_t)
 ')
 
 #######################################
@@ -621,19 +610,8 @@ interface(`sysnet_manage_config_dirs',`
 		type net_conf_t;
 	')
 
-	allow $1 net_conf_t:dir manage_dir_perms;
-
-	ifdef(`distro_debian',`
-		files_search_pids($1)
-		manage_dirs_pattern($1, net_conf_t, net_conf_t)
-	')
-
-	ifdef(`distro_redhat',`
-        files_search_all_pids($1)
-        init_search_pid_dirs($1)
-		allow $1 net_conf_t:dir list_dir_perms;
-		manage_dirs_pattern($1, net_conf_t, net_conf_t)
-	')
+	sysnet_read_config($1)
+	manage_dirs_pattern($1, net_conf_t, net_conf_t)
 ')
 
 #######################################
@@ -1163,7 +1141,7 @@ interface(`sysnet_filetrans_named_content',`
 		type net_conf_t;
 	')
 
-	files_etc_filetrans($1, net_conf_t, file, "resolv.conf")
+	sysnet_etc_filetrans_config($1, "resolv.conf")
 	files_etc_filetrans($1, net_conf_t, file, "resolv.conf.tmp")
 	files_etc_filetrans($1, net_conf_t, file, "resolv.conf.fp-tmp")
 	files_etc_filetrans($1, net_conf_t, file, "resolv.conf.fp-saved")
