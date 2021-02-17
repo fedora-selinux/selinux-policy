@@ -45,6 +45,9 @@ systemd_domain_template(systemd_coredump)
 type systemd_coredump_tmpfs_t;
 files_tmpfs_file(systemd_coredump_tmpfs_t)
 
+type systemd_coredump_var_lib_t;
+files_type(systemd_coredump_var_lib_t)
+
 systemd_domain_template(systemd_hwdb)
 
 type systemd_hwdb_unit_file_t;
@@ -1009,13 +1012,39 @@ systemd_read_efivarfs(systemd_sysctl_t)
 #
 # systemd_coredump domains
 #
+
+# dac_read_search - to access /proc/<pid>/fd of the dumped process
+# sys_ptrace - to read /proc/<pid>/exe of the dumped process
+# setgid setuid - to set own credentials to match the dumped process credentials
+# setpcap - to drop capabilities
+allow systemd_coredump_t self:capability { dac_read_search setgid setpcap setuid sys_ptrace };
 allow systemd_coredump_t self:cap_userns sys_ptrace;
+
+# To set its capability set
+allow systemd_coredump_t self:process setcap;
+
+allow systemd_coredump_t self:unix_stream_socket connectto;
 
 manage_files_pattern(systemd_coredump_t, systemd_coredump_tmpfs_t, systemd_coredump_tmpfs_t)
 fs_tmpfs_filetrans(systemd_coredump_t, systemd_coredump_tmpfs_t, file )
 
+manage_dirs_pattern(systemd_coredump_t, systemd_coredump_var_lib_t, systemd_coredump_var_lib_t)
+manage_files_pattern(systemd_coredump_t, systemd_coredump_var_lib_t, systemd_coredump_var_lib_t)
+mmap_files_pattern(systemd_coredump_t, systemd_coredump_var_lib_t, systemd_coredump_var_lib_t)
+init_var_lib_filetrans(systemd_coredump_t, systemd_coredump_var_lib_t, dir, "coredump")
+
+dev_write_kmsg(systemd_coredump_t)
+
+# To read info about the crashed process from /proc
+domain_read_all_domains_state(systemd_coredump_t)
+
+# To be able to mmap the dumped process' executable file for reading
+# (can be basically any file type)
+files_read_non_security_files(systemd_coredump_t)
+files_map_non_security_files(systemd_coredump_t)
+
 optional_policy(`
-	unconfined_domain(systemd_coredump_t)
+	logging_send_syslog_msg(systemd_coredump_t)
 ')
 
 #######################################
