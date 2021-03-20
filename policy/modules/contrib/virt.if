@@ -2,7 +2,7 @@
 
 ########################################
 ## <summary>
-##	virtd_lxc_t stub interface.  No access allowed.
+##	virtd_lxc_t stub interface. No access allowed.
 ## </summary>
 ## <param name="domain" unused="true">
 ##	<summary>
@@ -18,7 +18,7 @@ interface(`virt_stub_lxc',`
 
 ########################################
 ## <summary>
-##	svirt_sandbox_domain attribute stub interface.  No access allowed.
+##	svirt_sandbox_domain attribute stub interface. No access allowed.
 ## </summary>
 ## <param name="domain" unused="true">
 ##	<summary>
@@ -34,7 +34,7 @@ interface(`virt_stub_svirt_sandbox_domain',`
 
 ########################################
 ## <summary>
-##	container_file_t stub interface.  No access allowed.
+##	container_file_t stub interface. No access allowed.
 ## </summary>
 ## <param name="domain" unused="true">
 ##	<summary>
@@ -99,6 +99,99 @@ template(`virt_domain_template',`
 	allow $1_t virtlogd_t:fifo_file rw_inherited_fifo_file_perms;
 ')
 
+######################################
+## <summary>
+##	Creates types and rules for a basic
+##	virt driver domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`virt_driver_template',`
+	gen_require(`
+		attribute virt_driver_domain;
+		attribute virt_driver_executable;
+		attribute virt_driver_var_run;
+		type virtd_t;
+		type virtqemud_t;
+		type virt_etc_t;
+		type virt_etc_rw_t;
+		type virt_var_run_t;
+	')
+
+	type $1_t, virt_driver_domain;
+
+	type $1_exec_t, virt_driver_executable;
+	init_daemon_domain($1_t, $1_exec_t)
+
+	type $1_var_run_t, virt_driver_var_run;
+	files_pid_file($1_var_run_t)
+
+	##################################
+	#
+	# Local policy
+	#
+
+	allow $1_t self:netlink_audit_socket create;
+	allow $1_t self:netlink_kobject_uevent_socket create_socket_perms;
+	allow $1_t self:netlink_route_socket create_netlink_socket_perms;
+	allow $1_t self:rawip_socket create_socket_perms;
+	allow $1_t self:unix_dgram_socket create_socket_perms;
+
+	allow virt_driver_domain virtd_t:unix_stream_socket rw_stream_socket_perms;
+	allow virt_driver_domain virtqemud_t:unix_stream_socket connectto;
+
+	manage_dirs_pattern($1_t, virt_var_run_t, virt_var_run_t)
+	manage_dirs_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	manage_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	manage_sock_files_pattern($1_t, virt_var_run_t, $1_var_run_t)
+	files_pid_filetrans($1_t, $1_var_run_t, { dir file sock_file } )
+	filetrans_pattern($1_t, virt_var_run_t, $1_var_run_t, { file sock_file } )
+
+	read_files_pattern($1_t, virt_etc_t, virt_etc_t)
+	manage_dirs_pattern($1_t, virt_etc_rw_t, virt_etc_rw_t)
+	manage_files_pattern($1_t, virt_etc_rw_t, virt_etc_rw_t)
+	filetrans_pattern($1_t, virt_etc_t, virt_etc_rw_t, dir)
+
+	read_files_pattern(virt_driver_domain, virtqemud_t, virtqemud_t)
+
+	kernel_dgram_send($1_t)
+
+	auth_read_passwd($1_t)
+
+	dev_read_sysfs($1_t)
+
+	files_read_non_security_files($1_t)
+	init_read_utmp($1_t)
+
+	logging_send_syslog_msg($1_t)
+
+	miscfiles_read_generic_certs($1_t)
+
+	virt_manage_cache($1_t)
+	virt_manage_pid_files($1_t)
+	virt_stream_connect($1_t)
+
+	optional_policy(`
+		dbus_read_pid_files($1_t)
+		dbus_stream_connect_system_dbusd($1_t)
+		dbus_system_bus_client($1_t)
+	')
+
+	optional_policy(`
+		dnsmasq_filetrans_named_content_fromdir($1_t, $1_var_run_t)
+	')
+
+	optional_policy(`
+		systemd_dbus_chat_logind($1_t)
+		systemd_machined_stream_connect($1_t)
+		systemd_write_inhibit_pipes($1_t)
+	')
+')
+
 ########################################
 ## <summary>
 ##	Make the specified type usable as a virt image
@@ -123,20 +216,22 @@ interface(`virt_image',`
 
 #######################################
 ## <summary>
-##  Getattr on virt executable.
+##	Getattr on virt executable.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed to transition.
-##  </summary>
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
 ## </param>
 #
 interface(`virt_getattr_exec',`
-    gen_require(`
-        type virtd_exec_t;
-    ')
+	gen_require(`
+		attribute virt_driver_executable;
+		type virtd_exec_t;
+	')
 
 	allow $1 virtd_exec_t:file getattr;
+	allow $1 virt_driver_executable:file getattr;
 ')
 
 ########################################
@@ -169,10 +264,12 @@ interface(`virt_domtrans',`
 #
 interface(`virt_exec',`
 	gen_require(`
+		attribute virt_driver_executable;
 		type virtd_exec_t;
 	')
 
 	can_exec($1, virtd_exec_t)
+	can_exec($1, virt_driver_executable)
 ')
 
 ########################################
@@ -206,12 +303,35 @@ interface(`virt_prog_run_bpf',`
 #
 interface(`virt_stream_connect',`
 	gen_require(`
+		attribute virt_driver_domain;
+		attribute virt_driver_var_run;
 		type virtd_t, virt_var_run_t;
 	')
 
 	files_search_pids($1)
 	stream_connect_pattern($1, virt_var_run_t, virt_var_run_t, virtd_t)
+	stream_connect_pattern($1, virt_driver_var_run, virt_driver_var_run, virt_driver_domain)
 ')
+
+########################################
+## <summary>
+##	Read and write to virt_domain unix
+##	stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_rw_stream_sockets_virt_domain',`
+	gen_require(`
+		attribute virt_domain;
+	')
+
+	allow $1 virt_domain:unix_stream_socket { read write };
+')
+
 
 #######################################
 ## <summary>
@@ -226,7 +346,7 @@ interface(`virt_stream_connect',`
 interface(`virt_stream_connect_svirt',`
 	gen_require(`
 		type svirt_t;
-        type svirt_image_t;
+		type svirt_image_t;
 	')
 
 	stream_connect_pattern($1, svirt_image_t, svirt_image_t, svirt_t)
@@ -248,7 +368,7 @@ interface(`virt_rw_stream_sockets_svirt',`
 		type svirt_t;
 	')
 
-	allow $1 svirt_t:unix_stream_socket { setopt getopt read write };
+	allow $1 svirt_t:unix_stream_socket { getopt read setopt write };
 ')
 
 ########################################
@@ -263,10 +383,12 @@ interface(`virt_rw_stream_sockets_svirt',`
 #
 interface(`virt_attach_tun_iface',`
 	gen_require(`
+		attribute virt_driver_domain;
 		type virtd_t;
 	')
 
 	allow $1 virtd_t:tun_socket relabelfrom;
+	allow $1 virt_driver_domain:tun_socket relabelfrom;
 	allow $1 self:tun_socket relabelto;
 ')
 
@@ -346,7 +468,7 @@ interface(`virt_getattr_content',`
 		type virt_content_t;
 	')
 
-    allow $1 virt_content_t:file getattr_file_perms;
+	allow $1 virt_content_t:file getattr_file_perms;
 ')
 
 ########################################
@@ -372,7 +494,7 @@ interface(`virt_read_content',`
 	read_files_pattern($1, virt_content_t, virt_content_t)
 	read_lnk_files_pattern($1, virt_content_t, virt_content_t)
 	read_blk_files_pattern($1, virt_content_t, virt_content_t)
-    read_chr_files_pattern($1, virt_content_t, virt_content_t)
+	read_chr_files_pattern($1, virt_content_t, virt_content_t)
 
 	tunable_policy(`virt_use_nfs',`
 		fs_list_nfs($1)
@@ -417,11 +539,13 @@ interface(`virt_write_content',`
 #
 interface(`virt_read_pid_symlinks',`
 	gen_require(`
+		attribute virt_driver_var_run;
 		type virt_var_run_t;
 	')
 
 	files_search_pids($1)
 	read_lnk_files_pattern($1, virt_var_run_t, virt_var_run_t)
+	read_lnk_files_pattern($1, virt_driver_var_run, virt_driver_var_run)
 ')
 
 ########################################
@@ -436,12 +560,15 @@ interface(`virt_read_pid_symlinks',`
 #
 interface(`virt_read_pid_files',`
 	gen_require(`
+		attribute virt_driver_var_run;
 		type virt_var_run_t;
 	')
 
 	files_search_pids($1)
 	read_files_pattern($1, virt_var_run_t, virt_var_run_t)
-    read_lnk_files_pattern($1, virt_var_run_t, virt_var_run_t)
+	read_lnk_files_pattern($1, virt_var_run_t, virt_var_run_t)
+	read_files_pattern($1, virt_driver_var_run, virt_driver_var_run)
+	read_lnk_files_pattern($1, virt_driver_var_run, virt_driver_var_run)
 ')
 
 ########################################
@@ -456,12 +583,14 @@ interface(`virt_read_pid_files',`
 #
 interface(`virt_manage_pid_dirs',`
 	gen_require(`
+		attribute virt_driver_var_run;
 		type virt_var_run_t;
 		type virt_lxc_var_run_t;
 	')
 
 	files_search_pids($1)
 	manage_dirs_pattern($1, virt_var_run_t, virt_var_run_t)
+	manage_dirs_pattern($1, virt_driver_var_run, virt_driver_var_run)
 	manage_dirs_pattern($1, virt_lxc_var_run_t, virt_lxc_var_run_t)
 	virt_filetrans_named_content($1)
 ')
@@ -478,12 +607,14 @@ interface(`virt_manage_pid_dirs',`
 #
 interface(`virt_manage_pid_files',`
 	gen_require(`
+		attribute virt_driver_var_run;
 		type virt_var_run_t;
 		type virt_lxc_var_run_t;
 	')
 
 	files_search_pids($1)
 	manage_files_pattern($1, virt_var_run_t, virt_var_run_t)
+	manage_files_pattern($1, virt_driver_var_run, virt_driver_var_run)
 	manage_files_pattern($1, virt_lxc_var_run_t, virt_lxc_var_run_t)
 ')
 
@@ -516,10 +647,12 @@ interface(`virt_manage_pid_files',`
 #
 interface(`virt_pid_filetrans',`
 	gen_require(`
+		attribute virt_driver_var_run;
 		type virt_var_run_t;
 	')
 
 	filetrans_pattern($1, virt_var_run_t, $2, $3, $4)
+	filetrans_pattern($1, virt_driver_var_run, $2, $3, $4)
 ')
 
 ########################################
@@ -820,24 +953,42 @@ interface(`virt_manage_images',`
 
 #######################################
 ## <summary>
-##  Allow domain to manage virt image files
+##	Allow domain to manage virt image files
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`virt_manage_default_image_type',`
-    gen_require(`
-        type virt_var_lib_t;
-        type virt_image_t;
-    ')
+	gen_require(`
+		type virt_var_lib_t;
+		type virt_image_t;
+	')
 
-    virt_search_lib($1)
-    manage_dirs_pattern($1, virt_image_t, virt_image_t)
-    manage_files_pattern($1, virt_image_t, virt_image_t)
-    read_lnk_files_pattern($1, virt_image_t, virt_image_t)
+	virt_search_lib($1)
+	manage_dirs_pattern($1, virt_image_t, virt_image_t)
+	manage_files_pattern($1, virt_image_t, virt_image_t)
+	read_lnk_files_pattern($1, virt_image_t, virt_image_t)
+')
+
+#######################################
+## <summary>
+##	Get virtd services status
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`virtd_service_status',`
+	gen_require(`
+		type virtd_unit_file_t;
+	')
+
+	allow $1 virtd_unit_file_t:service status;
 ')
 
 ########################################
@@ -1084,7 +1235,7 @@ interface(`virt_transition_svirt',`
 	role $2 types virt_bridgehelper_t;
 	role $2 types svirt_socket_t;
 
-	allow $1 virt_domain:process { sigkill sigstop signull signal };
+	allow $1 virt_domain:process { sigkill signal signull sigstop };
 	allow $1 svirt_image_t:file { relabelfrom relabelto };
 	allow $1 svirt_image_t:fifo_file { read_fifo_file_perms relabelto };
 	allow $1 svirt_image_t:sock_file { create_sock_file_perms relabelto };
@@ -1144,10 +1295,12 @@ interface(`virt_kill_svirt',`
 #
 interface(`virt_kill',`
 	gen_require(`
+		attribute virt_driver_domain;
 		type virtd_t;
 	')
 
 	allow $1 virtd_t:process sigkill;
+	allow $1 virt_driver_domain:process sigkill;
 ')
 
 ########################################
@@ -1162,10 +1315,12 @@ interface(`virt_kill',`
 #
 interface(`virt_signal',`
 	gen_require(`
+		attribute virt_driver_domain;
 		type virtd_t;
 	')
 
 	allow $1 virtd_t:process signal;
+	allow $1 virt_driver_domain:process signal;
 ')
 
 ########################################
@@ -1180,10 +1335,12 @@ interface(`virt_signal',`
 #
 interface(`virt_signull',`
 	gen_require(`
+		attribute virt_driver_domain;
 		type virtd_t;
 	')
 
 	allow $1 virtd_t:process signull;
+	allow $1 virt_driver_domain:process signull;
 ')
 
 ########################################
@@ -1330,6 +1487,43 @@ interface(`virt_dontaudit_read_chr_dev',`
 
 ########################################
 ## <summary>
+##	Make the specified type usable as a virt file type
+## </summary>
+## <param name="type">
+##	<summary>
+##	Type to be used as a virt file type
+##	</summary>
+## </param>
+#
+interface(`virt_file_types',`
+	gen_require(`
+		attribute virt_file_type;
+	')
+
+	typeattribute $1 virt_file_type;
+')
+
+########################################
+## <summary>
+##	Make the specified type usable as a svirt file type 
+## </summary>
+## <param name="type">
+##	<summary>
+##	Type to be used as a svirt file type
+##	</summary>
+## </param>
+#
+interface(`svirt_file_types',`
+	gen_require(`
+		attribute svirt_file_type;
+	')
+
+	typeattribute $1 svirt_file_type;
+')
+
+
+########################################
+## <summary>
 ##	Creates types and rules for a basic
 ##	virt_lxc process domain.
 ## </summary>
@@ -1356,9 +1550,9 @@ template(`virt_sandbox_domain_template',`
 	kernel_read_system_state($1_t)
 	kernel_read_all_proc($1_t)
 
- #   optional_policy(`
- #       container_runtime_typebounds($1_t)
- #   ')
+ #	optional_policy(`
+ #		container_runtime_typebounds($1_t)
+ #	')
 ')
 
 ########################################
@@ -1376,7 +1570,7 @@ template(`virt_sandbox_domain',`
 		attribute svirt_sandbox_domain;
 	')
 
-	typeattribute  $1 svirt_sandbox_domain;
+	typeattribute $1 svirt_sandbox_domain;
 ')
 
 ########################################
@@ -1395,7 +1589,25 @@ template(`virt_sandbox_net_domain',`
 	')
 
 	virt_sandbox_domain($1)
-	typeattribute  $1 sandbox_net_domain;
+	typeattribute $1 sandbox_net_domain;
+')
+
+########################################
+## <summary>
+##	Make the specified type usable as a virt system domain
+## </summary>
+## <param name="type">
+##	<summary>
+##	Type to be used as a virt system domain
+##	</summary>
+## </param>
+#
+interface(`virt_system_domain_type',`
+	gen_require(`
+		attribute virt_system_domain;
+	')
+
+	typeattribute $1 virt_system_domain;
 ')
 
 ########################################
@@ -1422,7 +1634,7 @@ interface(`virt_exec_qemu',`
 ## </summary>
 ## <param name="domain">
 ##	<summary>
-##      Domain allowed access.
+##	Domain allowed access.
 ##	</summary>
 ## </param>
 #
@@ -1459,7 +1671,7 @@ interface(`virt_transition_svirt_sandbox',`
 		attribute svirt_sandbox_domain;
 	')
 
-	allow $1 svirt_sandbox_domain:process { transition signal_perms };
+	allow $1 svirt_sandbox_domain:process { signal_perms transition };
 	role $2 types svirt_sandbox_domain;
 	allow $1 svirt_sandbox_domain:unix_dgram_socket sendto;
 
@@ -1538,7 +1750,7 @@ interface(`virt_rlimitinh',`
 		type virtd_t;
 	')
 
-    allow $1 virtd_t:process { rlimitinh };
+	allow $1 virtd_t:process { rlimitinh };
 ')
 
 ########################################
@@ -1556,7 +1768,7 @@ interface(`virt_noatsecure',`
 		type virtd_t;
 	')
 
-    allow $1 virtd_t:process { noatsecure rlimitinh };
+	allow $1 virtd_t:process { noatsecure rlimitinh };
 ')
 
 ########################################
@@ -1583,6 +1795,7 @@ interface(`virt_admin',`
 		attribute svirt_file_type;
 		attribute virt_file_type;
 		type virtd_initrc_exec_t;
+		type virtd_unit_file_t;
 	')
 
 	allow $1 virt_system_domain:process signal_perms;
@@ -1611,14 +1824,15 @@ interface(`virt_admin',`
 	virt_stream_connect_svirt($1)
 	virt_stream_connect($1)
 ')
+
 #######################################
 ## <summary>
-##  Getattr on virt executable.
+##	Getattr on virt executable.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed to transition.
-##  </summary>
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
 ## </param>
 #
 interface(`virt_default_capabilities',`
@@ -1629,27 +1843,30 @@ interface(`virt_default_capabilities',`
 	typeattribute $1 sandbox_caps_domain;
 ')
 
-
 ########################################
 ## <summary>
-##      Send and receive messages from
-##      virt over dbus.
+##	Send and receive messages from
+##	virt over dbus.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`virt_dbus_chat',`
-        gen_require(`
-                type virtd_t;
-                class dbus send_msg;
-        ')
+	gen_require(`
+		attribute virt_driver_domain;
+		type virtd_t;
+		class dbus send_msg;
+	')
 
-        allow $1 virtd_t:dbus send_msg;
-        allow virtd_t $1:dbus send_msg;
-        ps_process_pattern(virtd_t, $1)
+	allow $1 virtd_t:dbus send_msg;
+	allow virtd_t $1:dbus send_msg;
+	allow $1 virt_driver_domain:dbus send_msg;
+	allow virt_driver_domain $1:dbus send_msg;
+	ps_process_pattern(virtd_t, $1)
+	ps_process_pattern(virt_driver_domain, $1)
 ')
 
 ########################################
@@ -1660,7 +1877,7 @@ interface(`virt_dbus_chat',`
 ## <desc>
 ##	<p>
 ##	Execute a file in a sandbox directory
-##	in the specified domain.  This allows
+##	in the specified domain. This allows
 ##	the specified domain to execute any file
 ##	on these filesystems in the specified
 ##	domain.
@@ -1726,18 +1943,38 @@ interface(`virt_dgram_send',`
 
 ########################################
 ## <summary>
-##  Manage svirt tmp files,dirs and sockfiles.
+##	Manage svirt home files,dirs and sockfiles.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##   </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_svirt_manage_home',`
+	gen_require(`
+		type svirt_home_t;
+	')
+
+	manage_files_pattern($1, svirt_home_t, svirt_home_t)
+	manage_dirs_pattern($1, svirt_home_t, svirt_home_t)
+	manage_sock_files_pattern($1, svirt_home_t, svirt_home_t)
+')
+
+########################################
+## <summary>
+##	Manage svirt tmp files,dirs and sockfiles.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`virt_svirt_manage_tmp',`
-        gen_require(`
-                type svirt_tmp_t;
-        ')
+	gen_require(`
+		type svirt_tmp_t;
+	')
 
 	manage_files_pattern($1, svirt_tmp_t, svirt_tmp_t)
 	manage_dirs_pattern($1, svirt_tmp_t, svirt_tmp_t)
@@ -1746,20 +1983,20 @@ interface(`virt_svirt_manage_tmp',`
 
 ########################################
 ## <summary>
-##     Read qemu PID files.
+##	 Read qemu PID files.
 ## </summary>
 ## <param name="domain">
-##     <summary>
-##     Domain allowed access.
-##     </summary>
+##	<summary>
+##	Domain allowed access.
+##	 </summary>
 ## </param>
 #
 interface(`virt_read_qemu_pid_files',`
-       gen_require(`
-               type qemu_var_run_t;
-       ')
+	gen_require(`
+		type qemu_var_run_t;
+	')
 
-       files_search_pids($1)
-       list_dirs_pattern($1, qemu_var_run_t, qemu_var_run_t)
-       read_files_pattern($1, qemu_var_run_t, qemu_var_run_t)
+	files_search_pids($1)
+	list_dirs_pattern($1, qemu_var_run_t, qemu_var_run_t)
+	read_files_pattern($1, qemu_var_run_t, qemu_var_run_t)
 ')
