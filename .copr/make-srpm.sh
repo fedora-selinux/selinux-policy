@@ -7,7 +7,7 @@ outdir="$1"; shift
 dirname="$(dirname "$0")"
 
 DISTGIT_URL=https://src.fedoraproject.org/rpms/selinux-policy
-DISTGIT_REF=rawhide
+DISTGIT_REF=f34
 
 CONTAINER_URL=https://github.com/containers/container-selinux
 EXPANDER_URL=https://github.com/fedora-selinux/macro-expander
