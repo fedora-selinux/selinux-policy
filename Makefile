@@ -154,6 +154,7 @@ srcpath = $(installdir)/src
 userpath = $(installdir)/users
 policypath = $(installdir)/policy
 contextpath = $(installdir)/contexts
+boolsubspath = $(installdir)/booleans.subs_dist
 homedirpath = $(contextpath)/files/homedir_template
 fcpath = $(contextpath)/files/file_contexts
 fcsubspath = $(contextpath)/files/file_contexts.subs_dist
@@ -249,7 +250,7 @@ seusers := $(appconf)/seusers
 appdir := $(contextpath)
 user_default_contexts := $(wildcard config/appconfig-$(TYPE)/*_default_contexts)
 user_default_contexts_names := $(addprefix $(contextpath)/users/,$(subst _default_contexts,,$(notdir $(user_default_contexts))))
-appfiles := $(addprefix $(appdir)/,default_contexts default_type initrc_context failsafe_context userhelper_context removable_context dbus_contexts sepgsql_contexts x_contexts customizable_types securetty_types virtual_image_context virtual_domain_context lxc_contexts openssh_contexts systemd_contexts snapperd_contexts) $(contextpath)/files/media $(user_default_contexts_names)
+appfiles := $(addprefix $(appdir)/,default_contexts default_type initrc_context failsafe_context userhelper_context removable_context dbus_contexts sepgsql_contexts x_contexts customizable_types securetty_types virtual_image_context virtual_domain_context lxc_contexts openssh_contexts systemd_contexts snapperd_contexts) $(contextpath)/files/media $(user_default_contexts_names) $(fcsubspath) $(boolsubspath)
 net_contexts := $(builddir)net_contexts
 
 all_layers := $(shell find $(moddir)/* -maxdepth 0 -type d)
@@ -478,6 +479,10 @@ $(installdir)/booleans: $(booleans)
 		-e '/^[[:blank:]]*($$|#)/d' $(booleans) | $(SORT) > $(tmpdir)/booleans
 	@$(INSTALL) -d -m 0755 $(@D)
 	$(verbose) $(INSTALL) -m 0644 $(tmpdir)/booleans $@
+
+$(boolsubspath): config/booleans.subs_dist
+	@$(INSTALL) -d -m 0755 $(@D)
+	$(verbose) $(INSTALL) -m 0644 $< $@
 
 $(contextpath)/files/media: $(appconf)/media
 	@$(INSTALL) -d -m 0755 $(@D)
