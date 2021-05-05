@@ -1,0 +1,111 @@
+## <summary>Policy for rtorrent.</summary>
+
+############################################################
+## <summary>
+##	Role access for rtorrent
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`rtorrent_role',`
+	gen_require(`
+	    attribute_role rtorrent_roles;
+	    type rtorrent_t, rtorrent_exec_t;
+	')
+
+	roleattribute $1 rtorrent_roles;
+
+	# transition from the userdomain to the derived domain
+	domtrans_pattern($2, rtorrent_exec_t, rtorrent_t)
+
+	# allow ps to show rtorrent
+	ps_process_pattern($2, rtorrent_t)
+	allow $2 rtorrent_t:process { signull sigstop signal sigkill };
+
+	ifdef(`hide_broken_symptoms',`
+		#Leaked File Descriptors
+		dontaudit rtorrent_t $2:fifo_file rw_fifo_file_perms;
+	')
+')
+
+########################################
+## <summary>
+##	Transition to a user torrent domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`rtorrent_domtrans',`
+	gen_require(`
+		type rtorrent_t, rtorrent_exec_t;
+	')
+
+	domtrans_pattern($1, rtorrent_exec_t, rtorrent_t)
+')
+
+######################################
+## <summary>
+##	Execute torrent in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtorrent_exec',`
+	gen_require(`
+		type rtorrent_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, rtorrent_exec_t)
+')
+
+######################################
+## <summary>
+##  Make rtorrent an entrypoint for
+##  the specified domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The domain for which cifs_t is an entrypoint.
+##  </summary>
+## </param>
+#
+interface(`rtorrent_entry_type',`
+    gen_require(`
+        type rtorrent_exec_t;
+    ')
+
+    domain_entry_file($1, rtorrent_exec_t)
+')
+
+########################################
+## <summary>
+##	Send generic signals to user rtorrent processes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtorrent_signal',`
+	gen_require(`
+		type rtorrent_t;
+	')
+
+	allow $1 rtorrent_t:process signal;
+')

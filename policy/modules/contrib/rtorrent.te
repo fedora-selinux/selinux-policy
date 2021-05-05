@@ -1,0 +1,95 @@
+policy_module(rtorrent, 1.0.1)
+
+########################################
+#
+# Declarations
+#
+## <desc>
+## <p>
+## Allow rtorrent to use send mails
+## </p>
+## </desc>
+gen_tunable(rtorrent_send_mails, false)
+
+## <desc>
+## <p>
+## Enable necessary permissions for rutorrent
+## </p>
+## </desc>
+gen_tunable(rtorrent_enable_rutorrent, false)
+
+attribute rtorrentdomain;
+
+attribute_role rtorrent_roles;
+roleattribute system_r rtorrent_roles;
+
+type rtorrent_t;
+type rtorrent_exec_t;
+userdom_user_application_domain(rtorrent_t, rtorrent_exec_t)
+role rtorrent_roles types rtorrent_t;
+
+########################################
+#
+# rtorrent local policy
+#
+
+type rtorrent_port_t;
+corenet_port(rtorrent_port_t)
+allow rtorrent_t rtorrent_port_t:tcp_socket name_bind;
+
+userdom_read_user_home_content_symlinks(rtorrent_t)
+
+allow rtorrent_t self:process setpgid;
+allow rtorrent_t self:netlink_audit_socket { create_socket_perms nlmsg_relay };
+allow rtorrent_t self:fifo_file rw_fifo_file_perms;
+allow rtorrent_t self:tcp_socket create_stream_socket_perms;
+allow rtorrent_t self:unix_stream_socket connectto;
+
+allow rtorrent_t self:netlink_route_socket { bind create nlmsg_read };
+allow rtorrent_t self:udp_socket { connect create getattr };
+nscd_shm_use(rtorrent_t)
+
+corecmd_exec_bin(rtorrent_t)
+# execute helper scripts
+userdom_exec_user_bin_files(rtorrent_t)
+
+corenet_tcp_bind_commplex_main_port(rtorrent_t)
+corenet_all_recvfrom_netlabel(rtorrent_t)
+corenet_tcp_sendrecv_generic_if(rtorrent_t)
+corenet_udp_sendrecv_generic_if(rtorrent_t)
+corenet_tcp_sendrecv_generic_node(rtorrent_t)
+corenet_udp_sendrecv_generic_node(rtorrent_t)
+corenet_tcp_sendrecv_all_ports(rtorrent_t)
+corenet_udp_sendrecv_all_ports(rtorrent_t)
+corenet_tcp_connect_all_ports(rtorrent_t)
+corenet_sendrecv_all_client_packets(rtorrent_t)
+corenet_udp_bind_all_unreserved_ports(rtorrent_t)
+
+domain_use_interactive_fds(rtorrent_t)
+auth_use_nsswitch(rtorrent_t)
+miscfiles_map_generic_certs(rtorrent_t)
+fs_getattr_xattr_fs(rtorrent_t)
+
+userdom_use_inherited_user_terminals(rtorrent_t)
+userdom_manage_user_home_content_files(rtorrent_t)
+userdom_manage_user_home_content_dirs(rtorrent_t)
+userdom_home_manager(rtorrent_t)
+userdom_filetrans_home_content(rtorrent_t)
+userdom_stream_connect(rtorrent_t)
+
+optional_policy(`
+	tunable_policy(`rtorrent_send_mails',`
+		userdom_exec_user_bin_files(rtorrent_t)
+		userdom_exec_user_home_content_files(rtorrent_t)
+		files_manage_generic_tmp_files(rtorrent_t)
+		mta_send_mail(rtorrent_t)
+	')
+')
+
+optional_policy(`
+    apache_manage_sys_content(rtorrent_t)
+
+    tunable_policy(`rtorrent_enable_rutorrent',`
+        apache_exec_sys_content(rtorrent_t)
+    ')
+')
