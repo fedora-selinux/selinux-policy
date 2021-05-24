@@ -118,6 +118,29 @@ interface(`pkcs_getattr_exec_files',`
 
 ########################################
 ## <summary>
+##	Create and manage objects in the tmpfs directories
+##	with a private type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_tmpfs_filetrans',`
+	gen_require(`
+		type pkcs_slotd_tmpfs_t;
+	')
+	allow $1 pkcs_slotd_tmpfs_t:file map;
+
+	manage_files_pattern($1, pkcs_slotd_tmpfs_t, pkcs_slotd_tmpfs_t)
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, { file dir })
+
+	fs_manage_tmpfs_dirs($1)
+')
+
+########################################
+## <summary>
 ##	Use opencryptoki services
 ## </summary>
 ## <param name="domain">
@@ -136,6 +159,8 @@ interface(`pkcs_use_opencryptoki',`
 
     kernel_search_proc($1)
     ps_process_pattern(pkcs_slotd_t, $1)
+
+    corenet_tcp_connect_tcs_port($1)
 
     dev_rw_crypto($1)
 
