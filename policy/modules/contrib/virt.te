@@ -194,8 +194,6 @@ typealias svirt_t alias qemu_t;
 virt_domain_template(svirt_tcg)
 role system_r types svirt_tcg_t;
 
-type qemu_exec_t, virt_file_type;
-
 type virt_cache_t alias svirt_cache_t, virt_file_type;
 files_type(virt_cache_t)
 
@@ -372,6 +370,10 @@ allow svirt_t self:process ptrace;
 # it was a part of auth_use_nsswitch
 allow svirt_t self:netlink_route_socket r_netlink_socket_perms;
 
+allow svirt_t virtlogd_t:fifo_file write;
+
+allow svirt_t virtqemud_var_run_t:file write;
+
 read_files_pattern(svirt_t, virtqemud_t, virtqemud_t)
 
 corenet_udp_sendrecv_generic_if(svirt_t)
@@ -450,9 +452,6 @@ allow virt_domain virtd_t:fd use;
 allow virt_domain virtd_t:unix_stream_socket { accept getattr getopt read write };
 allow virtd_t virt_domain:unix_stream_socket { connectto create_stream_socket_perms };
 allow virt_domain virtd_t:tun_socket attach_queue;
-
-can_exec(virtd_t, qemu_exec_t)
-can_exec(virt_domain, qemu_exec_t)
 
 allow virtd_t qemu_var_run_t:file relabel_file_perms;
 manage_dirs_pattern(virtd_t, qemu_var_run_t, qemu_var_run_t)
@@ -833,6 +832,8 @@ can_exec(virtlogd_t, virtlogd_exec_t)
 
 kernel_read_network_state(virtlogd_t)
 
+mls_fd_share_all_levels(virtlogd_t)
+
 allow virtlogd_t self:unix_stream_socket create_stream_socket_perms;
 
 # Allow virtlogd_t to execute itself.
@@ -1120,6 +1121,10 @@ optional_policy(`
 
 optional_policy(`
 	pulseaudio_dontaudit_exec(virt_domain)
+')
+
+optional_policy(`
+	qemu_exec(virt_domain)
 ')
 
 optional_policy(`
@@ -1761,6 +1766,9 @@ allow virtnodedevd_t self:netlink_generic_socket create_socket_perms;
 
 kernel_request_load_module(virtnodedevd_t)
 
+corecmd_exec_bin(virtnodedevd_t)
+corecmd_exec_shell(virtnodedevd_t)
+
 dev_rw_mtrr(virtnodedevd_t)
 
 miscfiles_read_hwdata(virtnodedevd_t)
@@ -1774,6 +1782,7 @@ optional_policy(`
 # virtnwfilterd local policy
 #
 allow virtnwfilterd_t self:capability net_raw;
+allow virtnwfilterd_t self:netlink_generic_socket create_socket_perms;
 allow virtnwfilterd_t self:netlink_netfilter_socket create_socket_perms;
 allow virtnwfilterd_t self:netlink_rdma_socket create_socket_perms;
 allow virtnwfilterd_t self:packet_socket { bind create getopt ioctl map setopt };
@@ -1823,9 +1832,9 @@ allow virtqemud_t self:netlink_audit_socket nlmsg_relay;
 allow virtqemud_t self:process { setcap setexec setrlimit setsockcreate };
 allow virtqemud_t self:tcp_socket create_socket_perms;
 allow virtqemud_t self:tun_socket create;
-allow virtqemud_t self:udp_socket { create getattr };
+allow virtqemud_t self:udp_socket { create connect getattr };
 
-allow virtqemud_t svirt_t:process { setsched signal signull transition };
+allow virtqemud_t svirt_t:process { getattr setsched signal signull transition };
 allow virtqemud_t svirt_t:unix_stream_socket { connectto create_stream_socket_perms };
 allow virtqemud_t svirt_socket_t:unix_stream_socket connectto;
 
@@ -1850,6 +1859,7 @@ manage_files_pattern(virtqemud_t, qemu_var_run_t, qemu_var_run_t)
 manage_sock_files_pattern(virtqemud_t, qemu_var_run_t, qemu_var_run_t)
 
 manage_dirs_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
+manage_fifo_files_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
 manage_files_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
 manage_sock_files_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
 read_files_pattern(virtqemud_t, svirt_t, svirt_t)
@@ -1888,6 +1898,7 @@ dev_rw_vhost(virtqemud_t)
 files_mounton_non_security(virtqemud_t)
 files_read_all_symlinks(virtqemud_t)
 
+fs_getattr_cgroup(virtqemud_t)
 fs_getattr_hugetlbfs(virtqemud_t)
 fs_manage_hugetlbfs_dirs(virtqemud_t)
 fs_manage_cgroup_dirs(virtqemud_t)
@@ -1936,7 +1947,7 @@ allow virtstoraged_t self:capability { dac_override dac_read_search ipc_lock };
 
 files_tmp_filetrans(virtstoraged_t, virtstoraged_tmp_t, { file dir })
 
-manage_lnk_files_pattern(virtstoraged_t, virt_etc_rw_t, virt_etc_rw_t)
+manage_dirs_pattern(virtstoraged_t, virt_content_t, virt_content_t)
 
 manage_files_pattern(virtstoraged_t, virt_image_t, virt_image_t)
 
@@ -1944,6 +1955,8 @@ manage_files_pattern(virtstoraged_t, svirt_image_t, svirt_image_t)
 
 manage_dirs_pattern(virtstoraged_t, virt_var_lib_t, virt_var_lib_t)
 manage_files_pattern(virtstoraged_t, virt_var_lib_t, virt_var_lib_t)
+
+manage_lnk_files_pattern(virtstoraged_t, virt_etc_rw_t, virt_etc_rw_t)
 
 corecmd_exec_bin(virtstoraged_t)
 

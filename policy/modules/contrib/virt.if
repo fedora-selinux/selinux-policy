@@ -71,12 +71,11 @@ template(`virt_domain_template',`
 		attribute virt_image_type, virt_domain;
 		attribute virt_tmpfs_type;
 		attribute virt_ptynode;
-		type qemu_exec_t;
 		type virtlogd_t;
 	')
 
 	type $1_t, virt_domain;
-	application_domain($1_t, qemu_exec_t)
+	application_type($1_t)
 	domain_user_exemption_target($1_t)
 	mls_rangetrans_target($1_t)
 	mcs_constrained($1_t)
@@ -97,6 +96,15 @@ template(`virt_domain_template',`
 	# Allow domain to write to pipes connected to virtlogd
 	allow $1_t virtlogd_t:fd use;
 	allow $1_t virtlogd_t:fifo_file rw_inherited_fifo_file_perms;
+
+	optional_policy(`
+		gen_require(`
+			type qemu_exec_t;
+		')
+
+		application_executable_file(qemu_exec_t)
+		domain_entry_file($1_t, qemu_exec_t)
+	')
 ')
 
 ######################################
@@ -123,6 +131,8 @@ template(`virt_driver_template',`
 	')
 
 	type $1_t, virt_driver_domain;
+	mls_rangetrans_source($1_t)
+	mls_rangetrans_target($1_t)
 
 	type $1_exec_t, virt_driver_executable;
 	init_daemon_domain($1_t, $1_exec_t)
@@ -159,6 +169,14 @@ template(`virt_driver_template',`
 	read_files_pattern(virt_driver_domain, virtqemud_t, virtqemud_t)
 
 	kernel_dgram_send($1_t)
+
+	mls_fd_share_all_levels($1_t)
+	mls_file_read_to_clearance($1_t)
+	mls_file_write_to_clearance($1_t)
+	mls_process_read_to_clearance($1_t)
+	mls_process_write_to_clearance($1_t)
+	mls_socket_read_to_clearance($1_t)
+	mls_socket_write_to_clearance($1_t)
 
 	auth_read_passwd($1_t)
 
@@ -1608,24 +1626,6 @@ interface(`virt_system_domain_type',`
 	')
 
 	typeattribute $1 virt_system_domain;
-')
-
-########################################
-## <summary>
-##	Execute a qemu_exec_t in the callers domain
-## </summary>
-## <param name="domain">
-## <summary>
-##	Domain allowed access.
-## </summary>
-## </param>
-#
-interface(`virt_exec_qemu',`
-	gen_require(`
-		type qemu_exec_t;
-	')
-
-	can_exec($1, qemu_exec_t)
 ')
 
 ########################################
