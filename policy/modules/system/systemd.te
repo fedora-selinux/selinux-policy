@@ -76,6 +76,11 @@ files_pid_file(systemd_bootchart_var_run_t)
 type systemd_bootchart_tmpfs_t;
 files_tmpfs_file(systemd_bootchart_tmpfs_t)
 
+systemd_domain_template(systemd_journal_upload)
+
+type systemd_journal_upload_var_lib_t;
+files_type(systemd_journal_upload_var_lib_t);
+
 systemd_domain_template(systemd_resolved)
 init_nnp_daemon_domain(systemd_resolved_t)
 
@@ -1241,6 +1246,26 @@ logging_syslogd_pid_filetrans(systemd_bootchart_t, systemd_bootchart_var_run_t, 
 
 manage_files_pattern(systemd_bootchart_t, systemd_bootchart_tmpfs_t, systemd_bootchart_tmpfs_t)
 fs_tmpfs_filetrans(systemd_bootchart_t, systemd_bootchart_tmpfs_t, file )
+
+#######################################
+#
+# systemd_journal_upload domain
+#
+
+manage_files_pattern(systemd_journal_upload_t, systemd_journal_upload_var_lib_t, systemd_journal_upload_var_lib_t)
+
+corenet_tcp_connect_journal_remote_port(systemd_journal_upload_t)
+init_var_lib_filetrans(systemd_journal_upload_t, systemd_journal_upload_var_lib_t, dir, "journal_upload")
+init_read_var_lib_lnk_files(systemd_journal_upload_t)
+
+optional_policy(`
+	# This actually is for reading journal data
+	logging_read_syslog_pid(systemd_journal_upload_t)
+	logging_mmap_journal(systemd_journal_upload_t)
+
+	logging_list_logs(systemd_journal_upload_t)
+	logging_read_generic_logs(systemd_journal_upload_t)
+')
 
 #######################################
 #
