@@ -77,6 +77,12 @@ type gnomesystemmm_t;
 type gnomesystemmm_exec_t;
 init_daemon_domain(gnomesystemmm_t, gnomesystemmm_exec_t)
 
+# Assistive Technology Service Provider Interface (AT-SPI)
+type gnome_atspi_t;
+type gnome_atspi_exec_t;
+init_daemon_domain(gnome_atspi_t, gnome_atspi_exec_t)
+role system_r types gnome_atspi_t;
+
 ##############################
 #
 # Local Policy
@@ -276,3 +282,33 @@ optional_policy(`
 domain_use_interactive_fds(gnomedomain)
 
 userdom_use_inherited_user_terminals(gnomedomain)
+
+######################################
+#
+# at-spi local policy
+#
+
+files_map_read_etc_files(gnome_atspi_t)
+fs_getattr_cgroup(gnome_atspi_t)
+
+optional_policy(`
+	dbus_exec_system_dbusd(gnome_atspi_t)
+	dbus_rw_tmp_sock_files(gnome_atspi_t)
+	dbus_stream_connect_session_bus(gnome_atspi_t)
+	dbus_system_bus_client(gnome_atspi_t)
+')
+
+optional_policy(`
+	gnome_manage_home_config(gnome_atspi_t)
+')
+
+optional_policy(`
+	userdom_write_user_tmp_files(gnome_atspi_t)
+')
+
+optional_policy(`
+	xserver_search_xdm_lib(gnome_atspi_t)
+	xserver_read_inherited_xdm_lib_files(gnome_atspi_t)
+	xserver_read_xdm_lib_files(gnome_atspi_t)
+	xserver_stream_connect(gnome_atspi_t)
+')
