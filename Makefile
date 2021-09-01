@@ -264,6 +264,7 @@ generated_fc := $(basename $(foreach dir,$(all_layers),$(wildcard $(dir)/*.fc.in
 # sort here since it removes duplicates, which can happen
 # when a generated file is already generated
 detected_mods := $(sort $(foreach dir,$(all_layers),$(wildcard $(dir)/*.te)) $(generated_te))
+detected_ifs := $(sort $(foreach dir,$(all_layers),$(wildcard $(dir)/*.if)) $(generated_if))
 
 modxml := $(addprefix $(tmpdir)/, $(detected_mods:.te=.xml))
 layerxml := $(sort $(addprefix $(tmpdir)/, $(notdir $(addsuffix .xml,$(all_layers)))))
@@ -306,6 +307,9 @@ off_mods += $(filter-out $(cmdline_off) $(cmdline_base) $(cmdline_mods), $(mod_c
 
 # add modules not in modules.conf to the off list
 off_mods += $(filter-out $(base_mods) $(mod_mods) $(off_mods),$(notdir $(detected_mods)))
+
+# all interface files without corresponding .te - backwards compatibility
+standalone_ifs := $(filter-out $(subst .te,.if, $(base_mods) $(mod_mods) $(off_mods)), $(notdir $(detected_ifs)))
 
 # filesystems to be used in labeling targets
 filesystems = $(shell mount | grep -v "context=" | egrep -v '\((|.*,)bind(,.*|)\)' | awk '/(ext[234]|btrfs| xfs| jfs).*rw/{print $$3}';)
