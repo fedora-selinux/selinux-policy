@@ -61,6 +61,10 @@ files_tmp_file(cupsd_lpd_tmp_t)
 type cupsd_lpd_var_run_t;
 files_pid_file(cupsd_lpd_var_run_t)
 
+type cups_brf_t, cups_domain;
+type cups_brf_exec_t;
+cups_backend(cups_brf_t, cups_brf_exec_t)
+
 type cups_pdf_t, cups_domain;
 type cups_pdf_exec_t;
 cups_backend(cups_pdf_t, cups_pdf_exec_t)
@@ -592,6 +596,30 @@ logging_send_syslog_msg(cupsd_lpd_t)
 
 optional_policy(`
 	inetd_service_domain(cupsd_lpd_t, cupsd_lpd_exec_t)
+')
+
+########################################
+#
+# BRF (Braille) local printing policy
+#
+
+# when printing as a root - to create /root/BRF/<file>
+allow cups_brf_t self:capability dac_override;
+userdom_manage_admin_dirs(cups_brf_t)
+userdom_manage_admin_files(cups_brf_t)
+
+# the backend gets user info from getpwnam() and
+# sets its uid/gid to be run under user
+auth_read_passwd(cups_brf_t)
+init_search_pid_dirs(cups_brf_t)
+
+# for writing ~/BRF/<file> for normal user
+userdom_manage_user_home_content_dirs(cups_brf_t)
+userdom_manage_user_home_content_files(cups_brf_t)
+userdom_filetrans_home_content(cups_brf_t)
+
+optional_policy(`
+	sssd_search_lib(cups_brf_t)
 ')
 
 ########################################
