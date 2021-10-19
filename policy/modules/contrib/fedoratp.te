@@ -16,14 +16,25 @@ allow fedoratp_t self:unix_dgram_socket create_socket_perms;
 corecmd_exec_bin(fedoratp_t)
 
 files_manage_system_conf_files(fedoratp_t)
-files_rw_generic_tmp_dir(fedoratp_t)
-files_watch_generic_tmp_dirs(fedoratp_t)
+files_manage_generic_tmp_dirs(fedoratp_t)
+files_manage_generic_tmp_files(fedoratp_t)
 files_manage_var_lib_files(fedoratp_t)
+
+sysnet_dns_name_resolve(fedoratp_t)
 
 term_use_unallocated_ttys(fedoratp_t)
 
 optional_policy(`
+	gen_require(`
+		type gpg_t, tmp_t, gpg_agent_tmp_t;
+	')
+
+	delete_sock_files_pattern(fedoratp_t, tmp_t, gpg_agent_tmp_t)
+	files_watch_generic_tmp_dirs(gpg_t)
+
 	gpg_domtrans(fedoratp_t)
+
+	term_use_unallocated_ttys(gpg_t)
 ')
 
 optional_policy(`
