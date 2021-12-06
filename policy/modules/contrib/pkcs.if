@@ -132,12 +132,11 @@ interface(`pkcs_tmpfs_named_filetrans',`
 		type pkcs_slotd_tmpfs_t;
 	')
 
-	allow $1 pkcs_slotd_tmpfs_t:file map;
-
-	manage_files_pattern($1, pkcs_slotd_tmpfs_t, pkcs_slotd_tmpfs_t)
 	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.ccatok")
 	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.ep11tok")
 	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.lite")
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.stats_0")
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.stats_48")
 	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.swtok")
 	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.tpm.root")
 ')
@@ -155,10 +154,12 @@ interface(`pkcs_tmpfs_named_filetrans',`
 interface(`pkcs_use_opencryptoki',`
 	gen_require(`
         type pkcs_slotd_t;
+        type pkcs_slotd_tmpfs_t;
 	')
 
     allow $1 self:capability fsetid;
     allow pkcs_slotd_t $1:process signull;
+    allow $1 pkcs_slotd_tmpfs_t:file { create_file_perms mmap_rw_file_perms };
 
     kernel_search_proc($1)
     ps_process_pattern(pkcs_slotd_t, $1)
