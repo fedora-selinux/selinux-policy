@@ -39,6 +39,10 @@ type NetworkManager_dispatcher_exec_t;
 type NetworkManager_dispatcher_script_t;
 files_type(NetworkManager_dispatcher_script_t)
 
+type NetworkManager_priv_helper_t;
+type NetworkManager_priv_helper_exec_t;
+init_nnp_daemon_domain(NetworkManager_priv_helper_t, NetworkManager_priv_helper_exec_t)
+
 type wpa_cli_t;
 type wpa_cli_exec_t;
 init_system_domain(wpa_cli_t, wpa_cli_exec_t)
@@ -524,6 +528,25 @@ optional_policy(`
 
 optional_policy(`
 	logging_send_syslog_msg(NetworkManager_dispatcher_t)
+')
+
+########################################
+#
+# NetworkManager-priv_helper local policy
+#
+
+allow NetworkManager_priv_helper_t self:capability dac_override;
+
+allow NetworkManager_priv_helper_t self:unix_dgram_socket { create_socket_perms sendto };
+
+kernel_dgram_send(NetworkManager_priv_helper_t)
+
+optional_policy(`
+        dbus_system_domain(NetworkManager_priv_helper_t, NetworkManager_priv_helper_exec_t)
+')
+
+optional_policy(`
+        openvswitch_stream_connect(NetworkManager_priv_helper_t)
 ')
 
 ########################################
