@@ -33,6 +33,12 @@ files_type(NetworkManager_var_lib_t)
 type NetworkManager_var_run_t;
 files_pid_file(NetworkManager_var_run_t)
 
+type NetworkManager_dispatcher_t;
+type NetworkManager_dispatcher_exec_t;
+
+type NetworkManager_dispatcher_script_t;
+files_type(NetworkManager_dispatcher_script_t)
+
 type wpa_cli_t;
 type wpa_cli_exec_t;
 init_system_domain(wpa_cli_t, wpa_cli_exec_t)
@@ -500,6 +506,24 @@ optional_policy(`
 
 tunable_policy(`use_ecryptfs_home_dirs',`
 	fs_manage_ecryptfs_files(NetworkManager_t)
+')
+
+########################################
+#
+# NetworkManager-dispatcher local policy
+#
+
+allow NetworkManager_dispatcher_t self:unix_dgram_socket { create_socket_perms sendto };
+
+list_dirs_pattern(NetworkManager_dispatcher_t, NetworkManager_dispatcher_script_t, NetworkManager_dispatcher_script_t)
+read_files_pattern(NetworkManager_dispatcher_t, NetworkManager_dispatcher_script_t, NetworkManager_dispatcher_script_t)
+
+optional_policy(`
+	dbus_system_domain(NetworkManager_dispatcher_t, NetworkManager_dispatcher_exec_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(NetworkManager_dispatcher_t)
 ')
 
 ########################################
