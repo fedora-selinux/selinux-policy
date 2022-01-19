@@ -408,6 +408,8 @@ udev_manage_rules_files(init_t)
 userdom_use_user_ttys(init_t)
 userdom_manage_tmp_dirs(init_t)
 userdom_manage_tmp_sockets(init_t)
+userdom_manage_user_tmp_dirs(init_t)
+userdom_relabel_user_tmp_dirs(init_t)
 userdom_delete_user_tmp_files(init_t)
 userdom_delete_user_home_content_files(init_t)
 userdom_connectto_stream(init_t)
@@ -858,8 +860,6 @@ optional_policy(`
 ')
 
 optional_policy(`
-	xserver_relabel_xdm_tmp_dirs(init_t)
-	xserver_manage_xdm_tmp_dirs(init_t)
 	xserver_read_xdm_lib_files(init_t)
 ')
 
@@ -1642,7 +1642,7 @@ optional_policy(`
 	squid_manage_logs(initrc_t)
 ')
 
-ifdef(`enabled_mls',`
+ifdef(`enable_mls',`
 optional_policy(`
 	# allow init scripts to su
 	su_restricted_domain_template(initrc, initrc_t, system_r)
@@ -1852,12 +1852,7 @@ allow systemprocess initrc_transition_domain:fd use;
 
 dontaudit systemprocess init_t:unix_stream_socket getattr;
 
-allow init_t daemon:unix_stream_socket create_stream_socket_perms;
-allow init_t daemon:unix_dgram_socket create_socket_perms;
 allow daemon init_t:unix_stream_socket ioctl;
-allow daemon init_t:unix_dgram_socket sendto;
-# need write to /var/run/systemd/notify
-init_write_pid_socket(daemon)
 init_rw_inherited_script_tmp_files(daemon)
 
 # Handle upstart/systemd direct transition to a executable

@@ -394,7 +394,7 @@ userdom_user_home_dir_filetrans(xauth_t, xauth_home_t, file, ".Xauthority-n")
 userdom_user_home_dir_filetrans(xauth_t, xauth_home_t, file, ".xauth")
 userdom_user_home_dir_filetrans(xauth_t, xauth_home_t, file, ".Xauth")
 
-xserver_rw_xdm_tmp_files(xauth_t)
+userdom_rw_user_tmp_files(xauth_t)
 
 ifdef(`hide_broken_symptoms',`
 	userdom_manage_user_home_content_files(xauth_t)
@@ -727,7 +727,7 @@ miscfiles_manage_fonts_cache(xdm_t)
 miscfiles_manage_localization(xdm_t)
 miscfiles_read_hwdata(xdm_t)
 miscfiles_map_generic_certs(xdm_t)
-miscfiles_read_certs(xdm_t)
+miscfiles_read_generic_certs(xdm_t)
 
 systemd_write_inhibit_pipes(xdm_t)
 systemd_dbus_chat_localed(xdm_t)
@@ -1344,7 +1344,7 @@ userdom_search_user_home_dirs(xserver_t)
 userdom_use_user_ttys(xserver_t)
 userdom_setattr_user_ttys(xserver_t)
 userdom_read_user_tmp_files(xserver_t)
-userdom_rw_user_tmpfs_files(xserver_t)
+userdom_rw_user_tmp_files(xserver_t)
 userdom_map_tmp_files(xserver_t)
 
 ifndef(`distro_redhat',`
@@ -1694,8 +1694,6 @@ allow xserver_t x_userdomain:shm rw_shm_perms;
 
 allow xserver_t x_userdomain:process { getpgid signal };
 
-allow xserver_t x_userdomain:shm rw_shm_perms;
-
 allow x_userdomain xserver_t:unix_dgram_socket sendto;
 
 allow x_userdomain user_fonts_t:dir list_dir_perms;
@@ -1739,6 +1737,10 @@ allow x_userdomain xdm_t:fd use;
 allow x_userdomain xdm_t:fifo_file rw_inherited_fifo_file_perms;
 userdom_search_user_tmp_dirs(x_userdomain)
 userdom_rw_user_tmp_sock_files(x_userdomain)
+# gnome-session creates socket under /tmp/.ICE-unix/
+userdom_create_user_tmp_sockets(x_userdomain)
+# Needed for escd, remove if we get escd policy
+userdom_manage_user_tmp_files(x_userdomain)
 dontaudit x_userdomain xdm_t:tcp_socket { read write };
 
 allow x_userdomain xdm_t:dbus send_msg;
@@ -1781,10 +1783,6 @@ xserver_dontaudit_write_log(x_userdomain)
 #xserver_stream_connect_xdm(x_userdomain)
 # certain apps want to read xdm.pid file
 xserver_read_xdm_pid(x_userdomain)
-# gnome-session creates socket under /tmp/.ICE-unix/
-xserver_create_xdm_tmp_sockets(x_userdomain)
-# Needed for escd, remove if we get escd policy
-xserver_manage_xdm_tmp_files(x_userdomain)
 xserver_read_xdm_etc_files(x_userdomain)
 #xserver_xdm_append_log(x_userdomain)
 xserver_rw_session(x_userdomain,xserver_tmpfs_t)
