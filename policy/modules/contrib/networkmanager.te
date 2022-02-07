@@ -522,17 +522,49 @@ tunable_policy(`use_ecryptfs_home_dirs',`
 # NetworkManager-dispatcher local policy
 #
 
+allow NetworkManager_dispatcher_t self:capability sys_nice;
+allow NetworkManager_dispatcher_t self:process setsched;
+allow NetworkManager_dispatcher_t self:udp_socket create_socket_perms;
 allow NetworkManager_dispatcher_t self:unix_dgram_socket { create_socket_perms sendto };
 
-list_dirs_pattern(NetworkManager_dispatcher_t, NetworkManager_dispatcher_script_t, NetworkManager_dispatcher_script_t)
+list_dirs_pattern(NetworkManager_dispatcher_t, NetworkManager_t, NetworkManager_dispatcher_script_t)
 read_files_pattern(NetworkManager_dispatcher_t, NetworkManager_dispatcher_script_t, NetworkManager_dispatcher_script_t)
+
+auth_read_passwd(NetworkManager_dispatcher_t)
+can_exec(NetworkManager_dispatcher_t, NetworkManager_dispatcher_script_t)
+corecmd_exec_bin(NetworkManager_dispatcher_t)
+corecmd_exec_shell(NetworkManager_dispatcher_t)
+
+optional_policy(`
+	chronyd_domtrans(NetworkManager_dispatcher_t)
+	chronyd_domtrans_chronyc(NetworkManager_dispatcher_t)
+	chronyd_pid_filetrans(NetworkManager_dispatcher_t)
+')
+
+optional_policy(`
+	cloudform_init_domtrans(NetworkManager_dispatcher_t)
+')
 
 optional_policy(`
 	dbus_system_domain(NetworkManager_dispatcher_t, NetworkManager_dispatcher_exec_t)
+	networkmanager_dbus_chat(NetworkManager_dispatcher_t)
 ')
 
 optional_policy(`
 	logging_send_syslog_msg(NetworkManager_dispatcher_t)
+')
+
+optional_policy(`
+	samba_domtrans_smbcontrol(NetworkManager_dispatcher_t)
+	samba_service_status(NetworkManager_dispatcher_t)
+')
+
+optional_policy(`
+	sysnet_read_config(NetworkManager_dispatcher_t)
+')
+
+optional_policy(`
+	systemd_exec_systemctl(NetworkManager_dispatcher_t)
 ')
 
 ########################################
