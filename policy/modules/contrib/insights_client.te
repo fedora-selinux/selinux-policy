@@ -1,0 +1,90 @@
+policy_module(insights_client, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type insights_client_t;
+type insights_client_exec_t;
+init_daemon_domain(insights_client_t, insights_client_exec_t)
+
+type insights_client_var_log_t;
+logging_log_file(insights_client_var_log_t)
+
+type insights_client_etc_t;
+files_config_file(insights_client_etc_t)
+
+type insights_client_etc_rw_t;
+files_config_file(insights_client_etc_rw_t)
+
+type insights_client_tmp_t;
+files_tmp_file(insights_client_tmp_t)
+
+type insights_client_var_lib_t;
+files_type(insights_client_var_lib_t)
+
+type insights_client_var_run_t;
+files_pid_file(insights_client_var_run_t)
+
+permissive insights_client_t;
+
+########################################
+#
+# insights_client local policy
+#
+allow insights_client_t self:fifo_file rw_fifo_file_perms;
+allow insights_client_t self:tcp_socket { bind connect create getattr getopt setopt };
+allow insights_client_t self:udp_socket { connect create getattr setopt };
+allow insights_client_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(insights_client_t, insights_client_etc_t, insights_client_etc_t)
+read_files_pattern(insights_client_t, insights_client_etc_t, insights_client_etc_t)
+manage_files_pattern(insights_client_t, insights_client_etc_rw_t, insights_client_etc_rw_t)
+files_etc_filetrans(insights_client_t, insights_client_etc_rw_t, file, "insights-client-egg-release" )
+files_etc_filetrans(insights_client_t, insights_client_etc_rw_t, file, ".cache.json" )
+files_etc_filetrans(insights_client_t, insights_client_etc_rw_t, file, ".cache.json.asc" )
+files_etc_filetrans(insights_client_t, insights_client_etc_rw_t, file, ".insights-core.etag" )
+files_etc_filetrans(insights_client_t, insights_client_etc_rw_t, file, ".insights-core-gpg-sig.etag" )
+
+manage_dirs_pattern(insights_client_t, insights_client_tmp_t, insights_client_tmp_t)
+manage_files_pattern(insights_client_t, insights_client_tmp_t, insights_client_tmp_t)
+files_tmp_filetrans(insights_client_t, insights_client_tmp_t, { dir file })
+
+manage_dirs_pattern(insights_client_t, insights_client_var_log_t, insights_client_var_log_t)
+manage_files_pattern(insights_client_t, insights_client_var_log_t, insights_client_var_log_t)
+logging_log_filetrans(insights_client_t, insights_client_var_log_t, { dir })
+
+manage_dirs_pattern(insights_client_t, insights_client_var_lib_t, insights_client_var_lib_t)
+manage_files_pattern(insights_client_t, insights_client_var_lib_t, insights_client_var_lib_t)
+files_var_lib_filetrans(insights_client_t, insights_client_var_lib_t, { dir file })
+
+manage_dirs_pattern(insights_client_t, insights_client_var_run_t, insights_client_var_run_t)
+manage_files_pattern(insights_client_t, insights_client_var_run_t, insights_client_var_run_t)
+files_pid_filetrans(insights_client_t, insights_client_var_run_t, { dir file })
+
+corecmd_exec_bin(insights_client_t)
+corenet_tcp_bind_generic_node(insights_client_t)
+corenet_tcp_connect_http_port(insights_client_t)
+
+auth_read_passwd(insights_client_t)
+ 
+domain_use_interactive_fds(insights_client_t)
+
+init_dontaudit_read_state(insights_client_t)
+
+libs_exec_ldconfig(insights_client_t)
+
+miscfiles_read_generic_certs(insights_client_t)
+miscfiles_read_localization(insights_client_t)
+
+sysnet_read_config(insights_client_t)
+
+optional_policy(`
+	gpg_exec(insights_client_t)
+	gpg_manage_home_content(insights_client_t)
+')
+
+optional_policy(`
+	rhsmcertd_read_config_files(insights_client_t)
+')
