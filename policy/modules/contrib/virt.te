@@ -371,6 +371,7 @@ allow svirt_t self:process ptrace;
 allow svirt_t self:netlink_route_socket r_netlink_socket_perms;
 
 allow svirt_t virtlogd_t:fifo_file write;
+allow svirt_t virtlogd_t:unix_stream_socket connectto;
 
 allow svirt_t virtqemud_var_run_t:file write;
 
@@ -1725,7 +1726,7 @@ userdom_read_all_users_state(virtinterfaced_t)
 #
 # virtnetworkd local policy
 #
-allow virtnetworkd_t self:capability { kill sys_ptrace };
+allow virtnetworkd_t self:capability { kill net_admin sys_ptrace };
 allow virtnetworkd_t self:netlink_netfilter_socket create_socket_perms;
 allow virtnetworkd_t self:process setcap;
 allow virtnetworkd_t self:tun_socket { create relabelfrom relabelto };
@@ -1746,6 +1747,7 @@ dev_rw_sysfs(virtnetworkd_t)
 sysnet_read_config(virtnetworkd_t)
 
 optional_policy(`
+	dnsmasq_create_pid_dirs(virtnetworkd_t)
 	dnsmasq_domtrans(virtnetworkd_t)
 	dnsmasq_manage_pid_files(virtnetworkd_t)
 	dnsmasq_read_state(virtnetworkd_t)
@@ -1758,12 +1760,17 @@ optional_policy(`
 	iptables_read_var_run(virtnetworkd_t)
 ')
 
+optional_policy(`
+        firewalld_dbus_chat(virtnetworkd_t)
+')
+
 #######################################
 #
 # virtnodedevd local policy
 #
-allow virtnodedevd_t self:capability sys_admin;
+allow virtnodedevd_t self:capability { net_admin sys_admin };
 allow virtnodedevd_t self:netlink_generic_socket create_socket_perms;
+allow virtnodedevd_t self:process { setsched };
 
 kernel_request_load_module(virtnodedevd_t)
 
@@ -1828,9 +1835,9 @@ userdom_read_all_users_state(virtproxyd_t)
 # virtqemud local policy
 #
 allow virtqemud_t self:bpf { map_create map_read map_write prog_load prog_run };
-allow virtqemud_t self:capability { audit_write chown dac_override dac_read_search fowner fsetid kill setgid setuid sys_admin sys_chroot sys_ptrace sys_rawio };
-allow virtqemud_t self:netlink_audit_socket nlmsg_relay;
-allow virtqemud_t self:process { setcap setexec setrlimit setsockcreate };
+allow virtqemud_t self:capability { audit_write chown dac_override dac_read_search fowner fsetid kill net_admin setgid setuid sys_admin sys_chroot sys_ptrace sys_rawio };
+allow virtqemud_t self:netlink_audit_socket { nlmsg_relay read write };
+allow virtqemud_t self:process { setcap setexec setrlimit setsched setsockcreate };
 allow virtqemud_t self:tcp_socket create_socket_perms;
 allow virtqemud_t self:tun_socket create;
 allow virtqemud_t self:udp_socket { create connect getattr };
@@ -1889,11 +1896,13 @@ corenet_rw_tun_tap_dev(virtqemud_t)
 corenet_tcp_bind_generic_node(virtqemud_t)
 corenet_tcp_bind_vnc_port(virtqemud_t)
 
+dev_delete_urand(virtqemud_t)
 dev_read_cpuid(virtqemud_t)
 dev_read_sysfs(virtqemud_t)
 dev_read_urand(virtqemud_t)
 dev_relabel_all_dev_nodes(virtqemud_t)
 dev_rw_kvm(virtqemud_t)
+dev_rw_lvm_control(virtqemud_t)
 dev_rw_vhost(virtqemud_t)
 
 files_mounton_non_security(virtqemud_t)
@@ -1901,6 +1910,7 @@ files_read_all_symlinks(virtqemud_t)
 
 fs_getattr_cgroup(virtqemud_t)
 fs_getattr_hugetlbfs(virtqemud_t)
+fs_delete_tmpfs_files(virtqemud_t)
 fs_manage_hugetlbfs_dirs(virtqemud_t)
 fs_manage_cgroup_dirs(virtqemud_t)
 fs_manage_cgroup_files(virtqemud_t)
@@ -1937,6 +1947,11 @@ optional_policy(`
 ')
 
 optional_policy(`
+	policykit_dbus_chat(virtqemud_t)
+')
+
+optional_policy(`
+	systemd_dbus_chat_machined(virtqemud_t)
 	systemd_userdbd_stream_connect(virtqemud_t)
 ')
 
@@ -1945,6 +1960,7 @@ optional_policy(`
 # virtstoraged local policy
 #
 allow virtstoraged_t self:capability { dac_override dac_read_search ipc_lock };
+allow virtstoraged_t self:process { setsched };
 
 files_tmp_filetrans(virtstoraged_t, virtstoraged_tmp_t, { file dir })
 
