@@ -48,6 +48,17 @@ interface(`virt_stub_container_image',`
 	')
 ')
 
+########################################
+## <summary>
+##	container_file_t and container_ro_file_t stub interface.
+##	No access allowed.
+## </summary>
+## <param name="domain" unused="true">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
 interface(`virt_stub_svirt_sandbox_file',`
 	gen_require(`
 		type container_file_t;
@@ -68,8 +79,7 @@ interface(`virt_stub_svirt_sandbox_file',`
 #
 template(`virt_domain_template',`
 	gen_require(`
-		attribute virt_image_type, virt_domain;
-		attribute virt_tmpfs_type;
+		attribute virt_domain;
 		attribute virt_ptynode;
 		type virtlogd_t;
 	')
@@ -97,14 +107,8 @@ template(`virt_domain_template',`
 	allow $1_t virtlogd_t:fd use;
 	allow $1_t virtlogd_t:fifo_file rw_inherited_fifo_file_perms;
 
-	optional_policy(`
-		gen_require(`
-			type qemu_exec_t;
-		')
+	qemu_entry_type($1_t)
 
-		application_executable_file(qemu_exec_t)
-		domain_entry_file($1_t, qemu_exec_t)
-	')
 ')
 
 ######################################
@@ -125,6 +129,7 @@ template(`virt_driver_template',`
 		attribute virt_driver_var_run;
 		type virtd_t;
 		type virtqemud_t;
+		type virt_common_var_run_t;
 		type virt_etc_t;
 		type virt_etc_rw_t;
 		type virt_var_run_t;
@@ -298,20 +303,20 @@ interface(`virt_exec',`
 
 ########################################
 ## <summary>
-##      Allow caller domain to run bpftool.
+##	Allow caller domain to run bpftool.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`virt_prog_run_bpf',`
-        gen_require(`
-                type virtd_t;
-        ')
+	gen_require(`
+		type virtd_t;
+	')
 
-    allow $1 virtd_t:bpf { map_create map_read map_write prog_load prog_run };
+	allow $1 virtd_t:bpf { map_create map_read map_write prog_load prog_run };
 ')
 
 
@@ -867,7 +872,6 @@ interface(`virt_search_images',`
 #
 interface(`virt_read_images',`
 	gen_require(`
-		type virt_var_lib_t;
 		attribute virt_image_type;
 	')
 
@@ -962,7 +966,6 @@ interface(`virt_manage_cache',`
 #
 interface(`virt_manage_images',`
 	gen_require(`
-		type virt_var_lib_t;
 		attribute virt_image_type;
 	')
 
@@ -987,7 +990,6 @@ interface(`virt_manage_images',`
 #
 interface(`virt_manage_default_image_type',`
 	gen_require(`
-		type virt_var_lib_t;
 		type virt_image_t;
 	')
 
@@ -1249,15 +1251,16 @@ interface(`virt_stream_connect_sandbox',`
 interface(`virt_transition_svirt',`
 	gen_require(`
 		attribute virt_domain;
-		type virt_bridgehelper_t;
 		type svirt_image_t;
 		type svirt_socket_t;
 	')
 
 	allow $1 virt_domain:process transition;
 	role $2 types virt_domain;
-	role $2 types virt_bridgehelper_t;
 	role $2 types svirt_socket_t;
+	optional_policy(`
+		virt_bridgehelper_role($2)
+	')
 
 	allow $1 virt_domain:process { sigkill signal signull sigstop };
 	allow $1 svirt_image_t:file { relabelfrom relabelto };
@@ -1529,7 +1532,7 @@ interface(`virt_file_types',`
 
 ########################################
 ## <summary>
-##	Make the specified type usable as a svirt file type 
+##	Make the specified type usable as a svirt file type
 ## </summary>
 ## <param name="type">
 ##	<summary>
@@ -1720,8 +1723,9 @@ interface(`virt_rw_svirt_dev',`
 		type svirt_image_t;
 	')
 
-	allow $1 svirt_image_t:chr_file rw_file_perms;
+	allow $1 svirt_image_t:chr_file rw_chr_file_perms;
 ')
+
 
 ########################################
 ## <summary>
