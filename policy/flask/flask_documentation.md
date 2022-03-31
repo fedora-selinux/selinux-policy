@@ -1916,8 +1916,10 @@ Used to manage access while attaching BPF programs to tracepoints, perf profilin
 
 ---
 
+## class io\_uring
 
+Used to control the ability to use special io\_uring features by the process. See also [the original kernel commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=740b03414b20e7f1879cd99aae27d8c401bbcbf9) for more details.
 
+**override_creds** - Allow *source* to override its credentials to *target*.
 
-
-
+**sqpoll** - Allow *source* to create an io\_uring kernel polling thread. *target* is always equal to *source*.
