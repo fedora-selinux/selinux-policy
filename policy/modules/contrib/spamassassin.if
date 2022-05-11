@@ -424,3 +424,27 @@ interface(`spamassassin_spamd_admin',`
 	files_list_pids($1)
 	admin_pattern($1, spamd_var_run_t)
 ')
+
+########################################
+## <summary>
+##	Execute spamassassin server in the spamassassin domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_systemctl',`
+	gen_require(`
+		type spamd_t;
+		type spamd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	systemd_read_fifo_file_passwd_run($1)
+	allow $1 spamd_unit_file_t:file read_file_perms;
+	allow $1 spamd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, spamd_t)
+')
