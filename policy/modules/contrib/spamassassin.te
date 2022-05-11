@@ -59,6 +59,12 @@ files_type(spamd_var_lib_t)
 type spamd_var_run_t;
 files_pid_file(spamd_var_run_t)
 
+type spamd_update_unit_file_t;
+systemd_unit_file(spamd_update_unit_file_t)
+
+type spamd_unit_file_t;
+systemd_unit_file(spamd_unit_file_t)
+
 ifdef(`distro_redhat',`
 	# spamassassin client executable
 	type spamc_t;
@@ -625,8 +631,6 @@ kernel_read_system_state(spamd_update_t)
 
 can_exec(spamd_update_t, spamd_update_exec_t)
 
-can_exec(spamd_update_t, spamd_update_exec_t)
-
 # for updating rules
 corenet_tcp_connect_http_port(spamd_update_t)
 
@@ -638,16 +642,15 @@ dev_read_urand(spamd_update_t)
 domain_use_interactive_fds(spamd_update_t)
 domain_read_all_domains_state(spamd_update_t)
 
-auth_use_nsswitch(spamd_update_t)
-auth_dontaudit_read_shadow(spamd_update_t)
-
-mta_read_config(spamd_update_t)
-
-userdom_search_admin_dir(spamd_update_t)
-userdom_use_inherited_user_ptys(spamd_update_t)
+spamassassin_systemctl(spamd_update_t)
 
 optional_policy(`
 	antivirus_systemctl(spamd_update_t)
+')
+
+optional_policy(`
+	auth_use_nsswitch(spamd_update_t)
+	auth_dontaudit_read_shadow(spamd_update_t)
 ')
 
 optional_policy(`
@@ -659,12 +662,25 @@ optional_policy(`
 	gpg_manage_home_content(spamd_update_t)
 ')
 
+optional_policy(`
+	init_status(spamd_update_t)
+')
+
+optional_policy(`
+	mta_read_config(spamd_update_t)
+')
+
+optional_policy(`
+	systemd_exec_systemctl(spamd_update_t)
+')
+
+optional_policy(`
+	userdom_search_admin_dir(spamd_update_t)
+	userdom_use_inherited_user_ptys(spamd_update_t)
+')
+
 tunable_policy(`spamd_update_can_network',`
 	corenet_sendrecv_all_client_packets(spamd_update_t)
 	corenet_tcp_connect_all_ports(spamd_update_t)
 	corenet_tcp_sendrecv_all_ports(spamd_update_t)
-')
-
-optional_policy(`
-    systemd_exec_systemctl(spamd_update_t)
 ')
