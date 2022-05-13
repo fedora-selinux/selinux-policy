@@ -1,0 +1,49 @@
+policy_module(wireguard, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type wireguard_t;
+type wireguard_exec_t;
+init_daemon_domain(wireguard_t, wireguard_exec_t)
+
+type wireguard_unit_file_t;
+systemd_unit_file(wireguard_unit_file_t)
+
+########################################
+#
+# wireguard local policy
+#
+allow wireguard_t self:capability { net_admin };
+allow wireguard_t self:fifo_file rw_fifo_file_perms;
+allow wireguard_t self:netlink_generic_socket create_socket_perms;
+allow wireguard_t self:netlink_netfilter_socket create_socket_perms;
+allow wireguard_t self:netlink_route_socket create_netlink_socket_perms;
+allow wireguard_t self:unix_dgram_socket create_socket_perms;
+allow wireguard_t self:unix_stream_socket create_stream_socket_perms;
+
+kernel_request_load_module(wireguard_t)
+
+corecmd_exec_bin(wireguard_t)
+
+domain_use_interactive_fds(wireguard_t)
+
+files_read_etc_files(wireguard_t)
+
+optional_policy(`
+	auth_read_passwd(wireguard_t)
+')
+
+optional_policy(`
+	iptables_domtrans(wireguard_t)
+')
+
+optional_policy(`
+	miscfiles_read_localization(wireguard_t)
+')
+
+optional_policy(`
+	sysnet_exec_ifconfig(wireguard_t)
+')
