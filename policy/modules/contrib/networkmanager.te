@@ -45,7 +45,11 @@ init_daemon_domain(NetworkManager_dispatcher_t, NetworkManager_dispatcher_exec_t
 init_nnp_daemon_domain(NetworkManager_dispatcher_t, NetworkManager_dispatcher_exec_t)
 
 type NetworkManager_dispatcher_script_t, networkmanager_dispatcher_script;
-files_type(NetworkManager_dispatcher_script_t)
+type NetworkManager_dispatcher_custom_t, networkmanager_dispatcher_plugin;
+role system_r types NetworkManager_dispatcher_custom_t;
+application_domain(NetworkManager_dispatcher_custom_t, NetworkManager_dispatcher_script_t)
+domtrans_pattern(NetworkManager_dispatcher_t, NetworkManager_dispatcher_script_t, NetworkManager_dispatcher_custom_t)
+permissive NetworkManager_dispatcher_custom_t;
 
 networkmanager_dispatcher_plugin_template(chronyc)
 networkmanager_dispatcher_plugin_template(cloud)
@@ -569,14 +573,9 @@ manage_files_pattern(NetworkManager_dispatcher_console_t, NetworkManager_dispatc
 
 read_files_pattern(NetworkManager_dispatcher_dnssec_t, NetworkManager_etc_t, NetworkManager_etc_rw_t)
 
-auth_read_passwd(NetworkManager_dispatcher_t)
 auth_read_passwd(networkmanager_dispatcher_plugin)
 
-can_exec(NetworkManager_dispatcher_t, NetworkManager_dispatcher_script_t)
-
-corecmd_exec_bin(NetworkManager_dispatcher_t)
 corecmd_exec_bin(networkmanager_dispatcher_plugin)
-corecmd_exec_shell(NetworkManager_dispatcher_t)
 corecmd_exec_shell(NetworkManager_dispatcher_chronyc_t)
 corecmd_exec_shell(NetworkManager_dispatcher_cloud_t)
 corecmd_exec_shell(NetworkManager_dispatcher_iscsid_t)
@@ -654,14 +653,12 @@ optional_policy(`
 
 optional_policy(`
 	sysnet_exec_ifconfig(NetworkManager_dispatcher_ddclient_t)
-	sysnet_read_config(NetworkManager_dispatcher_t)
 	sysnet_read_config(NetworkManager_dispatcher_chronyc_t)
 	sysnet_read_config(NetworkManager_dispatcher_cloud_t)
 	sysnet_read_config(NetworkManager_dispatcher_dhclient_t)
 ')
 
 optional_policy(`
-	systemd_exec_systemctl(NetworkManager_dispatcher_t)
 	systemd_exec_systemctl(NetworkManager_dispatcher_cloud_t)
 	systemd_exec_systemctl(NetworkManager_dispatcher_ddclient_t)
 	systemd_exec_systemctl(NetworkManager_dispatcher_iscsid_t)
