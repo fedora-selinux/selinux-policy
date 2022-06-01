@@ -176,8 +176,16 @@ role system_r types winbind_helper_t;
 type winbind_helper_exec_t;
 domain_entry_file(winbind_helper_t, winbind_helper_exec_t)
 
+type winbind_rpcd_t;
+type winbind_rpcd_exec_t;
+application_domain(winbind_rpcd_t, winbind_rpcd_exec_t)
+role system_r types winbind_rpcd_t;
+
 type winbind_log_t;
 logging_log_file(winbind_log_t)
+
+type winbind_rpcd_var_run_t;
+files_pid_file(winbind_rpcd_var_run_t)
 
 type winbind_var_run_t;
 files_pid_file(winbind_var_run_t)
@@ -1150,6 +1158,45 @@ optional_policy(`
 	squid_append_log(winbind_helper_t)
 	squid_rw_stream_sockets(winbind_helper_t)
 ')
+
+########################################
+#
+# Winbind-rpcd local policy
+#
+
+allow winbind_rpcd_t self:capability { setgid setuid };
+allow winbind_rpcd_t self:netlink_route_socket create_netlink_socket_perms;
+allow winbind_rpcd_t self:unix_dgram_socket { create_socket_perms sendto };
+allow winbind_rpcd_t self:udp_socket create_socket_perms;
+
+allow winbind_rpcd_t winbind_rpcd_exec_t:file execute_no_trans;
+
+read_files_pattern(winbind_rpcd_t, samba_etc_t, samba_etc_t)
+
+manage_files_pattern(winbind_rpcd_t, winbind_rpcd_var_run_t, winbind_rpcd_var_run_t)
+files_pid_filetrans(winbind_rpcd_t, winbind_rpcd_var_run_t, { dir file })
+manage_dirs_pattern(winbind_rpcd_t, smbd_var_run_t, smbd_var_run_t)
+manage_sock_files_pattern(winbind_rpcd_t, smbd_var_run_t, smbd_var_run_t)
+
+manage_files_pattern(winbind_rpcd_t, samba_log_t, samba_log_t)
+
+manage_dirs_pattern(winbind_rpcd_t, samba_var_t, samba_var_t)
+manage_files_pattern(winbind_rpcd_t, samba_var_t, samba_var_t)
+manage_sock_files_pattern(winbind_rpcd_t, samba_var_t, samba_var_t)
+allow winbind_rpcd_t samba_var_t:file { map } ;
+
+corecmd_exec_bin(winbind_rpcd_t)
+
+optional_policy(`
+	auth_read_passwd_file(winbind_rpcd_t)
+')
+
+# interactions with smbd_t/winbind_t
+allow smbd_t winbind_rpcd_t:unix_stream_socket connectto;
+allow winbind_t winbind_rpcd_t:unix_stream_socket connectto;
+
+samba_domtrans_winbind_rpcd(smbd_t)
+samba_domtrans_winbind_rpcd(winbind_t)
 
 ########################################
 #
