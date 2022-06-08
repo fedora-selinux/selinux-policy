@@ -1019,6 +1019,7 @@ manage_dirs_pattern(winbind_t, { smbd_var_run_t winbind_var_run_t }, winbind_var
 manage_files_pattern(winbind_t, winbind_var_run_t, winbind_var_run_t)
 manage_sock_files_pattern(winbind_t, winbind_var_run_t, winbind_var_run_t)
 files_pid_filetrans(winbind_t, winbind_var_run_t, { sock_file file dir })
+files_pid_filetrans(winbind_t, winbind_rpcd_var_run_t, file, "samba-dcerpcd.pid")
 filetrans_pattern(winbind_t, smbd_var_run_t, winbind_var_run_t, dir)
 # /run/samba/krb5cc_samba
 manage_files_pattern(winbind_t, smbd_var_run_t, smbd_var_run_t)
@@ -1175,9 +1176,12 @@ read_files_pattern(winbind_rpcd_t, samba_etc_t, samba_etc_t)
 
 manage_files_pattern(winbind_rpcd_t, winbind_rpcd_var_run_t, winbind_rpcd_var_run_t)
 files_pid_filetrans(winbind_rpcd_t, winbind_rpcd_var_run_t, { dir file })
+
+# access to files of other samba domains
 manage_dirs_pattern(winbind_rpcd_t, smbd_var_run_t, smbd_var_run_t)
 manage_sock_files_pattern(winbind_rpcd_t, smbd_var_run_t, smbd_var_run_t)
 
+manage_dirs_pattern(winbind_rpcd_t, samba_log_t, samba_log_t)
 manage_files_pattern(winbind_rpcd_t, samba_log_t, samba_log_t)
 
 manage_dirs_pattern(winbind_rpcd_t, samba_var_t, samba_var_t)
@@ -1185,10 +1189,16 @@ manage_files_pattern(winbind_rpcd_t, samba_var_t, samba_var_t)
 manage_sock_files_pattern(winbind_rpcd_t, samba_var_t, samba_var_t)
 allow winbind_rpcd_t samba_var_t:file { map } ;
 
+kernel_read_network_state(winbind_rpcd_t)
+
 corecmd_exec_bin(winbind_rpcd_t)
 
 optional_policy(`
-	auth_read_passwd_file(winbind_rpcd_t)
+	auth_read_passwd(winbind_rpcd_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(winbind_rpcd_t)
 ')
 
 # interactions with smbd_t/winbind_t
