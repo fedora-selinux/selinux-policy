@@ -22,10 +22,22 @@ permissive rhcd_t;
 # rhcd local policy
 #
 allow rhcd_t self:fifo_file rw_fifo_file_perms;
-allow rhcd_t self:unix_stream_socket create_stream_socket_perms;
+allow rhcd_t self:netlink_route_socket create_netlink_socket_perms;
+allow rhcd_t self:tcp_socket create_stream_socket_perms;
+allow rhcd_t self:udp_socket create_socket_perms;
+allow rhcd_t self:unix_stream_socket { connectto create_stream_socket_perms };
 
 manage_dirs_pattern(rhcd_t, rhcd_var_run_t, rhcd_var_run_t)
+manage_files_pattern(rhcd_t, rhcd_var_run_t, rhcd_var_run_t)
 files_pid_filetrans(rhcd_t, rhcd_var_run_t, { dir })
+
+kernel_read_net_sysctls(rhcd_t)
+kernel_read_proc_files(rhcd_t)
+
+corecmd_exec_bin(rhcd_t)
+corecmd_watch_bin_dirs(rhcd_t)
+
+corenet_tcp_connect_http_port(rhcd_t)
 
 dev_read_sysfs(rhcd_t)
 
@@ -36,6 +48,12 @@ files_read_etc_files(rhcd_t)
 miscfiles_read_generic_certs(rhcd_t)
 miscfiles_read_localization(rhcd_t)
 
+sysnet_read_config(rhcd_t)
+
 optional_policy(`
 	insights_search_config(rhcd_t)
+')
+
+optional_policy(`
+	udev_read_pid_files(rhcd_t)
 ')
