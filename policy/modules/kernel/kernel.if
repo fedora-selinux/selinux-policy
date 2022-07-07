@@ -4503,3 +4503,113 @@ interface(`kernel_prog_run_bpf',`
 
     allow $1 kernel_t:bpf prog_run;
 ')
+
+########################################
+## <summary>
+##	Set up type transition for userfaultfd anon inodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to receive the type transition.
+##	</summary>
+## </param>
+#
+interface(`kernel_userfaultfd_domtrans',`
+	gen_require(`
+		type userfaultfd_t;
+	')
+	type_transition $1 self:anon_inode userfaultfd_t "[userfaultfd]";
+')
+
+########################################
+## <summary>
+##	Allow the domain to use the userfaultfd API via an inherited
+##	file descriptor.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_userfaultfd_use_inherited',`
+	gen_require(`
+		type userfaultfd_t;
+	')
+	allow $1 userfaultfd_t:anon_inode { getattr ioctl read };
+
+	# Work around a known bug; see:
+	# https://lore.kernel.org/selinux/20210624152515.1844133-1-omosnace@redhat.com/
+	allow $1 userfaultfd_t:anon_inode { write };
+')
+
+########################################
+## <summary>
+##	Allow the domain to use the userfaultfd API.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_userfaultfd_use',`
+	gen_require(`
+		type userfaultfd_t;
+	')
+	kernel_userfaultfd_use_inherited($1)
+	allow $1 userfaultfd_t:anon_inode create;
+')
+
+########################################
+## <summary>
+##	Set up type transition for io_uring anon inodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to receive the type transition.
+##	</summary>
+## </param>
+#
+interface(`kernel_io_uring_domtrans',`
+	gen_require(`
+		type io_uring_t;
+	')
+	type_transition $1 self:anon_inode io_uring_t "[io_uring]";
+')
+
+########################################
+## <summary>
+##	Allow the domain to use the io_uring API via an inherited file
+##	descriptor.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_io_uring_use_inherited',`
+	gen_require(`
+		type io_uring_t;
+	')
+	allow $1 io_uring_t:anon_inode { getattr read write map };
+')
+
+########################################
+## <summary>
+##	Allow the domain to use the io_uring API.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_io_uring_use',`
+	gen_require(`
+		type io_uring_t;
+	')
+	kernel_io_uring_use_inherited($1)
+	allow $1 io_uring_t:anon_inode create;
+')
