@@ -745,6 +745,7 @@ allow smbcontrol_t samba_var_t:file map;
 
 allow smbcontrol_t nmbd_t:unix_dgram_socket sendto;
 allow smbcontrol_t smbd_t:unix_dgram_socket sendto;
+allow smbcontrol_t winbind_rpcd_t:unix_dgram_socket sendto;
 allow smbcontrol_t winbind_t:unix_dgram_socket sendto;
 
 samba_read_config(smbcontrol_t)
@@ -1175,6 +1176,8 @@ allow winbind_rpcd_t winbind_rpcd_exec_t:file execute_no_trans;
 
 read_files_pattern(winbind_rpcd_t, samba_etc_t, samba_etc_t)
 
+write_sock_files_pattern(winbind_rpcd_t, winbind_var_run_t, winbind_var_run_t)
+
 manage_files_pattern(winbind_rpcd_t, winbind_rpcd_var_run_t, winbind_rpcd_var_run_t)
 files_pid_filetrans(winbind_rpcd_t, winbind_rpcd_var_run_t, { dir file })
 
@@ -1229,9 +1232,14 @@ optional_policy(`
 	sysnet_read_config(winbind_rpcd_t)
 ')
 
+optional_policy(`
+	systemd_userdbd_stream_connect(winbind_rpcd_t)
+')
+
 # interactions with smbd_t/winbind_t
 allow smbd_t winbind_rpcd_t:unix_stream_socket connectto;
 allow winbind_t winbind_rpcd_t:unix_stream_socket connectto;
+allow winbind_rpcd_t winbind_t:unix_stream_socket connectto;
 
 samba_domtrans_winbind_rpcd(smbd_t)
 samba_domtrans_winbind_rpcd(winbind_t)
