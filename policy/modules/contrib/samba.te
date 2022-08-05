@@ -1198,8 +1198,14 @@ kernel_read_network_state(winbind_rpcd_t)
 
 corecmd_exec_bin(winbind_rpcd_t)
 
+corenet_tcp_connect_ipp_port(winbind_rpcd_t)
+
 optional_policy(`
 	auth_read_passwd(winbind_rpcd_t)
+')
+
+optional_policy(`
+	cups_stream_connect(winbind_rpcd_t)
 ')
 
 optional_policy(`
@@ -1236,9 +1242,16 @@ optional_policy(`
 	systemd_userdbd_stream_connect(winbind_rpcd_t)
 ')
 
-# interactions with smbd_t/winbind_t
+optional_policy(`
+	unconfined_dgram_send(winbind_rpcd_t)
+')
+
+# inter-process communication with other samba domains
 allow smbd_t winbind_rpcd_t:unix_stream_socket connectto;
 allow winbind_t winbind_rpcd_t:unix_stream_socket connectto;
+allow winbind_rpcd_t nmbd_t:unix_dgram_socket sendto;
+allow winbind_rpcd_t smbd_t:unix_dgram_socket sendto;
+allow winbind_rpcd_t winbind_t:unix_dgram_socket sendto;
 allow winbind_rpcd_t winbind_t:unix_stream_socket connectto;
 
 samba_domtrans_winbind_rpcd(smbd_t)
