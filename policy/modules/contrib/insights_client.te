@@ -24,6 +24,9 @@ files_type(insights_client_cache_t)
 type insights_client_var_lib_t;
 files_type(insights_client_var_lib_t)
 
+type insights_client_var_lock_t;
+files_lock_file(insights_client_var_lock_t)
+
 type insights_client_var_run_t;
 files_pid_file(insights_client_var_run_t)
 
@@ -37,7 +40,7 @@ files_tmpfs_file(insights_client_tmpfs_t)
 #
 # insights_client local policy
 #
-allow insights_client_t self:capability { audit_control dac_override dac_read_search sys_ptrace sys_resource sys_admin };
+allow insights_client_t self:capability { audit_control dac_override dac_read_search sys_admin sys_ptrace sys_resource };
 allow insights_client_t self:fifo_file rw_fifo_file_perms;
 allow insights_client_t self:netlink_audit_socket r_netlink_socket_perms;
 allow insights_client_t self:netlink_generic_socket create_socket_perms;
@@ -55,6 +58,24 @@ read_files_pattern(insights_client_t, insights_client_etc_t, insights_client_etc
 manage_files_pattern(insights_client_t, insights_client_etc_rw_t, insights_client_etc_rw_t)
 insights_client_filetrans_named_content(insights_client_t)
 
+manage_files_pattern(insights_client_t, insights_client_cache_t, insights_client_cache_t)
+
+manage_dirs_pattern(insights_client_t, insights_client_var_lib_t, insights_client_var_lib_t)
+manage_files_pattern(insights_client_t, insights_client_var_lib_t, insights_client_var_lib_t)
+files_var_lib_filetrans(insights_client_t, insights_client_var_lib_t, { dir file })
+
+manage_dirs_pattern(insights_client_t, insights_client_var_lock_t, insights_client_var_lock_t)
+manage_files_pattern(insights_client_t, insights_client_var_lock_t, insights_client_var_lock_t)
+files_lock_filetrans(insights_client_t, insights_client_var_lock_t, dir)
+
+manage_dirs_pattern(insights_client_t, insights_client_var_log_t, insights_client_var_log_t)
+manage_files_pattern(insights_client_t, insights_client_var_log_t, insights_client_var_log_t)
+logging_log_filetrans(insights_client_t, insights_client_var_log_t, dir)
+
+manage_dirs_pattern(insights_client_t, insights_client_var_run_t, insights_client_var_run_t)
+manage_files_pattern(insights_client_t, insights_client_var_run_t, insights_client_var_run_t)
+files_pid_filetrans(insights_client_t, insights_client_var_run_t, { dir file })
+
 manage_dirs_pattern(insights_client_t, insights_client_tmp_t, insights_client_tmp_t)
 manage_files_pattern(insights_client_t, insights_client_tmp_t, insights_client_tmp_t)
 files_tmp_filetrans(insights_client_t, insights_client_tmp_t, { dir file })
@@ -63,25 +84,13 @@ manage_files_pattern(insights_client_t, insights_client_tmpfs_t, insights_client
 fs_tmpfs_filetrans(insights_client_t, insights_client_tmpfs_t, file)
 can_exec(insights_client_t, insights_client_tmpfs_t)
 
-manage_files_pattern(insights_client_t, insights_client_cache_t, insights_client_cache_t)
-
-manage_dirs_pattern(insights_client_t, insights_client_var_log_t, insights_client_var_log_t)
-manage_files_pattern(insights_client_t, insights_client_var_log_t, insights_client_var_log_t)
-logging_log_filetrans(insights_client_t, insights_client_var_log_t, { dir })
-
-manage_dirs_pattern(insights_client_t, insights_client_var_lib_t, insights_client_var_lib_t)
-manage_files_pattern(insights_client_t, insights_client_var_lib_t, insights_client_var_lib_t)
-files_var_lib_filetrans(insights_client_t, insights_client_var_lib_t, { dir file })
-
-manage_dirs_pattern(insights_client_t, insights_client_var_run_t, insights_client_var_run_t)
-manage_files_pattern(insights_client_t, insights_client_var_run_t, insights_client_var_run_t)
-files_pid_filetrans(insights_client_t, insights_client_var_run_t, { dir file })
-
 kernel_dgram_send(insights_client_t)
 kernel_read_device_sysctls(insights_client_t)
+kernel_read_fs_sysctls(insights_client_t)
 kernel_read_kernel_ns_lastpid_sysctls(insights_client_t)
 kernel_read_net_sysctls(insights_client_t)
 kernel_read_network_state(insights_client_t)
+kernel_read_proc_files(insights_client_t)
 kernel_read_ring_buffer(insights_client_t)
 kernel_read_security_state(insights_client_t)
 kernel_read_software_raid_state(insights_client_t)
@@ -97,17 +106,23 @@ auth_read_passwd(insights_client_t)
 corecmd_exec_all_executables(insights_client_t)
 corenet_tcp_bind_generic_node(insights_client_t)
 corenet_tcp_connect_http_port(insights_client_t)
+corenet_udp_bind_generic_node(insights_client_t)
 
 dev_getattr_all(insights_client_t)
+dev_getattr_all_blk_files(insights_client_t)
+dev_getattr_all_chr_files(insights_client_t)
 dev_read_kmsg(insights_client_t)
 dev_read_netcontrol(insights_client_t)
+dev_read_sysfs(insights_client_t)
 
 domain_getattr_all_domains(insights_client_t)
 domain_getattr_all_sockets(insights_client_t)
+domain_getattr_all_pipes(insights_client_t)
 domain_manage_all_domains_keyrings(insights_client_t)
 domain_read_all_domains_state(insights_client_t)
 domain_use_interactive_fds(insights_client_t)
 
+files_getattr_all_files(insights_client_t)
 files_getattr_all_blk_files(insights_client_t)
 files_getattr_all_chr_files(insights_client_t)
 files_getattr_all_file_type_fs(insights_client_t)
@@ -119,15 +134,22 @@ files_read_all_symlinks(insights_client_t)
 files_status_etc(insights_client_t)
 
 fs_getattr_all_fs(insights_client_t)
+fs_getattr_all_files(insights_client_t)
 fs_read_configfs_dirs(insights_client_t)
 
 init_dontaudit_read_state(insights_client_t)
+init_reload_services(insights_client_t)
 init_status(insights_client_t)
+init_view_key(insights_client_t)
 
 libs_exec_ldconfig(insights_client_t)
 
 miscfiles_read_generic_certs(insights_client_t)
 miscfiles_read_localization(insights_client_t)
+
+selinux_compute_access_vector(insights_client_t)
+
+seutil_read_module_store(insights_client_t)
 
 storage_raw_read_fixed_disk(insights_client_t)
 
@@ -167,9 +189,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-	gpg_exec(insights_client_t)
+	gpg_domtrans(insights_client_t)
 	gpg_manage_admin_home_content(insights_client_t)
-	gpg_manage_home_content(insights_client_t)
 ')
 
 optional_policy(`
@@ -188,6 +209,7 @@ optional_policy(`
 	logging_domtrans_auditctl(insights_client_t)
 	logging_read_audit_config(insights_client_t)
 	logging_read_audit_log(insights_client_t)
+	logging_send_syslog_msg(insights_client_t)
 ')
 
 optional_policy(`
@@ -208,6 +230,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	pcp_write_pid_sock_file(insights_client_t)
+')
+
+optional_policy(`
 	rhnsd_read_config(insights_client_t)
 ')
 
@@ -220,14 +246,18 @@ optional_policy(`
 
 optional_policy(`
 	rpm_domtrans(insights_client_t)
+	rpm_manage_db(insights_client_t)
 	rpm_manage_cache(insights_client_t)
 	rpm_named_filetrans(insights_client_t)
 	rpm_read_db(insights_client_t)
-	rpm_setattr_db_files(insights_client_t)
 ')
 
 optional_policy(`
 	samba_manage_var_files(insights_client_t)
+')
+
+optional_policy(`
+	setroubleshoot_dbus_chat(insights_client_t)
 ')
 
 optional_policy(`
@@ -243,4 +273,8 @@ optional_policy(`
 
 optional_policy(`
 	tuned_dbus_chat(insights_client_t)
+')
+
+optional_policy(`
+	userdom_view_all_users_keys(insights_client_t)
 ')
