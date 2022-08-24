@@ -12,6 +12,15 @@ init_daemon_domain(rhcd_t, rhcd_exec_t)
 type rhcd_unit_file_t;
 systemd_unit_file(rhcd_unit_file_t)
 
+type rhcd_tmp_t;
+files_tmp_file(rhcd_tmp_t)
+
+type rhcd_tmpfs_t;
+files_tmpfs_file(rhcd_tmpfs_t)
+
+type rhcd_var_log_t;
+logging_log_file(rhcd_var_log_t)
+
 type rhcd_var_run_t;
 files_pid_file(rhcd_var_run_t)
 
@@ -19,39 +28,177 @@ files_pid_file(rhcd_var_run_t)
 #
 # rhcd local policy
 #
+allow rhcd_t self:capability { sys_admin sys_rawio sys_resource};
 allow rhcd_t self:fifo_file rw_fifo_file_perms;
+allow rhcd_t self:netlink_generic_socket create_socket_perms;
 allow rhcd_t self:netlink_route_socket create_netlink_socket_perms;
 allow rhcd_t self:tcp_socket create_stream_socket_perms;
 allow rhcd_t self:udp_socket create_socket_perms;
+allow rhcd_t self:unix_dgram_socket create_socket_perms;
 allow rhcd_t self:unix_stream_socket { connectto create_stream_socket_perms };
+
+manage_files_pattern(rhcd_t, rhcd_var_log_t, rhcd_var_log_t)
+manage_dirs_pattern(rhcd_t, rhcd_var_log_t, rhcd_var_log_t)
+logging_log_filetrans(rhcd_t, rhcd_var_log_t, dir)
 
 manage_dirs_pattern(rhcd_t, rhcd_var_run_t, rhcd_var_run_t)
 manage_files_pattern(rhcd_t, rhcd_var_run_t, rhcd_var_run_t)
 files_pid_filetrans(rhcd_t, rhcd_var_run_t, { dir })
 
+manage_dirs_pattern(rhcd_t, rhcd_tmp_t, rhcd_tmp_t)
+manage_files_pattern(rhcd_t, rhcd_tmp_t, rhcd_tmp_t)
+files_tmp_filetrans(rhcd_t, rhcd_tmp_t, { dir file })
+
+manage_files_pattern(rhcd_t, rhcd_tmpfs_t, rhcd_tmpfs_t)
+fs_tmpfs_filetrans(rhcd_t, rhcd_tmpfs_t, file)
+allow rhcd_t rhcd_tmpfs_t:file map;
+
+kernel_list_proc(rhcd_t)
+kernel_read_device_sysctls(rhcd_t)
+kernel_read_fs_sysctls(rhcd_t)
+kernel_read_kernel_ns_lastpid_sysctls(rhcd_t)
 kernel_read_net_sysctls(rhcd_t)
+kernel_read_network_state(rhcd_t)
 kernel_read_proc_files(rhcd_t)
+kernel_read_security_state(rhcd_t)
+kernel_read_software_raid_state(rhcd_t)
+kernel_read_sysctl(rhcd_t)
+kernel_read_system_state(rhcd_t)
+kernel_read_unix_sysctls(rhcd_t)
+kernel_read_vm_sysctls(rhcd_t)
+kernel_view_key(rhcd_t)
 
 corecmd_exec_bin(rhcd_t)
 corecmd_watch_bin_dirs(rhcd_t)
 
 corenet_tcp_connect_http_port(rhcd_t)
+corenet_tcp_bind_generic_node(rhcd_t)
 
+dev_getattr_all(rhcd_t)
+dev_getattr_all_blk_files(rhcd_t)
+dev_getattr_all_chr_files(rhcd_t)
+dev_read_netcontrol(rhcd_t)
 dev_read_sysfs(rhcd_t)
 
+domain_getattr_all_sockets(rhcd_t)
+domain_getattr_all_pipes(rhcd_t)
+domain_read_all_domains_state(rhcd_t)
 domain_use_interactive_fds(rhcd_t)
 
-files_read_etc_files(rhcd_t)
+files_getattr_all_files(rhcd_t)
+files_getattr_all_blk_files(rhcd_t)
+files_getattr_all_chr_files(rhcd_t)
+files_getattr_all_file_type_fs(rhcd_t)
+files_getattr_all_pipes(rhcd_t)
+files_getattr_all_sockets(rhcd_t)
+files_manage_etc_symlinks(rhcd_t)
+files_read_all_symlinks(rhcd_t)
+files_read_non_security_files(rhcd_t)
+files_status_etc(rhcd_t)
+
+fs_getattr_all_fs(rhcd_t)
+
+init_view_key(rhcd_t)
+
+libs_exec_ldconfig(rhcd_t)
 
 miscfiles_read_generic_certs(rhcd_t)
 miscfiles_read_localization(rhcd_t)
 
+storage_raw_read_fixed_disk(rhcd_t)
+
+sysnet_domtrans_ifconfig(rhcd_t)
 sysnet_read_config(rhcd_t)
 
 optional_policy(`
-	insights_search_config(rhcd_t)
+	auth_read_passwd_file(rhcd_t)
 ')
 
 optional_policy(`
-	udev_read_pid_files(rhcd_t)
+	bootloader_exec(rhcd_t)
+')
+
+optional_policy(`
+	chronyd_dgram_send(rhcd_t)
+	chronyd_domtrans_chronyc(rhcd_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(rhcd_t)
+')
+
+optional_policy(`
+	dmesg_domtrans(rhcd_t)
+')
+
+optional_policy(`
+	gpg_manage_admin_home_content(rhcd_t)
+	gpg_domtrans(rhcd_t)
+')
+
+optional_policy(`
+	insights_client_domtrans(rhcd_t)
+	insights_client_read_config(rhcd_t)
+')
+
+optional_policy(`
+ 	logging_domtrans_auditctl(rhcd_t)
+	logging_send_syslog_msg(rhcd_t)
+')
+
+optional_policy(`
+	lvm_domtrans(rhcd_t)
+')
+
+optional_policy(`
+	modutils_domtrans_kmod(rhcd_t)
+')
+
+optional_policy(`
+	mount_domtrans(rhcd_t)
+')
+
+optional_policy(`
+	networkmanager_dbus_chat(rhcd_t)
+')
+
+optional_policy(`
+	rhsmcertd_read_config_files(rhcd_t)
+	rhsmcertd_manage_pid_files(rhcd_t)
+	rhsmcertd_manage_lib_files(rhcd_t)
+	rhsmcertd_manage_log(rhcd_t)
+')
+
+optional_policy(`
+	rpm_domtrans(rhcd_t)
+	rpm_manage_cache(rhcd_t)
+	rpm_manage_db(rhcd_t)
+')
+
+optional_policy(`
+	ssh_exec(rhcd_t)
+')
+
+optional_policy(`
+	sssd_read_config(rhcd_t)
+	sssd_search_lib(rhcd_t)
+')
+
+optional_policy(`
+	systemd_status_all_unit_files(rhcd_t)
+')
+
+optional_policy(`
+	term_use_generic_ptys(rhcd_t)
+	term_use_ptmx(rhcd_t)
+')
+
+optional_policy(`
+	udev_domtrans(rhcd_t)
+')
+
+optional_policy(`
+	userdom_manage_admin_dirs(rhcd_t)
+	userdom_manage_admin_files(rhcd_t)
+ 	userdom_view_all_users_keys(rhcd_t)
 ')
