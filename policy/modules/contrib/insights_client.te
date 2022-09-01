@@ -40,18 +40,19 @@ files_tmpfs_file(insights_client_tmpfs_t)
 #
 # insights_client local policy
 #
-allow insights_client_t self:capability { audit_control dac_override dac_read_search sys_admin sys_ptrace sys_resource };
+allow insights_client_t self:capability { dac_override dac_read_search fowner net_admin sys_admin sys_nice sys_ptrace sys_rawio sys_resource };
+allow insights_client_t self:cap_userns sys_ptrace;
 allow insights_client_t self:fifo_file rw_fifo_file_perms;
-allow insights_client_t self:netlink_audit_socket r_netlink_socket_perms;
 allow insights_client_t self:netlink_generic_socket create_socket_perms;
 allow insights_client_t self:netlink_netfilter_socket create_socket_perms;
 allow insights_client_t self:netlink_route_socket create_netlink_socket_perms;
 allow insights_client_t self:netlink_tcpdiag_socket create_netlink_socket_perms;
-allow insights_client_t self:process { getattr setfscreate setpgid };
+allow insights_client_t self:process { getattr setfscreate setpgid setrlimit setsched };
 allow insights_client_t self:tcp_socket create_socket_perms;
 allow insights_client_t self:udp_socket create_socket_perms;
 allow insights_client_t self:unix_dgram_socket create_socket_perms;
 allow insights_client_t self:unix_stream_socket create_stream_socket_perms;
+allow insights_client_t self:vsock_socket create_socket_perms;
 
 manage_dirs_pattern(insights_client_t, insights_client_etc_t, insights_client_etc_t)
 read_files_pattern(insights_client_t, insights_client_etc_t, insights_client_etc_t)
@@ -85,6 +86,7 @@ fs_tmpfs_filetrans(insights_client_t, insights_client_tmpfs_t, file)
 can_exec(insights_client_t, insights_client_tmpfs_t)
 
 kernel_dgram_send(insights_client_t)
+kernel_list_all_proc(insights_client_t)
 kernel_read_device_sysctls(insights_client_t)
 kernel_read_fs_sysctls(insights_client_t)
 kernel_read_kernel_ns_lastpid_sysctls(insights_client_t)
@@ -111,9 +113,14 @@ corenet_udp_bind_generic_node(insights_client_t)
 dev_getattr_all(insights_client_t)
 dev_getattr_all_blk_files(insights_client_t)
 dev_getattr_all_chr_files(insights_client_t)
+dev_read_cpuid(insights_client_t)
 dev_read_kmsg(insights_client_t)
 dev_read_netcontrol(insights_client_t)
+dev_read_vsock(insights_client_t)
+dev_dontaudit_read_raw_memory(insights_client_t)
+dev_dontaudit_write_raw_memory(insights_client_t)
 dev_read_sysfs(insights_client_t)
+dev_rw_lvm_control(insights_client_t)
 
 domain_getattr_all_domains(insights_client_t)
 domain_getattr_all_sockets(insights_client_t)
@@ -186,7 +193,13 @@ optional_policy(`
 ')
 
 optional_policy(`
+	firewalld_dbus_chat(insights_client_t)
+')
+
+optional_policy(`
 	gnome_search_gconf(insights_client_t)
+	gnome_manage_home_config(insights_client_t)
+	gnome_manage_home_config_dirs(insights_client_t)
 ')
 
 optional_policy(`
@@ -207,6 +220,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	journalctl_domtrans(insights_client_t)
+')
+
+optional_policy(`
 	logging_domtrans_auditctl(insights_client_t)
 	logging_mmap_journal(insights_client_t)
 	logging_read_audit_config(insights_client_t)
@@ -216,6 +233,7 @@ optional_policy(`
 
 optional_policy(`
 	lvm_domtrans(insights_client_t)
+	lvm_manage_metadata(insights_client_t)
 ')
 
 optional_policy(`
@@ -250,8 +268,12 @@ optional_policy(`
 	rpm_domtrans(insights_client_t)
 	rpm_manage_db(insights_client_t)
 	rpm_manage_cache(insights_client_t)
-	rpm_named_filetrans(insights_client_t)
+	rpm_hawkey_named_filetrans(insights_client_t)
 	rpm_read_db(insights_client_t)
+')
+
+optional_policy(`
+	rtas_errd_dontaudit_write_lock(insights_client_t)
 ')
 
 optional_policy(`
@@ -260,6 +282,7 @@ optional_policy(`
 
 optional_policy(`
 	setroubleshoot_dbus_chat(insights_client_t)
+	setroubleshoot_stream_connect(insights_client_t)
 ')
 
 optional_policy(`

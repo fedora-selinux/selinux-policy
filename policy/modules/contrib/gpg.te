@@ -91,6 +91,7 @@ files_tmpfs_file(gpg_tmpfs_t)
 # GPG local policy
 #
 
+allow gpg_t self:capability { dac_override fowner };
 allow gpgdomain self:capability { ipc_lock setuid };
 allow gpgdomain self:process { getsched setsched };
 #at setrlimit is for ulimit -c 0
@@ -113,6 +114,7 @@ allow gpg_t gpg_secret_t:dir { create_dir_perms watch_dir_perms };
 manage_sock_files_pattern(gpg_t, gpg_secret_t, gpg_secret_t)
 manage_files_pattern(gpg_t, gpg_secret_t, gpg_secret_t)
 manage_lnk_files_pattern(gpg_t, gpg_secret_t, gpg_secret_t)
+userdom_admin_home_dir_filetrans(gpg_t, gpg_secret_t, dir, ".gnupg")
 userdom_user_home_dir_filetrans(gpg_t, gpg_secret_t, dir, ".gnupg")
 
 kernel_read_sysctl(gpg_t)
@@ -183,6 +185,7 @@ optional_policy(`
 
 optional_policy(`
 	insights_client_read_config(gpg_t)
+	insights_client_manage_lib_files(gpg_t)
 	insights_client_read_tmp(gpg_t)
 ')
 
@@ -260,6 +263,7 @@ tunable_policy(`use_samba_home_dirs',`
 #
 domtrans_pattern(gpg_t, gpg_agent_exec_t, gpg_agent_t)
 
+allow gpg_agent_t self:capability fowner;
 # rlimit: gpg-agent wants to prevent coredumps
 allow gpg_agent_t self:process { setrlimit signal_perms };
 
@@ -331,6 +335,11 @@ userdom_home_manager(gpg_agent_t)
 
 optional_policy(`
 	gnome_manage_config(gpg_agent_t)
+')
+
+optional_policy(`
+	insights_client_manage_lib_dirs(gpg_agent_t)
+	insights_client_manage_lib_files(gpg_agent_t)
 ')
 
 optional_policy(`
