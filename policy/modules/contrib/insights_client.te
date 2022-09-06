@@ -80,12 +80,15 @@ files_pid_filetrans(insights_client_t, insights_client_var_run_t, { dir file })
 manage_dirs_pattern(insights_client_t, insights_client_tmp_t, insights_client_tmp_t)
 manage_files_pattern(insights_client_t, insights_client_tmp_t, insights_client_tmp_t)
 files_tmp_filetrans(insights_client_t, insights_client_tmp_t, { dir file })
+allow insights_client_t insights_client_tmp_t:dir relabel_dir_perms;
+allow insights_client_t insights_client_tmp_t:file relabel_dir_perms;
 
 manage_files_pattern(insights_client_t, insights_client_tmpfs_t, insights_client_tmpfs_t)
 fs_tmpfs_filetrans(insights_client_t, insights_client_tmpfs_t, file)
 can_exec(insights_client_t, insights_client_tmpfs_t)
 
 kernel_dgram_send(insights_client_t)
+kernel_get_sysvipc_info(insights_client_t)
 kernel_list_all_proc(insights_client_t)
 kernel_read_device_sysctls(insights_client_t)
 kernel_read_fs_sysctls(insights_client_t)
@@ -93,6 +96,7 @@ kernel_read_kernel_ns_lastpid_sysctls(insights_client_t)
 kernel_read_net_sysctls(insights_client_t)
 kernel_read_network_state(insights_client_t)
 kernel_read_proc_files(insights_client_t)
+kernel_read_rpc_sysctls(insights_client_t)
 kernel_read_ring_buffer(insights_client_t)
 kernel_read_security_state(insights_client_t)
 kernel_read_software_raid_state(insights_client_t)
@@ -147,6 +151,7 @@ fs_read_configfs_dirs(insights_client_t)
 init_dontaudit_read_state(insights_client_t)
 init_reload_services(insights_client_t)
 init_status(insights_client_t)
+init_status_all_script_files(insights_client_t)
 init_view_key(insights_client_t)
 
 libs_exec_ldconfig(insights_client_t)
@@ -162,6 +167,11 @@ seutil_read_module_store(insights_client_t)
 storage_raw_read_fixed_disk(insights_client_t)
 
 optional_policy(`
+	apache_exec_modules(insights_client_t)
+	apache_read_semaphores(insights_client_t)
+')
+
+optional_policy(`
 	auth_getattr_shadow(insights_client_t)
 ')
 
@@ -174,6 +184,10 @@ optional_policy(`
 	chronyd_domtrans_chronyc(insights_client_t)
 	chronyd_manage_pid(insights_client_t)
 	chronyd_stream_connect(insights_client_t)
+')
+
+optional_policy(`
+	container_runtime_domtrans(insights_client_t)
 ')
 
 optional_policy(`
@@ -258,10 +272,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	rhsmcertd_manage_config_files(insights_client_t)
 	rhsmcertd_manage_pid_files(insights_client_t)
 	rhsmcertd_manage_lib_files(insights_client_t)
 	rhsmcertd_manage_log(insights_client_t)
-	rhsmcertd_read_config_files(insights_client_t)
 ')
 
 optional_policy(`
@@ -293,6 +307,7 @@ optional_policy(`
 optional_policy(`
 	systemd_start_all_unit_files(insights_client_t)
 	systemd_status_all_unit_files(insights_client_t)
+	systemd_machined_stream_connect(insights_client_t)
 	systemd_userdbd_stream_connect(insights_client_t)
 ')
 
@@ -302,4 +317,8 @@ optional_policy(`
 
 optional_policy(`
 	userdom_view_all_users_keys(insights_client_t)
+')
+
+optional_policy(`
+	virt_stream_connect(insights_client_t)
 ')
