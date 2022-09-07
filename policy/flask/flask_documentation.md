@@ -1923,3 +1923,5 @@ Used to control the ability to use special io\_uring features by the process. Se
 **override_creds** - Allow *source* to override its credentials to *target*.
 
 **sqpoll** - Allow *source* to create an io\_uring kernel polling thread. *target* is always equal to *source*.
+
+**cmd** - Allow *source* to pass commands to special file *target* (`IORING_OP_URING_CMD`). The semantics of the commands are defined by the kernel subsystem/module implementing the special file's operations and may be subject to other access checks. See also kernel commits [2a5840124009](https://git.kernel.org/torvalds/c/2a5840124009) and [f4d653dcaa4e](https://git.kernel.org/torvalds/c/f4d653dcaa4e).
