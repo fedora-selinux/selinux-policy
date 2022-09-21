@@ -1458,3 +1458,516 @@ optional_policy(`
 optional_policy(`
 	unconfined_server_domtrans(systemd_sleep_t)
 ')
+
+###
+### homed
+###
+
+systemd_domain_template(systemd_homed)
+
+type systemd_homed_unit_file_t;
+systemd_unit_file(systemd_homed_unit_file_t)
+
+type systemd_homed_runtime_t;
+files_pid_file(systemd_homed_runtime_t)
+
+type systemd_homed_var_lib_t;
+files_type(systemd_homed_var_lib_t)
+
+type systemd_homed_home_file_t;
+files_type(systemd_homed_home_file_t)
+
+#### Allow: systemd-homed to execute /usr/lib/systemd/systemd-homework
+# AVC avc:  denied  { execute_no_trans } for  pid=1000 comm="(sd-homework)" path="/usr/lib/systemd/systemd-homework" dev="dm-4" ino=87273 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_exec_t:s0 tclass=file permissive=1
+allow systemd_homed_t systemd_homed_exec_t:file execute_no_trans;
+
+
+
+#
+# systemd_homed_runtime_t files under: /run/systemd/home
+# notify socket, locking
+#
+
+#### Allow: systemd-homed creates /run/systemd/home
+# AVC avc:  denied  { write } for pid=1000 comm="systemd-homed" name="home" dev="tmpfs" ino=2814 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:init_var_run_t:s0 tclass=dir permissive=0
+systemd_homed_runtime_filetrans(systemd_homed_t)
+
+#### Allow: systemd-homed manage socket /run/systemd/home/notify
+# AVC avc:  denied  { write } for  pid=1000 comm="systemd-homewor" name="notify" dev="tmpfs" ino=4194 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=sock_file permissive=1
+# AVC avc:  denied  { unlink } for  pid=1000 comm="systemd-homed" name="notify" dev="tmpfs" ino=4194 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=sock_file permissive=1
+# AVC avc:  denied  { create } for  pid=1000 comm="systemd-homed" name="notify" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=sock_file permissive=1
+manage_sock_files_pattern(systemd_homed_t, systemd_homed_runtime_t, systemd_homed_runtime_t)
+
+#### Allow: homectl lock / unlock
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homed" name="testuser.dont-suspend" dev="tmpfs" ino=3459 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=fifo_file permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homed" path="/run/systemd/home/testuser.dont-suspend" dev="tmpfs" ino=3459 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=fifo_file permissive=1
+# AVC avc:  denied  { write } for  pid=1000 comm="systemd-homed" name="testuser.dont-suspend" dev="tmpfs" ino=3459 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=fifo_file permissive=1
+manage_fifo_files_pattern(systemd_homed_t, systemd_homed_runtime_t, systemd_homed_runtime_t)
+
+# AVC avc:  denied  { write } for  pid=1000 comm="(systemd)" path="/run/systemd/home/testuser.dont-suspend" dev="tmpfs" ino=3614 scontext=system_u:system_r:init_t:s0 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=fifo_file permissive=0
+allow init_t systemd_homed_runtime_t:fifo_file write;
+# AVC avc:  denied  { write } for  pid=1000 comm="dbus-broker" path="/run/systemd/home/testuser.dont-suspend" dev="tmpfs" ino=3459 scontext=system_u:system_r:system_dbusd_t:s0-s0:c0.c1023 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=fifo_file permissive=0
+optional_policy(`
+	gen_require(`
+		type system_dbusd_t;
+	')
+	allow system_dbusd_t systemd_homed_runtime_t:fifo_file write;
+')
+
+
+
+#
+# capability
+# see: CapabilityBoundingSet from /usr/lib/systemd/system/systemd-homed.service
+#
+
+#### Allow: systemd-homed and systemd-homework sys_admin
+# AVC avc:  denied  { sys_admin } for  pid=1000 comm="systemd-homed" capability=21 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=capability permissive=1
+# AVC avc:  denied  { sys_admin } for  pid=1000 comm="systemd-homewor" capability=21 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=capability permissive=1
+allow systemd_homed_t self:capability sys_admin;
+
+#### Allow: systemd-homework various capabilities to setup
+# AVC avc:  denied  { chown } for  pid=1000 comm="systemd-homewor" capability=0 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=capability permissive=1
+allow systemd_homed_t self:capability chown;
+# AVC avc:  denied  { dac_override } for  pid=1000 comm="systemd-homewor" capability=1 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=capability permissive=1
+allow systemd_homed_t self:capability dac_override;
+# AVC avc:  denied  { fsetid } for  pid=1000 comm="systemd-homewor" capability=4 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=capability permissive=1
+allow systemd_homed_t self:capability fsetid;
+# AVC avc:  denied  { sys_resource } for  pid=1000 comm="(sd-homework)" capability=24 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=capability permissive=1
+allow systemd_homed_t self:capability sys_resource;
+# AVC avc:  denied  { dac_read_search } for  pid=1000 comm="systemd-homewor" capability=2 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=capability permissive=0
+allow systemd_homed_t self:capability dac_read_search;
+
+#### Allow: Rest of CapabilityBoundingSet from /usr/lib/systemd/system/systemd-homed.service
+allow systemd_homed_t self:capability fowner;
+allow systemd_homed_t self:capability setgid;
+allow systemd_homed_t self:capability setuid;
+allow systemd_homed_t self:capability setpcap;
+
+
+
+#
+# kernel
+# logging, kernel keyring, kernel modules
+#
+
+#### Allow: systemd-homed and systemd-homework to log journal
+# AVC avc:  denied  { sendto } for  pid=1000 comm="systemd-homed" path="/run/systemd/journal/socket" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:kernel_t:s0 tclass=unix_dgram_socket permissive=1
+# AVC avc:  denied  { sendto } for  pid=1000 comm="systemd-homewor" path="/run/systemd/journal/socket" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:kernel_t:s0 tclass=unix_dgram_socket permissive=1
+kernel_dgram_send(systemd_homed_t)
+
+#### Allow: systemd-homework to save pw into keyring
+# AVC avc:  denied  { ipc_info } for  pid=1000 comm="systemd-homewor" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:kernel_t:s0 tclass=system permissive=1
+kernel_get_sysvipc_info(systemd_homed_t)
+# AVC avc:  denied  { write } for  pid=1000 comm="systemd-homewor" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:kernel_t:s0 tclass=key permissive=1
+kernel_rw_key(systemd_homed_t)
+
+#### Allow: systemd-homework to load kernel modules
+# AVC avc:  denied  { module_request } for  pid=1000 comm="systemd-homewor" kmod="char-major-10-237" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:kernel_t:s0 tclass=system permissive=1
+# AVC avc:  denied  { module_request } for  pid=1000 comm="systemd-homewor" kmod="dm-integrity" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:kernel_t:s0 tclass=system permissive=1
+kernel_request_load_module(systemd_homed_t)
+
+
+
+#
+# disk management
+# create file, loop device, mkfs, fsck, lvm
+#
+
+#### Allow: systemd-homework to setup loop0
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homewor" path="/dev/loop0" dev="devtmpfs" ino=2406 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fixed_disk_device_t:s0 tclass=blk_file permissive=1
+# AVC avc:  denied  { ioctl } for  pid=1000 comm="systemd-homewor" path="/dev/loop0" dev="devtmpfs" ino=2406 ioctlcmd=0x4c0a scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fixed_disk_device_t:s0 tclass=blk_file permissive=1
+# AVC avc:  denied  { lock } for  pid=1000 comm="systemd-homewor" path="/dev/loop0" dev="devtmpfs" ino=2406 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fixed_disk_device_t:s0 tclass=blk_file permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/dev/loop0" dev="devtmpfs" ino=2406 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fixed_disk_device_t:s0 tclass=blk_file permissive=1
+# AVC avc:  denied  { read write } for  pid=1000 comm="systemd-homewor" name="loop0" dev="devtmpfs" ino=2406 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fixed_disk_device_t:s0 tclass=blk_file permissive=1
+storage_raw_rw_fixed_disk(systemd_homed_t)
+
+#### Allow: systemd-homework to /dev/loop-control
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/dev/loop-control" dev="devtmpfs" ino=1973 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:loop_control_device_t:s0 tclass=chr_file permissive=1
+# AVC avc:  denied  { ioctl } for  pid=1000 comm="systemd-homewor" path="/dev/loop-control" dev="devtmpfs" ino=1973 ioctlcmd=0x4c82 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:loop_control_device_t:s0 tclass=chr_file permissive=1
+# AVC avc:  denied  { read write } for  pid=1000 comm="systemd-homewor" name="loop-control" dev="devtmpfs" ino=1973 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:loop_control_device_t:s0 tclass=chr_file permissive=1
+dev_rw_loop_control(systemd_homed_t)
+
+#### Allow: systemd-homed, systemd-homework and mkfs/fsck to read data from /sys
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homed" path="/sys/class/block/dm-1" dev="sysfs" ino=28740 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=lnk_file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homed" name="dm-1" dev="sysfs" ino=28740 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=lnk_file permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homed" path="/sys/devices/virtual/block/dm-1/uevent" dev="sysfs" ino=28738 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { open } for  pid=1025 comm="systemd-homed" path="/sys/devices/virtual/block/dm-1/uevent" dev="sysfs" ino=28738 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homed" name="uevent" dev="sysfs" ino=28738 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homed" name="bus" dev="sysfs" ino=8 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { read } for  pid=3000 comm="systemd-homewor" name="fs" dev="sysfs" ino=2 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homewor" path="/sys/class/block/loop0" dev="sysfs" ino=53437 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=lnk_file permissive=1
+# AVC avc:  denied  { read } for  pid=3000 comm="systemd-homewor" name="loop0" dev="sysfs" ino=38829 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=lnk_file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name="loop0" dev="sysfs" ino=53434 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="mkfs.xfs" path="/sys/devices/virtual/block/dm-15/alignment_offset" dev="sysfs" ino=39070 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="fsck" path="/sys/devices/virtual/block/dm-15/dm/name" dev="sysfs" ino=39433 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/sys/devices/virtual/bdi/253:15/read_ahead_kb" dev="sysfs" ino=39050 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name="253:15" dev="sysfs" ino=39085 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=lnk_file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name="7:0" dev="sysfs" ino=39289 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=lnk_file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name="read_ahead_kb" dev="sysfs" ino=39050 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+dev_read_sysfs(systemd_homed_t)
+
+#### Allow: systemd-homework to create filesystem using mkfs.* and run fsck
+# AVC avc:  denied  { getattr } for  pid=3000 comm="systemd-homewor" path="/usr/sbin/mkfs.xfs" dev="dm-4" ino=33614691 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read open } for  pid=3014 comm="(mkfs)" path="/usr/sbin/mkfs.xfs" dev="dm-4" ino=33614691 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { map } for  pid=3014 comm="mkfs.xfs" path="/usr/sbin/mkfs.xfs" dev="dm-4" ino=33614691 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { execute_no_trans } for  pid=3014 comm="(mkfs)" path="/usr/sbin/mkfs.xfs" dev="dm-4" ino=33614691 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { execute } for  pid=3000 comm="systemd-homewor" name="mkfs.xfs" dev="dm-4" ino=33614691 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read open } for  pid=3035 comm="(fsck)" path="/usr/sbin/fsck" dev="dm-4" ino=33627901 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { execute_no_trans } for  pid=3035 comm="(fsck)" path="/usr/sbin/fsck" dev="dm-4" ino=33627901 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { map } for  pid=3035 comm="fsck" path="/usr/sbin/fsck" dev="dm-4" ino=33627901 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { getattr } for  pid=3028 comm="systemd-homewor" path="/usr/sbin/fsck.xfs" dev="dm-4" ino=33614690 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { ioctl } for  pid=34744 comm="fsck.xfs" path="/usr/sbin/fsck.xfs" dev="dm-4" ino=33614690 ioctlcmd=0x5401 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { execute } for  pid=3028 comm="systemd-homewor" name="fsck.xfs" dev="dm-4" ino=33614690 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_exec_t:s0 tclass=file permissive=1
+fstools_exec(systemd_homed_t)
+
+#### Allow: systemd-homework to use /dev/mapper/control
+# AVC avc:  denied  { getattr } for  pid=3000 comm="systemd-homewor" path="/dev/mapper/control" dev="devtmpfs" ino=152 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:lvm_control_t:s0 tclass=chr_file permissive=1
+# AVC avc:  denied  { read write } for  pid=3000 comm="systemd-homewor" name="control" dev="devtmpfs" ino=152 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:lvm_control_t:s0 tclass=chr_file permissive=1
+# AVC avc:  denied  { open } for  pid=3000 comm="systemd-homewor" path="/dev/mapper/control" dev="devtmpfs" ino=152 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:lvm_control_t:s0 tclass=chr_file permissive=1
+# AVC avc:  denied  { ioctl } for  pid=3000 comm="systemd-homewor" path="/dev/mapper/control" dev="devtmpfs" ino=152 ioctlcmd=0xfd00 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:lvm_control_t:s0 tclass=chr_file permissive=1
+dev_rw_lvm_control(systemd_homed_t)
+
+#### Allow: systemd-homework to run shell to run fsck etc
+# AVC avc:  denied  { execute } for  pid=3036 comm="fsck" name="bash" dev="dm-4" ino=50648698 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:shell_exec_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { map } for  pid=3036 comm="fsck.xfs" path="/usr/bin/bash" dev="dm-4" ino=50648698 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:shell_exec_t:s0 tclass=file permissive=1
+corecmd_exec_shell(systemd_homed_t)
+
+#### Allow: systemd-homework to run mkfs.btrfs to create /run/blkid
+# AVC avc:  denied  { create } for  pid=1000 comm="mkfs.btrfs" name="blkid" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { write } for  pid=1000 comm="mkfs.btrfs" name="blkid" dev="tmpfs" ino=4861 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { add_name } for  pid=1000 comm="mkfs.btrfs" name="blkid.tab" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { remove_name } for  pid=1000 comm="mkfs.btrfs" name="blkid.tab-pwk02l" dev="tmpfs" ino=4867 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { create } for  pid=1000 comm="mkfs.btrfs" name="blkid.tab" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { write open } for  pid=1000 comm="mkfs.btrfs" path="/run/blkid/blkid.tab" dev="tmpfs" ino=4862 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="mkfs.btrfs" path="/run/blkid/blkid.tab" dev="tmpfs" ino=4862 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="mkfs.btrfs" name="blkid.tab" dev="tmpfs" ino=4862 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { setattr } for  pid=1000 comm="mkfs.btrfs" name="blkid.tab-pwk02l" dev="tmpfs" ino=4867 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { link } for  pid=1000 comm="mkfs.btrfs" name="blkid.tab" dev="tmpfs" ino=4862 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { rename } for  pid=1000 comm="mkfs.btrfs" name="blkid.tab-pwk02l" dev="tmpfs" ino=4867 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { unlink } for  pid=1000 comm="mkfs.btrfs" name="blkid.tab" dev="tmpfs" ino=4862 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fsadm_var_run_t:s0 tclass=file permissive=1
+fsadm_manage_pid(systemd_homed_t)
+
+#### Allow: systemd-homework to create /run/cryptsetup and manage files there, like: /run/cryptsetup/L_7:0
+# cryptsetup:lib/utils_device_locking.c:open_lock_dir
+# AVC avc:  denied  { create } for  pid=1000 comm="systemd-homewor" name="cryptsetup" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:var_run_t:s0 tclass=dir permissive=0
+files_create_var_run_dirs(systemd_homed_t)
+# AVC avc:  denied  { create } for  pid=1000 comm="systemd-homewor" name="L_7:0" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:var_run_t:s0 tclass=file permissive=0
+# If I run test script it shows:
+# Would relabel /run/cryptsetup/L_7:0 from system_u:object_r:devicekit_var_run_t:s0 to system_u:object_r:var_run_t:s0
+# so whatever creates the file uses devicekit_var_run_t as context, so make systemd-homework to use it too.
+optional_policy(`
+	gen_require(`
+		type devicekit_var_run_t;
+	')
+	filetrans_pattern(systemd_homed_t, var_run_t, devicekit_var_run_t, file)
+	manage_files_pattern(systemd_homed_t, devicekit_var_run_t, devicekit_var_run_t)
+')
+
+
+
+#
+# netlink
+#
+
+#### Allow: systemd-homed to create and use netlink
+# AVC avc:  denied  { create } for  pid=1025 comm="systemd-homed" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=netlink_kobject_uevent_socket permissive=1
+# AVC avc:  denied  { setopt } for  pid=1025 comm="systemd-homed" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=netlink_kobject_uevent_socket permissive=1
+# AVC avc:  denied  { bind } for  pid=1025 comm="systemd-homed" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=netlink_kobject_uevent_socket permissive=1
+# AVC avc:  denied  { getattr } for  pid=1025 comm="systemd-homed" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=netlink_kobject_uevent_socket permissive=1
+# AVC avc:  denied  { read } for  pid=54703 comm="systemd-homed" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=netlink_kobject_uevent_socket permissive=1
+allow systemd_homed_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+
+
+#
+# dbus
+#
+
+# AVC avc:  denied  { acquire_svc } for  scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:system_r:system_dbusd_t:s0-s0:c0.c1023 tclass=dbus permissive=1 "
+optional_policy(`
+	dbus_acquire_svc_system_dbusd(systemd_homed_t)
+')
+
+# AVC avc:  denied  { send_msg } for  scontext=system_u:system_r:systemd_sleep_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=dbus permissive=0
+allow systemd_sleep_t systemd_homed_t:dbus send_msg;
+
+#### Allow: Reboot/login
+# AVC avc:  denied  { send_msg } for  scontext=system_u:system_r:sshd_t:s0-s0:c0.c1023 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=dbus permissive=0
+# AVC avc:  denied  { connectto } for  pid=1000 comm="sshd" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:sshd_t:s0-s0:c0.c1023 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type sshd_t;
+	')
+	allow sshd_t systemd_homed_t:dbus send_msg;
+	systemd_homed_userdb_stream_connect(sshd_t)
+')
+
+# AVC avc:  denied  { send_msg } for  scontext=system_u:system_r:xdm_t:s0-s0:c0.c1023 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=dbus permissive=0 exe="/usr/bin/dbus-broker" sauid=81 hostname=? addr=? terminal=?
+# AVC avc:  denied  { connectto } for  pid=1000 comm="gdm-session-wor" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:xdm_t:s0-s0:c0.c1023 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+# AVC avc:  denied  { write } for  pid=1000 comm="gdm-session-wor" path="/run/systemd/home/testuser.dont-suspend" dev="tmpfs" ino=3614 scontext=system_u:system_r:xdm_t:s0-s0:c0.c1023 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=fifo_file permissive=0
+optional_policy(`
+	gen_require(`
+		type xdm_t;
+	')
+	xserver_dbus_chat_xdm(systemd_homed_t)
+	systemd_homed_userdb_stream_connect(xdm_t)
+	allow xdm_t systemd_homed_runtime_t:fifo_file write;
+')
+
+# AVC avc:  denied  { send_msg } for  scontext=system_u:system_r:local_login_t:s0-s0:c0.c1023 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=dbus permissive=0
+# AVC avc:  denied  { connectto } for  pid=1000 comm="login" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:local_login_t:s0-s0:c0.c1023 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+# AVC avc:  denied  { write } for  pid=1000 comm="login" path="/run/systemd/home/testuser.dont-suspend" dev="tmpfs" ino=4784 scontext=system_u:system_r:local_login_t:s0-s0:c0.c1023 tcontext=system_u:object_r:systemd_homed_runtime_t:s0 tclass=fifo_file permissive=0
+optional_policy(`
+	gen_require(`
+		type local_login_t;
+	')
+	allow local_login_t systemd_homed_t:dbus send_msg;
+	systemd_homed_userdb_stream_connect(local_login_t)
+        allow local_login_t systemd_homed_runtime_t:fifo_file write;
+')
+
+
+#
+# /home and /run/systemd/user-home-mount
+#
+
+# Select context for /run/systemd/user-home-mount as user_home_dir_t as it
+# acts as "proto" directory where homed-directories are initially
+# created and set up. It acts as essentially the same as /home. This
+# also shortens this policy as now we can share some rules as /home.
+filetrans_pattern(systemd_homed_t, init_var_run_t, user_home_dir_t, dir, "user-home-mount")
+
+#### Allow to manage /home
+# AVC avc:  denied  { create } for  pid=1000 comm="systemd-homewor" name=".#homeworktestuser.homedirded0a3792116de7d" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:home_root_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { create } for  pid=1000 comm="systemd-homewor" name="testuser" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:home_root_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { mounton } for  pid=1000 comm="systemd-homewor" path="/home/testuser" dev="dm-14" ino=135132807 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:home_root_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { rename } for  pid=1000 comm="systemd-homewor" name=".#homeworktestuser.homedirded0a3792116de7d" dev="dm-14" ino=151490542 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:home_root_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { rmdir } for  pid=1000 comm="systemd-homewor" name="extensions" dev="dm-14" ino=685366 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:home_root_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { rmdir } for  pid=1000 comm="systemd-homewor" name="testuser" dev="dm-14" ino=118488174 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:home_root_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { setattr } for  pid=1000 comm="systemd-homewor" name="extensions" dev="dm-14" ino=685366 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:home_root_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { watch } for  pid=1000 comm="systemd-homed" path="/home" dev="dm-14" ino=128 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:home_root_t:s0 tclass=dir permissive=1
+manage_dirs_pattern(systemd_homed_t, home_root_t, home_root_t)
+allow systemd_homed_t home_root_t:dir mounton;
+
+#### Setup home first under /run/systemd/user-home-mount and later /home/<username>
+# AVC avc:  denied  { add_name } for  pid=1000 comm="systemd-homewor" name=".#.identity9bbf460fb708fc96" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { create } for  pid=1000 comm="systemd-homewor" name="user-home-mount" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homed" path="/home/testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount" dev="tmpfs" ino=4722 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { ioctl } for  pid=1000 comm="systemd-homewor" path="/home/testuser" dev="dm-15" ino=131 ioctlcmd=0x5879 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { mounton } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount" dev="tmpfs" ino=4722 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { mounton } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount" dev="tmpfs" ino=5146 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/home/testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name="testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { remove_name } for  pid=1000 comm="systemd-homewor" name=".#.identity9bbf460fb708fc96" dev="dm-15" ino=137 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { search } for  pid=1000 comm="systemd-homewor" name="testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { write } for  pid=1000 comm="systemd-homewor" name="testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_dir_t:s0 tclass=dir permissive=1
+manage_dirs_pattern(systemd_homed_t, user_home_dir_t, user_home_dir_t)
+allow systemd_homed_t user_home_dir_t:dir mounton;
+
+# AVC avc:  denied  { unmount } for  pid=1000 comm="systemd-homewor" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fs_t:s0 tclass=filesystem permissive=1
+# AVC avc:  denied  { mount } for  pid=1000 comm="systemd-homewor" name="/" dev="dm-15" ino=128 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fs_t:s0 tclass=filesystem permissive=1
+fs_all_mount_fs_perms_xattr_fs(systemd_homed_t)
+
+#### Allow: systemd-homework to setup home directory using unlabeled_t during fs creation
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homed" path="/home/testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name="testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/home/testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { ioctl } for  pid=1000 comm="systemd-homewor" path="/home/testuser" dev="dm-15" ino=131 ioctlcmd=0x5879 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { search } for  pid=1000 comm="systemd-homewor" name="/" dev="dm-15" ino=128 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount/testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { search } for  pid=1000 comm="systemd-homewor" name="testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount/testuser" dev="dm-15" ino=131 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=dir permissive=1
+files_manage_isid_type_dirs(systemd_homed_t)
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name=".identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount/testuser/.identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount/testuser/.identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=file permissive=1
+files_manage_isid_type_files(systemd_homed_t)
+
+#### Allow: manage .identity after labels are fixed
+# AVC avc:  denied  { create } for  pid=1000 comm="systemd-homewor" name=".#.identity9bbf460fb708fc96" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homewor" path="/home/testuser/.#.identity9bbf460fb708fc96" dev="dm-15" ino=137 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount/testuser/.identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name=".identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { rename } for  pid=1000 comm="systemd-homewor" name=".#.identity9bbf460fb708fc96" dev="dm-15" ino=137 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { setattr } for  pid=1000 comm="systemd-homewor" name=".#.identity9bbf460fb708fc96" dev="dm-15" ino=137 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { unlink } for  pid=1000 comm="systemd-homewor" name=".identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { write open } for  pid=1000 comm="systemd-homewor" path="/home/testuser/.#.identity9bbf460fb708fc96" dev="dm-15" ino=137 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:user_home_dir_t:s0 tclass=file permissive=1
+manage_files_pattern(systemd_homed_t, user_home_dir_t, user_home_dir_t)
+
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name=".identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/run/systemd/user-home-mount/testuser/.identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { unlink } for  pid=1000 comm="systemd-homewor" name=".identity" dev="dm-15" ino=136 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:user_home_t:s0 tclass=file permissive=1
+userdom_manage_user_home_content_files(systemd_homed_t)
+
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homewor" path="/home/testuser.homedir/.mozilla" dev="dm-14" ino=171140546 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:mozilla_home_t:s0 tclass=dir permissive=0
+# AVC avc:  denied  { rmdir } for  pid=1000 comm="systemd-homewor" name=".mozilla" dev="dm-14" ino=171140546 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:mozilla_home_t:s0 tclass=dir permissive=0
+# AVC avc:  denied  { write } for  pid=1000 comm="systemd-homewor" name=".mozilla" dev="dm-14" ino=171140546 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:mozilla_home_t:s0 tclass=dir permissive=0
+# AVC avc:  denied  { remove_name } for  pid=1000 comm="systemd-homewor" name="plugins" dev="dm-14" ino=18877888 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=unconfined_u:object_r:mozilla_home_t:s0 tclass=dir permissive=0
+optional_policy(`
+	gen_require(`
+		type mozilla_home_t;
+	')
+	mozilla_read_user_home_files(systemd_homed_t)
+	allow systemd_homed_t mozilla_home_t:dir { remove_name rmdir write };
+')
+
+#### Allow: systemd-homework to create/handle /home/<username>.home file
+filetrans_pattern(systemd_homed_t, home_root_t, systemd_homed_home_file_t, file)
+manage_files_pattern(systemd_homed_t, home_root_t, systemd_homed_home_file_t)
+
+
+
+#
+# /run/systemd/userdb
+# link to other domains
+#
+
+#### Allow various subsystems to access /run/systemd/userdb/io.systemd.Home by having right context
+systemd_userdbd_runtime_filetrans(systemd_homed_t)
+#filetrans_pattern(systemd_homed_t, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t, file, "io.systemd.Home")
+
+#### Allow: systemd-homed to manage /run/systemd/userdb/io.systemd.Home
+# AVC avc:  denied  { create } for pid=1000 comm="systemd-homed" name="io.systemd.Home" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_userdbd_runtime_t:s0 tclass=sock_file permissive=1"
+systemd_manage_userdbd_runtime_sock_files(systemd_homed_t)
+
+#### Allow: various domains to connect /run/systemd/userdb/io.systemd.Home
+# IDK what this is because:
+# srw-rw-rw-. 1 root root system_u:object_r:systemd_userdbd_runtime_t:s0 0 10.10. 12:18 /run/systemd/userdb/io.systemd.Home
+# AVC avc:  denied  { connectto } for  pid=1000 comm="(bash)" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:init_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+# AVC avc:  denied  { connectto } for  pid=1000 comm="systemd-user-ru" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:systemd_logind_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+# AVC avc:  denied  { connectto } for  pid=1000 comm="systemd-userwor" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:systemd_userdbd_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+systemd_homed_userdb_stream_connect(init_t)
+systemd_homed_userdb_stream_connect(systemd_logind_t)
+systemd_homed_userdb_stream_connect(systemd_userdbd_t)
+
+# AVC avc:  denied  { connectto } for  pid=1000 comm="NetworkManager" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:NetworkManager_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type NetworkManager_t;
+	')
+	systemd_homed_userdb_stream_connect(NetworkManager_t)
+')
+# AVC avc:  denied  { connectto } for  pid=1000 comm="accounts-daemon" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:accountsd_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type accountsd_t;
+	')
+	systemd_homed_userdb_stream_connect(accountsd_t)
+')
+# AVC avc:  denied  { connectto } for  pid=1000 comm="auditd" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:auditd_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type auditd_t;
+	')
+	systemd_homed_userdb_stream_connect(auditd_t)
+')
+# AVC avc:  denied  { connectto } for  pid=1000 comm="colord" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:colord_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type colord_t;
+	')
+	systemd_homed_userdb_stream_connect(colord_t)
+')
+# AVC avc:  denied  { connectto } for  pid=1000 comm="cupsd" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:cupsd_t:s0-s0:c0.c1023 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type cupsd_t;
+	')
+	systemd_homed_userdb_stream_connect(cupsd_t)
+')
+# AVC avc:  denied  { connectto } for  pid=1000 comm="httpd" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type httpd_t;
+	')
+	systemd_homed_userdb_stream_connect(httpd_t)
+')
+# AVC avc:  denied  { connectto } for  pid=1000 comm="pkla-check-auth" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:policykit_auth_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+# AVC avc:  denied  { connectto } for  pid=1000 comm="polkitd" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:policykit_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type policykit_auth_t;
+		type policykit_t;
+	')
+	systemd_homed_userdb_stream_connect(policykit_auth_t)
+	systemd_homed_userdb_stream_connect(policykit_t)
+')
+# AVC avc:  denied  { connectto } for  pid=1000 comm="pickup" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:postfix_pickup_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+# AVC avc:  denied  { connectto } for  pid=1000 comm="qmgr" path="/run/systemd/userdb/io.systemd.Home" scontext=system_u:system_r:postfix_qmgr_t:s0 tcontext=system_u:system_r:systemd_homed_t:s0 tclass=unix_stream_socket permissive=0
+optional_policy(`
+	gen_require(`
+		type postfix_pickup_t;
+		type postfix_qmgr_t;
+	')
+	systemd_homed_userdb_stream_connect(postfix_pickup_t)
+	systemd_homed_userdb_stream_connect(postfix_qmgr_t)
+')
+
+
+#
+# /var/lib/systemd/home
+# identity and other databases
+#
+
+#### Allow: systemd-homed to manage /var/lib/systemd/home identity local.private local.public
+# AVC avc:  denied  { search } for  pid=1000 comm="systemd-homed" name="systemd" dev="dm-9" ino=51074062 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:init_var_lib_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { search } for  pid=1000 comm="systemd-homed" name="home" dev="dm-9" ino=51127936 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { write } for  pid=1000 comm="systemd-homed" name="home" dev="dm-9" ino=51127936 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { add_name } for  pid=1000 comm="systemd-homed" name=".#testuser.identitydw7HTA" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homed" name="home" dev="dm-9" ino=51127936 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homed" path="/var/lib/systemd/home" dev="dm-9" ino=51127936 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=dir permissive=1
+# AVC avc:  denied  { remove_name } for  pid=1000 comm="systemd-homed" name=".#testuser.identitydw7HTA" dev="dm-9" ino=51127942 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=dir permissive=1
+init_search_var_lib_dirs(systemd_homed_t)
+# AVC avc:  denied  { create } for  pid=1000 comm="systemd-homed" name=".#testuser.identitydw7HTA" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read write open } for  pid=1000 comm="systemd-homed" path="/var/lib/systemd/home/.#testuser.identitydw7HTA" dev="dm-9" ino=51127942 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homed" path="/var/lib/systemd/home/.#testuser.identitydw7HTA" dev="dm-9" ino=51127942 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { setattr } for  pid=1000 comm="systemd-homed" name=".#testuser.identitydw7HTA" dev="dm-9" ino=51127942 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { rename } for  pid=1000 comm="systemd-homed" name=".#testuser.identitydw7HTA" dev="dm-9" ino=51127942 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { unlink } for  pid=1000 comm="systemd-homed" name="testuser.identity" dev="dm-9" ino=51127939 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:systemd_homed_var_lib_t:s0 tclass=file permissive=1
+manage_files_pattern(systemd_homed_t, systemd_homed_var_lib_t, systemd_homed_var_lib_t)
+
+
+
+#
+# /usr/lib/systemd/systemd-homework create
+# various actions
+#
+
+#### Allow: systemd-homework to mounton /run
+# AVC avc:  denied  { mounton } for  pid=1000 comm="systemd-homewor" path="/run" dev="tmpfs" ino=1 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:var_run_t:s0 tclass=dir permissive=1
+allow systemd_homed_t var_run_t:dir mounton;
+
+#### Allows: systemd-homework to read /dev/random
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homewor" path="/dev/random" dev="devtmpfs" ino=8 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:random_device_t:s0 tclass=chr_file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" name="random" dev="devtmpfs" ino=8 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:random_device_t:s0 tclass=chr_file permissive=1
+dev_read_rand(systemd_homed_t)
+
+#### Allow: systemd-homework to use tmpfs for various actions
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homewor" path=2F6D656D66643A646174612D6664202864656C6574656429 dev="tmpfs" ino=2833 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:tmpfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homewor" path=2F6D656D66643A646174612D6664202864656C6574656429 dev="tmpfs" ino=2833 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:tmpfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { write } for  pid=1000 comm="systemd-homed" path=2F6D656D66643A646174612D6664202864656C6574656429 dev="tmpfs" ino=1783 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:tmpfs_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { ioctl } for  pid=1000 comm="fsck.xfs" path=2F6D656D66643A646174612D6664202864656C6574656429 dev="tmpfs" ino=2835 ioctlcmd=0x5401 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:tmpfs_t:s0 tclass=file permissive=1
+fs_rw_tmpfs_files(systemd_homed_t)
+
+#### Allow: systemd-homework to setup quota
+# AVC avc:  denied  { quotaget } for  pid=1000 comm="systemd-homed" scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:fs_t:s0 tclass=filesystem permissive=1
+fs_get_xattr_fs_quotas(systemd_homed_t)
+
+#### Allow: access /var/mail /var/spool/mail
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homed" name="mail" dev="dm-9" ino=148 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:mail_spool_t:s0 tclass=lnk_file permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homed" path="/var/spool/mail" dev="dm-9" ino=35657540 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:mail_spool_t:s0 tclass=dir permissive=1
+optional_policy(`
+	mta_getattr_spool(systemd_homed_t)
+')
+
+#### Allow: access cracklib
+# AVC avc:  denied  { search } for  pid=1000 comm="systemd-homed" name="cracklib" dev="dm-4" ino=35715683 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:crack_db_t:s0 tclass=dir permissive=1
+usermanage_read_crack_db(systemd_homed_t)
+
+#### Allow: systemd-homed read /run/udev/data/b253:12
+# AVC avc:  denied  { read } for  pid=1000 comm="systemd-homed" name="b253:1" dev="tmpfs" ino=2407 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:udev_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { open } for  pid=1000 comm="systemd-homed" path="/run/udev/data/b253:1" dev="tmpfs" ino=2407 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:udev_var_run_t:s0 tclass=file permissive=1
+# AVC avc:  denied  { getattr } for  pid=1000 comm="systemd-homed" path="/run/udev/data/b253:1" dev="tmpfs" ino=2407 scontext=system_u:system_r:systemd_homed_t:s0 tcontext=system_u:object_r:udev_var_run_t:s0 tclass=file permissive=1
+udev_read_db(systemd_homed_t)
