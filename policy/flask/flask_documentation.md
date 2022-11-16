@@ -1925,3 +1925,16 @@ Used to control the ability to use special io\_uring features by the process. Se
 **sqpoll** - Allow *source* to create an io\_uring kernel polling thread. *target* is always equal to *source*.
 
 **cmd** - Allow *source* to pass commands to special file *target* (`IORING_OP_URING_CMD`). The semantics of the commands are defined by the kernel subsystem/module implementing the special file's operations and may be subject to other access checks. See also kernel commits [2a5840124009](https://git.kernel.org/torvalds/c/2a5840124009) and [f4d653dcaa4e](https://git.kernel.org/torvalds/c/f4d653dcaa4e).
+
+---
+
+## class user\_namespace
+
+This class is used to control over the observability and access control over
+user namespace creation.
+
+See also kernel commits
+[7cd4c5c2101c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7cd4c5c2101cb092db00f61f69d24380cf7a0ee8) and
+[ed5d44d42c95](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed5d44d42c95e8a13bb54e614d2269c8740667f9).
+
+**create** - Allow *source* to create a user namespace object
