@@ -44,6 +44,31 @@ interface(`systemd_stub_unit_file',`
         ')
 ')
 
+########################################
+## <summary>
+##      Common permissions for domains executing systemctl. (INTERNAL)
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`systemd_systemctl_common',`
+	fs_list_cgroup_dirs($1)
+	fs_read_cgroup_files($1)
+	fs_read_efivarfs_files($1)
+	systemd_list_unit_dirs($1)
+	init_list_pid_dirs($1)
+	init_read_state($1)
+	init_stream_send($1)
+	init_stream_connect($1)
+
+	# systemctl tries to adjust its RLIMIT_NOFILE right when it is started
+	dontaudit $1 self:process setrlimit;
+	dontaudit $1 self:capability sys_resource;
+')
+
 #######################################
 ## <summary>
 ##      Create a domain for processes which are started 
@@ -55,7 +80,7 @@ interface(`systemd_stub_unit_file',`
 ##      </summary>
 ## </param>
 #
-interface(`systemd_systemctl_domain',`
+template(`systemd_systemctl_domain',`
         gen_require(`
                 type systemd_systemctl_exec_t;
                 role system_r;
@@ -69,6 +94,8 @@ interface(`systemd_systemctl_domain',`
 	role system_r types $1_systemctl_t;
 
 	domtrans_pattern($1_t, systemd_systemctl_exec_t , $1_systemctl_t)
+
+	systemd_systemctl_common($1_systemctl_t)
 ')
 
 ########################################
@@ -89,22 +116,13 @@ interface(`systemd_exec_systemctl',`
 	corecmd_search_bin($1)
 	can_exec($1, systemd_systemctl_exec_t)
 
-	fs_list_cgroup_dirs($1)
-	fs_read_cgroup_files($1)
-    fs_read_efivarfs_files($1)
-	systemd_list_unit_dirs($1)
-	init_list_pid_dirs($1)
-	init_read_state($1)
-	init_stream_send($1)
-	init_stream_connect($1)
+	systemd_systemctl_common($1)
 
 	systemd_login_list_pid_dirs($1)
 	systemd_login_read_pid_files($1)
 	systemd_passwd_agent_exec($1)
 
 	dontaudit $1 self:capability { net_admin sys_ptrace };
-	# systemctl tries to adjust its RLIMIT_NOFILE right when it is started
-	dontaudit $1 self:process setrlimit;
 ')
 #
 ########################################
