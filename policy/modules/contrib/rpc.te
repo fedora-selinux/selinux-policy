@@ -434,3 +434,35 @@ optional_policy(`
 optional_policy(`
 	xserver_rw_xdm_tmp_files(gssd_t)
 ')
+
+########################################
+#
+# nfsidmap policy
+#
+
+type nfsidmap_exec_t;
+files_type(nfsidmap_exec_t)
+
+type nfsidmap_t;
+domain_type(nfsidmap_t)
+domain_entry_file(nfsidmap_t, nfsidmap_exec_t)
+
+allow nfsidmap_t self:key write;
+allow nfsidmap_t self:netlink_route_socket r_netlink_socket_perms;
+
+kernel_setattr_key(nfsidmap_t)
+
+sysnet_read_config(nfsidmap_t)
+
+optional_policy(`
+	auth_read_passwd_file(nfsidmap_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(nfsidmap_t)
+')
+
+optional_policy(`
+	# /etc/request-key.d/id_resolver.conf
+	keyutils_request_domtrans_to(nfsidmap_t, nfsidmap_exec_t)
+')
