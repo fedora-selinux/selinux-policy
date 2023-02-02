@@ -1,0 +1,55 @@
+policy_module(qatlib, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type qatlib_t;
+type qatlib_exec_t;
+init_daemon_domain(qatlib_t, qatlib_exec_t)
+
+type qatlib_conf_t;
+files_config_file(qatlib_conf_t)
+
+type qatlib_unit_file_t;
+systemd_unit_file(qatlib_unit_file_t)
+
+type qatlib_var_run_t;
+files_pid_file(qatlib_var_run_t)
+
+########################################
+#
+# qatlib local policy
+#
+allow qatlib_t self:fifo_file rw_fifo_file_perms;
+allow qatlib_t self:unix_stream_socket create_stream_socket_perms;
+
+allow qatlib_t qatlib_unit_file_t:file read_file_perms;
+
+read_files_pattern(qatlib_t, qatlib_conf_t, qatlib_conf_t)
+list_dirs_pattern(qatlib_t, qatlib_conf_t, qatlib_conf_t)
+
+manage_dirs_pattern(qatlib_t, qatlib_var_run_t, qatlib_var_run_t)
+manage_files_pattern(qatlib_t, qatlib_var_run_t, qatlib_var_run_t)
+files_pid_filetrans(qatlib_t, qatlib_var_run_t, { dir file } )
+
+corecmd_exec_shell(qatlib_t)
+corecmd_exec_bin(qatlib_t)
+
+dev_read_sysfs(qatlib_t)
+
+domain_use_interactive_fds(qatlib_t)
+
+optional_policy(`
+        auth_read_passwd_file(qatlib_t)
+')
+
+optional_policy(`
+	miscfiles_read_localization(qatlib_t)
+')
+
+optional_policy(`
+	systemd_search_unit_dirs(qatlib_t)
+')
+
