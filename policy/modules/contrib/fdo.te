@@ -1,0 +1,71 @@
+policy_module(fdo, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type fdo_t;
+type fdo_exec_t;
+init_daemon_domain(fdo_t, fdo_exec_t)
+
+type fdo_conf_t;
+files_config_file(fdo_conf_t)
+
+type fdo_conf_rw_t;
+files_config_file(fdo_conf_rw_t)
+
+type fdo_tmp_t;
+files_tmp_file(fdo_tmp_t)
+
+type fdo_unit_file_t;
+systemd_unit_file(fdo_unit_file_t)
+
+permissive fdo_t;
+
+########################################
+#
+# fdo local policy
+#
+allow fdo_t self:fifo_file rw_fifo_file_perms;
+allow fdo_t self:netlink_route_socket r_netlink_socket_perms;
+allow fdo_t self:tcp_socket create_stream_socket_perms;
+allow fdo_t self:udp_socket create_socket_perms;
+allow fdo_t self:unix_stream_socket create_stream_socket_perms;
+
+can_exec(fdo_t, fdo_exec_t)
+
+manage_dirs_pattern(fdo_t, fdo_conf_t, fdo_conf_t)
+manage_dirs_pattern(fdo_t, fdo_conf_rw_t, fdo_conf_rw_t)
+manage_files_pattern(fdo_t, fdo_conf_rw_t, fdo_conf_rw_t)
+manage_lnk_files_pattern(fdo_t, fdo_conf_rw_t, fdo_conf_rw_t)
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "configs" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "keys" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "logs" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "stores" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, file, "aio_configuration" )
+
+corenet_tcp_bind_generic_node(fdo_t)
+corenet_tcp_bind_http_cache_port(fdo_t)
+corenet_tcp_connect_http_cache_port(fdo_t)
+corenet_tcp_bind_http_port(fdo_t)
+corenet_tcp_connect_http_port(fdo_t)
+corenet_tcp_bind_transproxy_port(fdo_t)
+corenet_tcp_connect_transproxy_port(fdo_t)
+corenet_tcp_bind_us_cli_port(fdo_t)
+corenet_tcp_connect_us_cli_port(fdo_t)
+
+domain_use_interactive_fds(fdo_t)
+
+files_read_config_files(fdo_t)
+
+fs_read_cgroup_files(fdo_t)
+
+optional_policy(`
+	miscfiles_read_generic_certs(fdo_t)
+	miscfiles_read_localization(fdo_t)
+')
+
+optional_policy(`
+	sysnet_read_config(fdo_t)
+')
