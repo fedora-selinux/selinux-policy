@@ -1,0 +1,40 @@
+policy_module(bootupd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type bootupd_t;
+type bootupd_exec_t;
+init_daemon_domain(bootupd_t, bootupd_exec_t)
+
+type bootupd_unit_file_t;
+systemd_unit_file(bootupd_unit_file_t)
+
+type bootupd_var_run_t;
+files_pid_file(bootupd_var_run_t)
+
+permissive bootupd_t;
+
+########################################
+#
+# bootupd local policy
+#
+allow bootupd_t self:capability { setgid setuid };
+allow bootupd_t self:process { fork setpgid };
+allow bootupd_t self:fifo_file rw_fifo_file_perms;
+allow bootupd_t self:unix_dgram_socket create_socket_perms;
+allow bootupd_t self:unix_stream_socket create_stream_socket_perms;
+
+kernel_dgram_send(bootupd_t)
+
+domain_use_interactive_fds(bootupd_t)
+
+files_read_etc_files(bootupd_t)
+
+fs_getattr_all_fs(bootupd_t)
+
+optional_policy(`
+	miscfiles_read_localization(bootupd_t)
+')
