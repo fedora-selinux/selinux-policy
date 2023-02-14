@@ -1,0 +1,47 @@
+policy_module(coreos_installer, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type coreos_installer_t;
+type coreos_installer_exec_t;
+init_daemon_domain(coreos_installer_t, coreos_installer_exec_t)
+
+type coreos_installer_unit_file_t;
+systemd_unit_file(coreos_installer_unit_file_t)
+
+permissive coreos_installer_t;
+
+########################################
+#
+# coreos_installer local policy
+#
+allow coreos_installer_t self:capability { setgid setuid sys_admin };
+allow coreos_installer_t self:process { fork setpgid };
+allow coreos_installer_t self:fifo_file rw_fifo_file_perms;
+allow coreos_installer_t self:unix_stream_socket create_stream_socket_perms;
+
+kernel_read_proc_files(coreos_installer_t)
+
+corecmd_exec_bin(coreos_installer_t)
+corecmd_exec_shell(coreos_installer_t)
+
+dev_write_kmsg(coreos_installer_t)
+
+domain_use_interactive_fds(coreos_installer_t)
+
+files_read_etc_files(coreos_installer_t)
+
+optional_policy(`
+	auth_read_passwd_file(coreos_installer_t)
+')
+
+optional_policy(`
+	miscfiles_read_localization(coreos_installer_t)
+')
+
+optional_policy(`
+	sysnet_dns_name_resolve(coreos_installer_t)
+')
