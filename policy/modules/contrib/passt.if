@@ -1,0 +1,100 @@
+interface(`passt_domtrans',`
+	gen_require(`
+		type passt_t, passt_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, passt_exec_t, passt_t)
+')
+
+interface(`passt_socket_dir',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow passt_t $1:dir add_entry_dir_perms;
+')
+
+interface(`passt_socket_create',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow passt_t $1:sock_file create;
+')
+
+interface(`passt_socket_use',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow $1 passt_t:unix_stream_socket connectto;
+	allow $1 $2:sock_file { read write };
+	allow passt_t $2:sock_file { read write };
+')
+
+interface(`passt_socket_delete',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow $1 $2:sock_file unlink;
+')
+
+interface(`passt_logfile_dir',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow passt_t $1:dir add_entry_dir_perms;
+')
+
+interface(`passt_logfile_use',`
+	gen_require(`
+		type passt_t;
+	')
+
+	logging_log_file($1);
+	allow passt_t $1:file { create open read write };
+')
+
+interface(`passt_pidfile_dir',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow passt_t $1:dir add_entry_dir_perms;
+')
+
+interface(`passt_pidfile_write',`
+	gen_require(`
+		type passt_t;
+	')
+
+	files_pid_file($1);
+	allow passt_t $1:file { create open write };
+')
+
+interface(`passt_pidfile_read',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow $1 $2:file { open read };
+')
+
+interface(`passt_pidfile_delete',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow $1 $2:file unlink;
+')
+
+interface(`passt_kill',`
+	gen_require(`
+		type passt_t;
+	')
+
+	allow $1 passt_t:process { signal sigkill };
+')
