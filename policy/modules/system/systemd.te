@@ -588,7 +588,7 @@ manage_files_pattern(systemd_machined_t, systemd_machined_var_lib_t, systemd_mac
 manage_lnk_files_pattern(systemd_machined_t, systemd_machined_var_lib_t, systemd_machined_var_lib_t)
 init_var_lib_filetrans(systemd_machined_t, systemd_machined_var_lib_t, dir, "machines")
 
-kernel_dgram_send(systemd_machined_t)
+kernel_early_boot_dgram_send(systemd_machined_t)
 # This is a bug, but need for now.
 kernel_read_unlabeled_state(systemd_machined_t)
 kernel_rw_psi(systemd_machined_t)
@@ -697,7 +697,7 @@ manage_lnk_files_pattern(systemd_networkd_t, systemd_networkd_var_run_t, systemd
 manage_sock_files_pattern(systemd_networkd_t, systemd_networkd_var_run_t, systemd_networkd_var_run_t)
 manage_dirs_pattern(systemd_networkd_t, systemd_networkd_var_run_t, systemd_networkd_var_run_t)
 
-kernel_dgram_send(systemd_networkd_t)
+kernel_early_boot_dgram_send(systemd_networkd_t)
 kernel_request_load_module(systemd_networkd_t)
 kernel_read_sysctl(systemd_networkd_t)
 kernel_rw_net_sysctls(systemd_networkd_t)
@@ -781,7 +781,7 @@ init_pid_filetrans(systemd_passwd_agent_t, systemd_passwd_var_run_t, { dir fifo_
 
 domain_read_all_domains_state(systemd_passwd_agent_t)
 
-kernel_stream_connect(systemd_passwd_agent_t)
+kernel_early_boot_stream_connect(systemd_passwd_agent_t)
 
 dev_create_generic_dirs(systemd_passwd_agent_t)
 dev_read_generic_files(systemd_passwd_agent_t)
@@ -952,11 +952,11 @@ allow systemd_notify_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_notify_t self:unix_dgram_socket create_socket_perms;
 
 # FIXME: this is required because of systemd's notify socket is created while
-# in the initramfs, hence as kernel_t. Once SELinux permits relabeling socket
-# objects created before the policy is loaded, this should be removed and
-# systemd fixed to relabel the socket appropriately.
+# in the initramfs, hence as kernel_early_boot_t. Once SELinux permits
+# relabeling socket objects created before the policy is loaded, this should
+# be removed and systemd fixed to relabel the socket appropriately.
 # Tracked by [systemd PR](https://github.com/systemd/systemd/pull/31336).
-kernel_dgram_send(systemd_notify_t)
+kernel_early_boot_dgram_send(systemd_notify_t)
 
 dev_write_kmsg(systemd_notify_t)
 
@@ -1066,7 +1066,7 @@ manage_lnk_files_pattern(systemd_hostnamed_t, hostname_etc_t, hostname_etc_t)
 files_etc_filetrans(systemd_hostnamed_t, hostname_etc_t, file)
 init_pid_filetrans(systemd_hostnamed_t, hostname_etc_t, file )
 
-kernel_dgram_send(systemd_hostnamed_t)
+kernel_early_boot_dgram_send(systemd_hostnamed_t)
 kernel_read_xen_state(systemd_hostnamed_t)
 kernel_read_sysctl(systemd_hostnamed_t)
 
@@ -1149,7 +1149,7 @@ manage_files_pattern(systemd_rfkill_t, systemd_rfkill_var_lib_t, systemd_rfkill_
 manage_dirs_pattern(systemd_rfkill_t, systemd_rfkill_var_lib_t, systemd_rfkill_var_lib_t)
 init_var_lib_filetrans(systemd_rfkill_t, systemd_rfkill_var_lib_t, dir, "rfkill")
 
-kernel_dgram_send(systemd_rfkill_t)
+kernel_early_boot_dgram_send(systemd_rfkill_t)
 kernel_dontaudit_request_load_module(systemd_rfkill_t)
 
 # There is bug in kernel in 4.16 where lot of domains requesting module_request, for now dontauditing
@@ -1188,7 +1188,7 @@ manage_dirs_pattern(systemd_ssh_issue_t, systemd_ssh_issue_var_run_t, systemd_ss
 manage_files_pattern(systemd_ssh_issue_t, systemd_ssh_issue_var_run_t, systemd_ssh_issue_var_run_t)
 files_pid_filetrans(systemd_ssh_issue_t, systemd_ssh_issue_var_run_t, dir)
 
-kernel_dgram_send(systemd_ssh_issue_t)
+kernel_early_boot_dgram_send(systemd_ssh_issue_t)
 kernel_read_sysctl(systemd_ssh_issue_t)
 
 dev_read_sysfs(systemd_ssh_issue_t)
@@ -1315,7 +1315,7 @@ optional_policy(`
 #
 allow systemd_sysctl_t self:capability { net_admin sys_admin sys_ptrace sys_rawio sys_resource };
 allow systemd_sysctl_t self:unix_dgram_socket create_socket_perms;
-kernel_dgram_send(systemd_sysctl_t)
+kernel_early_boot_dgram_send(systemd_sysctl_t)
 kernel_request_load_module(systemd_sysctl_t)
 kernel_rw_all_sysctls(systemd_sysctl_t)
 kernel_read_security_state(systemd_sysctl_t)
@@ -1410,7 +1410,7 @@ files_etc_filetrans(systemd_hwdb_t, systemd_hwdb_etc_t, file)
 
 dev_write_kmsg(systemd_hwdb_t)
 
-kernel_dgram_send(systemd_hwdb_t)
+kernel_early_boot_dgram_send(systemd_hwdb_t)
 
 systemd_read_efivarfs(systemd_hwdb_t)
 
@@ -1677,7 +1677,7 @@ allow systemd_resolved_t systemd_networkd_var_run_t:sock_file write;
 allow systemd_resolved_t systemd_networkd_t:unix_stream_socket connectto;
 allow systemd_resolved_t systemd_networkd_var_run_t:dir watch_dir_perms;
 
-kernel_dgram_send(systemd_resolved_t)
+kernel_early_boot_dgram_send(systemd_resolved_t)
 kernel_read_net_sysctls(systemd_resolved_t)
 kernel_read_network_state(systemd_resolved_t)
 kernel_rw_psi(systemd_resolved_t)
@@ -1781,7 +1781,7 @@ read_lnk_files_pattern(systemd_domain, systemd_home_t, systemd_home_t)
 
 allow systemd_modules_load_t self:system module_load;
 
-kernel_dgram_send(systemd_modules_load_t)
+kernel_early_boot_dgram_send(systemd_modules_load_t)
 kernel_load_unsigned_module(systemd_modules_load_t)
 kernel_ib_access_unlabeled_pkeys(systemd_modules_load_t)
 kernel_request_load_module(systemd_modules_load_t)
@@ -1817,7 +1817,7 @@ allow systemd_bootchart_t self:capability2 wake_alarm;
 allow systemd_bootchart_t self:cap_userns sys_ptrace;
 allow systemd_bootchart_t self:unix_dgram_socket create_socket_perms;
 
-kernel_dgram_send(systemd_bootchart_t)
+kernel_early_boot_dgram_send(systemd_bootchart_t)
 kernel_rw_kernel_sysctl(systemd_bootchart_t)
 dev_list_sysfs(systemd_bootchart_t)
 
@@ -1836,7 +1836,7 @@ fs_tmpfs_filetrans(systemd_bootchart_t, systemd_bootchart_tmpfs_t, file )
 
 manage_files_pattern(systemd_journal_upload_t, systemd_journal_upload_var_lib_t, systemd_journal_upload_var_lib_t)
 
-kernel_dgram_send(systemd_journal_upload_t)
+kernel_early_boot_dgram_send(systemd_journal_upload_t)
 
 corenet_tcp_connect_journal_remote_port(systemd_journal_upload_t)
 init_var_lib_filetrans(systemd_journal_upload_t, systemd_journal_upload_var_lib_t, dir, "journal_upload")
@@ -1859,7 +1859,7 @@ optional_policy(`
 #
 allow systemd_initctl_t self:unix_dgram_socket create_socket_perms;
 
-kernel_dgram_send(systemd_initctl_t)
+kernel_early_boot_dgram_send(systemd_initctl_t)
 
 init_rw_initctl(systemd_initctl_t)
 init_stream_connectto(systemd_initctl_t)
@@ -1889,7 +1889,7 @@ manage_dirs_pattern(systemd_importd_t, systemd_importd_tmp_t, systemd_importd_tm
 manage_files_pattern(systemd_importd_t, systemd_importd_tmp_t, systemd_importd_tmp_t)
 files_tmp_filetrans(systemd_importd_t, systemd_importd_tmp_t, { dir file })
 
-kernel_dgram_send(systemd_importd_t)
+kernel_early_boot_dgram_send(systemd_importd_t)
 kernel_read_system_state(systemd_importd_t)
 
 auth_read_passwd(systemd_importd_t)
@@ -1935,7 +1935,7 @@ manage_files_pattern(systemd_userdbd_t, systemd_userdbd_runtime_t, systemd_userd
 manage_sock_files_pattern(systemd_userdbd_t, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
 init_named_pid_filetrans(systemd_userdbd_t, systemd_userdbd_runtime_t, dir, "userdb")
 
-kernel_dgram_send(systemd_userdbd_t)
+kernel_early_boot_dgram_send(systemd_userdbd_t)
 kernel_rw_psi(systemd_userdbd_t)
 
 auth_read_shadow(systemd_userdbd_t)
@@ -1966,7 +1966,7 @@ allow systemd_sleep_t systemd_unit_file_t:service { start stop };
 
 manage_files_pattern(systemd_sleep_t, systemd_sleep_var_lib_t, systemd_sleep_var_lib_t)
 
-kernel_dgram_send(systemd_sleep_t)
+kernel_early_boot_dgram_send(systemd_sleep_t)
 
 corecmd_exec_bin(systemd_sleep_t)
 corecmd_exec_shell(systemd_sleep_t)
@@ -2017,7 +2017,7 @@ optional_policy(`
 
 manage_files_pattern(systemd_pstore_t, systemd_pstore_var_lib_t, systemd_pstore_var_lib_t)
 
-kernel_dgram_send(systemd_pstore_t)
+kernel_early_boot_dgram_send(systemd_pstore_t)
 
 fs_delete_pstore_files(systemd_pstore_t)
 fs_list_pstore(systemd_pstore_t)
@@ -2040,7 +2040,7 @@ allow systemd_mountfsd_t systemd_mountfsd_exec_t:file execute_no_trans;
 
 permissive systemd_mountfsd_t;
 
-kernel_dgram_send(systemd_mountfsd_t)
+kernel_early_boot_dgram_send(systemd_mountfsd_t)
 
 ########################################
 #
@@ -2053,9 +2053,9 @@ allow systemd_oomd_t systemd_oomd_var_run_t:sock_file manage_sock_file_perms;
 manage_files_pattern(systemd_oomd_t, systemd_oomd_tmpfs_t, systemd_oomd_tmpfs_t)
 fs_tmpfs_filetrans(systemd_oomd_t, systemd_oomd_tmpfs_t, file)
 
-kernel_dgram_send(systemd_oomd_t)
+kernel_early_boot_dgram_send(systemd_oomd_t)
+kernel_early_boot_stream_connect(systemd_oomd_t)
 kernel_read_psi(systemd_oomd_t)
-kernel_stream_connect(systemd_oomd_t)
 
 domain_read_all_domains_state(systemd_oomd_t)
 domain_kill_all_domains(systemd_oomd_t)
@@ -2089,7 +2089,7 @@ allow systemd_nsresourced_t systemd_nsresourced_exec_t:file execute_no_trans;
 #read_files_pattern(systemd_nsresourced_t, systemd_nsresourced_runtime_t, systemd_nsresourced_runtime_t)
 manage_dirs_pattern(systemd_nsresourced_t, systemd_nsresourced_runtime_t, systemd_nsresourced_runtime_t)
 
-kernel_dgram_send(systemd_nsresourced_t)
+kernel_early_boot_dgram_send(systemd_nsresourced_t)
 
 dev_read_sysfs(systemd_nsresourced_t)
 
@@ -2107,7 +2107,7 @@ init_named_pid_filetrans(systemd_nsresourced_t, systemd_nsresourced_runtime_t, f
 
 permissive systemd_pcrextend_t;
 
-kernel_dgram_send(systemd_pcrextend_t)
+kernel_early_boot_dgram_send(systemd_pcrextend_t)
 
 dev_read_sysfs(systemd_pcrextend_t)
 dev_rw_tpm(systemd_pcrextend_t)
@@ -2136,8 +2136,8 @@ allow systemd_user_runtimedir_t self:unix_dgram_socket create_socket_perms;
 
 systemd_dbus_chat_logind(systemd_user_runtimedir_t)
 
-kernel_dgram_send(systemd_user_runtimedir_t)
-kernel_stream_connect(systemd_user_runtimedir_t)
+kernel_early_boot_dgram_send(systemd_user_runtimedir_t)
+kernel_early_boot_stream_connect(systemd_user_runtimedir_t)
 
 domain_obj_id_change_exemption(systemd_user_runtimedir_t)
 

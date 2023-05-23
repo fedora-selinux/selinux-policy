@@ -308,26 +308,7 @@ interface(`kernel_rw_pipes',`
 
 ########################################
 ## <summary>
-##	Connect to kernel using a unix
-##	domain stream socket.
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`kernel_stream_connect',`
-	gen_require(`
-		type kernel_t;
-	')
-
-	allow $1 kernel_t:unix_stream_socket { getattr connectto };
-')
-
-########################################
-## <summary>
-##	Read and write kernel unix datagram sockets.
+##	Read and write kernel unix datagram sockets.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -336,16 +317,13 @@ interface(`kernel_stream_connect',`
 ## </param>
 #
 interface(`kernel_rw_unix_dgram_sockets',`
-	gen_require(`
-		type kernel_t;
-	')
-
-	allow $1 kernel_t:unix_dgram_socket { getattr read write ioctl };
+	refpolicywarn(`$0($*) has been deprecated.')
+	kernel_early_boot_dgram_rw($1)
 ')
 
 ########################################
 ## <summary>
-##	Send messages to kernel unix datagram sockets.
+##	Send messages to kernel unix datagram sockets.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -354,11 +332,8 @@ interface(`kernel_rw_unix_dgram_sockets',`
 ## </param>
 #
 interface(`kernel_dgram_send',`
-	gen_require(`
-		type kernel_t;
-	')
-
-	allow $1 kernel_t:unix_dgram_socket sendto;
+	refpolicywarn(`$0($*) has been deprecated.')
+	kernel_early_boot_dgram_send($1)
 ')
 
 ########################################
@@ -3830,10 +3805,26 @@ interface(`kernel_stream_write',`
     allow $1 kernel_t:unix_stream_socket { write getattr };
 ')
 
+########################################
+## <summary>
+##	Connect to kernel using a unix
+##	domain stream socket.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_stream_connect',`
+	refpolicywarn(`$0($*) has been deprecated.')
+	kernel_early_boot_stream_connect($1)
+')
+
 #######################################
 ## <summary>
 ##  Allow the specified domain to read/write on 
-##  the kernel with a unix stream socket.
+##  the kernel with a unix stream socket.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##  <summary>
@@ -3842,18 +3833,14 @@ interface(`kernel_stream_write',`
 ## </param>
 #
 interface(`kernel_rw_stream_socket_perms',`
-    gen_require(`
-        type kernel_t;
-    ')
-
-    allow $1 kernel_t:unix_stream_socket rw_socket_perms;
-    allow $1 kernel_t:fd use;
+	refpolicywarn(`$0($*) has been deprecated.')
+	kernel_early_boot_stream_rw($1)
 ')
 
 #######################################
 ## <summary>
 ##  Allow the specified domain to ioctl a
-##  kernel with a unix domain stream sockets.
+##  kernel with a unix domain stream sockets.  (Deprecated)
 ## </summary>
 ## <param name="domain">
 ##  <summary>
@@ -3862,11 +3849,9 @@ interface(`kernel_rw_stream_socket_perms',`
 ## </param>
 #
 interface(`kernel_ioctl_stream_sockets',`
-    gen_require(`
-        type init_t;
-    ')
-
-    allow $1 kernel_t:unix_stream_socket { getopt ioctl };
+	refpolicywarn(`$0($*) has been deprecated.')
+	kernel_early_boot_stream_getopt($1)
+	kernel_early_boot_stream_ioctl($1)
 ')
 
 ########################################
@@ -4837,4 +4822,301 @@ interface(`kernel_kvm_gmem_use',`
 	')
 	kernel_kvm_gmem_use_inherited($1)
 	allow $1 kvm_gmem_t:anon_inode create;
+')
+
+#######################################
+## <summary>
+##	Accept connections on early boot unix stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_early_boot_stream_accept',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_stream_socket accept;
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_stream_socket accept;
+')
+
+#######################################
+## <summary>
+##	Connect to early boot unix stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_early_boot_stream_connect',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_stream_socket { getattr connectto };
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_stream_socket { getattr connectto };
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to read/write
+##  early boot unix stream sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`kernel_early_boot_stream_rw',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_stream_socket rw_socket_perms;
+	allow $1 kernel_early_boot_t:fd use;
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_stream_socket rw_socket_perms;
+	allow $1 kernel_t:fd use;
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to ioctl
+##  early boot unix stream sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`kernel_early_boot_stream_ioctl',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_stream_socket ioctl;
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_stream_socket ioctl;
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to get options
+##  of early boot unix stream sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`kernel_early_boot_stream_getopt',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_stream_socket getopt;
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_stream_socket getopt;
+')
+
+#########################################
+## <summary>
+##	Accept connections on early boot unix datagram sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_early_boot_dgram_accept',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_dgram_socket accept;
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_dgram_socket accept;
+')
+
+########################################
+## <summary>
+##	Read and write early boot unix datagram sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_early_boot_dgram_rw',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_dgram_socket { getattr read write ioctl };
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_dgram_socket { getattr read write ioctl };
+')
+
+########################################
+## <summary>
+##	Send messages to early boot unix datagram sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kernel_early_boot_dgram_send',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_dgram_socket sendto;
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_dgram_socket sendto;
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to get options
+##  of early boot unix datagram sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`kernel_early_boot_dgram_getopt',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_dgram_socket getopt;
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_dgram_socket getopt;
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to set options
+##  of early boot unix datagram sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`kernel_early_boot_dgram_setopt',`
+	gen_require(`
+		type kernel_early_boot_t;
+	')
+
+	allow $1 kernel_early_boot_t:unix_dgram_socket setopt;
+
+	# HACK: This rule is here to avoid denials happening after policy
+	# gets updated but before a reboot pick up the new context for
+	# things like journald/dbusd socket.
+	# It should be removed once upgrades from pre-kernel_early_boot_t
+	# policy packages are no longer supported.
+	gen_require(`
+		type kernel_t;
+	')
+
+	allow $1 kernel_t:unix_dgram_socket setopt;
 ')

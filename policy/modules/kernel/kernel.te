@@ -248,9 +248,6 @@ type io_uring_t;
 type secretmem_t;
 type kvm_gmem_t;
 
-# This initial sid is currently not used, but needs to be specified:
-sid init gen_context(system_u:object_r:kernel_t,s0)
-
 # These initial sids are no longer used, but need to be specified:
 sid unused_0  gen_context(system_u:object_r:unlabeled_t,s0)
 sid unused_1  gen_context(system_u:object_r:unlabeled_t,s0)
@@ -358,18 +355,63 @@ dev_map_dri(kernel_t)
 dev_map_framebuffer(kernel_t)
 
 fs_getattr_all_fs(kernel_t)
-# Mount root file system. Used when loading a policy
-# from initrd, then mounting the root filesystem
-fs_mount_all_fs(kernel_t)
-fs_unmount_all_fs(kernel_t)
-
-selinux_load_policy(kernel_t)
-selinux_compute_create_context(kernel_t)
 
 term_use_all_terms(kernel_t)
 term_use_ptmx(kernel_t)
 
 corecmd_list_bin(kernel_t)
+
+# initial sid for init and early boot processes
+type kernel_early_boot_t;
+domain_type(kernel_early_boot_t)
+role system_r types kernel_early_boot_t;
+sid init gen_context(system_u:system_r:kernel_early_boot_t,s0)
+
+allow kernel_early_boot_t self:unix_dgram_socket sendto;
+
+# Needed for overlayfs mounter checks
+# (see: https://bugzilla.redhat.com/show_bug.cgi?id=2215454)
+domain_obj_id_change_exemption(kernel_early_boot_t)
+
+# We need to allow access to all files, because otherwise accessing
+# overlayfs files via mounts created before the policy was loaded would
+# fail on the mounter check.
+# See also:
+# - https://bugzilla.redhat.com/show_bug.cgi?id=2154428
+# - https://github.com/ostreedev/ostree/pull/3062
+files_manage_all_files(kernel_early_boot_t)
+files_manage_all_blk_files(kernel_early_boot_t)
+files_manage_all_chr_files(kernel_early_boot_t)
+files_relabel_all_files(kernel_early_boot_t)
+files_mmap_exec_all_files(kernel_early_boot_t)
+
+# Mount root file system. Used when loading a policy
+# from initrd, then mounting the root filesystem
+fs_mount_all_fs(kernel_early_boot_t)
+fs_unmount_all_fs(kernel_early_boot_t)
+
+# Allow loading the policy more than once if needed
+selinux_load_policy(kernel_early_boot_t)
+# Needed for systemd to switch context to init_t
+selinux_compute_create_context(kernel_early_boot_t)
+
+optional_policy(`
+	init_dbus_chat(kernel_early_boot_t)
+	init_sigchld(kernel_early_boot_t)
+	init_domtrans(kernel_early_boot_t)
+	init_dyntrans(kernel_early_boot_t)
+	# required actually for plymouthd
+	init_read_state(kernel_early_boot_t)
+')
+
+# Make this domain unconfined to allow things like init=/usr/bin/bash
+# or https://github.com/fedora-selinux/selinux-policy/issues/3075
+# This makes a lot of the above rules redundant, but they are left here
+# as a starting point in case someone would like to turn kernel_early_boot_t
+# into a confined domain in the future.
+optional_policy(`
+	unconfined_domain(kernel_early_boot_t)
+')
 
 # /proc/sys/kernel/modprobe is set to /bin/true if not using modules,
 # thus allow a transition into a minimal helper domain through generic bin
@@ -395,6 +437,8 @@ domain_search_all_domains_state(kernel_t)
 domain_connect_all_stream_sockets(kernel_t)
 domain_rw_all_sockets(kernel_t)
 domain_rw_all_pipes(kernel_t)
+# HACK: only needed transitionally after update to kernel_early_boot_t -
+# remove this later
 # Needed for overlayfs mounter checks
 # (see: https://bugzilla.redhat.com/show_bug.cgi?id=2215454)
 domain_obj_id_change_exemption(kernel_t)
@@ -403,12 +447,8 @@ files_manage_all_files(kernel_t)
 files_manage_all_blk_files(kernel_t)
 files_manage_all_chr_files(kernel_t)
 files_relabel_all_files(kernel_t)
-# The 'execute' permission on lower inodes is checked against the mounter
-# cred by overlayfs, so we need to grant it to allow overlay mounts created
-# during early boot to work.
-# In itself, this doesn't allow the kernel to execute all files - an 
-# execute_no_trans permission or a type transition is also needed to grant
-# that ability (and we are much more strict about those).
+# access(2) over NFS can lead to execute checks against kernel_t on
+# all kinds of files
 files_mmap_exec_all_files(kernel_t)
 
 mcs_process_set_categories(kernel_t)
@@ -450,14 +490,6 @@ optional_policy(`
 
 optional_policy(`
 	keyutils_request_domtrans(kernel_t)
-')
-
-optional_policy(`
-	init_dbus_chat(kernel_t)
-	init_sigchld(kernel_t)
-	init_dyntrans(kernel_t)
-	# required actually for plymouthd
-	init_read_state(kernel_t)
 ')
 
 optional_policy(`
