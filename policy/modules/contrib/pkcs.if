@@ -62,6 +62,24 @@ interface(`pkcs_rw_shm',`
 
 ########################################
 ## <summary>
+##	Destroy pkcsslotd sysv shared memory segments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_destroy_shm',`
+	gen_require(`
+		type pkcs_slotd_t;
+	')
+
+	allow $1 pkcs_slotd_t:shm destroy;
+')
+
+########################################
+## <summary>
 ##	Connect to pkcs using a unix
 ##	domain stream socket.
 ## </summary>
@@ -162,6 +180,25 @@ interface(`pkcs_tmpfs_named_filetrans',`
 
 ########################################
 ## <summary>
+##	Delete pkcs files in the tmpfs directories
+##	with a private type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_delete_tmpfs_files',`
+	gen_require(`
+		type pkcs_slotd_tmpfs_t;
+	')
+
+	allow $1 pkcs_slotd_tmpfs_t:file delete_file_perms;
+')
+
+########################################
+## <summary>
 ##	Use opencryptoki services
 ## </summary>
 ## <param name="domain">
@@ -176,7 +213,7 @@ interface(`pkcs_use_opencryptoki',`
         type pkcs_slotd_tmpfs_t;
 	')
 
-    allow $1 self:capability fsetid;
+    allow $1 self:capability { fsetid ipc_owner };
     allow pkcs_slotd_t $1:process signull;
     allow $1 pkcs_slotd_tmpfs_t:file { create_file_perms mmap_rw_file_perms };
 
