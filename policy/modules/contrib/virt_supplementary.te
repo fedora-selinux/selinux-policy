@@ -26,6 +26,20 @@ gen_tunable(virt_rw_qemu_ga_data, false)
 ## </desc>
 gen_tunable(virt_qemu_ga_read_nonsecurity_files, false)
 
+## <desc>
+## <p>
+## Allow qemu-ga read ssh home directory content.
+## </p>
+## </desc>
+gen_tunable(virt_qemu_ga_manage_ssh, false)
+
+## <desc>
+## <p>
+## Allow qemu-ga to run unconfined scripts
+## </p>
+## </desc>
+gen_tunable(virt_qemu_ga_run_unconfined, false)
+
 gen_require(`
     class passwd passwd;
 ')
@@ -63,6 +77,8 @@ files_type(virt_qemu_ga_data_t)
 
 type virt_qemu_ga_unconfined_exec_t;
 application_executable_file(virt_qemu_ga_unconfined_exec_t)
+
+type virt_qemu_ga_unconfined_t;
 
 optional_policy(`
 	virt_file_types(virt_qemu_ga_exec_t)
@@ -150,6 +166,7 @@ allow virt_qemu_ga_t self:passwd passwd;
 
 allow virt_qemu_ga_t self:fifo_file rw_fifo_file_perms;
 allow virt_qemu_ga_t self:unix_stream_socket create_stream_socket_perms;
+allow virt_qemu_ga_t self:vsock_socket create_socket_perms;
 
 allow virt_qemu_ga_t virt_qemu_ga_exec_t:dir search_dir_perms;
 can_exec(virt_qemu_ga_t, virt_qemu_ga_exec_t)
@@ -224,6 +241,18 @@ tunable_policy(`virt_qemu_ga_read_nonsecurity_files',`
 ')
 
 optional_policy(`
+        tunable_policy(`virt_qemu_ga_manage_ssh',`
+		ssh_manage_home_files(virt_qemu_ga_t)
+        ')
+')
+
+tunable_policy(`virt_qemu_ga_run_unconfined',`
+    domtrans_pattern(virt_qemu_ga_t, virt_qemu_ga_unconfined_exec_t, virt_qemu_ga_unconfined_t)
+',`
+    can_exec(virt_qemu_ga_t, virt_qemu_ga_unconfined_exec_t)
+')
+
+optional_policy(`
 	bootloader_domtrans(virt_qemu_ga_t)
 ')
 
@@ -271,21 +300,18 @@ optional_policy(`
 #
 
 optional_policy(`
-	type virt_qemu_ga_unconfined_t;
-	domain_type(virt_qemu_ga_unconfined_t)
+    domain_type(virt_qemu_ga_unconfined_t)
 
-	domain_entry_file(virt_qemu_ga_unconfined_t, virt_qemu_ga_unconfined_exec_t)
-	role system_r types virt_qemu_ga_unconfined_t;
+    domain_entry_file(virt_qemu_ga_unconfined_t, virt_qemu_ga_unconfined_exec_t)
+    role system_r types virt_qemu_ga_unconfined_t;
 
-	domtrans_pattern(virt_qemu_ga_t, virt_qemu_ga_unconfined_exec_t, virt_qemu_ga_unconfined_t)
+    allow virt_qemu_ga_t virt_qemu_ga_unconfined_exec_t:dir search_dir_perms;
+    allow virt_qemu_ga_t virt_qemu_ga_unconfined_exec_t:dir read_file_perms;
+    allow virt_qemu_ga_t virt_qemu_ga_unconfined_exec_t:file ioctl;
 
-	allow virt_qemu_ga_t virt_qemu_ga_unconfined_exec_t:dir list_dir_perms;
+    init_domtrans_script(virt_qemu_ga_unconfined_t)
 
-	allow virt_qemu_ga_t virt_qemu_ga_unconfined_exec_t:file ioctl;
-
-	init_domtrans_script(virt_qemu_ga_unconfined_t)
-
-	optional_policy(`
-		unconfined_domain(virt_qemu_ga_unconfined_t)
-	')
+    optional_policy(`
+        unconfined_domain(virt_qemu_ga_unconfined_t)
+    ')
 ')
