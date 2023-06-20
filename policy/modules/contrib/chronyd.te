@@ -12,6 +12,10 @@ type chronyd_t;
 type chronyd_exec_t;
 init_daemon_domain(chronyd_t, chronyd_exec_t)
 
+type chronyd_restricted_t;
+init_explicit_domain(chronyd_restricted_t, chronyd_exec_t)
+init_nnp_daemon_domain(chronyd_restricted_t)
+
 type chronyd_initrc_exec_t;
 init_script_file(chronyd_initrc_exec_t)
 
@@ -192,6 +196,50 @@ optional_policy(`
 
 optional_policy(`
 	unconfined_dgram_send(chronyd_t)
+')
+
+########################################
+#
+# Policy for chronyd-restricted
+#
+
+allow chronyd_restricted_t self:capability sys_time;
+allow chronyd_restricted_t self:tcp_socket create_stream_socket_perms;
+allow chronyd_restricted_t self:udp_socket create_socket_perms;
+allow chronyd_restricted_t self:unix_dgram_socket create_socket_perms;
+
+manage_files_pattern(chronyd_restricted_t, chronyd_var_lib_t, chronyd_var_lib_t)
+
+allow chronyd_restricted_t chronyd_var_log_t:dir getattr_dir_perms;
+
+manage_files_pattern(chronyd_restricted_t, chronyd_var_run_t, chronyd_var_run_t)
+list_dirs_pattern(chronyd_restricted_t, chronyd_var_run_t, chronyd_var_run_t)
+manage_sock_files_pattern(chronyd_restricted_t, chronyd_var_run_t, chronyd_var_run_t)
+files_pid_filetrans(chronyd_restricted_t, chronyd_var_run_t, { file sock_file })
+
+corenet_tcp_bind_generic_node(chronyd_restricted_t)
+corenet_udp_bind_generic_node(chronyd_restricted_t)
+
+corenet_udp_bind_chronyd_port(chronyd_restricted_t)
+corenet_udp_bind_ntp_port(chronyd_restricted_t)
+corenet_tcp_bind_ntske_port(chronyd_restricted_t)
+corenet_tcp_connect_ntske_port(chronyd_restricted_t)
+corenet_udp_bind_ptp_event_port(chronyd_restricted_t)
+
+optional_policy(`
+	auth_read_passwd(chronyd_restricted_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(chronyd_restricted_t)
+')
+
+optional_policy(`
+	miscfiles_read_certs(chronyd_restricted_t)
+')
+
+optional_policy(`
+	sysnet_dns_name_resolve(chronyd_restricted_t)
 ')
 
 ########################################
