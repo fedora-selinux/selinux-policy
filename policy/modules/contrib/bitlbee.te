@@ -19,6 +19,9 @@ init_script_file(bitlbee_initrc_exec_t)
 type bitlbee_tmp_t;
 files_tmp_file(bitlbee_tmp_t)
 
+type bitlbee_tmpfs_t;
+files_tmpfs_file(bitlbee_tmpfs_t)
+
 type bitlbee_var_t;
 files_type(bitlbee_var_t)
 
@@ -40,6 +43,7 @@ allow bitlbee_t self:fifo_file rw_fifo_file_perms;
 allow bitlbee_t self:udp_socket create_socket_perms;
 allow bitlbee_t self:tcp_socket { create_stream_socket_perms connected_stream_socket_perms };
 allow bitlbee_t self:unix_stream_socket create_stream_socket_perms;
+allow bitlbee_t self:netlink_kobject_uevent_socket create_socket_perms;
 allow bitlbee_t self:netlink_route_socket r_netlink_socket_perms;
 
 allow bitlbee_t bitlbee_conf_t:dir list_dir_perms;
@@ -56,9 +60,15 @@ manage_files_pattern(bitlbee_t, bitlbee_tmp_t, bitlbee_tmp_t)
 manage_dirs_pattern(bitlbee_t, bitlbee_tmp_t, bitlbee_tmp_t)
 files_tmp_filetrans(bitlbee_t, bitlbee_tmp_t, { dir file })
 
+manage_files_pattern(bitlbee_t, bitlbee_tmpfs_t, bitlbee_tmpfs_t)
+fs_tmpfs_filetrans(bitlbee_t, bitlbee_tmpfs_t, file)
+can_exec(bitlbee_t, bitlbee_tmpfs_t)
+
 manage_files_pattern(bitlbee_t, bitlbee_var_t, bitlbee_var_t)
+manage_lnk_files_pattern(bitlbee_t, bitlbee_var_t, bitlbee_var_t)
 manage_dirs_pattern(bitlbee_t, bitlbee_var_t, bitlbee_var_t)
-files_var_lib_filetrans(bitlbee_t, bitlbee_var_t,{dir file})
+files_var_lib_filetrans(bitlbee_t, bitlbee_var_t, { dir file })
+allow bitlbee_t bitlbee_var_t:file map;
 
 manage_dirs_pattern(bitlbee_t, bitlbee_var_run_t, bitlbee_var_run_t)
 manage_files_pattern(bitlbee_t, bitlbee_var_run_t, bitlbee_var_run_t)
@@ -67,6 +77,8 @@ files_pid_filetrans(bitlbee_t, bitlbee_var_run_t, { dir file sock_file })
 
 kernel_read_system_state(bitlbee_t)
 kernel_read_kernel_sysctls(bitlbee_t)
+
+corecmd_exec_shell(bitlbee_t)
 
 corenet_all_recvfrom_unlabeled(bitlbee_t)
 corenet_all_recvfrom_netlabel(bitlbee_t)
@@ -114,8 +126,12 @@ corenet_sendrecv_interwise_server_packets(bitlbee_t)
 corenet_tcp_bind_interwise_port(bitlbee_t)
 corenet_tcp_sendrecv_interwise_port(bitlbee_t)
 
+dev_getattr_dri_dev(bitlbee_t)
 dev_read_rand(bitlbee_t)
 dev_read_urand(bitlbee_t)
+dev_read_sysfs(bitlbee_t)
+
+fs_getattr_xattr_fs(bitlbee_t)
 
 libs_legacy_use_shared_libs(bitlbee_t)
 
