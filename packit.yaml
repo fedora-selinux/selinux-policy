@@ -13,11 +13,22 @@ jobs:
   - job: copr_build
     trigger: pull_request
     targets:
-    - fedora-development
-    - fedora-latest-stable
+    - fedora-39
 
+  # run tests for packages which test SELinux policy well, see plans/ with `revdeps == yes`
   - job: tests
+    identifier: revdeps
     trigger: pull_request
+    notifications:
+      failure_comment:
+        message: "Cockpit tests failed for commit {commit_sha}. @martinpitt, @jelly, @mvollmer please check."
     targets:
-    - fedora-development
-    - fedora-latest-stable
+    - fedora-39
+    tf_extra_params:
+      environments:
+        - artifacts:
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/g/cockpit/main-builds/repo/fedora-$releasever/group_cockpit-main-builds-fedora-$releasever.repo
+          tmt:
+            context:
+              revdeps: "yes"
