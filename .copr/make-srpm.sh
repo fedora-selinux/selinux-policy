@@ -4,7 +4,7 @@ set -ex
 
 outdir="$1"; shift
 
-dirname="$(dirname "$0")"
+rootdir="$(realpath -m "$0/../..")"
 
 DISTGIT_URL=https://src.fedoraproject.org/rpms/selinux-policy
 DISTGIT_REF=rawhide
@@ -16,9 +16,9 @@ rpm -q rpm-build git-core || dnf install -y rpm-build git-core
 
 # Ensure that the git directory is owned by us to appease Git's
 # anti-CVE-2022-24765 measures.
-chown $(id -u):$(id -g) "$dirname/.."
+chown $(id -u):$(id -g) "$rootdir"
 
-base_head_id="$(git -C "$dirname/.." rev-parse HEAD)"
+base_head_id="$(git -C "$rootdir" rev-parse HEAD)"
 base_short_head_id="${base_head_id:0:7}"
 base_date="$(TZ=UTC git show -s --format=%cd --date=format-local:%F_%T HEAD | tr -d :-)"
 
@@ -37,7 +37,7 @@ git clone --single-branch --depth 1 "$CONTAINER_URL" "$container_dir"
 git clone --single-branch --depth 1 "$EXPANDER_URL" "$expander_dir"
 git clone -b "$DISTGIT_REF" --single-branch --depth 1 "$DISTGIT_URL" "$distgit_dir"
 
-git -C "$dirname/.." archive --prefix="selinux-policy-$base_head_id/" --format tgz HEAD \
+git -C "$rootdir" archive --prefix="selinux-policy-$base_head_id/" --format tgz HEAD \
 	>"$distgit_dir/selinux-policy-$base_short_head_id.tar.gz"
 
 tar -C "$container_dir" -czf "$distgit_dir/container-selinux.tgz" \
