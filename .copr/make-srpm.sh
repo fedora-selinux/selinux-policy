@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -eux
 
 outdir="$1"; shift
 
