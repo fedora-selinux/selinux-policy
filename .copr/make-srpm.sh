@@ -14,10 +14,6 @@ EXPANDER_URL=https://github.com/fedora-selinux/macro-expander
 
 rpm -q rpm-build git-core || dnf install -y rpm-build git-core
 
-# Ensure that the git directory is owned by us to appease Git's
-# anti-CVE-2022-24765 measures.
-chown $(id -u):$(id -g) "$rootdir"
-
 base_head_id="$(git -C "$rootdir" rev-parse HEAD)"
 base_short_head_id="${base_head_id:0:7}"
 base_date="$(TZ=UTC git show -s --format=%cd --date=format-local:%F_%T HEAD | tr -d :-)"
