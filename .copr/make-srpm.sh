@@ -41,12 +41,10 @@ tar -C "$container_dir" -czf "$distgit_dir/container-selinux.tgz" \
 
 cp "$expander_dir/macro-expander.sh" "$distgit_dir/macro-expander"
 
-(
-	cd "$distgit_dir"
-	sed -i "s/%global commit [^ ]*$/%global commit $base_head_id/" selinux-policy.spec
-	sed -i "s/%{?dist}/.$base_date.$base_short_head_id%{?dist}/" selinux-policy.spec
-	rm -f sources
-	rpmbuild --define "_topdir $rpmbuild_dir" -bs selinux-policy.spec
-)
+
+sed -i "s/%global commit [^ ]*$/%global commit $base_head_id/;
+        s/%{?dist}/.$base_date.$base_short_head_id%{?dist}/" "$distgit_dir/selinux-policy.spec"
+rm -f "$distgit_dir/sources"
+rpmbuild --define "_topdir $rpmbuild_dir" -bs "$distgit_dir/selinux-policy.spec"
 
 cp "$rpmbuild_dir/SRPMS/"*.src.rpm "$outdir"
