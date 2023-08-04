@@ -2,7 +2,9 @@
 
 outdir ?= $(PWD)
 
+COPR_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
 srpm:
-	$(dir $(lastword $(MAKEFILE_LIST)))/make-srpm.sh $(outdir)
+	$(COPR_DIR)/../scripts/make-srpm.sh $(outdir)
 
 .PHONY: srpm
