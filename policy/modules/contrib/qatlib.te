@@ -23,6 +23,7 @@ files_pid_file(qatlib_var_run_t)
 # qatlib local policy
 #
 allow qatlib_t self:fifo_file rw_fifo_file_perms;
+allow qatlib_t self:system module_load;
 allow qatlib_t self:unix_stream_socket create_stream_socket_perms;
 
 allow qatlib_t qatlib_unit_file_t:file read_file_perms;
@@ -34,12 +35,19 @@ manage_dirs_pattern(qatlib_t, qatlib_var_run_t, qatlib_var_run_t)
 manage_files_pattern(qatlib_t, qatlib_var_run_t, qatlib_var_run_t)
 files_pid_filetrans(qatlib_t, qatlib_var_run_t, { dir file } )
 
+kernel_read_proc_files(qatlib_t)
+kernel_request_load_module(qatlib_t)
+
 corecmd_exec_shell(qatlib_t)
 corecmd_exec_bin(qatlib_t)
 
+dev_create_sysfs_files(qatlib_t)
 dev_rw_sysfs(qatlib_t)
+dev_setattr_generic_dirs(qatlib_t)
 
 domain_use_interactive_fds(qatlib_t)
+
+files_read_kernel_modules(qatlib_t)
 
 optional_policy(`
         auth_read_passwd_file(qatlib_t)
@@ -47,6 +55,12 @@ optional_policy(`
 
 optional_policy(`
 	miscfiles_read_localization(qatlib_t)
+')
+
+optional_policy(`
+	modutils_exec_kmod(qatlib_t)
+	modutils_read_module_config(qatlib_t)
+	modutils_read_module_deps_files(qatlib_t)
 ')
 
 optional_policy(`
