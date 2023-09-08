@@ -177,7 +177,8 @@ interface(`dnsmasq_kill',`
 
 ########################################
 ## <summary>
-##	Read dnsmasq config files.
+##	Allow the specified domain to read
+##	dnsmasq configuration files.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -190,13 +191,37 @@ interface(`dnsmasq_read_config',`
 		type dnsmasq_etc_t;
 	')
 
-	read_files_pattern($1, dnsmasq_etc_t, dnsmasq_etc_t)
 	files_search_etc($1)
+	allow $1 dnsmasq_etc_t:dir list_dir_perms;
+	read_files_pattern($1, dnsmasq_etc_t, dnsmasq_etc_t)
 ')
 
 ########################################
 ## <summary>
-##	Write dnsmasq config files.
+##	Allow the specified domain to manage
+##	dnsmasq configuration files.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dnsmasq_manage_config',`
+	gen_require(`
+		type dnsmasq_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 dnsmasq_etc_t:dir manage_dir_perms;
+	allow $1 dnsmasq_etc_t:file manage_file_perms;
+	allow $1 dnsmasq_etc_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to write
+##	dnsmasq configuration files.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -209,8 +234,9 @@ interface(`dnsmasq_write_config',`
 		type dnsmasq_etc_t;
 	')
 
-	write_files_pattern($1, dnsmasq_etc_t, dnsmasq_etc_t)
 	files_search_etc($1)
+	allow $1 dnsmasq_etc_t:dir list_dir_perms;
+	write_files_pattern($1, dnsmasq_etc_t, dnsmasq_etc_t)
 ')
 
 ########################################
