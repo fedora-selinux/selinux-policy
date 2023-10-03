@@ -19,7 +19,11 @@ git pull upstream rhel-9.1.0
 git push origin rhel-9.1.0
 git status
 git log
-./make-changelog.sh | tee /tmp/COMMITS
+
+git log $(git describe --tags --abbrev=0)..HEAD --format="- %s %n%(trailers:key=Resolves)%(trailers:key=Related)%(trailers:key=Fix)" \
+| sed '/^\s*$/d' \
+| sed 's|https://issues.redhat.com/browse/||' \
+| tee /tmp/COMMITS
 ```
 
 tag the latest commit and push the tag
@@ -132,7 +136,7 @@ kinit login@IPA.REDHAT.COM
 ### c8s/c9s
 ```
 git co c8s
-git fetch origin
+git fetch origin; git fetch rhel
    > 1b1eb8edb..29d572116  c8s        -> origin/c8s
    > 1b1eb8edb..29d572116  rhel-8-main -> rhel/rhel-8-main
 git pull origin c9s
@@ -141,14 +145,12 @@ git log
     > commit 29d572116 (HEAD -> c8s, rhel/rhel-8-main, origin/c8s, fork/c8s)
 git status
  c89s>>> centpkg build
- ?c9s>>> centpkg --release c9s build
- ?c8s>>> centpkg --release c8s build
 z-str>>> rhpkg build
 ```
 
 ### z-stream
 ```
-git fetch gitlab-origin; git fetch origin;
+git fetch gitlab-origin; git fetch origin
 From gitlab.com:redhat/rhel/rpms/selinux-policy
    214cea7a3..071e1be2d  rhel-8.8.0 -> gitlab-origin/rhel-8.8.0
 From ssh://pkgs.devel.redhat.com/rpms/selinux-policy
@@ -159,8 +161,11 @@ commit 071e1be2d3d36b302191891513226a0ebc9ee708 (HEAD -> rhel-8.8.0, origin/rhel
 ```
 
 ## When build finishes
-Once the build finishes successfully, switch bzs to modified state (check you are logged
-in bugzilla), consider setting Doc Type and Doc Text fields
+Once the build finishes successfully, switch bzs to the Modified state (check
+you are logged in bugzilla).
+In JIRA, filter by "Fixed in Build: selinux-policy-3.14.3-129.el8", change
+state to Integration, raise the "Preliminary Testing: Requested" flag.
+Consider setting Doc Type and Doc Text fields; Docs Impact in JIRA.
 - https://url.corp.redhat.com/rhel9-selinuxpolicy-post
 - https://url.corp.redhat.com/rhel8-selinuxpolicy-post
 - https://url.corp.redhat.com/40d017f
@@ -177,7 +182,7 @@ The following file can be used as a repo:
 - https://brew-task-repos.engineering.redhat.com/repos/official/selinux-policy/3.14.3/95.el8_6.11/selinux-policy-3.14.3-95.el8_6.11.repo
 
 Then, gating is initiated. As soon as the build passes gating, it can be added
-to erratum (automatically or manually).
+to erratum (automatically or manually) and bugs referred to.
 - https://errata.devel.redhat.com/advisory/filters/new?search=selinux-policy
 
 ----

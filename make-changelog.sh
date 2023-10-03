@@ -48,6 +48,8 @@ for COMMIT in ${COMMITSLIST}
 do
   git log -1 --pretty="- %s" ${COMMIT}
   [ "$DIST" = "fedora" ] \
-  || git show ${COMMIT} | sed 's/^ *//' | grep -e "^Resolves:" -e "^Related:" -e "^Fix:"
+  || git show ${COMMIT} | sed 's/^ *//' \
+  | grep -e "^Resolves:" -e "^Related:" -e "^Fix:" \
+  | sed 's|https://issues.redhat.com/browse/||'
 done
 
