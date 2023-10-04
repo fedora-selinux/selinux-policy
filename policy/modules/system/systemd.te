@@ -23,6 +23,7 @@ gen_tunable(systemd_socket_proxyd_connect_any, false)
 
 attribute systemd_unit_file_type;
 attribute systemd_domain;
+attribute systemd_generator;
 attribute systemctl_domain;
 attribute systemd_mount_directory;
 attribute systemd_private_tmp_type;
@@ -191,6 +192,15 @@ systemd_domain_template(systemd_network_generator)
 
 type systemd_gpt_generator_unit_file_t;
 systemd_unit_file(systemd_gpt_generator_unit_file_t)
+
+#domain for fstab-generator
+systemd_generator_template(systemd_fstab_generator)
+
+#domain for rc-local-generator
+systemd_generator_template(systemd_rc_local_generator)
+
+#domain for sysv-generator
+systemd_generator_template(systemd_sysv_generator)
 
 #domain for systemd-machined
 systemd_domain_template(systemd_machined)
@@ -1172,6 +1182,19 @@ files_etc_filetrans(systemd_hwdb_t, systemd_hwdb_etc_t, file)
 
 systemd_read_efivarfs(systemd_hwdb_t)
 
+########################################
+#
+# Common rules for systemd generators
+#
+allow systemd_generator self:unix_dgram_socket { create_socket_perms sendto };
+
+kernel_dgram_send(systemd_generator)
+
+fs_getattr_all_fs(systemd_generator)
+fs_search_all(systemd_generator)
+
+logging_stream_connect_syslog(systemd_generator)
+
 #######################################
 #
 # systemd_gpt_generator domain
@@ -1210,6 +1233,34 @@ systemd_create_unit_file_lnk(systemd_gpt_generator_t)
 optional_policy(`
 	udev_read_pid_files(systemd_gpt_generator_t)
 ')
+
+#######################################
+#
+# systemd_fstab_generator_t 
+#
+dev_write_sysfs_dirs(systemd_fstab_generator_t)
+
+files_read_etc_files(systemd_fstab_generator_t)
+
+fstools_exec(systemd_fstab_generator_t)
+
+systemd_manage_all_unit_files(systemd_fstab_generator_t)
+
+#######################################
+#
+# systemd_rc_local_generator_t 
+#
+
+init_exec_script_files(systemd_rc_local_generator_t)
+
+#######################################
+#
+# systemd_sysv_generator_t 
+#
+
+init_read_script_files(systemd_sysv_generator_t)
+
+systemd_manage_all_unit_files(systemd_sysv_generator_t)
 
 #######################################
 #
