@@ -62,6 +62,39 @@ template(`systemd_generator_template',`
 
 ######################################
 ## <summary>
+##	Creates types and rules for systemd generators - new version
+## </summary>
+## <param name="prefix">
+##	<summary>
+##		Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`systemd_generator_template_new',`
+	gen_require(`
+		attribute systemd_generator2;
+	')
+
+	type $1_t, systemd_generator2;
+	type $1_exec_t;
+	init_daemon_domain($1_t, $1_exec_t)
+	init_nnp_daemon_domain($1_t)
+	type $1_unit_file_t;
+	systemd_unit_file($1_unit_file_t)
+
+	#kernel_read_system_state($1_t)
+
+	#auth_use_nsswitch($1_t)
+	#selinux_get_enforce_mode($1_t)
+
+	allow $1_t $1_unit_file_t:file manage_file_perms;
+	systemd_unit_file_filetrans($1_t, $1_unit_file_t, file)
+
+	permissive $1_t;
+')
+
+######################################
+## <summary>
 ##      Create a domain for processes which are started 
 ##      exuting systemctl.
 ## </summary>
