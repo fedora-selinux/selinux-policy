@@ -142,6 +142,12 @@ domain_type(setfiles_mac_t)
 domain_entry_file(setfiles_mac_t, setfiles_exec_t)
 domain_obj_id_change_exemption(setfiles_mac_t)
 
+type selinux_autorelabel_generator_t;
+type selinux_autorelabel_generator_exec_t;
+init_system_domain(selinux_autorelabel_generator_t, selinux_autorelabel_generator_exec_t)
+type selinux_autorelabel_generator_unit_file_t;
+files_type(selinux_autorelabel_generator_unit_file_t)
+
 ########################################
 #
 # Checkpolicy local policy
@@ -804,4 +810,38 @@ files_delete_boot_flag(policy_manager_domain)
 
 optional_policy(`
 	policykit_dbus_chat(policy_manager_domain)
+')
+
+########################################
+#
+# selinux-relabel-generator local policy
+#
+
+# src:elif grep -sqE "\bautorelabel\b" /proc/cmdline; then
+kernel_read_proc_files(selinux_autorelabel_generator_t)
+
+# src:ln, selinuxenabled, cat
+corecmd_exec_bin(selinux_autorelabel_generator_t)
+
+optional_policy(`
+	# src:#!/bin/bash
+	auth_dontaudit_read_passwd_file(selinux_autorelabel_generator_t)
+')
+
+optional_policy(`
+	# src:source /etc/selinux/config
+	seutil_read_config(selinux_autorelabel_generator_t)
+')
+
+optional_policy(`
+	systemd_unit_file(selinux_autorelabel_generator_unit_file_t)
+
+	# src:ln -sf "$unitdir/selinux-autorelabel.target" "$earlydir/default.target"
+	systemd_create_unit_file_lnk(selinux_autorelabel_generator_t)
+
+        # src:mkdir -p "$earlydir/selinux-autorelabel.service.d"
+	# src:cat > "$earlydir/selinux-autorelabel.service.d/tty.conf" <<EOF
+	allow selinux_autorelabel_generator_t selinux_autorelabel_generator_unit_file_t:dir manage_dir_perms;
+	allow selinux_autorelabel_generator_t selinux_autorelabel_generator_unit_file_t:file manage_file_perms;
+	systemd_unit_file_filetrans(selinux_autorelabel_generator_t, selinux_autorelabel_generator_unit_file_t, { dir file })
 ')
