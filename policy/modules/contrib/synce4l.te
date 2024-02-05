@@ -1,0 +1,48 @@
+policy_module(synce4l, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type synce4l_t;
+type synce4l_exec_t;
+init_daemon_domain(synce4l_t, synce4l_exec_t)
+
+type synce4l_unit_file_t;
+systemd_unit_file(synce4l_unit_file_t)
+
+type synce4l_conf_t;
+files_config_file(synce4l_conf_t)
+
+permissive synce4l_t;
+
+########################################
+#
+# synce4l local policy
+#
+allow synce4l_t self:capability net_raw;
+allow synce4l_t self:fifo_file rw_fifo_file_perms;
+allow synce4l_t self:packet_socket create_socket_perms;
+allow synce4l_t self:udp_socket create_socket_perms;
+allow synce4l_t self:unix_stream_socket create_stream_socket_perms;
+
+read_files_pattern(synce4l_t, synce4l_conf_t, synce4l_conf_t)
+
+corecmd_exec_shell(synce4l_t)
+
+domain_use_interactive_fds(synce4l_t)
+
+files_read_etc_files(synce4l_t)
+
+optional_policy(`
+	auth_read_passwd_file(synce4l_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(synce4l_t)
+')
+
+optional_policy(`
+	miscfiles_read_localization(synce4l_t)
+')
