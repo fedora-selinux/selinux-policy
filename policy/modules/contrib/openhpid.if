@@ -12,13 +12,15 @@
 ## </summary>
 ## </param>
 #
-interface(`openhpid_domtrans',`
-	gen_require(`
-		type openhpid_t, openhpid_exec_t;
-	')
+ifndef(`openhpid_domtrans',`
+	interface(`openhpid_domtrans',`
+		gen_require(`
+			type openhpid_t, openhpid_exec_t;
+		')
 
-	corecmd_search_bin($1)
-	domtrans_pattern($1, openhpid_exec_t, openhpid_t)
+		corecmd_search_bin($1)
+		domtrans_pattern($1, openhpid_exec_t, openhpid_t)
+	')
 ')
 
 
@@ -32,12 +34,14 @@ interface(`openhpid_domtrans',`
 ##	</summary>
 ## </param>
 #
-interface(`openhpid_initrc_domtrans',`
-	gen_require(`
-		type openhpid_initrc_exec_t;
-	')
+ifndef(`openhpid_initrc_domtrans',`
+	interface(`openhpid_initrc_domtrans',`
+		gen_require(`
+			type openhpid_initrc_exec_t;
+		')
 
-	init_labeled_script_domtrans($1, openhpid_initrc_exec_t)
+		init_labeled_script_domtrans($1, openhpid_initrc_exec_t)
+	')
 ')
 
 
@@ -51,13 +55,15 @@ interface(`openhpid_initrc_domtrans',`
 ##	</summary>
 ## </param>
 #
-interface(`openhpid_search_lib',`
-	gen_require(`
-		type openhpid_var_lib_t;
-	')
+ifndef(`openhpid_search_lib',`
+	interface(`openhpid_search_lib',`
+		gen_require(`
+			type openhpid_var_lib_t;
+		')
 
-	allow $1 openhpid_var_lib_t:dir search_dir_perms;
-	files_search_var_lib($1)
+		allow $1 openhpid_var_lib_t:dir search_dir_perms;
+		files_search_var_lib($1)
+	')
 ')
 
 ########################################
@@ -70,13 +76,15 @@ interface(`openhpid_search_lib',`
 ##	</summary>
 ## </param>
 #
-interface(`openhpid_read_lib_files',`
-	gen_require(`
-		type openhpid_var_lib_t;
-	')
+ifndef(`openhpid_read_lib_files',`
+	interface(`openhpid_read_lib_files',`
+		gen_require(`
+			type openhpid_var_lib_t;
+		')
 
-	files_search_var_lib($1)
-	read_files_pattern($1, openhpid_var_lib_t, openhpid_var_lib_t)
+		files_search_var_lib($1)
+		read_files_pattern($1, openhpid_var_lib_t, openhpid_var_lib_t)
+	')
 ')
 
 ########################################
@@ -89,13 +97,15 @@ interface(`openhpid_read_lib_files',`
 ##	</summary>
 ## </param>
 #
-interface(`openhpid_manage_lib_files',`
-	gen_require(`
-		type openhpid_var_lib_t;
-	')
+ifndef(`openhpid_manage_lib_files',`
+	interface(`openhpid_manage_lib_files',`
+		gen_require(`
+			type openhpid_var_lib_t;
+		')
 
-	files_search_var_lib($1)
-	manage_files_pattern($1, openhpid_var_lib_t, openhpid_var_lib_t)
+		files_search_var_lib($1)
+		manage_files_pattern($1, openhpid_var_lib_t, openhpid_var_lib_t)
+	')
 ')
 
 ########################################
@@ -108,13 +118,15 @@ interface(`openhpid_manage_lib_files',`
 ##	</summary>
 ## </param>
 #
-interface(`openhpid_manage_lib_dirs',`
-	gen_require(`
-		type openhpid_var_lib_t;
-	')
+ifndef(`openhpid_manage_lib_dirs',`
+	interface(`openhpid_manage_lib_dirs',`
+		gen_require(`
+			type openhpid_var_lib_t;
+		')
 
-	files_search_var_lib($1)
-	manage_dirs_pattern($1, openhpid_var_lib_t, openhpid_var_lib_t)
+		files_search_var_lib($1)
+		manage_dirs_pattern($1, openhpid_var_lib_t, openhpid_var_lib_t)
+	')
 ')
 
 
@@ -135,25 +147,24 @@ interface(`openhpid_manage_lib_dirs',`
 ## </param>
 ## <rolecap/>
 #
-interface(`openhpid_admin',`
-	gen_require(`
-		type openhpid_t;
-	type openhpid_initrc_exec_t;
-	type openhpid_var_lib_t;
+ifndef(`openhpid_admin',`
+	interface(`openhpid_admin',`
+		gen_require(`
+			type openhpid_t;
+		type openhpid_initrc_exec_t;
+		type openhpid_var_lib_t;
+		')
+
+		allow $1 openhpid_t:process { ptrace signal_perms };
+		ps_process_pattern($1, openhpid_t)
+
+		openhpid_initrc_domtrans($1)
+		domain_system_change_exemption($1)
+		role_transition $2 openhpid_initrc_exec_t system_r;
+		allow $2 system_r;
+
+		files_search_var_lib($1)
+		admin_pattern($1, openhpid_var_lib_t)
 	')
-
-	allow $1 openhpid_t:process { ptrace signal_perms };
-	ps_process_pattern($1, openhpid_t)
-
-	openhpid_initrc_domtrans($1)
-	domain_system_change_exemption($1)
-	role_transition $2 openhpid_initrc_exec_t system_r;
-	allow $2 system_r;
-
-	files_search_var_lib($1)
-	admin_pattern($1, openhpid_var_lib_t)
-
-
-
 ')
 
