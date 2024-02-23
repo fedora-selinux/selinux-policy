@@ -793,12 +793,19 @@ optional_policy(`
 #
 # systemd_notify local policy
 #
-allow systemd_notify_t self:capability chown;
+allow systemd_notify_t self:capability { chown sys_admin };
 allow systemd_notify_t self:process { fork setfscreate setsockcreate };
 
 allow systemd_notify_t self:fifo_file rw_fifo_file_perms;
 allow systemd_notify_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_notify_t self:unix_dgram_socket create_socket_perms;
+
+# FIXME: this is required because of systemd's notify socket is created while
+# in the initramfs, hence as kernel_t. Once SELinux permits relabeling socket
+# objects created before the policy is loaded, this should be removed and
+# systemd fixed to relabel the socket appropriately.
+# Tracked by [systemd PR](https://github.com/systemd/systemd/pull/31336).
+allow systemd_notify_t kernel_t:unix_dgram_socket sendto;
 
 dev_write_kmsg(systemd_notify_t)
 
