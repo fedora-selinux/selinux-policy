@@ -53,6 +53,13 @@ gen_tunable(init_create_dirs, true)
 
 ## <desc>
 ## <p>
+## Enable systemd to create mountpoints.
+## </p>
+## </desc>
+gen_tunable(init_create_mountpoints, false)
+
+## <desc>
+## <p>
 ## Allow init audit_control capability
 ## </p>
 ## </desc>
@@ -582,6 +589,22 @@ tunable_policy(`init_create_dirs',`
     files_create_non_security_dirs(init_t)
     files_mounton_non_security(init_t)
     files_setattr_non_security_dirs(init_t)
+')
+
+tunable_policy(`init_create_mountpoints',`
+    allow init_t init_mountpoint_type:dir { create_dir_perms add_entry_dir_perms };
+    allow init_t init_mountpoint_type:fifo_file create_fifo_file_perms;
+    allow init_t init_mountpoint_type:sock_file create_sock_file_perms;
+    allow init_t init_mountpoint_type:lnk_file create_lnk_file_perms;
+
+    kernel_write_non_proc_init_mountpoint_files(init_t)
+    kernel_create_non_proc_init_mountpoint_files(init_t)
+')
+
+tunable_policy(`init_create_mountpoints && init_create_dirs',`
+    files_create_non_security_dirs(init_t)
+    files_create_non_security_files(init_t)
+    files_write_non_security_files(init_t)
 ')
 
 tunable_policy(`init_audit_control',`
