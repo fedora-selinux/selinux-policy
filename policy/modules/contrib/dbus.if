@@ -91,7 +91,9 @@ template(`dbus_role_template',`
 
 	# SE-DBus specific permissions
 	allow { dbusd_unconfined $3 } $1_dbusd_t:dbus { send_msg acquire_svc };
+	allow $1_dbusd_t { dbusd_unconfined $3 }:dbus send_msg;
 	allow $3 system_dbusd_t:dbus { send_msg acquire_svc };
+	allow system_dbusd_t $3:dbus send_msg;
 
     # Permissions for dbus-broker running with systemd user sessions
     allow $3 $1_dbusd_t:process { noatsecure rlimitinh siginh };
@@ -157,7 +159,8 @@ interface(`dbus_system_bus_client',`
 	')
 
 	# SE-DBus specific permissions
-	allow $1 { system_dbusd_t self }:dbus send_msg;
+	allow $1 self:dbus send_msg;
+	allow $1 { system_dbusd_t dbusd_unconfined }:dbus send_msg;
 	allow { system_dbusd_t dbusd_unconfined } $1:dbus send_msg;
 
 	read_files_pattern($1, system_dbusd_var_lib_t, system_dbusd_var_lib_t)
@@ -222,7 +225,9 @@ interface(`dbus_session_bus_client',`
 	')
 
 	# SE-DBus specific permissions
-	allow $1 { session_bus_type self }:dbus send_msg;
+	allow $1 self:dbus send_msg;
+	allow $1 session_bus_type:dbus send_msg;
+	allow session_bus_type $1:dbus send_msg;
 
 	# For connecting to the bus
 	allow $1 session_bus_type:unix_stream_socket connectto;
