@@ -1074,6 +1074,25 @@ interface(`ssh_use_ptys',`
 
 ########################################
 ## <summary>
+##	Get attributes of sshd unit files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ssh_getattr_unit_file',`
+	gen_require(`
+		type sshd_unit_file_t;
+	')
+
+	systemd_search_unit_dirs($1)
+	allow $1 sshd_unit_file_t:file getattr_file_perms;
+')
+
+########################################
+## <summary>
 ##	Execute sshd server in the sshd domain.
 ## </summary>
 ## <param name="domain">
@@ -1112,4 +1131,22 @@ interface(`ssh_read_state',`
 	')
 
 	read_files_pattern($1, ssh_t, ssh_t)
+')
+
+#######################################
+## <summary>
+##	Allow caller to create vsock socket for sshd
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_create_vsock_socket',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:vsock_socket create_stream_socket_perms;
 ')
