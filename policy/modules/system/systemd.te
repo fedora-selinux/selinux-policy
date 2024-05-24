@@ -188,24 +188,37 @@ files_type(systemd_timedated_var_lib_t)
 
 systemd_domain_template(systemd_sysctl)
 
-#domain for gpt-auto-generator
-systemd_domain_template(systemd_gpt_generator)
 
+### domains and file types for systemd generators
+# bless-boot-generator
+systemd_generator_template(systemd_bless_boot_generator)
+# cryptsetup-generator
+systemd_generator_template(systemd_cryptsetup_generator)
+# debug-generator
+systemd_generator_template(systemd_debug_generator)
+# fstab-generator
+systemd_generator_template(systemd_fstab_generator)
+# getty-generator
+systemd_generator_template(systemd_getty_generator)
+# gpt-generator
+systemd_generator_template(systemd_gpt_generator)
+# rc-local-generator
+systemd_generator_template(systemd_rc_local_generator)
+# sysv-generator
+systemd_generator_template(systemd_sysv_generator)
+# zram-generator
+systemd_generator_template(systemd_zram_generator)
+type systemd_zram_generator_conf_t;
+files_type(systemd_zram_generator_conf_t)
+allow systemd_zram_generator_t systemd_zram_generator_conf_t:file read_file_perms;
+
+
+### systemd-network-generator service
 systemd_domain_template(systemd_network_generator)
 
-type systemd_gpt_generator_unit_file_t;
-systemd_unit_file(systemd_gpt_generator_unit_file_t)
 
-#domain for fstab-generator
-systemd_generator_template(systemd_fstab_generator)
+### domains and types for systemd-machined
 
-#domain for rc-local-generator
-systemd_generator_template(systemd_rc_local_generator)
-
-#domain for sysv-generator
-systemd_generator_template(systemd_sysv_generator)
-
-#domain for systemd-machined
 systemd_domain_template(systemd_machined)
 
 type systemd_machined_unit_file_t;
@@ -1242,6 +1255,9 @@ optional_policy(`
 	fstools_exec(systemd_fstab_generator_t)
 ')
 
+### getty generator
+dev_read_sysfs(systemd_getty_generator_t)
+
 ### gpt generator
 allow systemd_gpt_generator_t self:capability sys_rawio;
 dontaudit systemd_gpt_generator_t self:capability sys_admin;
@@ -1259,54 +1275,47 @@ files_list_var(systemd_gpt_generator_t)
 
 fs_mount_tmpfs(systemd_gpt_generator_t)
 
-fstools_exec(systemd_gpt_generator_t)
-
 mls_file_read_to_clearance(systemd_gpt_generator_t)
 mls_file_write_to_clearance(systemd_gpt_generator_t)
 
 storage_raw_rw_fixed_disk(systemd_gpt_generator_t)
 storage_raw_read_removable_device(systemd_gpt_generator_t)
 
-allow systemd_gpt_generator_t systemd_gpt_generator_unit_file_t:file manage_file_perms;
 systemd_read_efivarfs(systemd_gpt_generator_t)
-systemd_unit_file_filetrans(systemd_gpt_generator_t, systemd_gpt_generator_unit_file_t, file)
-systemd_create_unit_file_dirs(systemd_gpt_generator_t)
-systemd_create_unit_file_lnk(systemd_gpt_generator_t)
+
+optional_policy(`
+	fstools_exec(systemd_gpt_generator_t)
+')
 
 optional_policy(`
 	udev_read_pid_files(systemd_gpt_generator_t)
 ')
 
-#######################################
-#
-# systemd_fstab_generator_t 
-#
-allow systemd_fstab_generator_t self:capability dac_override;
-dev_write_sysfs_dirs(systemd_fstab_generator_t)
-
-files_read_etc_files(systemd_fstab_generator_t)
-files_read_all_lnk_files(systemd_fstab_generator_t)
-files_search_all(systemd_fstab_generator_t)
-
-fstools_exec(systemd_fstab_generator_t)
-
-systemd_manage_all_unit_files(systemd_fstab_generator_t)
-
-#######################################
-#
-# systemd_rc_local_generator_t 
-#
+### systemd rc_local generator
+allow systemd_rc_local_generator_t self:process setfscreate;
 
 init_exec_script_files(systemd_rc_local_generator_t)
 
-#######################################
-#
-# systemd_sysv_generator_t 
-#
-
+### sysv generator
 init_read_script_files(systemd_sysv_generator_t)
 
-systemd_manage_all_unit_files(systemd_sysv_generator_t)
+### zram generator
+allow systemd_zram_generator_t systemd_fstab_generator_unit_file_t:file write_file_perms;
+permissive systemd_zram_generator_t;
+
+# for systemd-detect-virt - needs to be confined
+corecmd_exec_bin(systemd_zram_generator_t)
+dev_read_sysfs(systemd_zram_generator_t)
+storage_getattr_fixed_disk_dev(systemd_zram_generator_t)
+
+optional_policy(`
+	fstools_domtrans(systemd_zram_generator_t)
+')
+
+optional_policy(`
+	modutils_domtrans_kmod(systemd_zram_generator_t)
+')
+
 
 #######################################
 #
@@ -1322,6 +1331,7 @@ sysnet_manage_config_dirs(systemd_network_generator_t)
 optional_policy(`
 	logging_send_syslog_msg(systemd_network_generator_t)
 ')
+
 
 #######################################
 #
