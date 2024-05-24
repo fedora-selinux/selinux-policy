@@ -29,13 +29,12 @@ template(`systemd_domain_template',`
 
 ######################################
 ## <summary>
-##  Creates types and rules for 
-##  systemd generators.
+##	Creates types and rules for systemd generators
 ## </summary>
 ## <param name="prefix">
-##  <summary>
-##  Prefix for the domain.
-##  </summary>
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
 ## </param>
 #
 template(`systemd_generator_template',`
@@ -47,17 +46,13 @@ template(`systemd_generator_template',`
 	type $1_exec_t;
 	init_daemon_domain($1_t, $1_exec_t)
 	init_nnp_daemon_domain($1_t)
+	type $1_unit_file_t;
+	systemd_unit_file($1_unit_file_t)
 
-	kernel_read_system_state($1_t)
-	
-	dev_write_kmsg($1_t)
-
-	auth_use_nsswitch($1_t)
-	selinux_get_enforce_mode($1_t)
-
-	systemd_manage_unit_dirs($1_t)
-	systemd_create_unit_file_dirs($1_t)
-	systemd_create_unit_file_lnk($1_t)
+	allow $1_t $1_unit_file_t:dir manage_dir_perms;
+	allow $1_t $1_unit_file_t:file manage_file_perms;
+	allow $1_t $1_unit_file_t:lnk_file manage_lnk_file_perms;
+	systemd_unit_file_filetrans($1_t, $1_unit_file_t, { dir file lnk_file })
 ')
 
 ######################################

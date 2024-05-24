@@ -1215,26 +1215,34 @@ files_etc_filetrans(systemd_hwdb_t, systemd_hwdb_etc_t, file)
 
 systemd_read_efivarfs(systemd_hwdb_t)
 
+
 ########################################
 #
-# Common rules for systemd generators
+# Rules for systemd generators
 #
+
+### Common rules for systemd generators
 allow systemd_generator self:unix_dgram_socket { create_socket_perms sendto };
 
-kernel_dgram_send(systemd_generator)
-
 dev_rw_crypto(systemd_generator)
+dev_write_kmsg(systemd_generator)
+fs_getattr_cgroup(systemd_generator)
+fs_search_cgroup_dirs(systemd_generator)
+kernel_read_proc_files(systemd_generator)
 
-fs_getattr_all_fs(systemd_generator)
-fs_search_all(systemd_generator)
+### Rules for individual systemd generator domains
 
-logging_stream_connect_syslog(systemd_generator)
+### fstab generator
+allow systemd_fstab_generator_t self:capability { dac_override dac_read_search };
+allow systemd_fstab_generator_t self:process setfscreate;
 
-#######################################
-#
-# systemd_gpt_generator domain
-#
+dev_write_sysfs_dirs(systemd_fstab_generator_t)
 
+optional_policy(`
+	fstools_exec(systemd_fstab_generator_t)
+')
+
+### gpt generator
 allow systemd_gpt_generator_t self:capability sys_rawio;
 dontaudit systemd_gpt_generator_t self:capability sys_admin;
 allow systemd_gpt_generator_t self:netlink_kobject_uevent_socket create_socket_perms;
