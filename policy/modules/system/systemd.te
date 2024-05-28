@@ -264,6 +264,11 @@ systemd_domain_template(systemd_pstore)
 type systemd_pstore_var_lib_t;
 files_type(systemd_pstore_var_lib_t)
 
+systemd_domain_template(systemd_nsresourced)
+
+type systemd_nsresourced_runtime_t;
+files_pid_file(systemd_nsresourced_runtime_t)
+
 #######################################
 #
 # Systemd_logind local policy
@@ -703,6 +708,8 @@ allow systemd_tmpfiles_t self:capability { chown dac_read_search dac_override fs
 allow systemd_tmpfiles_t self:process { setrlimit setfscreate };
 
 allow systemd_tmpfiles_t self:unix_dgram_socket create_socket_perms;
+
+allow systemd_tmpfiles_t systemd_nsresourced_t:unix_stream_socket connectto;
 
 kernel_read_network_state(systemd_tmpfiles_t)
 kernel_request_load_module(systemd_tmpfiles_t)
@@ -1638,6 +1645,8 @@ optional_policy(`
 #
 allow systemd_userdbd_t self:capability { dac_read_search sys_resource };
 
+allow systemd_userdbd_t systemd_nsresourced_t:unix_stream_socket connectto;
+
 manage_dirs_pattern(systemd_userdbd_t, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
 manage_files_pattern(systemd_userdbd_t, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
 manage_sock_files_pattern(systemd_userdbd_t, systemd_userdbd_runtime_t, systemd_userdbd_runtime_t)
@@ -1727,3 +1736,28 @@ fs_list_pstore(systemd_pstore_t)
 fs_read_pstore_files(systemd_pstore_t)
 
 init_search_var_lib_dirs(systemd_pstore_t)
+
+########################################
+#
+# systemd_nsresourced local policy
+#
+
+allow systemd_nsresourced_t self:bpf { map_create map_read map_write prog_load prog_run };
+allow systemd_nsresourced_t self:capability sys_resource;
+allow systemd_nsresourced_t self:capability2 { bpf perfmon };
+allow systemd_nsresourced_t self:perf_event manage_perf_event_perms;
+allow systemd_nsresourced_t systemd_nsresourced_exec_t:file execute_no_trans;
+
+permissive systemd_nsresourced_t;
+#read_files_pattern(systemd_nsresourced_t, systemd_nsresourced_runtime_t, systemd_nsresourced_runtime_t)
+manage_dirs_pattern(systemd_nsresourced_t, systemd_nsresourced_runtime_t, systemd_nsresourced_runtime_t)
+
+kernel_dgram_send(systemd_nsresourced_t)
+
+dev_read_sysfs(systemd_nsresourced_t)
+
+fs_manage_bpf_dirs(systemd_nsresourced_t)
+fs_manage_bpf_files(systemd_nsresourced_t)
+
+init_named_pid_filetrans(systemd_nsresourced_t, systemd_nsresourced_runtime_t, dir, "nsresource")
+init_named_pid_filetrans(systemd_nsresourced_t, systemd_nsresourced_runtime_t, file, "io.systemd.NamespaceResource")
