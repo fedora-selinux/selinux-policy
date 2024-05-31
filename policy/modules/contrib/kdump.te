@@ -25,6 +25,12 @@ init_script_file(kdump_initrc_exec_t)
 type kdump_unit_file_t alias kdumpctl_unit_file_t;
 systemd_unit_file(kdump_unit_file_t)
 
+type kdump_dep_generator_t;
+type kdump_dep_generator_exec_t;
+init_system_domain(kdump_dep_generator_t, kdump_dep_generator_exec_t)
+type kdump_dep_generator_unit_file_t;
+files_type(kdump_dep_generator_unit_file_t)
+
 type kdump_lock_t;
 files_lock_file(kdump_lock_t)
 
@@ -90,6 +96,30 @@ dev_read_framebuffer(kdump_t)
 dev_read_sysfs(kdump_t)
 
 term_use_console(kdump_t)
+
+#####################################
+#
+# kdump-dep-generator local policy
+#
+
+allow kdump_dep_generator_t kdump_etc_t:file read_file_perms;
+
+corecmd_exec_bin(kdump_dep_generator_t)
+corecmd_exec_shell(kdump_dep_generator_t)
+
+optional_policy(`
+	auth_dontaudit_read_passwd_file(kdump_dep_generator_t)
+')
+
+optional_policy(`
+	type kdump_dep_unit_file_t;
+	systemd_unit_file(kdump_dep_unit_file_t)
+
+	allow kdump_dep_generator_t kdump_dep_unit_file_t:dir manage_dir_perms;
+	allow kdump_dep_generator_t kdump_dep_unit_file_t:file manage_file_perms;
+	allow kdump_dep_generator_t kdump_dep_unit_file_t:lnk_file manage_lnk_file_perms;
+	systemd_unit_file_filetrans(kdump_dep_generator_t, kdump_dep_unit_file_t, { dir file lnk_file })
+')
 
 #######################################
 #
