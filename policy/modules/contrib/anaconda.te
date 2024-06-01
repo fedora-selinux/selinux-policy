@@ -20,6 +20,12 @@ domain_entry_file(anaconda_t, anaconda_exec_t)
 domain_obj_id_change_exemption(anaconda_t)
 role system_r types anaconda_t;
 
+type anaconda_generator_t;
+type anaconda_generator_exec_t;
+init_system_domain(anaconda_generator_t, anaconda_generator_exec_t)
+type anaconda_generator_unit_file_t;
+files_type(anaconda_generator_unit_file_t)
+
 attribute_role install_roles;
 roleattribute system_r install_roles;
 
@@ -77,6 +83,34 @@ optional_policy(`
 optional_policy(`
 	unconfined_domain_noaudit(anaconda_t)
 ')
+
+########################################
+#
+# anaconda-generator local policy
+#
+
+corecmd_exec_bin(anaconda_generator_t)
+corecmd_exec_shell(anaconda_generator_t)
+permissive anaconda_generator_t;
+
+kernel_read_proc_files(anaconda_generator_t)
+
+optional_policy(`
+	auth_dontaudit_read_passwd_file(anaconda_generator_t)
+')
+
+optional_policy(`
+	type anaconda_unit_file_t;
+	systemd_unit_file(anaconda_unit_file_t)
+
+	allow anaconda_generator_t anaconda_unit_file_t:dir manage_dir_perms;
+	allow anaconda_generator_t anaconda_unit_file_t:file manage_file_perms;
+	allow anaconda_generator_t anaconda_unit_file_t:lnk_file manage_lnk_file_perms;
+	systemd_read_generic_unit_lnk_files(anaconda_generator_t)
+	systemd_unit_file_filetrans(anaconda_generator_t, anaconda_unit_file_t, { dir file lnk_file })
+')
+
+
 
 ########################################
 #
