@@ -1254,7 +1254,6 @@ systemd_read_efivarfs(systemd_hwdb_t)
 ### Common rules for systemd generators
 allow systemd_generator self:unix_dgram_socket { create_socket_perms sendto };
 
-dev_write_kmsg(systemd_generator)
 fs_getattr_cgroup(systemd_generator)
 fs_search_cgroup_dirs(systemd_generator)
 kernel_read_proc_files(systemd_generator)
@@ -1352,9 +1351,13 @@ dev_list_sysfs(systemd_tpm2_generator_t)
 
 ### zram generator
 allow systemd_zram_generator_t systemd_fstab_generator_unit_file_t:file write_file_perms;
+permissive systemd_zram_generator_t;
+
+filetrans_pattern(systemd_zram_generator_t, systemd_unit_file_t, systemd_zram_generator_unit_file_t, dir, "systemd-zram-setup@zram0.service.d")
+
 dev_create_sysfs_files(systemd_zram_generator_t)
 dev_rw_sysfs(systemd_zram_generator_t)
-permissive systemd_zram_generator_t;
+dev_write_kmsg(systemd_zram_generator_t)
 
 # for systemd-detect-virt - needs to be confined
 corecmd_exec_bin(systemd_zram_generator_t)
