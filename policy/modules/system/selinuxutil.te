@@ -817,14 +817,15 @@ optional_policy(`
 # selinux-relabel-generator local policy
 #
 
+allow selinux_autorelabel_generator_t selinux_autorelabel_generator_unit_file_t:dir manage_dir_perms;
+allow selinux_autorelabel_generator_t selinux_autorelabel_generator_unit_file_t:file manage_file_perms;
+allow selinux_autorelabel_generator_t selinux_autorelabel_generator_unit_file_t:lnk_file manage_lnk_file_perms;
+
 # src:elif grep -sqE "\bautorelabel\b" /proc/cmdline; then
 kernel_read_proc_files(selinux_autorelabel_generator_t)
 
 # src:ln, selinuxenabled, cat
 corecmd_exec_bin(selinux_autorelabel_generator_t)
-
-# src:mkdir -p "$earlydir/selinux-autorelabel.service.d"
-init_pid_filetrans(selinux_autorelabel_generator_t, selinux_autorelabel_generator_unit_file_t, dir)
 
 optional_policy(`
 	# src:#!/bin/bash
@@ -839,11 +840,13 @@ optional_policy(`
 optional_policy(`
 	systemd_unit_file(selinux_autorelabel_generator_unit_file_t)
 
+	# src:mkdir -p "$earlydir/selinux-autorelabel.service.d"
+	systemd_unit_file_filetrans(selinux_autorelabel_generator_t, selinux_autorelabel_generator_unit_file_t, dir)
+
 	# src:ln -sf "$unitdir/selinux-autorelabel.target" "$earlydir/default.target"
-	systemd_create_unit_file_lnk(selinux_autorelabel_generator_t)
+	systemd_manage_unit_symlinks(selinux_autorelabel_generator_t)
+	systemd_getattr_generic_unit_files(selinux_autorelabel_generator_t)
 
 	# src:cat > "$earlydir/selinux-autorelabel.service.d/tty.conf" <<EOF
-	allow selinux_autorelabel_generator_t selinux_autorelabel_generator_unit_file_t:dir manage_dir_perms;
-	allow selinux_autorelabel_generator_t selinux_autorelabel_generator_unit_file_t:file manage_file_perms;
-	systemd_unit_file_filetrans(selinux_autorelabel_generator_t, selinux_autorelabel_generator_unit_file_t, { dir file })
+	manage_files_pattern(selinux_autorelabel_generator_t, selinux_autorelabel_generator_unit_file_t, selinux_autorelabel_generator_unit_file_t)
 ')
