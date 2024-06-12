@@ -3021,7 +3021,29 @@ interface(`systemd_manage_conf_files', `
 interface(`systemd_nsresourced_stream_connect', `
 	gen_require(`
 		type systemd_nsresourced_t;
+		type systemd_nsresourced_runtime_t;
 	')
 
 	allow $1 systemd_nsresourced_t:unix_stream_socket connectto;
+	allow $1 systemd_nsresourced_runtime_t:sock_file write_sock_file_perms;
+')
+
+#######################################
+## <summary>
+##	Create objects in the pid directory
+##	with a private type with a type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_nsresourced_runtime_filetrans',`
+	gen_require(`
+		type init_var_run_t;
+		type systemd_nsresourced_runtime_t;
+	')
+
+	filetrans_pattern($1, init_var_run_t, systemd_nsresourced_runtime_t, file, "io.systemd.NamespaceResource")
 ')
