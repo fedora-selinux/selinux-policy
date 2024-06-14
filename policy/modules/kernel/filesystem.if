@@ -741,11 +741,10 @@ interface(`fs_getattr_cgroup',`
 #
 interface(`fs_getattr_cgroup_files',`
 	gen_require(`
-		type cgroup_t;
-
+		attribute cgroup_type;
 	')
 
-	getattr_files_pattern($1, cgroup_t, cgroup_t)
+	getattr_files_pattern($1, cgroup_type, cgroup_type)
 	fs_search_tmpfs($1)
 	dev_search_sysfs($1)
 ')
@@ -903,12 +902,11 @@ interface(`fs_watch_cgroup_dirs',`
 #
 interface(`fs_read_cgroup_files',`
 	gen_require(`
-		type cgroup_t;
-
+		attribute cgroup_type;
 	')
 
-	read_files_pattern($1, cgroup_t, cgroup_t)
-	read_lnk_files_pattern($1, cgroup_t, cgroup_t)
+	read_files_pattern($1, cgroup_type, cgroup_type)
+	read_lnk_files_pattern($1, cgroup_type, cgroup_type)
 	fs_search_tmpfs($1)
 	dev_search_sysfs($1)
 ')
@@ -925,10 +923,10 @@ interface(`fs_read_cgroup_files',`
 #
 interface(`fs_write_cgroup_files', `
 	gen_require(`
-		type cgroup_t;
+		attribute cgroup_type;
 	')
 
-	write_files_pattern($1, cgroup_t, cgroup_t)
+	write_files_pattern($1, cgroup_type, cgroup_type)
 	fs_search_tmpfs($1)
 	dev_search_sysfs($1)
 ')
@@ -945,12 +943,11 @@ interface(`fs_write_cgroup_files', `
 #
 interface(`fs_rw_cgroup_files',`
 	gen_require(`
-		type cgroup_t;
-
+		attribute cgroup_type;
 	')
 
-	read_lnk_files_pattern($1, cgroup_t, cgroup_t)
-	rw_files_pattern($1, cgroup_t, cgroup_t)
+	read_lnk_files_pattern($1, cgroup_type, cgroup_type)
+	rw_files_pattern($1, cgroup_type, cgroup_type)
 	fs_search_tmpfs($1)
 	dev_search_sysfs($1)
 ')
@@ -969,10 +966,10 @@ interface(`fs_rw_cgroup_files',`
 #
 interface(`fs_dontaudit_rw_cgroup_files',`
 	gen_require(`
-		type cgroup_t;
+		attribute cgroup_type;
 	')
 
-	dontaudit $1 cgroup_t:file rw_file_perms;
+	dontaudit $1 cgroup_type:file rw_file_perms;
 ')
 
 ########################################
@@ -987,11 +984,10 @@ interface(`fs_dontaudit_rw_cgroup_files',`
 #
 interface(`fs_relabel_cgroup_files',`
 	gen_require(`
-		type cgroup_t;
-
+		attribute cgroup_type;
 	')
 
-	relabel_files_pattern($1, cgroup_t, cgroup_t)
+	relabel_files_pattern($1, cgroup_type, cgroup_type)
 ')
 
 ########################################
@@ -1006,11 +1002,11 @@ interface(`fs_relabel_cgroup_files',`
 #
 interface(`fs_create_cgroup_files',`
 	gen_require(`
-		type cgroup_t;
+		attribute cgroup_type;
 	')
 
 	dev_search_sysfs($1)
-	create_files_pattern($1, cgroup_t, cgroup_t)
+	create_files_pattern($1, cgroup_type, cgroup_type)
 ')
 
 ########################################
@@ -1025,11 +1021,11 @@ interface(`fs_create_cgroup_files',`
 #
 interface(`fs_manage_cgroup_files',`
 	gen_require(`
-		type cgroup_t;
+		attribute cgroup_type;
 	')
 
-	manage_files_pattern($1, cgroup_t, cgroup_t)
-	manage_lnk_files_pattern($1, cgroup_t, cgroup_t)
+	manage_files_pattern($1, cgroup_type, cgroup_type)
+	manage_lnk_files_pattern($1, cgroup_type, cgroup_type)
 	fs_search_tmpfs($1)
 	dev_search_sysfs($1)
 ')
@@ -1046,14 +1042,70 @@ interface(`fs_manage_cgroup_files',`
 #
 interface(`fs_watch_cgroup_files',`
 	gen_require(`
-		type cgroup_t;
-
+		attribute cgroup_type;
 	')
 
-	watch_files_pattern($1, cgroup_t, cgroup_t)
-	watch_lnk_files_pattern($1, cgroup_t, cgroup_t)
+	watch_files_pattern($1, cgroup_type, cgroup_type)
+	watch_lnk_files_pattern($1, cgroup_type, cgroup_type)
 	fs_search_tmpfs($1)
 	dev_search_sysfs($1)
+')
+
+########################################
+## <summary>
+##	Create the memory.pressure file in a cgroup filesystem
+##	with the memory_pressure_t type using a file transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fs_cgroup_filetrans_memory_pressure',`
+	gen_require(`
+		type cgroup_t;
+		type cgroup_memory_pressure_t;
+	')
+
+	allow $1 cgroup_t:filesystem associate;
+	filetrans_pattern($1, cgroup_t, cgroup_memory_pressure_t, file, "memory.pressure")
+')
+
+########################################
+## <summary>
+##	Get attributes of the memory.pressure files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fs_cgroup_getattr_memory_pressure',`
+	gen_require(`
+		type cgroup_memory_pressure_t;
+	')
+
+	getattr_files_pattern($1, cgroup_t, cgroup_memory_pressure_t)
+')
+
+########################################
+## <summary>
+##	Write to the memory.pressure files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fs_cgroup_write_memory_pressure',`
+	gen_require(`
+		type cgroup_memory_pressure_t;
+	')
+
+	write_files_pattern($1, cgroup_t, cgroup_memory_pressure_t)
 ')
 
 ########################################
