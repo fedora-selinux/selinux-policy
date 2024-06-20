@@ -1237,7 +1237,13 @@ systemd_read_efivarfs(systemd_hwdb_t)
 #
 
 ### Common rules for systemd generators
+allow systemd_generator self:process setfscreate;
 allow systemd_generator self:unix_dgram_socket { create_socket_perms sendto };
+
+allow systemd_generator systemd_unit_file_t:dir create_dir_perms;
+allow systemd_generator systemd_unit_file_t:lnk_file manage_lnk_file_perms;
+allow systemd_generator systemd_unit_file_type:file getattr_file_perms;
+allow systemd_generator systemd_unit_file_type:lnk_file getattr_lnk_file_perms;
 
 dev_rw_crypto(systemd_generator)
 dev_write_kmsg(systemd_generator)
@@ -1251,36 +1257,33 @@ kernel_read_proc_files(systemd_generator)
 fs_read_efivarfs_files(systemd_bless_boot_generator_t)
 
 ### cryptsetup generator
-allow systemd_cryptsetup_generator_t self:process setfscreate;
-
 init_read_state(systemd_cryptsetup_generator_t)
 
 ### fstab generator
 allow systemd_fstab_generator_t self:capability { dac_override dac_read_search };
-allow systemd_fstab_generator_t self:process setfscreate;
 
 create_lnk_files_pattern(systemd_fstab_generator_t, systemd_unit_file_type, systemd_unit_file_type)
 
+dev_write_kmsg(systemd_fstab_generator_t)
 dev_write_sysfs_dirs(systemd_fstab_generator_t)
 
+files_getattr_all_dirs(systemd_fstab_generator_t)
 files_read_all_mountpoint_symlinks(systemd_fstab_generator_t)
 files_search_all_mountpoints(systemd_fstab_generator_t)
 
-fs_getattr_dos_dirs(systemd_fstab_generator_t)
+fs_read_tmpfs_files(systemd_fstab_generator_t)
 
 optional_policy(`
 	fstools_exec(systemd_fstab_generator_t)
 ')
 
 ### getty generator
-allow systemd_getty_generator_t self:process setfscreate;
 dev_read_sysfs(systemd_getty_generator_t)
 term_open_unallocated_ttys(systemd_getty_generator_t)
 
 ### gpt generator
 allow systemd_gpt_generator_t self:capability sys_rawio;
 dontaudit systemd_gpt_generator_t self:capability sys_admin;
-allow systemd_gpt_generator_t self:process setfscreate;
 allow systemd_gpt_generator_t self:netlink_kobject_uevent_socket create_socket_perms;
 
 dev_read_sysfs(systemd_gpt_generator_t)
@@ -1313,19 +1316,20 @@ optional_policy(`
 ')
 
 ### systemd rc_local generator
-allow systemd_rc_local_generator_t self:process setfscreate;
-
 init_exec_script_files(systemd_rc_local_generator_t)
 
 ### sysv generator
-allow systemd_sysv_generator_t self:process setfscreate;
 init_read_script_files(systemd_sysv_generator_t)
 
 ### zram generator
 allow systemd_zram_generator_t systemd_fstab_generator_unit_file_t:file write_file_perms;
+permissive systemd_zram_generator_t;
+
+filetrans_pattern(systemd_zram_generator_t, systemd_unit_file_t, systemd_zram_generator_unit_file_t, dir, "systemd-zram-setup@zram0.service.d")
+
 dev_create_sysfs_files(systemd_zram_generator_t)
 dev_rw_sysfs(systemd_zram_generator_t)
-permissive systemd_zram_generator_t;
+dev_write_kmsg(systemd_zram_generator_t)
 
 # for systemd-detect-virt - needs to be confined
 corecmd_exec_bin(systemd_zram_generator_t)
@@ -1339,6 +1343,13 @@ optional_policy(`
 optional_policy(`
 	modutils_domtrans_kmod(systemd_zram_generator_t)
 ')
+
+### Interactions between distinct systemd generator domains
+allow systemd_cryptsetup_generator_t systemd_fstab_generator_unit_file_t:dir search;
+
+create_files_pattern(systemd_fstab_generator_t, systemd_cryptsetup_generator_unit_file_t, systemd_cryptsetup_generator_unit_file_t)
+
+create_lnk_files_pattern(systemd_zram_generator_t, systemd_fstab_generator_unit_file_t, systemd_fstab_generator_unit_file_t)
 
 
 #######################################
