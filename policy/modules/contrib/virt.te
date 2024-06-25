@@ -157,6 +157,13 @@ gen_tunable(virt_sandbox_use_all_caps, true)
 ## </desc>
 gen_tunable(virt_lockd_blk_devs, false)
 
+## <desc>
+## <p>
+## Allow virt daemons run unconfined hooks
+## </p>
+## </desc>
+gen_tunable(virt_hooks_unconfined, false)
+
 gen_require(`
     class passwd rootok;
     class passwd passwd;
@@ -202,6 +209,11 @@ files_config_file(virt_etc_t)
 
 type virt_etc_rw_t, virt_file_type;
 files_type(virt_etc_rw_t)
+
+type virt_hook_t, virt_file_type;
+type virt_hook_unconfined_t;
+role system_r types virt_hook_unconfined_t;
+application_domain(virt_hook_unconfined_t, virt_hook_t)
 
 type virt_home_t, virt_file_type;
 userdom_user_home_content(virt_home_t)
@@ -1903,6 +1915,10 @@ dev_rw_sysfs(virtnetworkd_t)
 sysnet_domtrans_ifconfig(virtnetworkd_t)
 sysnet_read_config(virtnetworkd_t)
 
+tunable_policy(`virt_hooks_unconfined',`
+	domtrans_pattern(virtnetworkd_t, virt_hook_t, virt_hook_unconfined_t)
+')
+
 optional_policy(`
 	dnsmasq_create_pid_dirs(virtnetworkd_t)
 	dnsmasq_domtrans(virtnetworkd_t)
@@ -2405,3 +2421,12 @@ read_files_pattern(svirt_sandbox_domain, container_ro_file_t, container_ro_file_
 read_lnk_files_pattern(svirt_sandbox_domain, container_ro_file_t, container_ro_file_t)
 allow svirt_sandbox_domain container_ro_file_t:file execmod;
 can_exec(svirt_sandbox_domain, container_ro_file_t)
+
+########################################
+#
+# Policy for libvirt hooks
+#
+
+optional_policy(`
+	unconfined_domain(virt_hook_unconfined_t)
+')
