@@ -301,6 +301,10 @@ ifdef(`enable_mls',`
 	init_ranged_daemon_domain(virtd_t, virtd_exec_t, s0 - mls_systemhigh)
 	init_ranged_daemon_domain(virtlogd_t, virtlogd_exec_t, s0 - mls_systemhigh)
 ')
+type virt_dbus_t, virt_system_domain;
+type virt_dbus_exec_t, virt_file_type;
+init_daemon_domain(virt_dbus_t, virt_dbus_exec_t)
+init_nnp_daemon_domain(virt_dbus_t)
 
 # virtinterfaced
 type virtinterfaced_t, virt_driver_domain;
@@ -2022,6 +2026,9 @@ optional_policy(`
 allow virtproxyd_t self:tcp_socket create_stream_socket_perms;
 allow virtproxyd_t self:udp_socket create_socket_perms;
 
+allow virtproxyd_t virt_dbus_t:dir search_dir_perms;
+allow virtproxyd_t virt_dbus_t:file read_file_perms;
+
 manage_dirs_pattern(virtproxyd_t, virt_var_run_t, virt_var_run_t)
 manage_dirs_pattern(virtproxyd_t, virtproxyd_var_run_t, virtproxyd_var_run_t)
 manage_files_pattern(virtproxyd_t, virtproxyd_var_run_t, virtproxyd_var_run_t)
@@ -2036,6 +2043,10 @@ userdom_read_all_users_state(virtproxyd_t)
 
 optional_policy(`
 	dnsmasq_filetrans_named_content_fromdir(virtproxyd_t, virtproxyd_var_run_t)
+')
+
+optional_policy(`
+	systemd_userdbd_stream_connect(virtproxyd_t)
 ')
 
 #######################################
@@ -2416,4 +2427,44 @@ can_exec(svirt_sandbox_domain, container_ro_file_t)
 
 optional_policy(`
 	unconfined_domain(virt_hook_unconfined_t)
+')
+
+########################################
+#
+# virt_dbus_t local policy
+#
+
+allow virt_dbus_t self:unix_dgram_socket create;
+allow virt_dbus_t virt_var_run_t:dir search_dir_perms;
+allow virt_dbus_t virt_var_run_t:sock_file write_sock_file_perms;
+
+# ipc to other virt domains
+allow virt_dbus_t virtproxyd_t:unix_stream_socket connectto;
+allow virt_dbus_t virtqemud_var_run_t:sock_file write;
+
+kernel_read_proc_files(virt_dbus_t)
+
+dev_read_sysfs(virt_dbus_t)
+
+optional_policy(`
+	auth_read_passwd_file(virt_dbus_t)
+')
+
+optional_policy(`
+	dbus_connect_system_bus(virt_dbus_t)
+	dbus_send_system_bus(virt_dbus_t)
+	dbus_stream_connect_system_dbusd(virt_dbus_t)
+	dbus_write_pid_sock_files(virt_dbus_t)
+')
+
+optional_policy(`
+	miscfiles_read_certs(virt_dbus_t)
+')
+
+optional_policy(`
+	systemd_userdbd_runtime_read_symlinks(virt_dbus_t)
+')
+
+optional_policy(`
+	unconfined_dbus_send(virt_dbus_t)
 ')
