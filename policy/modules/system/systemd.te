@@ -79,6 +79,9 @@ init_nnp_daemon_domain(systemd_networkd_t)
 type systemd_networkd_unit_file_t;
 systemd_unit_file(systemd_networkd_unit_file_t)
 
+type systemd_networkd_var_lib_t;
+files_type(systemd_networkd_var_lib_t)
+
 type systemd_networkd_var_run_t;
 files_pid_file(systemd_networkd_var_run_t)
 files_mountpoint(systemd_networkd_var_run_t)
@@ -573,6 +576,8 @@ allow systemd_networkd_t self:udp_socket create_socket_perms;
 allow systemd_networkd_t self:rawip_socket create_socket_perms;
 allow systemd_networkd_t self:tun_socket { relabelfrom relabelto create_socket_perms };
 
+allow systemd_networkd_t systemd_networkd_var_lib_t:dir list_dir_perms;
+
 allow init_t systemd_networkd_t:netlink_route_socket create_netlink_socket_perms;
 
 manage_files_pattern(systemd_networkd_t, systemd_networkd_var_run_t, systemd_networkd_var_run_t)
@@ -602,15 +607,13 @@ fs_write_cgroup_files(systemd_networkd_t)
 dev_read_sysfs(systemd_networkd_t)
 dev_write_kmsg(systemd_networkd_t)
 
-logging_send_syslog_msg(systemd_networkd_t)
+init_named_pid_filetrans(systemd_logind_t, systemd_networkd_var_run_t, dir, "netif")
 
 sysnet_manage_config(systemd_networkd_t)
 sysnet_manage_config_dirs(systemd_networkd_t)
 
 systemd_dbus_chat_hostnamed(systemd_networkd_t)
 systemd_read_efivarfs(systemd_networkd_t)
-
-init_named_pid_filetrans(systemd_logind_t, systemd_networkd_var_run_t, dir, "netif")
 
 optional_policy(`
     dbus_system_bus_client(systemd_networkd_t)
@@ -620,6 +623,10 @@ optional_policy(`
     dbus_read_pid_files(systemd_networkd_t)
     dbus_read_pid_sock_files(systemd_networkd_t)
     systemd_dbus_chat_logind(systemd_networkd_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(systemd_networkd_t)
 ')
 
 optional_policy(`
