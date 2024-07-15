@@ -12,6 +12,30 @@ init_daemon_domain(coreos_installer_t, coreos_installer_exec_t)
 type coreos_installer_unit_file_t;
 systemd_unit_file(coreos_installer_unit_file_t)
 
+type coreos_boot_mount_generator_t;
+type coreos_boot_mount_generator_exec_t;
+init_system_domain(coreos_boot_mount_generator_t, coreos_boot_mount_generator_exec_t)
+type coreos_boot_mount_generator_unit_file_t;
+files_type(coreos_boot_mount_generator_unit_file_t)
+
+type coreos_installer_generator_t;
+type coreos_installer_generator_exec_t;
+init_system_domain(coreos_installer_generator_t, coreos_installer_generator_exec_t)
+type coreos_installer_generator_unit_file_t;
+files_type(coreos_installer_generator_unit_file_t)
+
+type coreos_liveiso_autologin_generator_t;
+type coreos_liveiso_autologin_generator_exec_t;
+init_system_domain(coreos_liveiso_autologin_generator_t, coreos_liveiso_autologin_generator_exec_t)
+type coreos_liveiso_autologin_generator_unit_file_t;
+files_type(coreos_liveiso_autologin_generator_unit_file_t)
+
+type coreos_sulogin_force_generator_t;
+type coreos_sulogin_force_generator_exec_t;
+init_system_domain(coreos_sulogin_force_generator_t, coreos_sulogin_force_generator_exec_t)
+type coreos_sulogin_force_generator_unit_file_t;
+files_type(coreos_sulogin_force_generator_unit_file_t)
+
 type coreos_installer_var_run_t;
 files_pid_file(coreos_installer_var_run_t)
 
@@ -49,3 +73,43 @@ optional_policy(`
 optional_policy(`
 	sysnet_dns_name_resolve(coreos_installer_t)
 ')
+
+########################################
+#
+# coreos_boot_mount_generator
+# coreos_installer_generator
+# coreos_liveiso_autologin_generator
+# coreos_sulogin_force_generator local policy
+#
+
+corecmd_exec_bin(coreos_boot_mount_generator_t)
+corecmd_exec_shell(coreos_boot_mount_generator_t)
+dev_write_kmsg(coreos_boot_mount_generator_t)
+
+permissive coreos_boot_mount_generator_t;
+
+optional_policy(`
+        auth_dontaudit_read_passwd_file(coreos_boot_mount_generator_t)
+')
+
+optional_policy(`
+	systemd_unit_file(coreos_boot_mount_generator_unit_file_t)
+
+	systemd_unit_file_filetrans(coreos_boot_mount_generator_t, coreos_boot_mount_generator_unit_file_t, file, "boot.mount")
+	manage_files_pattern(coreos_boot_mount_generator_t, coreos_boot_mount_generator_unit_file_t, coreos_boot_mount_generator_unit_file_t)
+
+	systemd_manage_unit_symlinks(coreos_boot_mount_generator_t)
+	systemd_getattr_generic_unit_files(coreos_boot_mount_generator_t)
+')
+
+permissive coreos_installer_generator_t;
+
+permissive coreos_liveiso_autologin_generator_t;
+
+optional_policy(`
+        auth_dontaudit_read_passwd_file(coreos_liveiso_autologin_generator_t)
+')
+
+corecmd_exec_shell(coreos_sulogin_force_generator_t)
+dev_write_kmsg(coreos_sulogin_force_generator_t)
+permissive coreos_sulogin_force_generator_t;
