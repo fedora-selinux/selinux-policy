@@ -526,6 +526,10 @@ userdom_read_all_users_state(svirt_t)
 allow svirt_tcg_t self:process { execmem execstack };
 allow svirt_tcg_t self:netlink_route_socket r_netlink_socket_perms;
 
+allow svirt_tcg_t virtqemud_var_run_t: file write;
+
+read_files_pattern(svirt_tcg_t, virtqemud_t, virtqemud_t)
+
 kernel_read_vm_sysctls(svirt_tcg_t)
 
 corenet_udp_sendrecv_generic_if(svirt_tcg_t)
@@ -1271,7 +1275,8 @@ optional_policy(`
 		virt_write_qemu_pid_files(passt_t)
 		virt_create_qemu_pid_files(passt_t)
 		virt_manage_qemu_pid_sock_files(passt_t)
-		virt_read_pid_files(passt_t)
+		virt_manage_pid_files(passt_t)
+		virt_manage_pid_sock_files(passt_t)
 		virt_svirt_write_tmp(passt_t)
 	')
 ')
@@ -1990,8 +1995,12 @@ kernel_request_load_module(virtnodedevd_t)
 corecmd_exec_bin(virtnodedevd_t)
 corecmd_exec_shell(virtnodedevd_t)
 
+dev_read_vfio_dev(virtnodedevd_t)
 dev_rw_mtrr(virtnodedevd_t)
+dev_rw_sysfs(virtnodedevd_t)
+dev_write_sysfs_dirs(virtnodedevd_t)
 
+files_map_var_lib_files(virtnodedevd_t)
 files_watch_etc_dirs(virtnodedevd_t)
 
 miscfiles_read_hwdata(virtnodedevd_t)
@@ -2082,7 +2091,7 @@ optional_policy(`
 # virtqemud local policy
 #
 allow virtqemud_t self:bpf { map_create map_read map_write prog_load prog_run };
-allow virtqemud_t self:capability { audit_write chown dac_override dac_read_search fowner fsetid kill net_admin setgid setuid sys_admin sys_chroot sys_ptrace sys_rawio };
+allow virtqemud_t self:capability { audit_write chown dac_override dac_read_search fowner fsetid kill net_admin setpcap setgid setuid sys_admin sys_chroot sys_ptrace sys_rawio sys_resource };
 allow virtqemud_t self:capability2 { bpf perfmon };
 allow virtqemud_t self:cap_userns kill;
 
@@ -2092,17 +2101,22 @@ allow virtqemud_t self:tcp_socket create_socket_perms;
 allow virtqemud_t self:tun_socket create;
 allow virtqemud_t self:udp_socket { connect create getattr };
 
+allow virtqemud_t qemu_var_run_t:dir relabelfrom;
+
 allow virtqemud_t svirt_t:process { getattr setsched signal signull transition };
 allow virtqemud_t svirt_t:unix_stream_socket { connectto create_stream_socket_perms };
 allow virtqemud_t svirt_socket_t:unix_stream_socket connectto;
 
-allow virtqemud_t qemu_var_run_t:dir relabelfrom;
+allow virtqemud_t svirt_image_t:chr_file setattr;
+allow virtqemud_t svirt_tcg_t: process { setsched signal signull transition };
+allow virtqemud_t svirt_tcg_t: unix_stream_socket { connectto create_stream_socket_perms };
+allow virtqemud_t svirt_tmpfs_t:file { map write };
 
 allow virtqemud_t virt_cache_t:file { relabelfrom relabelto };
 
 allow virtqemud_t virt_driver_domain:unix_stream_socket connectto;
 
-allow virtqemud_t virt_var_run_t:dir relabelfrom;
+allow virtqemud_t virt_var_run_t:{ dir file sock_file} relabelfrom;
 allow virtqemud_t virt_var_run_t:file map;
 
 allow virtqemud_t virtlogd_t:fifo_file rw_inherited_fifo_file_perms;
@@ -2126,13 +2140,17 @@ files_tmp_filetrans(virtqemud_t, virtqemud_tmp_t, { file dir sock_file})
 manage_dirs_pattern(virtqemud_t, qemu_var_run_t, qemu_var_run_t)
 manage_files_pattern(virtqemud_t, qemu_var_run_t, qemu_var_run_t)
 manage_sock_files_pattern(virtqemud_t, qemu_var_run_t, qemu_var_run_t)
+filetrans_pattern(virtqemud_t, virt_var_run_t, qemu_var_run_t, dir, "qemu")
 
+read_chr_files_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
+setattr_chr_files_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
 manage_dirs_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
 manage_fifo_files_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
 manage_files_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
 manage_sock_files_pattern(virtqemud_t, svirt_image_t, svirt_image_t)
 read_files_pattern(virtqemud_t, svirt_t, svirt_t)
 read_lnk_files_pattern(virtqemud_t, svirt_t, svirt_t)
+read_files_pattern(virtqemud_t, svirt_tcg_t, svirt_tcg_t)
 
 manage_files_pattern(virtqemud_t, virt_content_t, virt_content_t)
 
@@ -2150,6 +2168,7 @@ manage_sock_files_pattern(virtqemud_t, virtlogd_var_run_t, virtlogd_var_run_t)
 read_files_pattern(virtqemud_t, virtproxyd_t, virtproxyd_t)
 
 kernel_io_uring_use(virtqemud_t)
+kernel_mount_proc(virtqemud_t)
 kernel_read_all_proc(virtqemud_t)
 kernel_read_network_state_symlinks(virtqemud_t)
 kernel_read_vm_sysctls(virtqemud_t)
@@ -2170,6 +2189,8 @@ dev_relabel_all_dev_nodes(virtqemud_t)
 dev_rw_kvm(virtqemud_t)
 dev_rw_lvm_control(virtqemud_t)
 dev_rw_vhost(virtqemud_t)
+dev_setattr_urand(virtqemud_t)
+dev_unmount_fs(virtqemud_t)
 
 files_mounton_non_security(virtqemud_t)
 files_read_all_symlinks(virtqemud_t)
@@ -2192,6 +2213,8 @@ seutil_read_file_contexts(virtqemud_t)
 
 init_stream_connect(virtqemud_t)
 init_stream_connect_script(virtqemud_t)
+
+selinux_compute_create_context(virtqemud_t)
 
 sysnet_exec_ifconfig(virtqemud_t)
 sysnet_manage_config(virtqemud_t)
