@@ -31,7 +31,7 @@ kernel_read_system_state(rasdaemon_t)
 kernel_manage_debugfs(rasdaemon_t)
 
 dev_read_raw_memory(rasdaemon_t)
-dev_read_sysfs(rasdaemon_t)
+dev_rw_sysfs(rasdaemon_t)
 dev_read_urand(rasdaemon_t)
 dev_rw_cpu_microcode(rasdaemon_t)
 
@@ -42,7 +42,13 @@ fs_manage_tracefs_dirs(rasdaemon_t)
 fs_mount_tracefs(rasdaemon_t)
 fs_unmount_tracefs(rasdaemon_t)
 
-modutils_dontaudit_exec_kmod(rasdaemon_t) # more info here #1030277
+# In rasdaemon 0.8.0, ras-mc-ctl tries to find modprobe, exits with error
+# code if fails, but never actually uses it. While it should be fixed in
+# rasdaemon, it seems to be safe to just allow it to find the binary.
+gen_require(`
+	type kmod_exec_t;
+')
+allow rasdaemon_t kmod_exec_t:file getattr;
 
 auth_use_nsswitch(rasdaemon_t)
 
