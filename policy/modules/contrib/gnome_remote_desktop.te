@@ -1,0 +1,73 @@
+policy_module(gnome_remote_desktop, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type gnome_remote_desktop_t;
+type gnome_remote_desktop_exec_t;
+domain_type(gnome_remote_desktop_t)
+domain_entry_file(gnome_remote_desktop_t, gnome_remote_desktop_exec_t)
+role system_r types gnome_remote_desktop_t;
+
+permissive gnome_remote_desktop_t;
+
+type gnome_remote_desktop_var_lib_t;
+files_type(gnome_remote_desktop_var_lib_t)
+
+########################################
+#
+# gnome_remote_desktop local policy
+#
+
+kernel_dgram_send(gnome_remote_desktop_t)
+
+manage_dirs_pattern(gnome_remote_desktop_t, gnome_remote_desktop_var_lib_t, gnome_remote_desktop_var_lib_t)
+manage_files_pattern(gnome_remote_desktop_t, gnome_remote_desktop_var_lib_t, gnome_remote_desktop_var_lib_t)
+manage_lnk_files_pattern(gnome_remote_desktop_t, gnome_remote_desktop_var_lib_t, gnome_remote_desktop_var_lib_t)
+files_var_lib_filetrans(gnome_remote_desktop_t, gnome_remote_desktop_var_lib_t, { dir file lnk_file })
+
+#============= gnome_remote_desktop_t ==============
+corenet_tcp_bind_gnome_remote_desktop_port(gnome_remote_desktop_t)
+allow gnome_remote_desktop_t self:tcp_socket create_stream_socket_perms;
+allow gnome_remote_desktop_t self:unix_dgram_socket create_socket_perms;
+
+domain_use_interactive_fds(gnome_remote_desktop_t)
+
+files_read_etc_files(gnome_remote_desktop_t)
+
+corenet_tcp_bind_generic_node(gnome_remote_desktop_t)
+dev_read_sysfs(gnome_remote_desktop_t)
+files_watch_usr_dirs(gnome_remote_desktop_t)
+fs_getattr_cgroup(gnome_remote_desktop_t)
+fs_getattr_xattr_fs(gnome_remote_desktop_t)
+init_read_state(gnome_remote_desktop_t)
+
+optional_policy(`
+	dbus_system_domain(gnome_remote_desktop_t, gnome_remote_desktop_exec_t)
+')
+
+optional_policy(`
+	kerberos_read_config(gnome_remote_desktop_t)
+')
+
+optional_policy(`
+	logging_write_syslog_pid_socket(gnome_remote_desktop_t)
+')
+
+optional_policy(`
+	miscfiles_read_certs(gnome_remote_desktop_t)
+	miscfiles_read_localization(gnome_remote_desktop_t)
+')
+
+optional_policy(`
+	systemd_login_list_pid_dirs(gnome_remote_desktop_t)
+	systemd_login_read_pid_files(gnome_remote_desktop_t)
+	systemd_read_logind_sessions_files(gnome_remote_desktop_t)
+')
+
+optional_policy(`
+	xserver_dbus_chat_xdm(gnome_remote_desktop_t)
+	xserver_read_xdm_state(gnome_remote_desktop_t)
+')
