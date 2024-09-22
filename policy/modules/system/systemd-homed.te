@@ -1,0 +1,251 @@
+policy_module(systemd-homed, 0.2.0)
+########################################
+#
+# Declarations
+#
+
+type systemd_homed_t;
+type systemd_homed_exec_t;
+init_daemon_domain(systemd_homed_t, systemd_homed_exec_t)
+init_nnp_daemon_domain(systemd_homed_t)
+
+type systemd_homework_t;
+type systemd_homework_exec_t;
+domain_type(systemd_homework_t)
+domain_entry_file(systemd_homework_t, systemd_homework_exec_t)
+role system_r types systemd_homework_t;
+
+type systemd_homed_crypto_luks_t;
+userdom_user_home_content(systemd_homed_crypto_luks_t)
+
+type systemd_homed_library_dir_t;
+files_type(systemd_homed_library_dir_t)
+
+type systemd_homed_record_t;
+files_auth_file(systemd_homed_record_t)
+
+type systemd_homed_runtime_dir_t;
+files_pid_file(systemd_homed_runtime_dir_t)
+
+type systemd_homed_runtime_pipe_t;
+files_pid_file(systemd_homed_runtime_pipe_t)
+
+type systemd_homed_runtime_socket_t;
+files_pid_file(systemd_homed_runtime_socket_t)
+
+type systemd_homed_runtime_work_dir_t;
+files_pid_file(systemd_homed_runtime_work_dir_t)
+files_mountpoint(systemd_homed_runtime_work_dir_t)
+
+type systemd_homed_tmpfs_t;
+files_tmpfs_file(systemd_homed_tmpfs_t)
+
+type systemd_homed_unit_file_t;
+systemd_unit_file(systemd_homed_unit_file_t)
+
+#######################################
+#
+# systemd_homed local policy
+#
+
+allow systemd_homed_t self:capability { sys_admin sys_resource dac_override dac_read_search setuid setgid };
+allow systemd_homed_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow systemd_homed_t self:unix_dgram_socket create_socket_perms;
+
+domtrans_pattern(systemd_homed_t, systemd_homework_exec_t, systemd_homework_t)
+allow systemd_homed_t systemd_homework_t:process2 nnp_transition;
+
+# homed.conf
+files_read_config_files(systemd_homed_t)
+init_read_pid_files(systemd_homed_t)
+libs_read_lib_files(systemd_homed_t)
+
+# /home
+files_watch_home(systemd_homed_t)
+files_search_home(systemd_homed_t)
+
+# unlabeled home directories
+files_manage_isid_type_dirs(systemd_homed_t)
+files_manage_isid_type_files(systemd_homed_t)
+
+# /var/lib/systemd/home
+manage_files_pattern(systemd_homed_t, systemd_homed_library_dir_t, systemd_homed_record_t)
+init_var_lib_filetrans(systemd_homed_t, systemd_homed_library_dir_t, dir, "home")
+filetrans_pattern(systemd_homed_t, systemd_homed_library_dir_t, systemd_homed_record_t, file)
+
+# /run/systemd/home
+create_dirs_pattern(systemd_homed_t, init_var_run_t, systemd_homed_runtime_dir_t)
+init_pid_filetrans(systemd_homed_t, systemd_homed_runtime_dir_t, dir, "home")
+
+# /run/systemd/home/*.dont-suspend
+manage_fifo_files_pattern(systemd_homed_t, systemd_homed_runtime_dir_t, systemd_homed_runtime_pipe_t)
+filetrans_pattern(systemd_homed_t, systemd_homed_runtime_dir_t, systemd_homed_runtime_pipe_t, fifo_file)
+
+# /run/systemd/home/notify
+create_sock_files_pattern(systemd_homed_t, systemd_homed_runtime_dir_t, systemd_homed_runtime_socket_t)
+delete_sock_files_pattern(systemd_homed_t, systemd_homed_runtime_dir_t, systemd_homed_runtime_socket_t)
+filetrans_pattern(systemd_homed_t, systemd_homed_runtime_dir_t, systemd_homed_runtime_socket_t, sock_file, "notify")
+
+rw_files_pattern(systemd_homed_t, systemd_homed_tmpfs_t, systemd_homed_tmpfs_t)
+fs_tmpfs_filetrans(systemd_homed_t, systemd_homed_tmpfs_t, file)
+
+kernel_dgram_send(systemd_homed_t)
+kernel_read_system_state(systemd_homed_t)
+
+dev_getattr_generic_blk_files(systemd_homed_t)
+dev_read_sysfs(systemd_homed_t)
+
+fs_getattr_cgroup(systemd_homed_t)
+fs_getattr_xattr_fs(systemd_homed_t)
+fs_search_cgroup_dirs(systemd_homed_t)
+fs_write_cgroup_files(systemd_homed_t)
+
+storage_getattr_fixed_disk_dev(systemd_homed_t)
+storage_raw_read_removable_device(systemd_homed_t)
+
+optional_policy(`
+    auth_use_nsswitch(systemd_homed_t)
+')
+
+optional_policy(`
+    container_runtime_read_tmpfs_files(systemd_homed_t)
+')
+
+optional_policy(`
+    dbus_connect_system_bus(systemd_homed_t)
+')
+
+optional_policy(`
+    logging_send_syslog_msg(systemd_homed_t)
+')
+
+optional_policy(`
+    miscfiles_read_all_certs(systemd_homed_t)
+')
+
+optional_policy(`
+    mta_getattr_spool(systemd_homed_t)
+')
+
+optional_policy(`
+    systemd_manage_userdbd_runtime_sock_files(systemd_homed_t)
+')
+
+optional_policy(`
+    udev_manage_pid_files(systemd_homed_t)
+')
+
+optional_policy(`
+   # labeled home directories
+   userdom_home_manager(systemd_homed_t)
+   userdom_manage_home_role(system_r, systemd_homed_t)
+')
+
+optional_policy(`
+   usermanage_read_crack_db(systemd_homed_t)
+')
+
+#######################################
+#
+# systemd_homework local policy
+#
+
+allow systemd_homework_t self:cap_userns { sys_admin sys_ptrace  };
+allow systemd_homework_t self:capability { chown fowner fsetid setfcap dac_override dac_read_search setuid setgid sys_admin sys_resource };
+allow systemd_homework_t self:file mounton;
+allow systemd_homework_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow systemd_homework_t self:process { setsched getsched };
+allow systemd_homework_t self:sem create_sem_perms;
+allow systemd_homework_t self:unix_dgram_socket create_socket_perms;
+allow systemd_homework_t self:user_namespace create;
+allow systemd_homework_t systemd_homed_t:unix_dgram_socket sendto;
+
+# /home
+files_create_home_dir(systemd_homework_t)
+files_delete_home_dir(systemd_homework_t)
+files_search_home(systemd_homework_t)
+files_home_filetrans(systemd_homework_t, systemd_homed_crypto_luks_t, file)
+
+# unlabeled home directories
+files_manage_isid_type_dirs(systemd_homework_t)
+files_manage_isid_type_files(systemd_homework_t)
+files_mounton_isid(systemd_homework_t)
+
+# /run/systemd/home/notify
+write_sock_files_pattern(systemd_homework_t, systemd_homed_runtime_dir_t, systemd_homed_runtime_socket_t)
+
+# /run/systemd/user-home-mount
+create_dirs_pattern(systemd_homework_t, init_var_run_t, systemd_homed_runtime_work_dir_t)
+read_files_pattern(systemd_homework_t, systemd_homed_runtime_work_dir_t, systemd_homed_record_t)
+delete_files_pattern(systemd_homework_t, systemd_homed_runtime_work_dir_t, systemd_homed_record_t)
+init_pid_filetrans(systemd_homework_t, systemd_homed_runtime_work_dir_t, dir, "user-home-mount")
+
+rw_files_pattern(systemd_homework_t, systemd_homed_tmpfs_t, systemd_homed_tmpfs_t)
+
+files_mounton_all_mountpoints(systemd_homework_t)
+
+kernel_dgram_send(systemd_homework_t)
+kernel_get_sysvipc_info(systemd_homework_t)
+kernel_read_fs_sysctls(systemd_homework_t)
+kernel_read_system_state(systemd_homework_t)
+kernel_request_load_module(systemd_homework_t)
+
+corecmd_exec_shell(systemd_homework_t)
+
+dev_getattr_fs(systemd_homework_t)
+dev_read_rand(systemd_homework_t)
+dev_read_sysfs(systemd_homework_t)
+dev_rw_generic_usb_dev(systemd_homework_t)
+dev_rw_loop_control(systemd_homework_t)
+dev_rw_lvm_control(systemd_homework_t)
+dev_watch_generic_dirs(systemd_homework_t)
+
+domain_manage_all_domains_keyrings(systemd_homework_t)
+
+fs_all_mount_fs_perms_xattr_fs(systemd_homework_t)
+fs_getattr_cgroup(systemd_homework_t)
+fs_read_nsfs_files(systemd_homework_t)
+fs_relabelfrom_xattr_fs(systemd_homework_t)
+fs_search_all(systemd_homework_t)
+
+fsadm_manage_pid(systemd_homework_t)
+
+init_read_state(systemd_homework_t)
+init_rw_stream_sockets(systemd_homework_t)
+
+storage_raw_read_removable_device(systemd_homework_t)
+storage_rw_inherited_removable_device(systemd_homework_t)
+storage_manage_fixed_disk(systemd_homework_t)
+
+optional_policy(`
+    auth_read_passwd_file(systemd_homework_t)
+')
+
+optional_policy(`
+    fstools_domtrans(systemd_homework_t)
+    fstools_nnp_domtrans(systemd_homework_t)
+')
+
+optional_policy(`
+    lvm_manage_var_run(systemd_homework_t)
+')
+
+optional_policy(`
+    logging_send_syslog_msg(systemd_homework_t)
+')
+
+optional_policy(`
+    miscfiles_read_all_certs(systemd_homework_t)
+')
+
+optional_policy(`
+    udev_read_pid_files(systemd_homework_t)
+    udev_search_pids(systemd_homework_t)
+')
+
+optional_policy(`
+    # labeled home directories
+    userdom_home_filetrans_user_home_dir(systemd_homework_t)
+    userdom_home_manager(systemd_homework_t)
+    userdom_manage_home_role(system_r, systemd_homework_t)
+')
