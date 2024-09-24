@@ -28,11 +28,24 @@ type mysqld_safe_t;
 type mysqld_safe_exec_t;
 init_daemon_domain(mysqld_safe_t, mysqld_safe_exec_t)
 
+type mysqld_galera_t;
+application_domain(mysqld_galera_t, mysqld_exec_t)
+typeattribute mysqld_galera_t daemon;
+#typeattribute mysqld_galera_t domain;
+domain_transition_pattern(init_t, mysqld_exec_t, mysqld_galera_t)
+permissive mysqld_galera_t;
+
 type mysqld_var_run_t;
 files_pid_file(mysqld_var_run_t)
 
+#type mysqld_galera_var_run_t;
+#files_pid_file(mysqld_galera_var_run_t)
+
 type mysqld_db_t;
 files_type(mysqld_db_t)
+
+type mysqld_db_state_t;
+files_type(mysqld_db_state_t)
 
 type mysqld_etc_t alias etc_mysqld_t;
 files_config_file(mysqld_etc_t)
@@ -51,6 +64,9 @@ logging_log_file(mysqld_log_t)
 
 type mysqld_tmp_t;
 files_tmp_file(mysqld_tmp_t)
+
+type mysqld_galera_tmp_t;
+files_tmp_file(mysqld_galera_tmp_t)
 
 type mysqlmanagerd_t;
 type mysqlmanagerd_exec_t;
@@ -294,3 +310,84 @@ corenet_sendrecv_mysqlmanagerd_client_packets(mysqlmanagerd_t)
 dev_read_urand(mysqlmanagerd_t)
 
 userdom_getattr_user_home_dirs(mysqlmanagerd_t)
+
+########################################
+#
+# mysqld-galera local policy
+#
+
+allow mysqld_galera_t self:process { setpgid setrlimit };
+
+allow mysqld_galera_t self:netlink_route_socket r_netlink_socket_perms;
+allow mysqld_galera_t self:tcp_socket create_stream_socket_perms;
+allow mysqld_galera_t self:udp_socket create_socket_perms;
+allow mysqld_galera_t self:unix_dgram_socket create_socket_perms;
+
+allow mysqld_galera_t mysqld_etc_t:file read_file_perms;
+allow mysqld_galera_t mysqld_etc_t:lnk_file read_lnk_file_perms;
+allow mysqld_galera_t mysqld_etc_t:dir list_dir_perms;
+
+#manage_dirs_pattern(mysqld_t, mysqld_db_t, mysqld_db_t)
+manage_files_pattern(mysqld_galera_t, mysqld_db_t, mysqld_db_t)
+manage_sock_files_pattern(mysqld_galera_t, mysqld_db_t, mysqld_db_t)
+#manage_lnk_files_pattern(mysqld_t, mysqld_db_t, mysqld_db_t)
+#files_var_lib_filetrans(mysqld_t, mysqld_db_t, { dir file lnk_file })
+#allow mysqld_galera_t mysqld_db_t:file map;
+
+manage_files_pattern(mysqld_galera_t, mysqld_db_t, mysqld_db_state_t)
+
+#manage_dirs_pattern(mysqld_t, mysqld_log_t, mysqld_log_t)
+manage_files_pattern(mysqld_galera_t, mysqld_log_t, mysqld_log_t)
+#manage_lnk_files_pattern(mysqld_t, mysqld_log_t, mysqld_log_t)
+#manage_fifo_files_pattern(mysqld_t, mysqld_log_t, mysqld_log_t)
+#logging_log_filetrans(mysqld_t, mysqld_log_t, { dir file })
+
+#manage_dirs_pattern(mysqld_t, mysqld_tmp_t, mysqld_tmp_t)
+manage_files_pattern(mysqld_galera_t, mysqld_galera_tmp_t, mysqld_galera_tmp_t)
+#files_tmp_filetrans(mysqld_t, mysqld_tmp_t, { file dir })
+files_tmp_filetrans(mysqld_galera_t, mysqld_galera_tmp_t, file)
+#allow mysqld_t mysqld_tmp_t:file map;
+
+#manage_dirs_pattern(mysqld_t, mysqld_var_run_t, mysqld_var_run_t)
+manage_files_pattern(mysqld_galera_t, mysqld_var_run_t, mysqld_var_run_t)
+#manage_files_pattern(mysqld_galera_t, mysqld_var_run_t, mysqld_galera_var_run_t)
+manage_sock_files_pattern(mysqld_t, mysqld_var_run_t, mysqld_var_run_t)
+files_pid_filetrans(mysqld_galera_t, mysqld_var_run_t, dir)
+#filetrans_pattern(mysqld_galera_t, mysqld_var_run_t, mysqld_galera_var_run_t, { file sock_file })
+
+kernel_dgram_send(mysqld_galera_t)
+#kernel_read_network_state(mysqld_galera_t)
+
+auth_use_pam(mysqld_galera_t)
+
+corecmd_exec_bin(mysqld_galera_t)
+corecmd_bin_entry_type(mysqld_galera_t)
+corecmd_exec_shell(mysqld_galera_t)
+corecmd_shell_entry_type(mysqld_galera_t)
+
+corenet_tcp_bind_generic_node(mysqld_galera_t)
+corenet_tcp_bind_kerberos_port(mysqld_galera_t)
+corenet_tcp_connect_kerberos_port(mysqld_galera_t)
+corenet_tcp_bind_mysqld_port(mysqld_galera_t)
+# 4567
+corenet_tcp_bind_tram_port(mysqld_galera_t)
+corenet_tcp_connect_tram_port(mysqld_galera_t)
+
+dev_read_sysfs(mysqld_galera_t)
+
+sysnet_exec_ifconfig(mysqld_galera_t)
+
+ifdef(`distro_redhat',`
+	filetrans_pattern(mysqld_galera_t, mysqld_db_t, mysqld_var_run_t, sock_file)
+')
+
+# required?
+optional_policy(`
+	rsync_exec(mysqld_galera_t)
+')
+
+# required?
+optional_policy(`
+	systemd_exec_systemctl(mysqld_galera_t)
+')
+
