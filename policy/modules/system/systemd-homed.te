@@ -15,6 +15,9 @@ domain_type(systemd_homework_t)
 domain_entry_file(systemd_homework_t, systemd_homework_exec_t)
 role system_r types systemd_homework_t;
 
+type systemd_homed_cache_t;
+files_type(systemd_homed_cache_t)
+
 type systemd_homed_crypto_luks_t;
 userdom_user_home_content(systemd_homed_crypto_luks_t)
 
@@ -70,6 +73,10 @@ files_manage_isid_type_files(systemd_homed_t)
 
 # /dev/shm
 fs_getattr_tmpfs(systemd_homed_t)
+
+# /var/cache/systemd/home
+list_dirs_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_cache_t)
+read_files_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_cache_t)
 
 # /var/lib/systemd/home
 manage_files_pattern(systemd_homed_t, systemd_homed_library_dir_t, systemd_homed_record_t)
@@ -131,7 +138,8 @@ optional_policy(`
 ')
 
 optional_policy(`
-    systemd_manage_userdbd_runtime_sock_files(systemd_homed_t)
+	systemd_manage_userdbd_runtime_sock_files(systemd_homed_t)
+	systemd_search_cache_dirs(systemd_homed_t)
 ')
 
 optional_policy(`
@@ -173,6 +181,10 @@ files_home_filetrans(systemd_homework_t, systemd_homed_crypto_luks_t, file)
 files_manage_isid_type_dirs(systemd_homework_t)
 files_manage_isid_type_files(systemd_homework_t)
 files_mounton_isid(systemd_homework_t)
+
+# /var/cache/systemd/home
+list_dirs_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_cache_t)
+read_files_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_cache_t)
 
 # /run/systemd/home/notify
 write_sock_files_pattern(systemd_homework_t, systemd_homed_runtime_dir_t, systemd_homed_runtime_socket_t)
@@ -239,6 +251,10 @@ optional_policy(`
 
 optional_policy(`
     miscfiles_read_all_certs(systemd_homework_t)
+')
+
+optional_policy(`
+	systemd_search_cache_dirs(systemd_homework_t)
 ')
 
 optional_policy(`
