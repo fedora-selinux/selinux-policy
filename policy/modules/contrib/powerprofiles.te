@@ -1,0 +1,37 @@
+policy_module(powerprofiles, 1.0)
+
+########################################
+#
+# Declarations
+#
+
+type powerprofiles_t;
+type powerprofiles_exec_t;
+init_daemon_domain(powerprofiles_t, powerprofiles_exec_t)
+init_nnp_daemon_domain(powerprofiles_t)
+
+type powerprofiles_var_lib_t;
+files_type(powerprofiles_var_lib_t);
+
+permissive powerprofiles_t;
+
+allow powerprofiles_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+manage_files_pattern(powerprofiles_t, powerprofiles_var_lib_t, powerprofiles_var_lib_t)
+
+kernel_read_proc_files(powerprofiles_t)
+
+dev_list_sysfs(powerprofiles_t)
+
+optional_policy(`
+	dbus_connect_system_bus(powerprofiles_t)
+	dbus_system_bus_client(powerprofiles_t)
+
+	optional_policy(`
+		policykit_dbus_chat(powerprofiles_t)
+	')
+')
+
+optional_policy(`
+	udev_search_pids(powerprofiles_t)
+')
