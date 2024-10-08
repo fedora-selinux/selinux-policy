@@ -41,13 +41,16 @@ files_type(cloud_what_var_cache_t)
 # Local policy
 #
 
-allow rhsmcertd_t self:capability { fowner kill sys_nice };
+allow rhsmcertd_t self:capability { chown fowner fsetid kill sys_nice };
 allow rhsmcertd_t self:process { signal_perms setsched };
 dontaudit rhsmcertd_t self:process setfscreate;
 
 allow rhsmcertd_t self:fifo_file rw_fifo_file_perms;
 allow rhsmcertd_t self:unix_stream_socket create_stream_socket_perms;
 allow rhsmcertd_t rhsmcertd_var_run_t:sock_file manage_sock_file_perms;
+
+allow rhsmcertd_t systemd_userdbd_runtime_t:dir read;
+allow rhsmcertd_t systemd_userdbd_runtime_t:sock_file write;
 
 manage_dirs_pattern(rhsmcertd_t, rhsmcertd_config_t, rhsmcertd_config_t)
 manage_files_pattern(rhsmcertd_t, rhsmcertd_config_t, rhsmcertd_config_t)
@@ -203,4 +206,8 @@ optional_policy(`
 
 optional_policy(`
     container_manage_config_files(rhsmcertd_t)
+')
+
+optional_policy(`
+    systemd_userdbd_runtime_t(rhsmcertd_t)
 ')
