@@ -1,5 +1,10 @@
 policy_module(speech-dispatcher, 1.0.0)
 
+gen_require(`
+    type cache_home_t;
+    type ephemeral_port_t;
+')
+
 ########################################
 #
 # Declarations
@@ -32,6 +37,9 @@ type speech_dispatcher_tmpfs_t;
 typealias speech_dispatcher_tmpfs_t alias speech-dispatcher_tmpfs_t;
 files_tmpfs_file(speech_dispatcher_tmpfs_t)
 
+type speech_dispatcher_modules_t;
+files_type(speech_dispatcher_modules_t)
+
 ########################################
 #
 # speech-dispatcher local policy
@@ -42,6 +50,10 @@ allow speech_dispatcher_t self:process signal_perms;
 allow speech_dispatcher_t self:fifo_file rw_fifo_file_perms;
 allow speech_dispatcher_t self:unix_stream_socket create_stream_socket_perms;
 allow speech_dispatcher_t self:tcp_socket create_socket_perms;
+allow speech_dispatcher_t speech_dispatcher_home_t:file create_file_perms;
+allow speech_dispatcher_t speech_dispatcher_home_t:dir create_dir_perms;
+allow speech_dispatcher_t ephemeral_port_t:tcp_socket name_connect;
+corecmd_exec_shell(speech_dispatcher_t)
 
 manage_dirs_pattern(speech_dispatcher_t, speech_dispatcher_log_t, speech_dispatcher_log_t)
 manage_files_pattern(speech_dispatcher_t, speech_dispatcher_log_t, speech_dispatcher_log_t)
@@ -56,7 +68,15 @@ fs_tmpfs_filetrans(speech_dispatcher_t, speech_dispatcher_tmpfs_t, { file })
 manage_files_pattern(speech_dispatcher_t, speech_dispatcher_home_t, speech_dispatcher_home_t)
 manage_dirs_pattern(speech_dispatcher_t, speech_dispatcher_home_t, speech_dispatcher_home_t)
 manage_fifo_files_pattern(speech_dispatcher_t, speech_dispatcher_home_t, speech_dispatcher_home_t)
-userdom_filetrans_home_content(speech_dispatcher_t,speech_dispatcher_home_t, dir, ".speech-dispatcher")
+userdom_filetrans_home_content(speech_dispatcher_t,speech_dispatcher_home_t, dir, ".cache/speech-dispatcher")
+userdom_filetrans_home_content(speech_dispatcher_t,speech_dispatcher_home_t, dir, ".config/speech-dispatcher")
+filetrans_pattern(speech_dispatcher_t, cache_home_t, speech_dispatcher_home_t, dir, "speech-dispatcher")
+
+exec_files_pattern(speech_dispatcher_t, speech_dispatcher_modules_t, speech_dispatcher_modules_t)
+read_lnk_files_pattern(speech_dispatcher_t, speech_dispatcher_modules_t, speech_dispatcher_modules_t)
+manage_dirs_pattern(speech_dispatcher_t, speech_dispatcher_modules_t, speech_dispatcher_modules_t)
+
+manage_sock_files_pattern(speech_dispatcher_t, speech_dispatcher_home_t, speech_dispatcher_home_t)
 
 kernel_read_system_state(speech_dispatcher_t)
 
