@@ -1906,16 +1906,6 @@ Used to manage access while attaching BPF programs to tracepoints, perf profilin
 
 ---
 
-## class lockdown
-
-*deprecated*
-
-**integrity**
-
-**confidentiality**
-
----
-
 ## class io\_uring
 
 Used to control the ability to use special io\_uring features by the process. See also [the original kernel commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=740b03414b20e7f1879cd99aae27d8c401bbcbf9) for more details.
