@@ -1,14 +1,35 @@
 policy_module(switcheroo, 1.0)
 
 #################################
-#   
+#
 # Declarations
-#    
+#
 
 type switcheroo_control_t;
 type switcheroo_control_exec_t;
 init_daemon_domain(switcheroo_control_t, switcheroo_control_exec_t)
 permissive switcheroo_control_t;
 
-#type samba_bgqd_var_run_t;
-#files_pid_file(samba_bgqd_var_run_t)
+#################################
+#
+# Policy for switcheroo_control_t
+#
+
+allow switcheroo_control_t self:capability2 bpf;
+allow switcheroo_control_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+dev_list_sysfs(switcheroo_control_t)
+dev_read_sysfs(switcheroo_control_t)
+
+optional_policy(`
+	dbus_connect_system_bus(switcheroo_control_t)
+	dbus_system_bus_client(switcheroo_control_t)
+')
+
+optional_policy(`
+	udev_read_pid_files(switcheroo_control_t)
+')
+
+optional_policy(`
+	unconfined_dbus_chat(unconfined_t)
+')
