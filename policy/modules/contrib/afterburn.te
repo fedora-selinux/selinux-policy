@@ -15,6 +15,9 @@ systemd_unit_file(afterburn_unit_file_t)
 type afterburn_runtime_t;
 files_pid_file(afterburn_runtime_t)
 
+type afterburn_tmp_t;
+files_tmp_file(afterburn_tmp_t)
+
 ########################################
 #
 # afterburn local policy
@@ -28,6 +31,9 @@ allow afterburn_t afterburn_runtime_t:dir manage_dir_perms;
 manage_files_pattern(afterburn_t, afterburn_runtime_t, afterburn_runtime_t)
 files_pid_filetrans(afterburn_t, afterburn_runtime_t, dir, "metadata")
 
+allow afterburn_t afterburn_tmp_t:dir { manage_dir_perms mounton };
+files_tmp_filetrans(afterburn_t, afterburn_tmp_t, dir)
+
 kernel_dgram_send(afterburn_t)
 kernel_read_all_proc(afterburn_t)
 
@@ -36,6 +42,11 @@ corenet_tcp_connect_http_port(afterburn_t)
 domain_use_interactive_fds(afterburn_t)
 
 files_read_etc_files(afterburn_t)
+
+# Mount, unmount, and read config drives
+fs_mount_iso9660_fs(afterburn_t)
+fs_unmount_iso9660_fs(afterburn_t)
+fs_read_iso9660_files(afterburn_t)
 
 optional_policy(`
 	auth_use_nsswitch(afterburn_t)
@@ -60,4 +71,9 @@ optional_policy(`
 
 optional_policy(`
 	sysnet_dns_name_resolve(afterburn_t)
+')
+
+# afterburn invokes udevadm if mount fails
+optional_policy(`
+	udev_exec(afterburn_t)
 ')
