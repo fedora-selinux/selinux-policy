@@ -31,9 +31,13 @@ term_tty(kmscon_devpts_t)
 allow kmscon_t self:capability {sys_admin sys_tty_config};
 
 dontaudit kmscon_t self:capability2 block_suspend;
+# kmscon tries to read /proc/<pid_of_login_process>/cgroup
+# preliminarily dontaudit this since there is some discussion upstream
+# https://github.com/Aetf/kmscon/pull/105
+domain_dontaudit_read_all_domains_state(kmscon_t)
 
 # Create an udev monitor
-allow kmscon_t self:netlink_kobject_uevent_socket { bind create setopt getattr };
+allow kmscon_t self:netlink_kobject_uevent_socket { bind create getopt setopt getattr };
 
 allow kmscon_t kmscon_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms };
 term_create_pty(kmscon_t, kmscon_devpts_t)
@@ -44,6 +48,11 @@ read_files_pattern(kmscon_t, kmscon_conf_t, kmscon_conf_t)
 kernel_read_system_state(kmscon_t)
 
 auth_read_passwd(kmscon_t)
+
+# because it is a shell script https://github.com/Aetf/kmscon/pull/7/files
+corecmd_exec_shell(kmscon_t)
+# for dbus-send in the shell script
+corecmd_exec_bin(kmscon_t)
 
 dev_rw_dri(kmscon_t)
 dev_read_sysfs(kmscon_t)
@@ -63,6 +72,13 @@ miscfiles_manage_fonts_cache(kmscon_t)
 term_use_unallocated_ttys(kmscon_t)
 
 optional_policy(`
+    # Allow domtrans to agetty using --login
+    # see https://github.com/Aetf/kmscon/commit/21cf668c58867a100272adea6f323cd56fc73e78
+    getty_domtrans(kmscon_t)
+    getty_systemctl(kmscon_t)
+')
+
+optional_policy(`
     # Learn about the input devices
     udev_read_db(kmscon_t)
 ')
@@ -77,11 +93,17 @@ optional_policy(`
     init_dbus_chat(kmscon_t)
 
     optional_policy(`
+	systemd_dbus_chat_localed(kmscon_t)
         systemd_dbus_chat_logind(kmscon_t)
 
         # List seats
         systemd_login_list_pid_dirs(kmscon_t)
         systemd_login_read_pid_files(kmscon_t)
+	# Watch seat dirs /run/systemd/seats
+	systemd_login_watch_pid_dirs(kmscon_t)
+	# Watch and read /run/systemd/sessions
+	systemd_read_logind_sessions_files(kmscon_t)
+	systemd_login_watch_session_dirs(kmscon_t)
 
         kmscon_systemctl(systemd_logind_t)
     ')
