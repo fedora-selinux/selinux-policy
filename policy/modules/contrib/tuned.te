@@ -9,6 +9,10 @@ type tuned_t;
 type tuned_exec_t;
 init_daemon_domain(tuned_t, tuned_exec_t)
 
+type tuned_ppd_t;
+type tuned_ppd_exec_t;
+init_daemon_domain(tuned_ppd_t, tuned_ppd_exec_t)
+
 type tuned_initrc_exec_t;
 init_script_file(tuned_initrc_exec_t)
 
@@ -29,7 +33,7 @@ files_pid_file(tuned_var_run_t)
 
 ########################################
 #
-# Local policy
+# tuned local policy
 #
 
 allow tuned_t self:capability { net_admin sys_admin sys_nice sys_ptrace sys_rawio };
@@ -158,5 +162,51 @@ optional_policy(`
 ')
 
 optional_policy(`
-    unconfined_domain(tuned_t)
+	unconfined_domain(tuned_t)
+')
+
+########################################
+#
+# tuned-ppd local policy
+#
+permissive tuned_ppd_t;
+
+allow tuned_ppd_t tuned_exec_t:file getattr;
+
+read_files_pattern(tuned_ppd_t, tuned_etc_t, tuned_etc_t)
+rw_files_pattern(tuned_ppd_t, tuned_etc_t, tuned_rw_etc_t)
+
+create_files_pattern(tuned_ppd_t, tuned_log_t, tuned_log_t)
+write_files_pattern(tuned_ppd_t, tuned_log_t, tuned_log_t)
+
+corecmd_exec_bin(tuned_ppd_t)
+dev_read_sysfs(tuned_ppd_t)
+
+optional_policy(`
+	auth_read_passwd_file(tuned_ppd_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(tuned_ppd_t)
+	dbus_connect_system_bus(tuned_ppd_t)
+
+	optional_policy(`
+		policykit_dbus_chat(tuned_ppd_t)
+	')
+
+	optional_policy(`
+		tuned_dbus_chat(tuned_ppd_t)
+	')
+
+	optional_policy(`
+		unconfined_dbus_send(tuned_ppd_t)
+	')
+')
+
+optional_policy(`
+	libs_exec_ldconfig(tuned_ppd_t)
+')
+
+optional_policy(`
+	miscfiles_read_generic_certs(tuned_ppd_t)
 ')
