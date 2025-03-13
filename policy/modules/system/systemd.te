@@ -577,6 +577,12 @@ files_tmp_filetrans(systemd_machined_t, systemd_machined_tmp_t, file)
 allow systemd_machined_t systemd_machined_tmpfs_t:file { create setattr write_file_perms };
 fs_tmpfs_filetrans(systemd_machined_t, systemd_machined_tmpfs_t, file)
 
+systemd_read_machine_var_lib_dirs(system_dbusd_t)
+
+allow systemd_machined_t init_var_run_t:dir create;
+allow systemd_machined_t init_var_run_t:file { create unlink write };
+allow systemd_machined_t systemd_machined_var_lib_t:chr_file unlink;
+
 manage_dirs_pattern(systemd_machined_t, systemd_machined_var_run_t, systemd_machined_var_run_t)
 manage_files_pattern(systemd_machined_t, systemd_machined_var_run_t, systemd_machined_var_run_t)
 manage_lnk_files_pattern(systemd_machined_t, systemd_machined_var_run_t, systemd_machined_var_run_t)
@@ -1874,7 +1880,8 @@ init_stream_connectto(systemd_initctl_t)
 #
 # systemd_importd local policy
 #
-allow systemd_importd_t self:capability { chown fowner fsetid mknod setpcap sys_admin };
+
+allow systemd_importd_t self:capability { dac_override linux_immutable chown fowner fsetid mknod setpcap sys_admin };
 allow systemd_importd_t self:process { setcap setfscreate };
 allow systemd_importd_t self:unix_stream_socket create_stream_socket_perms;
 allow systemd_importd_t self:unix_dgram_socket create_socket_perms;
@@ -1889,6 +1896,11 @@ manage_sock_files_pattern(systemd_importd_t, systemd_importd_var_run_t, systemd_
 init_pid_filetrans(systemd_importd_t, systemd_importd_var_run_t, dir)
 
 manage_files_pattern(systemd_importd_t, systemd_machined_var_run_t, systemd_machined_var_run_t)
+
+systemd_init_exec(systemd_importd_t)
+
+manage_lnk_files_pattern(systemd_machined_t, systemd_machined_var_run_t, systemd_machined_var_run_t)
+
 init_named_pid_filetrans(systemd_importd_t, systemd_machined_var_run_t, file, "machines.lock")
 
 manage_dirs_pattern(systemd_importd_t, systemd_importd_tmp_t, systemd_importd_tmp_t)
