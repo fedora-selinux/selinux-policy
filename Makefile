@@ -146,7 +146,7 @@ tunables = $(local_poldir)/tunables.conf
 endif
 
 # install paths
-PKGNAME ?= refpolicy-$(version)
+PKGNAME ?= fedora-selinux-$(version)
 prefix = $(DESTDIR)/usr
 topdir = $(DESTDIR)/etc/selinux
 installdir = $(topdir)/$(strip $(NAME))
