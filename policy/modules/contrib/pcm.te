@@ -1,5 +1,4 @@
 policy_module(pcm, 1.0)
-#policy_module(pcmsensor, 1.0)
 
 ########################################
 #
@@ -13,11 +12,18 @@ init_daemon_domain(pcmsensor_t, pcmsensor_exec_t)
 permissive pcmsensor_t;
 
 allow pcmsensor_t self:capability { sys_rawio sys_resource };
-allow pcmsensor_t self:process { ptrace setrlimit };
+allow pcmsensor_t self:capability2 perfmon;
+allow pcmsensor_t self:perf_event { cpu kernel open read };
+allow pcmsensor_t self:process { ptrace setrlimit setsched };
+allow pcmsensor_t self:tcp_socket create_stream_socket_perms;
 
 kernel_read_proc_files(pcmsensor_t)
 kernel_read_debugfs(pcmsensor_t)
 kernel_rw_nmi_watchdog_state(pcmsensor_t)
+kernel_write_proc_files(pcmsensor_t)
+
+corenet_tcp_bind_generic_node(pcmsensor_t)
+corenet_tcp_bind_generic_port(pcmsensor_t)
 
 dev_rw_cpu_microcode(pcmsensor_t)
 # /sys/module/msr/parameters/allow_writes
