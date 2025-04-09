@@ -34,6 +34,7 @@ read_files_pattern(systemd_read_efivarfs_type, init_var_run_t, init_var_run_t)
 
 systemd_domain_template(systemd_logger)
 systemd_domain_template(systemd_logind)
+systemd_domain_template(systemd_user_runtimedir)
 
 type systemd_conf_t;
 files_config_file(systemd_conf_t)
@@ -1921,3 +1922,40 @@ optional_policy(`
 ')
 
 permissive systemd_pcrlock_t;
+
+#######################################
+#
+# systemd_user_runtimedir local policy
+#
+
+permissive systemd_user_runtimedir_t;
+
+allow systemd_user_runtimedir_t self:capability { dac_override dac_read_search fowner sys_admin };
+allow systemd_user_runtimedir_t self:netlink_selinux_socket create_socket_perms;
+allow systemd_user_runtimedir_t self:unix_dgram_socket create_socket_perms;
+
+systemd_dbus_chat_logind(systemd_user_runtimedir_t)
+
+kernel_dgram_send(systemd_user_runtimedir_t)
+
+domain_obj_id_change_exemption(systemd_user_runtimedir_t)
+
+files_dontaudit_delete_all_files(systemd_user_runtimedir_t)
+files_dontaudit_list_all_dirs(systemd_user_runtimedir_t)
+
+fs_mount_tmpfs(systemd_user_runtimedir_t)
+fs_unmount_tmpfs(systemd_user_runtimedir_t)
+fs_relabel_tmpfs_dirs(systemd_user_runtimedir_t)
+
+optional_policy(`
+	dbus_delete_session_tmp_sock_files(systemd_user_runtimedir_t)
+')
+
+optional_policy(`
+	userdom_manage_tmp_dirs(systemd_user_runtimedir_t)
+	userdom_mounton_tmp_dirs(systemd_user_runtimedir_t)
+	userdom_relabel_user_tmp_dirs(systemd_user_runtimedir_t)
+	userdom_delete_all_user_tmp_content(systemd_user_runtimedir_t)
+	userdom_delete_user_tmp_blk_files(systemd_user_runtimedir_t)
+	userdom_delete_user_tmp_chr_files(systemd_user_runtimedir_t)
+')
