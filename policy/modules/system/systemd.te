@@ -248,6 +248,11 @@ systemd_domain_template(systemd_machined)
 type systemd_machined_unit_file_t;
 systemd_unit_file(systemd_machined_unit_file_t)
 
+type systemd_machined_tmp_t;
+files_tmp_file(systemd_machined_tmp_t)
+type systemd_machined_tmpfs_t;
+files_tmpfs_file(systemd_machined_tmpfs_t)
+
 # /run/systemd/machines
 type systemd_machined_var_run_t;
 files_pid_file(systemd_machined_var_run_t)
@@ -516,10 +521,16 @@ optional_policy(`
 # systemd_machined local policy
 #
 
-allow systemd_machined_t self:capability { dac_read_search dac_override setgid sys_admin sys_chroot sys_ptrace kill };
+allow systemd_machined_t self:capability { chown dac_read_search dac_override fowner fsetid setgid sys_admin sys_chroot sys_ptrace kill };
 allow systemd_machined_t systemd_unit_file_t:service { status start stop };
 allow systemd_machined_t self:unix_dgram_socket create_socket_perms;
 allow systemd_machined_t self:cap_userns { kill setgid setuid sys_admin sys_chroot sys_ptrace };
+
+allow systemd_machined_t systemd_machined_tmp_t:file { create setattr write_file_perms };
+files_tmp_filetrans(systemd_machined_t, systemd_machined_tmp_t, file)
+
+allow systemd_machined_t systemd_machined_tmpfs_t:file { create setattr write_file_perms };
+fs_tmpfs_filetrans(systemd_machined_t, systemd_machined_tmpfs_t, file)
 
 manage_dirs_pattern(systemd_machined_t, systemd_machined_var_run_t, systemd_machined_var_run_t)
 manage_files_pattern(systemd_machined_t, systemd_machined_var_run_t, systemd_machined_var_run_t)
