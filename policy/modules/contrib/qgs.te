@@ -1,0 +1,71 @@
+policy_module(qgs, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type qgs_t;
+type qgs_exec_t;
+init_daemon_domain(qgs_t, qgs_exec_t)
+
+permissive qgs_t;
+
+type qgs_var_lib_t;
+files_type(qgs_var_lib_t);
+
+type qgs_var_run_t;
+files_pid_file(qgs_var_run_t);
+
+# Config file exclusively for SGX
+type qgs_etc_t;
+
+########################################
+#
+# qgs local policy
+#
+allow qgs_t self:fifo_file rw_fifo_file_perms;
+allow qgs_t self:unix_stream_socket create_stream_socket_perms;
+
+# /var/lib/qgs is the $HOME for 'qgs' and it caches some
+# data under subdirs
+manage_dirs_pattern(qgs_t, qgs_var_lib_t, qgs_var_lib_t)
+manage_files_pattern(qgs_t, qgs_var_lib_t, qgs_var_lib_t)
+manage_lnk_files_pattern(qgs_t, qgs_var_lib_t, qgs_var_lib_t)
+
+# /run/tdx/qgs is where 'qgs' creates UNIX socket
+manage_dirs_pattern(qgs_t, qgs_var_run_t, qgs_var_run_t)
+manage_files_pattern(qgs_t, qgs_var_run_t, qgs_var_run_t)
+manage_sock_files_pattern(qgs_t, qgs_var_run_t, qgs_var_run_t)
+files_pid_filetrans(qgs_t, qgs_var_run_t, { dir })
+
+domain_use_interactive_fds(qgs_t)
+
+# To read /etc/qgs.conf for its configuration
+files_config_file(qgs_etc_t)
+read_files_pattern(qgs_t, qgs_etc_t, qgs_etc_t)
+
+corenet_tcp_connect_http_port(qgs_t)
+
+# It loads enclaves with ...
+dev_rw_sgx_provision(qgs_t)
+
+# ...and executes enclaves to create quotes
+dev_rwx_sgx_enclave(qgs_t)
+
+optional_policy(`
+  logging_send_syslog_msg(qgs_t)
+')
+
+optional_policy(`
+  miscfiles_read_localization(qgs_t)
+')
+
+# It connects to intel.com to acquire certificates
+optional_policy(`
+  miscfiles_read_generic_certs(qgs_t)
+')
+
+optional_policy(`
+  sysnet_dns_name_resolve(qgs_t)
+')
