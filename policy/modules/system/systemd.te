@@ -1324,7 +1324,11 @@ allow systemd_generator systemd_unit_file_type:file getattr_file_perms;
 allow systemd_generator systemd_unit_file_type:lnk_file getattr_lnk_file_perms;
 
 kernel_read_proc_files(systemd_generator)
+kernel_read_sysctl(systemd_generator)
+kernel_read_net_sysctls(systemd_generator)
 
+corecmd_exec_bin(systemd_generator)
+dev_read_sysfs(systemd_generator)
 dev_write_kmsg(systemd_generator)
 files_map_read_etc_files(systemd_generator)
 fs_getattr_all_fs(systemd_generator)
@@ -1333,7 +1337,15 @@ fs_search_cgroup_dirs(systemd_generator)
 init_read_state(systemd_generator)
 
 optional_policy(`
+	auth_dontaudit_read_passwd_file(systemd_generator)
+')
+
+optional_policy(`
 	logging_stream_connect_syslog(systemd_generator)
+')
+
+optional_policy(`
+	sssd_dontaudit_search_lib(systemd_generator)
 ')
 
 ### Rules for individual systemd generator domains
@@ -1346,14 +1358,6 @@ corecmd_exec_shell(systemd_bootc_generator_t)
 
 optional_policy(`
 	anaconda_domtrans_install(systemd_bootc_generator_t)
-')
-
-optional_policy(`
-	auth_dontaudit_read_passwd_file(systemd_bootc_generator_t)
-')
-
-optional_policy(`
-	sssd_dontaudit_search_lib(systemd_bootc_generator_t)
 ')
 
 ### cryptsetup generator
@@ -1387,7 +1391,6 @@ optional_policy(`
 systemd_read_efivarfs(systemd_factory_reset_generator_t)
 
 ### getty generator
-dev_read_sysfs(systemd_getty_generator_t)
 term_use_unallocated_ttys(systemd_getty_generator_t)
 
 optional_policy(`
@@ -1399,7 +1402,6 @@ allow systemd_gpt_generator_t self:capability sys_rawio;
 dontaudit systemd_gpt_generator_t self:capability sys_admin;
 allow systemd_gpt_generator_t self:netlink_kobject_uevent_socket create_socket_perms;
 
-dev_read_sysfs(systemd_gpt_generator_t)
 dev_read_rand(systemd_gpt_generator_t)
 
 files_list_boot(systemd_gpt_generator_t)
@@ -1437,10 +1439,6 @@ permissive systemd_import_generator_t;
 allow systemd_ssh_generator_t self:vsock_socket create;
 allow systemd_ssh_generator_t vsock_device_t:chr_file { read_chr_file_perms };
 
-kernel_read_sysctl(systemd_ssh_generator_t)
-
-dev_read_sysfs(systemd_ssh_generator_t)
-
 optional_policy(`
 	ssh_domtrans(systemd_ssh_generator_t)
 	ssh_getattr_unit_file(systemd_ssh_generator_t)
@@ -1450,17 +1448,11 @@ optional_policy(`
 init_read_script_files(systemd_sysv_generator_t)
 
 ### tpm2 generator
-dev_read_sysfs(systemd_tpm2_generator_t)
 
 ### vsftpd generator
 permissive systemd_vsftpd_generator_t;
 
-corecmd_exec_bin(systemd_vsftpd_generator_t)
 corecmd_exec_shell(systemd_vsftpd_generator_t)
-
-optional_policy(`
-	auth_dontaudit_read_passwd_file(systemd_vsftpd_generator_t)
-')
 
 ### zram generator
 allow systemd_zram_generator_t systemd_fstab_generator_unit_file_t:file write_file_perms;
@@ -1471,9 +1463,6 @@ filetrans_pattern(systemd_zram_generator_t, systemd_unit_file_t, systemd_zram_ge
 dev_create_sysfs_files(systemd_zram_generator_t)
 dev_rw_sysfs(systemd_zram_generator_t)
 
-# for systemd-detect-virt - needs to be confined
-corecmd_exec_bin(systemd_zram_generator_t)
-dev_read_sysfs(systemd_zram_generator_t)
 storage_getattr_fixed_disk_dev(systemd_zram_generator_t)
 
 optional_policy(`
