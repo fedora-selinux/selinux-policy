@@ -6018,6 +6018,30 @@ interface(`userdom_delete_all_user_tmp_content',`
 
 ########################################
 ## <summary>
+##	Common permissions for reading SSL certificates in the user
+##	homedir. (INTERNAL)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`userdom_read_home_certs_common',`
+	gen_require(`
+		type home_cert_t;
+	')
+
+	userdom_search_user_home_content($1)
+
+	list_dirs_pattern($1, home_cert_t, home_cert_t)
+	read_files_pattern($1, home_cert_t, home_cert_t)
+	read_lnk_files_pattern($1, home_cert_t, home_cert_t)
+	allow $1 home_cert_t:file map;
+')
+
+########################################
+## <summary>
 ##	Read system SSL certificates in the users homedir.
 ## </summary>
 ## <param name="domain">
@@ -6027,11 +6051,39 @@ interface(`userdom_delete_all_user_tmp_content',`
 ## </param>
 #
 interface(`userdom_read_home_certs',`
-	gen_require(`
-        attribute userdom_home_reader_certs_type;
+	userdom_read_home_certs_common($1)
+
+	tunable_policy(`use_ecryptfs_home_dirs',`
+		fs_read_ecryptfs_files($1)
+		fs_read_ecryptfs_symlinks($1)
+	')
+')
+
+########################################
+## <summary>
+##	Read system SSL certificates in the users homedir (for use 
+##	with a boolean).
+## </summary>
+## <param name="boolean">
+##	<summary>
+##	Boolean that will allow the access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+template(`userdom_read_home_certs_tunable',`
+	tunable_policy($1, `
+		userdom_read_home_certs_common($2)
 	')
 
-    typeattribute $1 userdom_home_reader_certs_type;
+	tunable_policy(`$1 && use_ecryptfs_home_dirs',`
+		fs_read_ecryptfs_files($2)
+		fs_read_ecryptfs_symlinks($2)
+	')
 ')
 
 ########################################
