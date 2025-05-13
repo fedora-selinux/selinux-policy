@@ -1,54 +1,26 @@
-## Merging selinux-policy-contrib repository with selinux-policy
+# Fedora SELinux policy
 
-On November 25th, 2020, the selinux-policy-contrib repository was merged with selinux-policy.
+This is SELinux policy based on [refpolicy](https://github.com/SELinuxProject/refpolicy) used in Fedora, Red Hat Enterprise Linux and CentOS Stream.
 
-Previously, SELinux policy packages in Fedora used 2 repositories:
-base [1] and contrib [2].
-This division into two repos was merely a historical artifact, being
-now just a source of confusion and made dealing
-with SELinux policy repos more difficult.
+## Installation
 
-From now on, these repos are merged into one, containing sources from both.
-All the changes affect both repos, `rawhide` branches and future branches
-`f34` and newer.
-When working in the rawhide branch, only the base repo is
-now used; the corresponding contrib branch was archived and will not be used
-any longer. The contrib repo's commit history are a part of the base repo.
-Stable branches (`f33`, `f32`, all older ones) remain unchanged.
+The installation process is described in [INSTALL](INSTALL).
 
-It mainly is an internal change of where the git repository is stored and
-how it is referenced. There should now be just one notable change
-inside the repo: all files previously accessible from the root directory in the
-selinux-policy-contrib repo are in the selinux-policy base repo, directory
-`policy/modules/contrib/`. No change for working in the selinux-policy base repo.
+The default policy is installed to `/etc/selinux/fedora-selinux` and `/var/lib/selinux/fedora-selinux`.
 
-### How users are affected?
-There is no change for users.
+The name and other options can be changed using variables like `NAME`, `TYPE`, ... variables, for more details see [README.build](README.build).
+E.g. Fedora `targeted` policy uses the following options:
 
-### How custom selinux-policy developers are affected?
-No change for policy writing other than where to look for modules, previously found in the contrib repo.
+    DISTRO=redhat UBAC=n DIRECT_INITRC=n MONOLITHIC=n MLS_CATS=1024 MCS_CATS=1024 UNK_PERMS=allow NAME=targeted TYPE=mcs
 
-Scripts, data, specfile, etc. in the dist git were updated to use the new location for builds targeting rawhide or f34+.
+## Contributing
 
-### How selinux-policy contributors are affected?
-No change other than where to look for the previous contrib modules and where to submit pull requests.
+There are several ways how to contribute:
 
-Pull requests which have not been merged yet require the submitter to rebase it and open against the base repo.
+### Report bugs
 
-### Where to submit pull requests?
-Use the base selinux-policy repository [3].
+Either open issue in this project or file a bug in [Fedora Bugzilla](https://bugzilla.redhat.com)
 
-### How to report issues?
-Use the base selinux-policy repository [4].
+### Pull requests
 
-### Backporting commits
-Commits to policy/modules/contrib needing backport to stable branches will be backported to the legacy contrib repo.
-
-### References
-[1] https://github.com/fedora-selinux/selinux-policy/
-
-[2] https://github.com/fedora-selinux/selinux-policy-contrib/
-
-[3] https://github.com/fedora-selinux/selinux-policy/pulls
-
-[4] https://github.com/fedora-selinux/selinux-policy/issues
+You can fork this repo and open a PR. Please use  good practices and use descriptive commit messages.
