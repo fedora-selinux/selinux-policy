@@ -36,6 +36,8 @@ gen_tunable(ssh_use_tcpd, false)
 
 
 attribute ssh_dyntransition_domain;
+# needed or no?
+attribute ssh_session_dyntransition_domain;
 attribute ssh_server;
 attribute ssh_agent_type;
 
@@ -65,6 +67,116 @@ init_daemon_domain(sshd_t, sshd_exec_t)
 mls_trusted_object(sshd_t)
 mls_process_write_all_levels(sshd_t)
 mls_dbus_send_all_levels(sshd_t)
+
+###
+### Policy for session and auth
+###
+ssh_server_template(sshd_session)
+#type sshd_session_t;
+#role system_r types sshd_session_t;
+type sshd_session_exec_t;
+corecmd_executable_file(sshd_session_exec_t)
+permissive sshd_session_t;
+domain_type(sshd_session_t);
+domain_entry_file(sshd_session_t, sshd_session_exec_t)
+domain_dyntrans_type(sshd_session_t)
+
+domtrans_pattern(sshd_t, sshd_session_exec_t, sshd_session_t)
+ssh_session_dyntransition_to(sshd_net_t)
+
+allow sshd_session_t self:capability { audit_write chown dac_read_search setgid setuid sys_resource };
+allow sshd_session_t self:process { setcurrent setexec setkeycreate setrlimit setsched };
+allow sshd_session_t self:netlink_audit_socket { create nlmsg_relay };
+allow sshd_session_t self:netlink_route_socket { bind create getattr nlmsg_read };
+allow sshd_session_t self:udp_socket { connect create getattr };
+
+allow sshd_net_t sshd_session_t:fifo_file write;
+allow sshd_net_t sshd_session_t:unix_stream_socket { read write };
+allow sshd_session_t sshd_t:tcp_socket { getattr getopt read setopt write };
+allow sshd_session_t sshd_t:unix_stream_socket { read write };
+
+allow sshd_session_t ssh_home_t:dir relabelto;
+allow sshd_session_t ssh_home_t:file relabelto;
+manage_dirs_pattern(sshd_session_t, ssh_home_t, ssh_home_t)
+manage_files_pattern(sshd_session_t, ssh_home_t, ssh_home_t)
+
+kernel_stream_connect(sshd_session_t)
+
+fs_getattr_all_fs(sshd_session_t)
+
+tunable_policy(`ssh_sysadm_login',`
+	# Relabel and access ptys created by sshd
+	# ioctl is necessary for logout() processing for utmp entry and for w to
+	# display the tty.
+	# some versions of sshd on the new SE Linux require setattr
+	userdom_signal_all_users(sshd_session_t)
+	userdom_spec_domtrans_admin_users(sshd_session_t)
+	userdom_dyntransition_admin_users(sshd_session_t)
+')
+
+optional_policy(`
+	#auth_login_pgm_domain(sshd_session_t)
+	auth_write_login_records(sshd_session_t)
+')
+
+optional_policy(`
+	systemd_dbus_chat_hostnamed(sshd_session_t)
+	systemd_userdbd_stream_connect(sshd_session_t)
+')
+
+optional_policy(`
+	unconfined_shell_domtrans(sshd_session_t)
+')
+
+optional_policy(`
+	userdom_read_user_home_content_files(sshd_session_t)
+	userdom_read_user_home_content_symlinks(sshd_session_t)
+	userdom_spec_domtrans_unpriv_users(sshd_session_t)
+	userdom_signal_unpriv_users(sshd_session_t)
+	userdom_dyntransition_unpriv_users(sshd_session_t)
+	userdom_map_tmp_files(sshd_session_t)
+')
+
+#type sshd_session_devpts_t;
+term_login_pty(sshd_session_devpts_t)
+allow sshd_session_t sshd_session_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms getattr_chr_file_perms relabelfrom };
+
+term_create_pty(sshd_session_t, sshd_session_devpts_t)
+term_use_all_ptys(sshd_session_t)
+term_setattr_all_ptys(sshd_session_t)
+term_setattr_all_ttys(sshd_session_t)
+term_relabelto_all_ptys(sshd_session_t)
+
+type sshd_auth_t;
+role system_r types sshd_auth_t;
+type sshd_auth_exec_t;
+permissive sshd_auth_t;
+domain_type(sshd_auth_t);
+corecmd_executable_file(sshd_auth_exec_t)
+domain_entry_file(sshd_auth_t, sshd_auth_exec_t)
+domain_dyntrans_type(sshd_auth_t)
+ssh_auth_dyntransition_to(sshd_net_t)
+domtrans_pattern(sshd_session_t, sshd_auth_exec_t, sshd_auth_t)
+
+allow sshd_auth_t self:process { setcurrent setrlimit };
+allow sshd_auth_t self:unix_dgram_socket { create ioctl };
+
+allow sshd_auth_t sshd_t:tcp_socket { getattr read write };
+allow sshd_auth_t sshd_session_t:unix_stream_socket { read write };
+
+optional_policy(`
+	auth_use_nsswitch(sshd_auth_t)
+')
+
+optional_policy(`
+	seutil_read_default_contexts(sshd_auth_t)
+	seutil_read_config(sshd_auth_t)
+')
+
+###
+### End of policy for session and auth
+###
+
 
 type sshd_initrc_exec_t;
 init_script_file(sshd_initrc_exec_t)
@@ -163,8 +275,8 @@ manage_files_pattern(ssh_t, ssh_home_t, ssh_home_t)
 read_lnk_files_pattern(ssh_t, ssh_home_t, ssh_home_t)
 
 # ssh servers can read the user keys and config
-manage_dirs_pattern(ssh_server, ssh_home_t, ssh_home_t)
-manage_files_pattern(ssh_server, ssh_home_t, ssh_home_t)
+#manage_dirs_pattern(ssh_server, ssh_home_t, ssh_home_t)
+#manage_files_pattern(ssh_server, ssh_home_t, ssh_home_t)
 
 kernel_read_device_sysctls(ssh_t)
 kernel_read_kernel_sysctls(ssh_t)
@@ -649,17 +761,7 @@ logging_send_audit_msgs(sshd_sandbox_t)
 #  sshd [net] child local policy
 #
 
-allow sshd_net_t sshd_t:vsock_socket rw_socket_perms;
-
-allow sshd_t sshd_net_t:process signal;
-
 allow sshd_net_t self:process setrlimit;
-
-init_ioctl_stream_sockets(sshd_net_t)
-init_rw_tcp_sockets(sshd_net_t)
-
-logging_send_audit_msgs(sshd_net_t)
-
 
 ######################################
 #
