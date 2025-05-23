@@ -310,6 +310,29 @@ template(`ssh_server_template',`
 	')
 ')
 
+######################################
+## <summary>
+##	The template to define a domain to which sshd_session dyntransition.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The prefix of the dyntransition domain
+##  </summary>
+## </param>
+#
+template(`ssh_session_dyntransition_domain_template',`
+	gen_require(`
+		attribute ssh_session_dyntransition_domain;
+	')
+
+	typeattribute $1 ssh_session_dyntransition_domain;
+	role system_r types $1;
+
+	optional_policy(`
+		ssh_session_dyntransition_to($1)
+	')
+')
+
 ########################################
 ## <summary>
 ##	Role access for ssh
@@ -1238,4 +1261,44 @@ interface(`ssh_create_vsock_socket',`
 	')
 
 	allow $1 sshd_t:vsock_socket create_stream_socket_perms;
+')
+
+#####################################
+## <summary>
+##	Allow sshd-session dyntransition to a specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_session_dyntransition_to',`
+	gen_require(`
+		type sshd_session_t;
+	')
+
+	allow sshd_session_t $1:process dyntransition;
+	allow $1 sshd_session_t:process sigchld;
+	allow sshd_session_t $1:process { getattr sigkill sigstop signull signal };
+')
+
+#####################################
+## <summary>
+##	Allow sshd-auth dyntransition to a specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_auth_dyntransition_to',`
+	gen_require(`
+		type sshd_auth_t;
+	')
+	
+	allow sshd_auth_t $1:process dyntransition;
+	allow $1 sshd_auth_t:process sigchld;
+	allow sshd_auth_t $1:process { getattr sigkill sigstop signull signal };
 ')
