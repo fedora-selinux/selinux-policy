@@ -197,16 +197,30 @@ systemd_domain_template(systemd_network_generator)
 type systemd_gpt_generator_unit_file_t;
 systemd_unit_file(systemd_gpt_generator_unit_file_t)
 
-#domain for fstab-generator
+### domains and file types for systemd generators
+# bless-boot-generator
+systemd_generator_template(systemd_bless_boot_generator)
+# bootc-generator
+systemd_generator_template(systemd_bootc_generator)
+# cryptsetup-generator
+systemd_generator_template(systemd_cryptsetup_generator)
+# debug-generator
+systemd_generator_template(systemd_debug_generator)
+# fstab-generator
 systemd_generator_template(systemd_fstab_generator)
+# getty-generator
+systemd_generator_template(systemd_getty_generator)
 
-#domain for rc-local-generator
+# rc-local-generator
 systemd_generator_template(systemd_rc_local_generator)
 # ssh-generator
 systemd_generator_template(systemd_ssh_generator)
-
-#domain for sysv-generator
+# sysv-generator
 systemd_generator_template(systemd_sysv_generator)
+# tpm2-generator
+systemd_generator_template(systemd_tpm2_generator)
+# vsftpd-generator
+systemd_generator_template(systemd_vsftpd_generator)
 
 #domain for systemd-machined
 systemd_domain_template(systemd_machined)
@@ -1236,10 +1250,50 @@ optional_policy(`
 ')
 
 #######################################
-#
-# systemd_gpt_generator domain
-#
 
+### bless-boot generator
+permissive systemd_bless_boot_generator_t;
+fs_read_efivarfs_files(systemd_bless_boot_generator_t)
+
+### bootc generator
+permissive systemd_bootc_generator_t;
+corecmd_exec_shell(systemd_bootc_generator_t)
+
+optional_policy(`
+	anaconda_domtrans_install(systemd_bootc_generator_t)
+')
+
+### cryptsetup generator
+permissive systemd_cryptsetup_generator_t;
+
+### debug generator
+permissive systemd_debug_generator_t;
+fs_read_tmpfs_files(systemd_debug_generator_t)
+
+#######################################
+#
+### fstab generator
+#
+allow systemd_fstab_generator_t self:capability dac_override;
+dev_write_sysfs_dirs(systemd_fstab_generator_t)
+
+files_read_etc_files(systemd_fstab_generator_t)
+files_read_all_lnk_files(systemd_fstab_generator_t)
+files_search_all(systemd_fstab_generator_t)
+
+fstools_exec(systemd_fstab_generator_t)
+
+systemd_manage_all_unit_files(systemd_fstab_generator_t)
+
+### getty generator
+permissive systemd_getty_generator_t;
+term_use_unallocated_ttys(systemd_getty_generator_t)
+
+optional_policy(`
+	userdom_use_user_ttys(systemd_getty_generator_t)
+')
+
+### gpt generator
 allow systemd_gpt_generator_t self:capability sys_rawio;
 dontaudit systemd_gpt_generator_t self:capability sys_admin;
 allow systemd_gpt_generator_t self:netlink_kobject_uevent_socket create_socket_perms;
@@ -1276,21 +1330,6 @@ optional_policy(`
 
 #######################################
 #
-# systemd_fstab_generator_t 
-#
-allow systemd_fstab_generator_t self:capability dac_override;
-dev_write_sysfs_dirs(systemd_fstab_generator_t)
-
-files_read_etc_files(systemd_fstab_generator_t)
-files_read_all_lnk_files(systemd_fstab_generator_t)
-files_search_all(systemd_fstab_generator_t)
-
-fstools_exec(systemd_fstab_generator_t)
-
-systemd_manage_all_unit_files(systemd_fstab_generator_t)
-
-#######################################
-#
 # systemd_rc_local_generator_t 
 #
 
@@ -1318,6 +1357,15 @@ optional_policy(`
 init_read_script_files(systemd_sysv_generator_t)
 
 systemd_manage_all_unit_files(systemd_sysv_generator_t)
+
+### tpm2 generator
+permissive systemd_tpm2_generator_t;
+
+### vsftpd generator
+permissive systemd_vsftpd_generator_t;
+corecmd_exec_shell(systemd_vsftpd_generator_t)
+
+
 
 #######################################
 #
