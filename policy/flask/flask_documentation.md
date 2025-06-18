@@ -46,6 +46,8 @@ The common file permissions that are inherited by a number of object classes.
 
 **watch\_mount** - Set a watch on filesystem objects within the same mount.
 
+**watch\_mountns** - Required to control access to watching for changes to the mount namespace. Changes include the addition of a new filesystem mount, removal of an existing mount, or moving a mount in a namespace.
+
 **watch\_reads** - Required to receive notifications from read-exclusive events on filesystem objects. These events include accessing a file for the purpose of reading and closing a file which has been opened read-only.
 
 **watch\_sb** - Set a watch on filesystem objects within the same filesystem. Superblock watches further require the filesystem watch permission to the superblock.
