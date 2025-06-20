@@ -90,7 +90,7 @@ interface(`insights_client_filetrans_named_content',`
 	gen_require(`
 		type insights_client_etc_t, insights_client_etc_rw_t;
 		type insights_client_tmp_t;
-		type insights_client_var_run_t;
+		type insights_client_run_t;
 	')
 
 	filetrans_pattern($1, insights_client_etc_t, insights_client_etc_rw_t, file, ".cache.json")
@@ -104,7 +104,7 @@ interface(`insights_client_filetrans_named_content',`
 	filetrans_pattern($1, insights_client_etc_t, insights_client_etc_rw_t, file, "insights-client-egg-release")
 	filetrans_pattern($1, insights_client_etc_t, insights_client_etc_rw_t, file, "machine-id")
 
-	files_pid_filetrans($1, insights_client_var_run_t, file, "insights-client.pid")
+	files_pid_filetrans($1, insights_client_run_t, file, "insights-client.pid")
 
 	files_tmp_filetrans($1, insights_client_tmp_t, dir, "insights-client")
 	files_tmp_filetrans($1, insights_client_tmp_t, file, "insights-client.ppid")
@@ -131,6 +131,25 @@ interface(`insights_client_filetrans_tmp',`
 
 ########################################
 ## <summary>
+##	Read files in /run
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`insights_client_read_run',`
+	gen_require(`
+		type insights_client_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 insights_client_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
 ##	Transition to insights_client named content in /var/run
 ## </summary>
 ## <param name="domain">
@@ -141,10 +160,10 @@ interface(`insights_client_filetrans_tmp',`
 #
 interface(`insights_client_filetrans_run',`
 	gen_require(`
-		type insights_client_var_run_t;
+		type insights_client_run_t;
 	')
 
-	files_pid_filetrans($1, insights_client_var_run_t, file, "insights-client.pid")
+	files_pid_filetrans($1, insights_client_run_t, file, "insights-client.pid")
 ')
 
 ########################################
@@ -169,7 +188,7 @@ interface(`insights_client_read_config',`
 
 ########################################
 ## <summary>
-##	Read insights_client lib files.
+##	Create insights_client config files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -177,19 +196,19 @@ interface(`insights_client_read_config',`
 ##	</summary>
 ## </param>
 #
-interface(`insights_client_read_lib_files',`
+interface(`insights_client_create_config',`
 	gen_require(`
-		type insights_client_var_lib_t;
+		type insights_client_etc_t, insights_client_etc_rw_t;
 	')
 
-	files_search_var_lib($1)
-	read_files_pattern($1, insights_client_var_lib_t, insights_client_var_lib_t)
-	allow $1 insights_client_var_lib_t:file map;
+	files_search_etc($1)
+	create_files_pattern($1, insights_client_etc_t, insights_client_etc_t)
+	create_files_pattern($1, insights_client_etc_t, insights_client_etc_rw_t)
 ')
 
 ########################################
 ## <summary>
-##	Manage insights_client lib directories..
+##	Write insights_client rw config files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -197,32 +216,13 @@ interface(`insights_client_read_lib_files',`
 ##	</summary>
 ## </param>
 #
-interface(`insights_client_manage_lib_dirs',`
+interface(`insights_client_manage_config_rw',`
 	gen_require(`
-		type insights_client_var_lib_t;
+		type insights_client_etc_t, insights_client_etc_rw_t;
 	')
 
-	files_search_var_lib($1)
-	manage_dirs_pattern($1, insights_client_var_lib_t, insights_client_var_lib_t)
-')
-
-########################################
-## <summary>
-##	Watch insights_client lib directories..
-## </summary>
-## <param name="domain">
-##	<summary>
-##	Domain allowed access.
-##	</summary>
-## </param>
-#
-interface(`insights_client_watch_lib_dirs',`
-	gen_require(`
-		type insights_client_var_lib_t;
-	')
-
-	files_search_var_lib($1)
-	watch_dirs_pattern($1, insights_client_var_lib_t, insights_client_var_lib_t)
+	files_search_etc($1)
+	manage_files_pattern($1, insights_client_etc_t, insights_client_etc_rw_t)
 ')
 
 ########################################
@@ -247,7 +247,7 @@ interface(`insights_client_manage_lib_files',`
 
 ########################################
 ## <summary>
-##	Write to insights_client lib socket files.
+##	Create insights_client lib dirs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -255,18 +255,18 @@ interface(`insights_client_manage_lib_files',`
 ##	</summary>
 ## </param>
 #
-interface(`insights_client_write_lib_sock_files',`
+interface(`insights_client_create_lib_dirs',`
 	gen_require(`
 		type insights_client_var_lib_t;
 	')
 
 	files_search_var_lib($1)
-	write_sock_files_pattern($1, insights_client_var_lib_t, insights_client_var_lib_t)
+	create_dirs_pattern($1, insights_client_var_lib_t, insights_client_var_lib_t)
 ')
 
 ########################################
 ## <summary>
-##	Manage insights_client lib socket files.
+##	Setattr insights_client lib dirs.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -274,13 +274,51 @@ interface(`insights_client_write_lib_sock_files',`
 ##	</summary>
 ## </param>
 #
-interface(`insights_client_manage_lib_sock_files',`
+interface(`insights_client_setattr_lib_dirs',`
 	gen_require(`
 		type insights_client_var_lib_t;
 	')
 
 	files_search_var_lib($1)
-	manage_sock_files_pattern($1, insights_client_var_lib_t, insights_client_var_lib_t)
+	setattr_dirs_pattern($1, insights_client_var_lib_t, insights_client_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Watch insights_client lib dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`insights_client_watch_lib_dirs',`
+	gen_require(`
+		type insights_client_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	allow $1 insights_client_var_lib_t:dir watch_dir_perms;
+')
+
+########################################
+## <summary>
+##	Append insights_client log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`insights_client_append_log',`
+	gen_require(`
+		type insights_client_var_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 insights_client_var_log_t:file append_inherited_file_perms;
 ')
 
 ########################################
@@ -319,4 +357,61 @@ interface(`insights_client_write_tmp',`
 
 	files_search_tmp($1)
 	write_files_pattern($1, insights_client_tmp_t, insights_client_tmp_t)
+')
+
+########################################
+## <summary>
+##	Manage insights_client temporary directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`insights_client_manage_tmp_dirs',`
+	gen_require(`
+		type insights_client_tmp_t;
+	')
+
+	files_search_tmp($1)
+	manage_dirs_pattern($1, insights_client_tmp_t, insights_client_tmp_t)
+')
+
+########################################
+## <summary>
+##	Manage insights_client temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`insights_client_manage_tmp_files',`
+	gen_require(`
+		type insights_client_tmp_t;
+	')
+
+	files_search_tmp($1)
+	manage_files_pattern($1, insights_client_tmp_t, insights_client_tmp_t)
+')
+
+########################################
+## <summary>
+##	Manage insights_client temporary sock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`insights_client_manage_tmp_sock_files',`
+	gen_require(`
+		type insights_client_tmp_t;
+	')
+
+	files_search_tmp($1)
+	manage_sock_files_pattern($1, insights_client_tmp_t, insights_client_tmp_t)
 ')
