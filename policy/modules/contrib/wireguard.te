@@ -41,6 +41,33 @@ domain_use_interactive_fds(wireguard_t)
 
 files_read_etc_files(wireguard_t)
 
+# XXX: new DNS piece
+allow wireguard_t self:capability sys_admin;
+
+sysnet_mount_file(wireguard_t)
+
+# use fs_tmpfs_filetrans() instead of chcon on resolv.conf
+# XXX: new dontaudit interface below
+sysnet_dontaudit_file_relabelto(wireguard_t)
+selinux_dontaudit_validate_context(wireguard_t)
+
+sysnet_create_config(wireguard_t)
+sysnet_write_config(wireguard_t)
+
+fs_tmpfs_filetrans(wireguard_t, net_conf_t, file, "resolv.conf")
+
+fs_all_mount_fs_perms_tmpfs(wireguard_t)
+fs_mounton_tmpfs(wireguard_t)
+fs_manage_ramfs_files(wireguard_t)
+storage_rw_fixed_disk_blk_dev(wireguard_t)
+
+optional_policy(`
+	mount_exec(wireguard_t)
+	mount_manage_pid_files(wireguard_t)
+')
+
+files_mounton_rootfs(wireguard_t)
+
 optional_policy(`
 	auth_read_passwd(wireguard_t)
 ')
