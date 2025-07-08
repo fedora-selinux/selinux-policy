@@ -237,7 +237,9 @@ files_type(systemd_zram_generator_conf_t)
 allow systemd_zram_generator_t systemd_zram_generator_conf_t:file read_file_perms;
 # domain for a generic generator
 systemd_generator_template(systemd_generic_generator)
-
+# shared unit file type
+type systemd_generator_unit_file_t;
+systemd_unit_file(systemd_generator_unit_file_t)
 
 ### systemd-network-generator service
 systemd_domain_template(systemd_network_generator)
@@ -1340,10 +1342,11 @@ systemd_read_efivarfs(systemd_hwdb_t)
 allow systemd_generator self:process setfscreate;
 allow systemd_generator self:unix_dgram_socket { create_socket_perms sendto };
 
-allow systemd_generator systemd_unit_file_t:dir create_dir_perms;
+allow systemd_generator systemd_generator_unit_file_t:dir create_dir_perms;
+manage_files_pattern(systemd_generator, systemd_unit_file_t, systemd_unit_file_t)
 allow systemd_generator systemd_unit_file_t:lnk_file manage_lnk_file_perms;
-allow systemd_generator systemd_unit_file_type:file getattr_file_perms;
-allow systemd_generator systemd_unit_file_type:lnk_file getattr_lnk_file_perms;
+manage_files_pattern(systemd_generator, systemd_generator_unit_file_t, systemd_generator_unit_file_t)
+allow systemd_generator systemd_generator_unit_file_t:lnk_file manage_lnk_file_perms;
 
 kernel_read_proc_files(systemd_generator)
 kernel_read_sysctl(systemd_generator)
@@ -1352,7 +1355,8 @@ kernel_read_net_sysctls(systemd_generator)
 corecmd_exec_bin(systemd_generator)
 dev_read_sysfs(systemd_generator)
 dev_write_kmsg(systemd_generator)
-files_map_read_etc_files(systemd_generator)
+files_read_non_security_files(systemd_generator)
+files_map_non_security_files(systemd_generator)
 fs_getattr_all_fs(systemd_generator)
 fs_getattr_nsfs_files(systemd_generator)
 fs_search_cgroup_dirs(systemd_generator)
@@ -1384,19 +1388,19 @@ optional_policy(`
 ')
 
 ### cryptsetup generator
-manage_dirs_pattern(systemd_cryptsetup_generator_t, systemd_fstab_generator_unit_file_t, systemd_fstab_generator_unit_file_t)
+#manage_dirs_pattern(systemd_cryptsetup_generator_t, systemd_fstab_generator_unit_file_t, systemd_fstab_generator_unit_file_t)
 
-manage_files_pattern(systemd_cryptsetup_generator_t, systemd_fstab_generator_unit_file_t, systemd_fstab_generator_unit_file_t)
+#manage_files_pattern(systemd_cryptsetup_generator_t, systemd_fstab_generator_unit_file_t, systemd_fstab_generator_unit_file_t)
 
 ### debug generator
 fs_read_tmpfs_files(systemd_debug_generator_t)
 
 ### fstab generator
 allow systemd_fstab_generator_t self:capability { dac_override dac_read_search };
-manage_dirs_pattern(systemd_fstab_generator_t, systemd_cryptsetup_generator_unit_file_t, systemd_cryptsetup_generator_unit_file_t)
-manage_files_pattern(systemd_fstab_generator_t, systemd_cryptsetup_generator_unit_file_t, systemd_cryptsetup_generator_unit_file_t)
+#manage_dirs_pattern(systemd_fstab_generator_t, systemd_cryptsetup_generator_unit_file_t, systemd_cryptsetup_generator_unit_file_t)
+#manage_files_pattern(systemd_fstab_generator_t, systemd_cryptsetup_generator_unit_file_t, systemd_cryptsetup_generator_unit_file_t)
 
-create_lnk_files_pattern(systemd_fstab_generator_t, systemd_unit_file_type, systemd_unit_file_type)
+#create_lnk_files_pattern(systemd_fstab_generator_t, systemd_unit_file_type, systemd_unit_file_type)
 
 dev_write_sysfs_dirs(systemd_fstab_generator_t)
 
@@ -1477,10 +1481,10 @@ permissive systemd_tpm2_generator_t;
 corecmd_exec_shell(systemd_vsftpd_generator_t)
 
 ### zram generator
-allow systemd_zram_generator_t systemd_fstab_generator_unit_file_t:file write_file_perms;
+#allow systemd_zram_generator_t systemd_fstab_generator_unit_file_t:file write_file_perms;
 permissive systemd_zram_generator_t;
 
-filetrans_pattern(systemd_zram_generator_t, systemd_unit_file_t, systemd_zram_generator_unit_file_t, dir, "systemd-zram-setup@zram0.service.d")
+#filetrans_pattern(systemd_zram_generator_t, systemd_unit_file_t, systemd_zram_generator_unit_file_t, dir, "systemd-zram-setup@zram0.service.d")
 
 dev_create_sysfs_files(systemd_zram_generator_t)
 dev_rw_sysfs(systemd_zram_generator_t)
