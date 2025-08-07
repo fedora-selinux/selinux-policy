@@ -267,29 +267,39 @@ optional_policy(`
 # is handled in the interface as typeattribute cannot
 # be used on an attribute.
 
+# Write access is for setting attributes under /proc/self/attr.
+allow unconfined_domain_type self:file manage_file_perms;
+allow unconfined_domain_type self:dir rw_dir_perms;
+allow unconfined_domain_type self:fifo_file { manage_fifo_file_perms relabelfrom relabelto };
+allow unconfined_domain_type self:lnk_file setattr;
+
 # allow special io_uring features
 allow unconfined_domain_type domain:io_uring { cmd override_creds };
 allow unconfined_domain_type self:io_uring sqpoll;
 dev_io_uring_cmd_on_all_dev_nodes(unconfined_domain_type)
 files_io_uring_cmd_on_all_files(unconfined_domain_type)
 
-# allow using the user_namespace class
+# Use any Linux capability
+allow unconfined_domain_type self:capability ~{ sys_module };
+allow unconfined_domain_type self:capability2 ~{ mac_admin mac_override };
+
+# Use namespace capabilities
 allow unconfined_domain_type self:user_namespace create;
+allow unconfined_domain_type self:cap_userns all_cap_userns_perms;
+allow unconfined_domain_type self:cap2_userns { bpf perfmon syslog wake_alarm };
 
 # Use bpf tools
 allow unconfined_domain_type domain:bpf { map_create map_read map_write prog_load prog_run };
 
-allow unconfined_domain_type self:lnk_file setattr;
-
 # Use/sendto/connectto sockets created by any domain.
-allow unconfined_domain_type self:cap_userns all_cap_userns_perms;
 allow unconfined_domain_type domain:{ socket_class_set socket key_socket } *;
-
 allow unconfined_domain_type domain:system all_system_perms;
+
 # Use descriptors and pipes created by any domain.
 allow unconfined_domain_type domain:fd use;
 allow unconfined_domain_type domain:fifo_file rw_file_perms;
 
+# Use dbus
 allow unconfined_domain_type unconfined_domain_type:dbus send_msg;
 
 # Act upon any other process.
