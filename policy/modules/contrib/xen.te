@@ -24,6 +24,13 @@ gen_tunable(xend_run_qemu, true)
 
 ## <desc>
 ## <p>
+## Allow xenstored to use XENSTORETYPE "domain"
+## </p>
+## </desc>
+gen_tunable(xenstored_use_store_type_domain, false)
+
+## <desc>
+## <p>
 ## Allow xen to manage nfs files
 ## </p>
 ## </desc>
@@ -421,6 +428,13 @@ optional_policy(`
 #
 # Xen store local policy
 #
+tunable_policy(`xenstored_use_store_type_domain',`
+	allow xenstored_t self:capability sys_admin;
+	# init-xenstore-domain runs as xenstored_t
+	# and writes userdata-*.libxl-json and
+	# handles userdata lock files in /var/lib/xen
+	manage_files_pattern(xenstored_t, xend_var_lib_t, xend_var_lib_t)
+')
 
 allow xenstored_t self:capability { dac_read_search  ipc_lock sys_resource };
 allow xenstored_t self:process setrlimit;
@@ -448,11 +462,6 @@ manage_dirs_pattern(xenstored_t, xenstored_var_lib_t, xenstored_var_lib_t)
 manage_files_pattern(xenstored_t, xenstored_var_lib_t, xenstored_var_lib_t)
 manage_sock_files_pattern(xenstored_t, xenstored_var_lib_t, xenstored_var_lib_t)
 files_var_lib_filetrans(xenstored_t, xenstored_var_lib_t, { file dir sock_file })
-
-# init-xenstore-domain runs as xenstored_t
-# and writes userdata-*.libxl-json and
-# handles userdata lock files in /var/lib/xen
-manage_files_pattern(xenstored_t, xend_var_lib_t, xend_var_lib_t)
 
 stream_connect_pattern(xenstored_t, evtchnd_var_run_t, evtchnd_var_run_t, evtchnd_t)
 
