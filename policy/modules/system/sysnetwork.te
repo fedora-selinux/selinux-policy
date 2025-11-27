@@ -31,6 +31,11 @@ init_daemon_domain(dhcpc_t, dhcpc_exec_t)
 type dhcpc_helper_exec_t;
 init_script_file(dhcpc_helper_exec_t)
 
+type dhcpc_hook_t;
+type dhcpc_hook_exec_t;
+role system_r types dhcpc_hook_t;
+application_domain(dhcpc_hook_t, dhcpc_hook_exec_t)
+
 type dhcpc_state_t;
 files_type(dhcpc_state_t)
 
@@ -305,6 +310,35 @@ optional_policy(`
 	kernel_write_xen_state(dhcpc_t)
 	xen_append_log(dhcpc_t)
 	xen_dontaudit_rw_unix_stream_sockets(dhcpc_t)
+')
+
+########################################
+#
+# DHCP client hook local policy
+#
+
+permissive dhcpc_hook_t;
+domtrans_pattern(dhcpc_t, dhcpc_hook_exec_t, dhcpc_hook_t)
+
+allow dhcpc_hook_t self:netlink_route_socket create_netlink_socket_perms;
+
+manage_dirs_pattern(dhcpc_hook_t, dhcpc_var_run_t, dhcpc_var_run_t)
+manage_files_pattern(dhcpc_hook_t, dhcpc_var_run_t, dhcpc_var_run_t)
+files_pid_filetrans(dhcpc_hook_t, dhcpc_var_run_t, { file dir sock_file })
+
+corecmd_exec_bin(dhcpc_hook_t)
+corecmd_exec_shell(dhcpc_hook_t)
+files_rw_etc_files(dhcpc_hook_t)
+init_ioctl_stream_sockets(dhcpc_hook_t)
+
+optional_policy(`
+	auth_read_passwd_file(dhcpc_hook_t)
+')
+
+optional_policy(`
+	dbus_send_system_bus(dhcpc_hook_t)
+	dbus_stream_connect_system_dbusd(dhcpc_hook_t)
+	dbus_write_pid_sock_files(dhcpc_hook_t)
 ')
 
 ########################################
