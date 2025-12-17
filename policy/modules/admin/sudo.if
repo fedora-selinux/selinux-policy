@@ -59,7 +59,7 @@ template(`sudo_role_template',`
 	allow $1_sudo_t $3:file read_file_perms;;
 	allow $1_sudo_t $3:key search;
 
-	allow $1_sudo_t $1_t:unix_stream_socket { connectto read write };
+	allow $1_sudo_t $1_t:unix_stream_socket { getattr connectto ioctl read write };
 
 	# Enter this derived domain from the user domain
 	domtrans_pattern($3, sudo_exec_t, $1_sudo_t)
@@ -112,6 +112,10 @@ template(`sudo_role_template',`
 	optional_policy(`
 		netutils_domtrans($1_sudo_t)
 		netutils_run_traceroute($1_sudo_t, $2)
+	')
+
+	optional_policy(`
+		ssh_agent_stream_connect($1_sudo_t)
 	')
 
 	optional_policy(`
