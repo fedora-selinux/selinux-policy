@@ -9,6 +9,16 @@ type rhcd_t;
 type rhcd_exec_t;
 init_daemon_domain(rhcd_t, rhcd_exec_t)
 
+type rhc_worker_playbook_t;
+type rhc_worker_playbook_exec_t;
+application_domain(rhc_worker_playbook_t, rhc_worker_playbook_exec_t)
+role system_r types rhc_worker_playbook_t;
+
+type rhc_playbook_verifier_t;
+type rhc_playbook_verifier_exec_t;
+application_domain(rhc_playbook_verifier_t, rhc_playbook_verifier_exec_t)
+role system_r types rhc_playbook_verifier_t;
+
 type rhcd_unit_file_t;
 systemd_unit_file(rhcd_unit_file_t)
 
@@ -23,6 +33,18 @@ logging_log_file(rhcd_var_log_t)
 
 type rhcd_var_run_t;
 files_pid_file(rhcd_var_run_t)
+
+type rhc_playbook_verifier_var_lib_t;
+files_type(rhc_playbook_verifier_var_lib_t)
+
+type rhc_worker_playbook_log_t;
+logging_log_file(rhc_worker_playbook_log_t)
+
+type rhc_worker_playbook_tmp_t;
+files_tmp_file(rhc_worker_playbook_tmp_t)
+
+type rhc_worker_playbook_tmpfs_t;
+files_tmp_file(rhc_worker_playbook_tmpfs_t)
 
 ########################################
 #
@@ -218,4 +240,132 @@ optional_policy(`
 	userdom_manage_admin_dirs(rhcd_t)
 	userdom_manage_admin_files(rhcd_t)
  	userdom_view_all_users_keys(rhcd_t)
+')
+
+########################################
+#
+# rhc_worker_playbook local policy
+#
+domtrans_pattern(rhcd_t, rhc_worker_playbook_exec_t, rhc_worker_playbook_t)
+permissive rhc_worker_playbook_t;
+
+allow rhc_worker_playbook_t self:capability sys_rawio;
+
+allow rhc_worker_playbook_t self:netlink_generic_socket create_socket_perms;
+allow rhc_worker_playbook_t self:netlink_route_socket r_netlink_socket_perms;
+allow rhc_worker_playbook_t self:tcp_socket create_stream_socket_perms;
+allow rhc_worker_playbook_t self:udp_socket { connect connected_socket_perms };
+allow rhc_worker_playbook_t self:unix_dgram_socket create_socket_perms;
+
+#allow rhc_worker_playbook_t file_type:file read_file_perms;
+#allow rhc_worker_playbook_t file_type:dir list_dir_perms;
+#allow rhc_worker_playbook_t file_type:lnk_file read_lnk_file_perms;
+
+manage_files_pattern(rhc_worker_playbook_t, rhc_worker_playbook_log_t, rhc_worker_playbook_log_t)
+create_dirs_pattern(rhc_worker_playbook_t, rhc_worker_playbook_log_t, rhc_worker_playbook_log_t)
+
+manage_dirs_pattern(rhc_worker_playbook_t, rhc_worker_playbook_tmp_t, rhc_worker_playbook_tmp_t)
+manage_files_pattern(rhc_worker_playbook_t, rhc_worker_playbook_tmp_t, rhc_worker_playbook_tmp_t)
+files_tmp_filetrans(rhc_worker_playbook_t, rhc_worker_playbook_tmp_t, { dir file })
+
+manage_files_pattern(rhc_worker_playbook_t, rhc_worker_playbook_tmpfs_t, rhc_worker_playbook_tmpfs_t)
+fs_tmpfs_filetrans(rhc_worker_playbook_t, rhc_worker_playbook_tmpfs_t, file)
+allow rhc_worker_playbook_t rhc_worker_playbook_tmpfs_t:file map;
+
+kernel_read_net_sysctls(rhc_worker_playbook_t)
+
+corecmd_exec_bin(rhc_worker_playbook_t)
+corecmd_exec_shell(rhc_worker_playbook_t)
+
+corenet_tcp_bind_generic_node(rhc_worker_playbook_t)
+
+dev_getattr_all(rhc_worker_playbook_t)
+
+files_read_all_files(rhc_worker_playbook_t)
+files_read_all_symlinks(rhc_worker_playbook_t)
+files_list_all(rhc_worker_playbook_t)
+
+fs_getattr_xattr_fs(rhc_worker_playbook_t)
+
+#storage_raw_read_fixed_disk_blk_device(rhc_worker_playbook_t)
+storage_raw_read_fixed_disk(rhc_worker_playbook_t)
+
+optional_policy(`
+	auth_can_read_shadow_passwords(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	dmidecode_domtrans(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	init_read_state(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	libs_domtrans_ldconfig(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	lvm_domtrans(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	ssh_exec(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	sysnet_domtrans_ifconfig(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	term_use_generic_ptys(rhc_worker_playbook_t)
+')
+
+optional_policy(`
+	udev_domtrans(rhc_worker_playbook_t)
+')
+
+# interactions with other types from this module
+allow rhc_worker_playbook_t rhcd_t:unix_stream_socket connectto;
+allow rhcd_t rhc_worker_playbook_t:unix_stream_socket connectto;
+allow rhcd_t rhc_worker_playbook_t:process sigkill;
+
+########################################
+#
+# rhc_playbook_verifier local policy
+#
+domtrans_pattern(rhc_worker_playbook_t, rhc_playbook_verifier_exec_t, rhc_playbook_verifier_t)
+permissive rhc_playbook_verifier_t;
+
+allow rhc_playbook_verifier_t self:unix_stream_socket connectto;
+
+manage_files_pattern(rhc_playbook_verifier_t, rhc_playbook_verifier_var_lib_t, rhc_playbook_verifier_var_lib_t)
+manage_dirs_pattern(rhc_playbook_verifier_t, rhc_playbook_verifier_var_lib_t, rhc_playbook_verifier_var_lib_t)
+allow rhc_playbook_verifier_t rhc_playbook_verifier_var_lib_t:dir watch;
+
+corecmd_exec_bin(rhc_playbook_verifier_t)
+
+optional_policy(`
+	auth_read_passwd(rhc_playbook_verifier_t)
+')
+
+optional_policy(`
+	gpg_domtrans(rhc_playbook_verifier_t)
+	gpg_domtrans_agent(rhc_playbook_verifier_t)
+
+	gpg_agent_stream_connect(rhc_playbook_verifier_t)
+')
+
+optional_policy(`
+	miscfiles_read_generic_certs(rhc_playbook_verifier_t)
+')
+
+optional_policy(`
+	userdom_manage_tmp_dirs(rhc_playbook_verifier_t)
+	userdom_write_user_tmp_sockets(rhc_playbook_verifier_t)
 ')
