@@ -73,6 +73,14 @@ files_tmp_file(virt_qemu_ga_tmp_t)
 type virt_qemu_ga_data_t;
 files_type(virt_qemu_ga_data_t)
 
+type virt_qemu_ga_selinux_helper_t;
+domain_type(virt_qemu_ga_selinux_helper_t)
+
+type virt_qemu_ga_selinux_helper_exec_t;
+application_executable_file(virt_qemu_ga_selinux_helper_exec_t)
+domain_entry_file(virt_qemu_ga_selinux_helper_t, virt_qemu_ga_selinux_helper_exec_t)
+role system_r types virt_qemu_ga_selinux_helper_t;
+
 type virt_qemu_ga_unconfined_exec_t;
 application_executable_file(virt_qemu_ga_unconfined_exec_t)
 
@@ -243,10 +251,12 @@ tunable_policy(`virt_qemu_ga_read_nonsecurity_files',`
 ')
 
 tunable_policy(`virt_qemu_ga_run_unconfined',`
+    domtrans_pattern(virt_qemu_ga_t, virt_qemu_ga_selinux_helper_exec_t, virt_qemu_ga_selinux_helper_t)
     domtrans_pattern(virt_qemu_ga_t, virt_qemu_ga_unconfined_exec_t, virt_qemu_ga_unconfined_t)
 ',`
     can_exec(virt_qemu_ga_t, virt_qemu_ga_unconfined_exec_t)
 ')
+
 
 optional_policy(`
 	ssh_filetrans_home_content(virt_qemu_ga_t)
@@ -320,4 +330,14 @@ optional_policy(`
     optional_policy(`
         unconfined_domain(virt_qemu_ga_unconfined_t)
     ')
+')
+
+#######################################
+#
+# qemu-ga selinux-helper (unconfined) local policy
+#
+
+allow virt_qemu_ga_selinux_helper_t self:process { fork signal };
+optional_policy(`
+    unconfined_domain(virt_qemu_ga_selinux_helper_t)
 ')
