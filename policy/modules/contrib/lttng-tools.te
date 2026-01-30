@@ -28,7 +28,15 @@ allow lttng_sessiond_t self:capability2 block_suspend;
 allow lttng_sessiond_t self:process { setrlimit signal_perms };
 allow lttng_sessiond_t self:fifo_file rw_fifo_file_perms;
 allow lttng_sessiond_t self:tcp_socket listen;
+allow lttng_sessiond_t self:unix_dgram_socket create;
 allow lttng_sessiond_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+# FIXME: this is required because of systemd's notify socket is created while
+# in the initramfs, hence as kernel_t. Once SELinux permits relabeling socket
+# objects created before the policy is loaded, this should be removed and
+# systemd fixed to relabel the socket appropriately.
+# Tracked by [systemd PR](https://github.com/systemd/systemd/pull/31336).
+kernel_dgram_send(lttng_sessiond_t)
 
 manage_dirs_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
 manage_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
