@@ -18,6 +18,12 @@ files_pid_file(lttng_sessiond_var_run_t)
 type lttng_sessiond_unit_file_t;
 systemd_unit_file(lttng_sessiond_unit_file_t)
 
+type lttng_home_t;
+userdom_user_home_content(lttng_home_t)
+
+type lttng_conf_t;
+files_config_file(lttng_conf_t)
+
 ########################################
 #
 # lttng_sessiond local policy
@@ -30,6 +36,8 @@ allow lttng_sessiond_t self:fifo_file rw_fifo_file_perms;
 allow lttng_sessiond_t self:tcp_socket listen;
 allow lttng_sessiond_t self:unix_dgram_socket create;
 allow lttng_sessiond_t self:unix_stream_socket { create_stream_socket_perms connectto };
+# Allow lttng-sessiond to exec lttng-consumerd
+allow lttng_sessiond_t lttng_sessiond_exec_t:file execute_no_trans;
 
 # FIXME: this is required because of systemd's notify socket is created while
 # in the initramfs, hence as kernel_t. Once SELinux permits relabeling socket
@@ -38,16 +46,30 @@ allow lttng_sessiond_t self:unix_stream_socket { create_stream_socket_perms conn
 # Tracked by [systemd PR](https://github.com/systemd/systemd/pull/31336).
 kernel_dgram_send(lttng_sessiond_t)
 
+# Allow lttng-sessiond to manage the app sockets, lock files and pid files in /run/lttng
 manage_dirs_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
 manage_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
 manage_lnk_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
 manage_sock_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
 files_pid_filetrans(lttng_sessiond_t, lttng_sessiond_var_run_t, { dir })
 
+# Allow lttng-sessiond to manage and map the tracing buffers in shared memory
 allow lttng_sessiond_t lttng_sessiond_tmpfs_t:file map;
 manage_dirs_pattern(lttng_sessiond_t, lttng_sessiond_tmpfs_t, lttng_sessiond_tmpfs_t)
 manage_files_pattern(lttng_sessiond_t, lttng_sessiond_tmpfs_t, lttng_sessiond_tmpfs_t)
 fs_tmpfs_filetrans(lttng_sessiond_t, lttng_sessiond_tmpfs_t, { dir file })
+
+# Allow lttng-sessiond to manage the config and traces in the user home dir
+userdom_user_home_dir_filetrans(lttng_sessiond_t, lttng_home_t, dir, ".lttng")
+userdom_user_home_dir_filetrans(lttng_sessiond_t, lttng_home_t, dir, "lttng-traces")
+manage_dirs_pattern(lttng_sessiond_t, lttng_home_t, lttng_home_t)
+manage_files_pattern(lttng_sessiond_t, lttng_home_t, lttng_home_t)
+manage_lnk_files_pattern(lttng_sessiond_t, lttng_home_t, lttng_home_t)
+
+# Allow lttng-sessiond to read the system config in /etc/lttng
+list_dirs_pattern(lttng_sessiond_t, lttng_conf_t, lttng_conf_t)
+read_files_pattern(lttng_sessiond_t, lttng_conf_t, lttng_conf_t)
+read_lnk_files_pattern(lttng_sessiond_t, lttng_conf_t, lttng_conf_t)
 
 kernel_read_system_state(lttng_sessiond_t)
 kernel_read_net_sysctls(lttng_sessiond_t)
