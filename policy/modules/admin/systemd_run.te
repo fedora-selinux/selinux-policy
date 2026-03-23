@@ -1,191 +1,232 @@
-policy_module(systemd-run, 1.10.0)
+policy_module(systemd_run, 1.10.7)
 
 gen_require(`
 	class passwd { passwd rootok };
-	type unconfined_t;
+	type init_t;
+	type rpm_exec_t;
+	type systemd_passwd_var_run_t;
 ')
 
 ########################################
 #
 # Declarations
-attribute systemd-rundomain;
-
-# Define the actual domain type
-type systemd-run_t, systemd-rundomain;
-domain_type(systemd-run_t)
-
-type systemd-run_exec_t;
-application_executable_file(systemd-run_exec_t)
-
-type systemd-run_db_t;
-files_type(systemd-run_db_t)
-mls_trusted_object(systemd-run_db_t)
-
-type systemd-run_log_t;
-logging_log_file(systemd-run_log_t)
-
-manage_dirs_pattern(systemd-rundomain, systemd-run_db_t, systemd-run_db_t)
-manage_files_pattern(systemd-rundomain, systemd-run_db_t, systemd-run_db_t)
-
-manage_dirs_pattern(systemd-rundomain, systemd-run_log_t, systemd-run_log_t)
-manage_files_pattern(systemd-rundomain, systemd-run_log_t, systemd-run_log_t)
-logging_log_filetrans(systemd-rundomain, systemd-run_log_t, dir, "systemd-run-io")
-logging_log_filetrans(systemd-rundomain, systemd-run_log_t, file, "systemd-run.log")
-
-
-# Macro handles the transition from unconfined to systemd-run_t
-domain_auto_transition_pattern(unconfined_t, systemd-run_exec_t, systemd-run_t)
-
-# Use the specific TYPE for domain transitions
-corecmd_shell_domtrans(systemd-run_t, systemd-run_t)
-userdom_spec_domtrans_all_users(systemd-run_t)
-
-##############################
 #
-# Local Policy
-#
+attribute systemd_rundomain;
 
-allow systemd-run_t systemd-run_exec_t:file entrypoint;
+type systemd_run_t, systemd_rundomain;
+domain_type(systemd_run_t)
+domain_obj_id_change_exemption(systemd_run_t)
+# run0: init_t -> unconfined_u:system_r:systemd_run_t needs process_user_target (policy/constraints).
+domain_user_exemption_target(systemd_run_t)
 
-# (This happens when systemd-run executes a shell)
-allow systemd-run_t systemd-run_exec_t:file { getattr read map execute open };
+type systemd_run_exec_t;
+application_executable_file(systemd_run_exec_t)
 
-gen_require(`
-    type unconfined_t;
-    type rpm_t;
-    type rpm_exec_t;
-    type init_var_run_t;
-    role unconfined_r;
-')
+type systemd_run_db_t;
+files_type(systemd_run_db_t)
+mls_trusted_object(systemd_run_db_t)
+
+type systemd_run_log_t;
+logging_log_file(systemd_run_log_t)
+
+manage_dirs_pattern(systemd_rundomain, systemd_run_db_t, systemd_run_db_t)
+manage_files_pattern(systemd_rundomain, systemd_run_db_t, systemd_run_db_t)
+
+manage_dirs_pattern(systemd_rundomain, systemd_run_log_t, systemd_run_log_t)
+manage_files_pattern(systemd_rundomain, systemd_run_log_t, systemd_run_log_t)
+logging_log_filetrans(systemd_rundomain, systemd_run_log_t, dir, "systemd-run-io")
+logging_log_filetrans(systemd_rundomain, systemd_run_log_t, file, "systemd-run.log")
 
 ########################################
-# Fix the entrypoint for systemd-run itself
-allow systemd-run_t systemd-run_exec_t:file entrypoint;
+#
+# Exec transitions into systemd_run_t
+#
+unconfined_domtrans_to(systemd_run_t, systemd_run_exec_t)
+# run0: init_t execs run0 (systemd_run_exec_t)
+domain_auto_transition_pattern(init_t, systemd_run_exec_t, systemd_run_t)
 
-# Fix the /run/systemd search
-allow systemd-run_t init_var_run_t:dir search;
+########################################
+#
+# Roles (default_contexts / pam_selinux session for systemd_run_t)
+#
+gen_require(`
+	role unconfined_r;
+	role system_r;
+')
+role unconfined_r types systemd_run_t;
+role system_r types systemd_run_t;
 
-# 3. Explicitly allow systemd-run_t to run RPM
-allow systemd-run_t rpm_exec_t:file { getattr open read execute map };
-type_transition systemd-run_t rpm_exec_t:process rpm_t;
-allow systemd-run_t rpm_t:process transition;
 
-# Transition to standard shells
-corecmd_shell_domtrans(systemd-run_t, systemd-run_t)
+########################################
+#
+# run0: PAM session systemd_run_t; init_t execs user command (dnf, sleep, …)
+#
+# domain_auto_transition_pattern(init_t, …) supplies allow init_t systemd_run_t:process transition.
+allow init_t systemd_run_t:key { create write };
+allow init_t systemd_run_t:process dyntransition;
+allow init_t self:process setexec;
+init_signal(systemd_run_t)
 
-type_transition unconfined_t rpm_exec_t:process rpm_t;
-allow unconfined_t rpm_t:process transition;
+# systemd-run binary (shell path and run0)
+allow systemd_run_t systemd_run_exec_t:file { getattr read map execute open entrypoint };
 
-# Use capabilities.
-allow systemd-rundomain self:capability { chown fowner setuid setgid dac_read_search dac_override sys_nice sys_resource };
-dontaudit systemd-rundomain self:capability net_admin;
-allow systemd-rundomain self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
-allow systemd-rundomain self:process { setexec setrlimit };
-allow systemd-rundomain self:fd use;
-allow systemd-rundomain self:fifo_file rw_fifo_file_perms;
-allow systemd-rundomain self:shm create_shm_perms;
-allow systemd-rundomain self:sem create_sem_perms;
-allow systemd-rundomain self:msgq create_msgq_perms;
-allow systemd-rundomain self:msg { send receive };
-allow systemd-rundomain self:unix_dgram_socket create_socket_perms;
-allow systemd-rundomain self:unix_stream_socket create_stream_socket_perms;
-allow systemd-rundomain self:unix_dgram_socket sendto;
-allow systemd-rundomain self:unix_stream_socket connectto;
-allow systemd-rundomain self:key manage_key_perms;
-allow systemd-rundomain self:netlink_kobject_uevent_socket create_socket_perms;
-allow systemd-rundomain self:netlink_selinux_socket create_socket_perms;
-allow systemd-rundomain self:passwd { passwd rootok };
+files_search_pids(systemd_run_t)
 
-kernel_getattr_core_if(systemd-rundomain)
-kernel_link_key(systemd-rundomain)
-kernel_read_kernel_sysctls(systemd-rundomain)
+# RPM transition when run0 executes dnf/rpm binaries.
+allow systemd_run_t rpm_exec_t:file entrypoint;
+optional_policy(`
+	rpm_domtrans(systemd_run_t)
+')
 
-corecmd_read_bin_symlinks(systemd-rundomain)
-corecmd_exec_all_executables(systemd-rundomain)
+# Generic commands in same domain (corecmd_exec_all_executables lacks entrypoint)
+allow systemd_rundomain bin_t:file entrypoint;
 
-dev_getattr_fs(systemd-rundomain)
-dev_read_urand(systemd-rundomain)
-dev_rw_generic_usb_dev(systemd-rundomain)
-dev_read_sysfs(systemd-rundomain)
-dev_dontaudit_getattr_all(systemd-rundomain)
+corecmd_shell_domtrans(systemd_run_t, systemd_run_t)
+corecmd_shell_entry_type(systemd_run_t)
+userdom_spec_domtrans_all_users(systemd_run_t)
 
-domain_use_interactive_fds(systemd-rundomain)
-domain_sigchld_interactive_fds(systemd-rundomain)
-domain_getattr_all_entry_files(systemd-rundomain)
+########################################
+#
+# Capabilities and self
+#
+allow systemd_rundomain self:capability { chown fowner setuid setgid dac_read_search dac_override sys_nice sys_resource };
+dontaudit systemd_rundomain self:capability net_admin;
+allow systemd_rundomain self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+allow systemd_rundomain self:process { setexec setfscreate setrlimit };
+allow systemd_rundomain self:fd use;
+allow systemd_rundomain self:fifo_file rw_fifo_file_perms;
+allow systemd_rundomain self:shm create_shm_perms;
+allow systemd_rundomain self:sem create_sem_perms;
+allow systemd_rundomain self:msgq create_msgq_perms;
+allow systemd_rundomain self:msg { send receive };
+allow systemd_rundomain self:unix_dgram_socket create_socket_perms;
+allow systemd_rundomain self:unix_stream_socket create_stream_socket_perms;
+allow systemd_rundomain self:unix_dgram_socket sendto;
+allow systemd_rundomain self:unix_stream_socket connectto;
+allow systemd_rundomain self:key manage_key_perms;
+allow systemd_rundomain self:netlink_kobject_uevent_socket create_socket_perms;
+allow systemd_rundomain self:netlink_selinux_socket create_socket_perms;
+allow systemd_rundomain self:passwd { passwd rootok };
 
-files_read_etc_files(systemd-rundomain)
-files_list_var(systemd-rundomain)
-files_read_var_files(systemd-rundomain)
-files_read_usr_files(systemd-rundomain)
-# for some PAM modules and for cwd
-files_dontaudit_search_home(systemd-rundomain)
-files_list_tmp(systemd-rundomain)
+kernel_getattr_core_if(systemd_rundomain)
+kernel_read_system_state(systemd_run_t)
+kernel_link_key(systemd_rundomain)
+kernel_read_kernel_sysctls(systemd_rundomain)
+kernel_read_fs_sysctls(systemd_rundomain)
 
-fs_search_auto_mountpoints(systemd-rundomain)
-fs_getattr_all_fs(systemd-rundomain)
+corecmd_read_bin_symlinks(systemd_rundomain)
+corecmd_exec_all_executables(systemd_rundomain)
 
-selinux_validate_context(systemd-rundomain)
-selinux_compute_relabel_context(systemd-rundomain)
-selinux_compute_access_vector(systemd-rundomain)
+dev_getattr_fs(systemd_rundomain)
+dev_read_urand(systemd_rundomain)
+dev_rw_generic_usb_dev(systemd_rundomain)
+dev_read_sysfs(systemd_rundomain)
+dev_dontaudit_getattr_all(systemd_rundomain)
 
-term_getattr_pty_fs(systemd-rundomain)
-term_relabel_all_ttys(systemd-rundomain)
-term_relabel_all_ptys(systemd-rundomain)
-term_use_ptmx(systemd-rundomain)
+domain_use_interactive_fds(systemd_rundomain)
+domain_sigchld_interactive_fds(systemd_rundomain)
+domain_getattr_all_entry_files(systemd_rundomain)
+domain_read_all_domains_state(systemd_rundomain)
+domain_getattr_all_domains(systemd_rundomain)
 
-#auth_run_chk_passwd(systemd-rundomain)
-# systemd-run stores a token in the pam_pid directory
-auth_manage_pam_pid(systemd-rundomain)
-auth_manage_faillog(systemd-rundomain)
-auth_read_var_auth(systemd-rundomain)
-auth_rw_lastlog(systemd-rundomain)
+files_read_etc_files(systemd_rundomain)
+files_list_var(systemd_rundomain)
+files_read_var_files(systemd_rundomain)
+files_read_usr_files(systemd_rundomain)
+files_dontaudit_search_home(systemd_rundomain)
+files_list_tmp(systemd_rundomain)
+# run0 dnf: systemd_run_t may run dnf without transition to rpm_t
+files_rw_generic_pids(systemd_rundomain)
+files_rw_pid_dirs(systemd_rundomain)
+files_manage_all_pids(systemd_rundomain)
+files_manage_generic_tmp_dirs(systemd_rundomain)
+files_manage_generic_tmp_files(systemd_rundomain)
+userdom_list_admin_dir(systemd_rundomain)
+userdom_read_admin_home_files(systemd_rundomain)
+logging_append_all_logs(systemd_rundomain)
+logging_read_all_logs(systemd_rundomain)
+sysnet_read_config(systemd_rundomain)
+allow systemd_rundomain self:netlink_route_socket create_netlink_socket_perms;
+allow systemd_rundomain self:netlink_route_socket nlmsg_read;
+allow systemd_rundomain self:udp_socket create_socket_perms;
+allow systemd_rundomain self:udp_socket connect;
+optional_policy(`
+	rpm_manage_db(systemd_rundomain)
+	rpm_read_cache(systemd_rundomain)
+')
+optional_policy(`
+	miscfiles_read_generic_certs(systemd_rundomain)
+')
+allow systemd_rundomain systemd_passwd_var_run_t:fifo_file read_fifo_file_perms;
+systemd_passwd_watch_pid_dirs(systemd_rundomain)
+userdom_watch_tmp_dirs(systemd_rundomain)
 
-application_signal(systemd-rundomain)
+fs_search_auto_mountpoints(systemd_rundomain)
+fs_getattr_all_fs(systemd_rundomain)
+fs_getattr_nsfs_files(systemd_rundomain)
 
-init_rw_utmp(systemd-rundomain)
+selinux_validate_context(systemd_rundomain)
+selinux_compute_relabel_context(systemd_rundomain)
+selinux_compute_access_vector(systemd_rundomain)
 
-logging_send_audit_msgs(systemd-rundomain)
-logging_set_audit_parameters(systemd-rundomain)
+term_getattr_pty_fs(systemd_rundomain)
+term_relabel_all_ttys(systemd_rundomain)
+term_relabel_all_ptys(systemd_rundomain)
+term_use_ptmx(systemd_rundomain)
 
-seutil_read_default_contexts(systemd-rundomain)
+#auth_run_chk_passwd(systemd_rundomain)
+auth_manage_pam_pid(systemd_rundomain)
+auth_manage_faillog(systemd_rundomain)
+auth_read_passwd(systemd_rundomain)
+auth_read_var_auth(systemd_rundomain)
+auth_rw_lastlog(systemd_rundomain)
 
-userdom_spec_domtrans_all_users(systemd-rundomain)
-userdom_manage_user_home_content_files(systemd-rundomain)
-userdom_manage_user_home_content_symlinks(systemd-rundomain)
-userdom_manage_user_tmp_files(systemd-rundomain)
-userdom_manage_user_tmp_symlinks(systemd-rundomain)
-userdom_use_user_terminals(systemd-rundomain)
-userdom_create_user_pty(systemd-rundomain)
-userdom_setattr_user_ptys(systemd-rundomain)
-userdom_setattr_user_ttys(systemd-rundomain)
-userdom_signal_all_users(systemd-rundomain)
-userdom_exec_user_home_content_files(systemd-rundomain)
-# for some PAM modules and for cwd
-userdom_search_user_home_content(systemd-rundomain)
-userdom_search_admin_dir(systemd-rundomain)
-userdom_manage_all_users_keys(systemd-rundomain)
+application_signal(systemd_rundomain)
+
+init_rw_utmp(systemd_rundomain)
+
+logging_send_audit_msgs(systemd_rundomain)
+logging_set_audit_parameters(systemd_rundomain)
+
+seutil_read_default_contexts(systemd_rundomain)
+
+userdom_manage_user_home_content_files(systemd_rundomain)
+userdom_manage_user_home_content_symlinks(systemd_rundomain)
+userdom_manage_user_tmp_files(systemd_rundomain)
+userdom_manage_user_tmp_symlinks(systemd_rundomain)
+userdom_use_user_terminals(systemd_rundomain)
+userdom_create_user_pty(systemd_rundomain)
+userdom_setattr_user_ptys(systemd_rundomain)
+userdom_setattr_user_ttys(systemd_rundomain)
+userdom_signal_all_users(systemd_rundomain)
+userdom_exec_user_home_content_files(systemd_rundomain)
+userdom_search_user_home_content(systemd_rundomain)
+userdom_search_admin_dir(systemd_rundomain)
+userdom_manage_all_users_keys(systemd_rundomain)
 
 tunable_policy(`authlogin_yubikey',`
-    auth_manage_home_content(systemd-rundomain)
+	auth_manage_home_content(systemd_rundomain)
 ')
 
 optional_policy(`
-	dbus_system_bus_client(systemd-rundomain)
-
-	optional_policy(`
-		systemd_dbus_chat_logind(systemd-rundomain)
-		init_getpgid(systemd-rundomain)
-	')
+	dbus_system_bus_client(systemd_rundomain)
 ')
 
 optional_policy(`
-	ssh_signull(systemd-rundomain)
+	systemd_exec_systemctl(systemd_run_t)
+	systemd_systemctl_entrypoint(systemd_run_t)
+	systemd_dbus_chat_logind(systemd_rundomain)
+	init_getpgid(systemd_rundomain)
 ')
 
 optional_policy(`
-    systemd_write_inherited_logind_sessions_pipes(systemd-rundomain)
+	ssh_signull(systemd_rundomain)
 ')
 
 optional_policy(`
-	fprintd_dbus_chat(systemd-rundomain)
+	systemd_write_inherited_logind_sessions_pipes(systemd_rundomain)
+')
+
+optional_policy(`
+	fprintd_dbus_chat(systemd_rundomain)
 ')
