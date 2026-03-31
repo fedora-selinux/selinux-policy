@@ -223,3 +223,79 @@ interface(`systemd_run_filetrans_named_content_log',`
 	logging_log_filetrans($1, systemd_run_log_t, file, "systemd-run.log")
 	logging_log_filetrans($1, systemd_run_log_t, dir, "systemd-run-io")
 ')
+
+########################################
+## <summary>
+##	Allow init to transition into systemd_run domain for run0.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Target systemd_run domain.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_init_transition',`
+	gen_require(`
+		type init_t;
+		class passwd { passwd rootok };
+	')
+
+	domain_auto_transition_pattern(init_t, systemd_run_exec_t, $1)
+	allow init_t $1:key { create write };
+	allow init_t $1:process dyntransition;
+	allow init_t self:process setexec;
+')
+
+########################################
+## <summary>
+##	Allow the given type in system_r for systemd_run sessions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be assigned to system_r.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_system_role',`
+	gen_require(`
+		role system_r;
+	')
+
+	role system_r types $1;
+')
+
+########################################
+## <summary>
+##	Allow the given type in unconfined_r for systemd_run sessions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be assigned to unconfined_r.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_unconfined_role',`
+	gen_require(`
+		role unconfined_r;
+	')
+
+	role unconfined_r types $1;
+')
+
+########################################
+## <summary>
+##	Read systemd ask-password FIFO files in /run.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_read_passwd_run_fifo',`
+	gen_require(`
+		type systemd_passwd_var_run_t;
+	')
+
+	allow $1 systemd_passwd_var_run_t:fifo_file read_fifo_file_perms;
+')

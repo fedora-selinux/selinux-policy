@@ -1,12 +1,5 @@
 policy_module(systemd_run, 1.10.7)
 
-gen_require(`
-	class passwd { passwd rootok };
-	type init_t;
-	type rpm_exec_t;
-	type systemd_passwd_var_run_t;
-')
-
 ########################################
 #
 # Declarations
@@ -43,28 +36,19 @@ logging_log_filetrans(systemd_rundomain, systemd_run_log_t, file, "systemd-run.l
 #
 unconfined_domtrans_to(systemd_run_t, systemd_run_exec_t)
 # run0: init_t execs run0 (systemd_run_exec_t)
-domain_auto_transition_pattern(init_t, systemd_run_exec_t, systemd_run_t)
+systemd_run_init_transition(systemd_run_t)
 
 ########################################
 #
 # Roles (default_contexts / pam_selinux session for systemd_run_t)
 #
-gen_require(`
-	role unconfined_r;
-	role system_r;
-')
-role unconfined_r types systemd_run_t;
-role system_r types systemd_run_t;
+systemd_run_unconfined_role(systemd_run_t)
+systemd_run_system_role(systemd_run_t)
 
 
 ########################################
 #
-# run0: PAM session systemd_run_t; init_t execs user command (dnf, sleep, …)
-#
-# domain_auto_transition_pattern(init_t, …) supplies allow init_t systemd_run_t:process transition.
-allow init_t systemd_run_t:key { create write };
-allow init_t systemd_run_t:process dyntransition;
-allow init_t self:process setexec;
+# run0: PAM session systemd_run_t; init_t execs user command (dnf, sleep, ...).
 init_signal(systemd_run_t)
 
 # systemd-run binary (shell path and run0)
@@ -73,8 +57,8 @@ allow systemd_run_t systemd_run_exec_t:file { getattr read map execute open entr
 files_search_pids(systemd_run_t)
 
 # RPM transition when run0 executes dnf/rpm binaries.
-allow systemd_run_t rpm_exec_t:file entrypoint;
 optional_policy(`
+	rpm_entry_type(systemd_run_t)
 	rpm_domtrans(systemd_run_t)
 ')
 
@@ -157,7 +141,7 @@ optional_policy(`
 optional_policy(`
 	miscfiles_read_generic_certs(systemd_rundomain)
 ')
-allow systemd_rundomain systemd_passwd_var_run_t:fifo_file read_fifo_file_perms;
+systemd_run_read_passwd_run_fifo(systemd_rundomain)
 systemd_passwd_watch_pid_dirs(systemd_rundomain)
 userdom_watch_tmp_dirs(systemd_rundomain)
 
@@ -216,6 +200,9 @@ optional_policy(`
 	systemd_exec_systemctl(systemd_run_t)
 	systemd_systemctl_entrypoint(systemd_run_t)
 	systemd_dbus_chat_logind(systemd_rundomain)
+')
+
+optional_policy(`
 	init_getpgid(systemd_rundomain)
 ')
 
