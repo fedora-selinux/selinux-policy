@@ -1,9 +1,5 @@
-policy_module(systemd_run, 1.10.8)
+policy_module(systemd_run, 1.10.9)
 
-# systemd-run and run0 (symlink): PAM session domain is systemd_run_t; the invoked
-# command (e.g. dnf, sleep, shell) often runs in the same domain or transitions via
-# rpm_domtrans. Rules below were tightened from run0/dnf regressions and related AVCs
-# (init_t starting run0, PAM/auth, RPM, logind/session pipes, /run and pid paths).
 
 ########################################
 #
@@ -116,7 +112,8 @@ domain_use_interactive_fds(systemd_rundomain)
 files_dontaudit_search_home(systemd_rundomain)
 files_list_tmp(systemd_rundomain)
 files_list_var(systemd_rundomain)
-# run0 dnf: systemd_run_t may run dnf without transition to rpm_t
+# /run pid files and similar (session/package metadata). run0 stays systemd_run_t; /usr/bin/dnf
+# still transitions to rpm_t when executed (rpm_domtrans), as seen under run0/dnf check-update.
 files_manage_all_pids(systemd_rundomain)
 files_manage_generic_tmp_dirs(systemd_rundomain)
 files_manage_generic_tmp_files(systemd_rundomain)
