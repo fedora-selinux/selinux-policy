@@ -1,4 +1,9 @@
-policy_module(systemd_run, 1.10.7)
+policy_module(systemd_run, 1.10.8)
+
+# systemd-run and run0 (symlink): PAM session domain is systemd_run_t; the invoked
+# command (e.g. dnf, sleep, shell) often runs in the same domain or transitions via
+# rpm_domtrans. Rules below were tightened from run0/dnf regressions and related AVCs
+# (init_t starting run0, PAM/auth, RPM, logind/session pipes, /run and pid paths).
 
 ########################################
 #
@@ -7,13 +12,11 @@ policy_module(systemd_run, 1.10.7)
 attribute systemd_rundomain;
 
 type systemd_run_t, systemd_rundomain;
-domain_type(systemd_run_t)
+type systemd_run_exec_t;
+application_domain(systemd_run_t, systemd_run_exec_t)
 domain_obj_id_change_exemption(systemd_run_t)
 # run0: init_t -> unconfined_u:system_r:systemd_run_t needs process_user_target (policy/constraints).
 domain_user_exemption_target(systemd_run_t)
-
-type systemd_run_exec_t;
-application_executable_file(systemd_run_exec_t)
 
 type systemd_run_db_t;
 files_type(systemd_run_db_t)
@@ -30,48 +33,18 @@ manage_files_pattern(systemd_rundomain, systemd_run_log_t, systemd_run_log_t)
 logging_log_filetrans(systemd_rundomain, systemd_run_log_t, dir, "systemd-run-io")
 logging_log_filetrans(systemd_rundomain, systemd_run_log_t, file, "systemd-run.log")
 
-########################################
-#
-# Exec transitions into systemd_run_t
-#
-unconfined_domtrans_to(systemd_run_t, systemd_run_exec_t)
-# run0: init_t execs run0 (systemd_run_exec_t)
-systemd_run_init_transition(systemd_run_t)
+# Paths: /var/db/systemd-run, /var/log/systemd-run* (see systemd_run.fc).
 
 ########################################
 #
-# Roles (default_contexts / pam_selinux session for systemd_run_t)
+# systemd_run domain
 #
-systemd_run_unconfined_role(systemd_run_t)
-systemd_run_system_role(systemd_run_t)
-
 
 ########################################
 #
-# run0: PAM session systemd_run_t; init_t execs user command (dnf, sleep, ...).
-init_signal(systemd_run_t)
-
-# systemd-run binary (shell path and run0)
-allow systemd_run_t systemd_run_exec_t:file { getattr read map execute open entrypoint };
-
-files_search_pids(systemd_run_t)
-
-# RPM transition when run0 executes dnf/rpm binaries.
-optional_policy(`
-	rpm_entry_type(systemd_run_t)
-	rpm_domtrans(systemd_run_t)
-')
-
-# Generic commands in same domain (corecmd_exec_all_executables lacks entrypoint)
-allow systemd_rundomain bin_t:file entrypoint;
-
-corecmd_shell_domtrans(systemd_run_t, systemd_run_t)
-corecmd_shell_entry_type(systemd_run_t)
-userdom_spec_domtrans_all_users(systemd_run_t)
-
-########################################
-#
-# Capabilities and self
+# Self
+# (setuid/setgid and DAC for id switching; passwd class for PAM/stack; keys for
+# session keyring; route/udp often hit by nss or short-lived clients under the command)
 #
 allow systemd_rundomain self:capability { chown fowner setuid setgid dac_read_search dac_override sys_nice sys_resource };
 dontaudit systemd_rundomain self:capability net_admin;
@@ -89,131 +62,182 @@ allow systemd_rundomain self:unix_dgram_socket sendto;
 allow systemd_rundomain self:unix_stream_socket connectto;
 allow systemd_rundomain self:key manage_key_perms;
 allow systemd_rundomain self:netlink_kobject_uevent_socket create_socket_perms;
-allow systemd_rundomain self:netlink_selinux_socket create_socket_perms;
-allow systemd_rundomain self:passwd { passwd rootok };
-
-kernel_getattr_core_if(systemd_rundomain)
-kernel_read_system_state(systemd_run_t)
-kernel_link_key(systemd_rundomain)
-kernel_read_kernel_sysctls(systemd_rundomain)
-kernel_read_fs_sysctls(systemd_rundomain)
-
-corecmd_read_bin_symlinks(systemd_rundomain)
-corecmd_exec_all_executables(systemd_rundomain)
-
-dev_getattr_fs(systemd_rundomain)
-dev_read_urand(systemd_rundomain)
-dev_rw_generic_usb_dev(systemd_rundomain)
-dev_read_sysfs(systemd_rundomain)
-dev_dontaudit_getattr_all(systemd_rundomain)
-
-domain_use_interactive_fds(systemd_rundomain)
-domain_sigchld_interactive_fds(systemd_rundomain)
-domain_getattr_all_entry_files(systemd_rundomain)
-domain_read_all_domains_state(systemd_rundomain)
-domain_getattr_all_domains(systemd_rundomain)
-
-files_read_etc_files(systemd_rundomain)
-files_list_var(systemd_rundomain)
-files_read_var_files(systemd_rundomain)
-files_read_usr_files(systemd_rundomain)
-files_dontaudit_search_home(systemd_rundomain)
-files_list_tmp(systemd_rundomain)
-# run0 dnf: systemd_run_t may run dnf without transition to rpm_t
-files_rw_generic_pids(systemd_rundomain)
-files_rw_pid_dirs(systemd_rundomain)
-files_manage_all_pids(systemd_rundomain)
-files_manage_generic_tmp_dirs(systemd_rundomain)
-files_manage_generic_tmp_files(systemd_rundomain)
-userdom_list_admin_dir(systemd_rundomain)
-userdom_read_admin_home_files(systemd_rundomain)
-logging_append_all_logs(systemd_rundomain)
-logging_read_all_logs(systemd_rundomain)
-sysnet_read_config(systemd_rundomain)
 allow systemd_rundomain self:netlink_route_socket create_netlink_socket_perms;
 allow systemd_rundomain self:netlink_route_socket nlmsg_read;
+allow systemd_rundomain self:netlink_selinux_socket create_socket_perms;
+allow systemd_rundomain self:passwd { passwd rootok };
 allow systemd_rundomain self:udp_socket create_socket_perms;
 allow systemd_rundomain self:udp_socket connect;
-optional_policy(`
-	rpm_manage_db(systemd_rundomain)
-	rpm_read_cache(systemd_rundomain)
-')
-optional_policy(`
-	miscfiles_read_generic_certs(systemd_rundomain)
-')
-systemd_run_read_passwd_run_fifo(systemd_rundomain)
-systemd_passwd_watch_pid_dirs(systemd_rundomain)
-userdom_watch_tmp_dirs(systemd_rundomain)
 
-fs_search_auto_mountpoints(systemd_rundomain)
-fs_getattr_all_fs(systemd_rundomain)
-fs_getattr_nsfs_files(systemd_rundomain)
+########################################
+#
+# Local rules (objects in this module)
+# Interactive shell and transitions to target user domains after PAM (run0 --user, etc.).
+#
+corecmd_shell_domtrans(systemd_run_t, systemd_run_t)
+corecmd_shell_entry_type(systemd_run_t)
+userdom_spec_domtrans_all_users(systemd_run_t)
 
-selinux_validate_context(systemd_rundomain)
-selinux_compute_relabel_context(systemd_rundomain)
-selinux_compute_access_vector(systemd_rundomain)
+files_search_pids(systemd_run_t)
 
-term_getattr_pty_fs(systemd_rundomain)
-term_relabel_all_ttys(systemd_rundomain)
-term_relabel_all_ptys(systemd_rundomain)
-term_use_ptmx(systemd_rundomain)
+########################################
+#
+# Calls to other modules (alphabetical)
+#
+# Auth stack for session login (faillock, lastlog, nss, pam paths).
+application_signal(systemd_rundomain)
 
 #auth_run_chk_passwd(systemd_rundomain)
-auth_manage_pam_pid(systemd_rundomain)
 auth_manage_faillog(systemd_rundomain)
+auth_manage_pam_pid(systemd_rundomain)
 auth_read_passwd(systemd_rundomain)
 auth_read_var_auth(systemd_rundomain)
 auth_rw_lastlog(systemd_rundomain)
 
-application_signal(systemd_rundomain)
+# corecmd_exec_all_executables lacks entrypoint on generic bin programs
+corecmd_bin_entry_type(systemd_rundomain)
+corecmd_exec_all_executables(systemd_rundomain)
+corecmd_read_bin_symlinks(systemd_rundomain)
 
+# Devices and sysfs commonly touched by libc/tooling in arbitrary commands.
+dev_dontaudit_getattr_all(systemd_rundomain)
+dev_getattr_fs(systemd_rundomain)
+dev_read_sysfs(systemd_rundomain)
+dev_read_urand(systemd_rundomain)
+dev_rw_generic_usb_dev(systemd_rundomain)
+
+domain_getattr_all_domains(systemd_rundomain)
+domain_getattr_all_entry_files(systemd_rundomain)
+domain_read_all_domains_state(systemd_rundomain)
+domain_sigchld_interactive_fds(systemd_rundomain)
+domain_use_interactive_fds(systemd_rundomain)
+
+# Broad file access: package managers use /var/run and tmp; list/read system config.
+files_dontaudit_search_home(systemd_rundomain)
+files_list_tmp(systemd_rundomain)
+files_list_var(systemd_rundomain)
+# run0 dnf: systemd_run_t may run dnf without transition to rpm_t
+files_manage_all_pids(systemd_rundomain)
+files_manage_generic_tmp_dirs(systemd_rundomain)
+files_manage_generic_tmp_files(systemd_rundomain)
+files_read_etc_files(systemd_rundomain)
+files_read_usr_files(systemd_rundomain)
+files_read_var_files(systemd_rundomain)
+files_rw_generic_pids(systemd_rundomain)
+files_rw_pid_dirs(systemd_rundomain)
+
+fs_getattr_all_fs(systemd_rundomain)
+fs_getattr_nsfs_files(systemd_rundomain)
+fs_search_auto_mountpoints(systemd_rundomain)
+
+# Session accounting (login/wtmp) when PAM treats this as a session domain.
 init_rw_utmp(systemd_rundomain)
+# PID 1 may signal the run0/systemd-run child (e.g. unit lifecycle).
+init_signal(systemd_run_t)
 
+kernel_getattr_core_if(systemd_rundomain)
+kernel_link_key(systemd_rundomain)
+kernel_read_fs_sysctls(systemd_rundomain)
+kernel_read_kernel_sysctls(systemd_rundomain)
+kernel_read_system_state(systemd_run_t)
+
+logging_append_all_logs(systemd_rundomain)
+logging_read_all_logs(systemd_rundomain)
 logging_send_audit_msgs(systemd_rundomain)
 logging_set_audit_parameters(systemd_rundomain)
 
+# libselinux / default_contexts for pam_selinux and context computation.
 seutil_read_default_contexts(systemd_rundomain)
 
+selinux_compute_access_vector(systemd_rundomain)
+selinux_compute_relabel_context(systemd_rundomain)
+selinux_validate_context(systemd_rundomain)
+
+sysnet_read_config(systemd_rundomain)
+
+# systemd ask-password agent under /run/systemd (e.g. polkit/password prompts).
+systemd_passwd_watch_pid_dirs(systemd_rundomain)
+
+# run0: init_t executes /usr/bin/run0 and PAM session uses systemd_run_t; roles for
+# default_contexts / pam_selinux ordered role (unconfined_u + system_r).
+systemd_run_init_transition(systemd_run_t)
+# Read side of systemd ask-password FIFO (run0 password prompts).
+systemd_run_read_passwd_run_fifo(systemd_rundomain)
+systemd_run_system_role(systemd_run_t)
+systemd_run_unconfined_role(systemd_run_t)
+
+term_getattr_pty_fs(systemd_rundomain)
+term_relabel_all_ptys(systemd_rundomain)
+term_relabel_all_ttys(systemd_rundomain)
+term_use_ptmx(systemd_rundomain)
+
+# TTY/PTY and user home/tmp for the target user after authentication.
+userdom_create_user_pty(systemd_rundomain)
+userdom_exec_user_home_content_files(systemd_rundomain)
+userdom_list_admin_dir(systemd_rundomain)
+userdom_manage_all_users_keys(systemd_rundomain)
 userdom_manage_user_home_content_files(systemd_rundomain)
 userdom_manage_user_home_content_symlinks(systemd_rundomain)
 userdom_manage_user_tmp_files(systemd_rundomain)
 userdom_manage_user_tmp_symlinks(systemd_rundomain)
-userdom_use_user_terminals(systemd_rundomain)
-userdom_create_user_pty(systemd_rundomain)
+userdom_read_admin_home_files(systemd_rundomain)
+userdom_search_admin_dir(systemd_rundomain)
+userdom_search_user_home_content(systemd_rundomain)
 userdom_setattr_user_ptys(systemd_rundomain)
 userdom_setattr_user_ttys(systemd_rundomain)
 userdom_signal_all_users(systemd_rundomain)
-userdom_exec_user_home_content_files(systemd_rundomain)
-userdom_search_user_home_content(systemd_rundomain)
-userdom_search_admin_dir(systemd_rundomain)
-userdom_manage_all_users_keys(systemd_rundomain)
+userdom_use_user_terminals(systemd_rundomain)
+userdom_watch_tmp_dirs(systemd_rundomain)
 
+# YubiKey PAM modules touching user home (optional tunable).
 tunable_policy(`authlogin_yubikey',`
 	auth_manage_home_content(systemd_rundomain)
 ')
 
+# Desktop/session integration when the stack talks to system D-Bus (e.g. polkit).
 optional_policy(`
 	dbus_system_bus_client(systemd_rundomain)
 ')
 
+# Fingerprint auth (optional contrib module).
 optional_policy(`
-	systemd_exec_systemctl(systemd_run_t)
-	systemd_systemctl_entrypoint(systemd_run_t)
-	systemd_dbus_chat_logind(systemd_rundomain)
+	fprintd_dbus_chat(systemd_rundomain)
 ')
 
+# Session/cgroup helpers querying parent process group (e.g. systemd tooling).
 optional_policy(`
 	init_getpgid(systemd_rundomain)
 ')
 
+# TLS trust store for HTTPS clients run under run0.
+optional_policy(`
+	miscfiles_read_generic_certs(systemd_rundomain)
+')
+
+# dnf/yum/rpm: domtrans when binary allows it; same-domain still needs rpmdb/cache.
+optional_policy(`
+	rpm_domtrans(systemd_run_t)
+	rpm_entry_type(systemd_run_t)
+	rpm_manage_db(systemd_rundomain)
+	rpm_read_cache(systemd_rundomain)
+')
+
+# ssh-agent on inherited session (optional).
 optional_policy(`
 	ssh_signull(systemd_rundomain)
 ')
 
+# systemctl, logind D-Bus and session pipes (machinectl, run0, user@ session).
 optional_policy(`
+	systemd_dbus_chat_logind(systemd_rundomain)
+	systemd_exec_systemctl(systemd_run_t)
+	systemd_systemctl_entrypoint(systemd_run_t)
 	systemd_write_inherited_logind_sessions_pipes(systemd_rundomain)
 ')
 
-optional_policy(`
-	fprintd_dbus_chat(systemd_rundomain)
-')
+########################################
+#
+# Unconfined access rules
+# Direct systemd-run/run0 from an unconfined login shell (non-PID1 path).
+#
+unconfined_domtrans_to(systemd_run_t, systemd_run_exec_t)
