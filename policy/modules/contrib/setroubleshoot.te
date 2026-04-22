@@ -205,7 +205,8 @@ optional_policy(`
 # setroubleshoot_fixit local policy
 #
 
-allow setroubleshoot_fixit_t self:capability sys_nice;
+# dac_override is needed for "touch /.autorelabel" / "fixfiles onboot"
+allow setroubleshoot_fixit_t self:capability { sys_nice dac_override};
 allow setroubleshoot_fixit_t self:process { setsched getsched };
 dontaudit setroubleshoot_fixit_t self:process execmem;
 allow setroubleshoot_fixit_t self:fifo_file rw_fifo_file_perms;
@@ -227,6 +228,10 @@ dev_read_rand(setroubleshoot_fixit_t)
 dev_read_sysfs(setroubleshoot_fixit_t)
 dev_read_urand(setroubleshoot_fixit_t)
 
+files_list_tmp(setroubleshoot_fixit_t)
+# needed for "touch /.autorelabel" / "fixfiles onboot"
+files_manage_root_files(setroubleshoot_fixit_t)
+
 fs_getattr_xattr_fs(setroubleshoot_fixit_t)
 
 selinux_read_policy(setroubleshoot_fixit_t)
@@ -235,7 +240,10 @@ seutil_domtrans_setfiles(setroubleshoot_fixit_t)
 seutil_domtrans_setsebool(setroubleshoot_fixit_t)
 seutil_read_module_store(setroubleshoot_fixit_t)
 
-files_list_tmp(setroubleshoot_fixit_t)
+# needed for reboot
+optional_policy(`
+	systemd_exec_systemctl(setroubleshoot_fixit_t)
+')
 
 auth_use_nsswitch(setroubleshoot_fixit_t)
 
