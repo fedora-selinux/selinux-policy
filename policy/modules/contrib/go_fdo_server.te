@@ -1,0 +1,58 @@
+policy_module(go_fdo_server, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type go_fdo_server_t;
+type go_fdo_server_exec_t;
+init_daemon_domain(go_fdo_server_t, go_fdo_server_exec_t)
+
+type go_fdo_server_cert_t;
+miscfiles_cert_type(go_fdo_server_cert_t)
+
+type go_fdo_server_etc_t;
+files_config_file(go_fdo_server_etc_t)
+
+type go_fdo_server_var_lib_t;
+files_type(go_fdo_server_var_lib_t)
+
+type go_fdo_server_unit_t;
+systemd_unit_file(go_fdo_server_unit_t)
+
+permissive go_fdo_server_t;
+
+########################################
+#
+# go_fdo_server local policy
+#
+allow go_fdo_server_t self:capability { setgid setuid };
+allow go_fdo_server_t self:fifo_file rw_fifo_file_perms;
+allow go_fdo_server_t self:tcp_socket create_stream_socket_perms;
+allow go_fdo_server_t self:udp_socket create_socket_perms;
+allow go_fdo_server_t self:unix_stream_socket create_stream_socket_perms;
+
+# Patterns
+manage_dirs_pattern(go_fdo_server_t, go_fdo_server_var_lib_t, go_fdo_server_var_lib_t)
+manage_files_pattern(go_fdo_server_t, go_fdo_server_var_lib_t, go_fdo_server_var_lib_t)
+read_files_pattern(go_fdo_server_t, go_fdo_server_cert_t, go_fdo_server_cert_t)
+read_files_pattern(go_fdo_server_t, go_fdo_server_etc_t, go_fdo_server_etc_t)
+
+# Base system interfaces
+corenet_tcp_bind_generic_port(go_fdo_server_t)
+domain_use_interactive_fds(go_fdo_server_t)
+files_read_etc_files(go_fdo_server_t)
+
+# Module interfaces
+optional_policy(`
+    auth_use_nsswitch(go_fdo_server_t)
+')
+
+optional_policy(`
+    miscfiles_read_localization(go_fdo_server_t)
+')
+
+optional_policy(`
+    sysnet_dns_name_resolve(go_fdo_server_t)
+')
