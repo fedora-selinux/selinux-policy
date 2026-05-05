@@ -8,8 +8,8 @@ outdir="$1"; shift
 
 rootdir="$(realpath -m "$0/../..")"
 
-DISTGIT_URL=https://src.fedoraproject.org/rpms/selinux-policy
-DISTGIT_REF=rawhide
+DISTGIT_URL=https://gitlab.com/redhat/centos-stream/rpms/selinux-policy
+DISTGIT_REF=c10s
 
 CONTAINER_URL=https://github.com/containers/container-selinux
 EXPANDER_URL=https://github.com/fedora-selinux/macro-expander
