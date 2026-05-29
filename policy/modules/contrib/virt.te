@@ -544,7 +544,8 @@ optional_policy(`
 #
 
 allow svirt_tcg_t self:capability sys_rawio;
-allow svirt_tcg_t self:process { execmem execstack };
+allow svirt_tcg_t self:process execstack;
+dontaudit svirt_tcg_t self:process execmem;
 allow svirt_tcg_t self:netlink_route_socket r_netlink_socket_perms;
 
 allow svirt_tcg_t svirt_image_t:blk_file map;
@@ -582,7 +583,8 @@ optional_policy(`
 # fsetid - for chmod'ing its runtime files
 allow virtd_t self:capability { chown dac_read_search fowner fsetid ipc_lock kill mknod net_admin net_raw setgid setpcap setuid sys_admin sys_nice sys_ptrace };
 #allow virtd_t self:capability2 compromise_kernel;
-allow virtd_t self:process { execmem getcap getsched setcap setexec setfscreate setsched setsockcreate sigkill signal signull };
+allow virtd_t self:process { getcap getsched setcap setexec setfscreate setsched setsockcreate sigkill signal signull };
+dontaudit virtd_t self:process execmem;
 ifdef(`hide_broken_symptoms',`
 	# caused by some bogus kernel code
 	dontaudit virtd_t self:capability { sys_module };
@@ -2458,6 +2460,8 @@ optional_policy(`
 allow virtstoraged_t self:capability { dac_override dac_read_search fsetid ipc_lock sys_rawio};
 
 allow virtstoraged_t self:process { setsched };
+
+dontaudit virtstoraged_t self:process execmem;
 
 files_tmp_filetrans(virtstoraged_t, virtstoraged_tmp_t, { file dir })
 
