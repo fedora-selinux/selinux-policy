@@ -557,7 +557,6 @@ manage_sock_files_pattern(syslogd_t, syslogd_var_run_t, syslogd_var_run_t)
 mmap_files_pattern(syslogd_t, syslogd_var_run_t, syslogd_var_run_t)
 files_pid_filetrans(syslogd_t, syslogd_var_run_t, { file dir })
 
-kernel_rw_stream_socket_perms(syslogd_t)
 kernel_read_system_state(syslogd_t)
 kernel_read_network_state(syslogd_t)
 kernel_read_kernel_sysctls(syslogd_t)
@@ -574,7 +573,12 @@ kernel_read_ring_buffer(syslogd_t)
 kernel_rw_psi(syslogd_t)
 
 ifdef(`hide_broken_symptoms',`
-	kernel_rw_unix_dgram_sockets(syslogd_t)
+	kernel_early_boot_dgram_accept(syslogd_t)
+	kernel_early_boot_dgram_getopt(syslogd_t)
+	kernel_early_boot_dgram_setopt(syslogd_t)
+	kernel_early_boot_dgram_rw(syslogd_t)
+	kernel_early_boot_stream_accept(syslogd_t)
+	kernel_early_boot_stream_rw(syslogd_t)
 ')
 
 corecmd_exec_bin(syslogd_t)
@@ -813,14 +817,14 @@ allow syslog_client_type self:unix_dgram_socket create_socket_perms;
 allow syslog_client_type self:unix_stream_socket create_socket_perms;
 
 
-kernel_stream_connect(syslog_client_type)
+kernel_early_boot_stream_accept(syslog_client_type)
 
 # If syslog is down, the glibc syslog() function
 # will write to the console.
 term_write_console(syslog_client_type)
 term_dontaudit_read_console(syslog_client_type)
 ifdef(`hide_broken_symptoms',`
-	kernel_dgram_send(syslog_client_type)
+	kernel_early_boot_dgram_send(syslog_client_type)
 ')
 
 logging_stream_connect_syslog(syslog_client_type)
