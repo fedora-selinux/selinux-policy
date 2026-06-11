@@ -1,4 +1,4 @@
-policy_module(systemd_run, 1.10.9)
+policy_module(systemd_run, 1.10.11)
 
 
 ########################################
@@ -230,6 +230,30 @@ optional_policy(`
 	systemd_exec_systemctl(systemd_run_t)
 	systemd_systemctl_entrypoint(systemd_run_t)
 	systemd_write_inherited_logind_sessions_pipes(systemd_rundomain)
+')
+
+# See support/run0-pam-test.md § "Simple vs complex use cases" for passwd/polkit/init assessment.
+# Prefer domtrans to dedicated types over exec-only bits where optional modules link.
+optional_policy(`
+	auth_domtrans_chkpwd(systemd_run_t)
+')
+optional_policy(`
+	systemd_passwd_agent_domtrans(systemd_run_t)
+	systemd_signal_passwd_agent(systemd_run_t)
+	gen_require(`
+		type systemd_passwd_agent_t;
+		type user_tmp_t;
+	')
+	# ask-password may live under the callers XDG runtime dir (/run/user/<uid>/systemd/…)
+	allow systemd_passwd_agent_t user_tmp_t:dir { getattr open read search watch watch_reads };
+')
+optional_policy(`
+	policykit_domtrans_auth(systemd_run_t)
+	policykit_dbus_chat(systemd_run_t)
+')
+optional_policy(`
+	init_status(systemd_run_t)
+	init_start(systemd_run_t)
 ')
 
 ########################################
