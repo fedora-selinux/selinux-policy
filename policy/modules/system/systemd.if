@@ -1444,25 +1444,6 @@ interface(`systemd_manage_passwd_run',`
 	allow systemd_passwd_agent_t $1:unix_dgram_socket sendto;
 ')
 
-########################################
-## <summary>
-##     Manage pcrlock files
-## </summary>
-## <param name="domain">
-##     <summary>
-##     Domain allowed access.
-##     </summary>
-## </param>
-#
-interface(`systemd_manage_pcrlock_files',`
-    gen_require(`
-       type systemd_pcrlock_var_lib_t;
-    ')
-
-    manage_files_pattern($1, systemd_pcrlock_var_lib_t, systemd_pcrlock_var_lib_t)
-    manage_dirs_pattern($1, systemd_pcrlock_var_lib_t, systemd_pcrlock_var_lib_t)
-')
-
 ######################################
 ## <summary>
 ##  Template for temporary sockets and files in /dev/.systemd/ask-password
@@ -1493,6 +1474,42 @@ interface(`systemd_passwd_agent_dev_template',`
         allow systemd_passwd_agent_t $1_t:unix_dgram_socket sendto;
 	allow systemd_passwd_agent_t systemd_$1_device_t:sock_file write;
         allow systemd_passwd_agent_t systemd_$1_device_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##     Manage pcrlock /var/lib files
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`systemd_pcrlock_manage_var_lib_files',`
+    gen_require(`
+       type systemd_pcrlock_var_lib_t;
+    ')
+
+    manage_files_pattern($1, systemd_pcrlock_var_lib_t, systemd_pcrlock_var_lib_t)
+')
+
+########################################
+## <summary>
+##     Manage pcrlock /var/lib dirs
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`systemd_pcrlock_manage_var_lib_dirs',`
+    gen_require(`
+       type systemd_pcrlock_var_lib_t;
+    ')
+
+    manage_dirs_pattern($1, systemd_pcrlock_var_lib_t, systemd_pcrlock_var_lib_t)
 ')
 
 ########################################
@@ -2059,7 +2076,6 @@ interface(`systemd_pcrlock_filetrans_named_content',`
 	# Needed when /var/lib/pcrlock.d gets unlinked and recreated
 	files_var_lib_filetrans($1, systemd_pcrlock_var_lib_t, { dir file }, "pcrlock.d")
 ')
-
 
 ########################################
 ## <summary>
