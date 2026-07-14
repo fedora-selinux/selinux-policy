@@ -7,7 +7,7 @@ define(`shiftn',`ifelse($1,0,`shift($*)',`shiftn(decr($1),shift(shift($*)))')')
 
 ########################################
 #
-# Network Interface generated macros 
+# Network Interface generated macros
 #
 ########################################
 
@@ -283,7 +283,7 @@ interface(`corenet_raw_sendrecv_$1_if',`
 
 ########################################
 #
-# Network node generated macros 
+# Network node generated macros
 #
 ########################################
 
@@ -456,7 +456,7 @@ interface(`corenet_udp_bind_$1_node',`
 
 ########################################
 #
-# Network port generated macros 
+# Network port generated macros
 #
 ########################################
 
@@ -859,53 +859,53 @@ interface(`corenet_ib_manage_subnet_$1_endport',`
 # create_netif_*_interfaces(linux_interfacename)
 #
 define(`create_netif_type_interfaces',`
-create_netif_interfaces($1,netif_t,type)
+	create_netif_interfaces($1,netif_t,type)
 ')
 define(`create_netif_type_interfaces_controlled',`
-create_netif_interfaces_controlled($1,netif_t,type)
+	create_netif_interfaces_controlled($1,netif_t,type)
 ')
 define(`create_netif_attrib_interfaces',`
-create_netif_interfaces($1,netif,attribute)
+	create_netif_interfaces($1,netif,attribute)
 ')
 define(`create_netif_attrib_interfaces_controlled',`
-create_netif_interfaces_controlled($1,netif,attribute)
+	create_netif_interfaces_controlled($1,netif,attribute)
 ')
 
 #
 # network_interface(linux_interfacename,mls_sensitivity)
 #
 define(`network_interface',`
-create_netif_type_interfaces($1)
+	create_netif_type_interfaces($1)
 ')
 
 define(`network_interface_controlled',`
-create_netif_type_interfaces_controlled($1)
+	create_netif_type_interfaces_controlled($1)
 ')
 
 #
 # create_node_*_interfaces(node_name)
 #
 define(`create_node_type_interfaces',`
-create_node_interfaces($1,node_t,type)
+	create_node_interfaces($1,node_t,type)
 ')
 define(`create_node_attrib_interfaces',`
-create_node_interfaces($1,node,attribute)
+	create_node_interfaces($1,node,attribute)
 ')
 
 #
 # network_node(node_name,mls_sensitivity,address,netmask)
 #
 define(`network_node',`
-create_node_type_interfaces($1)
+	create_node_type_interfaces($1)
 ')
 
 # These next three macros have formatting, and should not me indented
 define(`determine_reserved_capability',`dnl
-ifelse($2,`',`',`dnl
-ifelse(eval($2 < 1024),1,``allow' dollarsone self:capability net_bind_service;',`dnl
-determine_reserved_capability(shiftn(3,$*))dnl
-')dnl end inner ifelse
-')dnl end outer ifelse
+	ifelse($2,`',`',`dnl
+		ifelse(eval($2 < 1024),1,``allow' dollarsone self:capability net_bind_service;',`dnl
+			determine_reserved_capability(shiftn(3,$*))dnl
+		')dnl end inner ifelse
+	')dnl end outer ifelse
 ') dnl end determine reserved capability
 
 #
@@ -918,17 +918,17 @@ define(`create_port_attrib_interfaces',`create_port_interfaces($1,port,attribute
 # network_port(port_name,protocol portnum mls_sensitivity [,protocol,portnum,mls_sensitivity[,...]])
 #
 define(`network_port',`
-create_port_type_interfaces($*)
-create_packet_interfaces($1_client)
-create_packet_interfaces($1_server)
+	create_port_type_interfaces($*)
+	create_packet_interfaces($1_client)
+	create_packet_interfaces($1_server)
 ')
 
 #
 # network_packet(packet_name)
 #
 define(`network_packet',`
-create_packet_interfaces($1_client)
-create_packet_interfaces($1_server)
+	create_packet_interfaces($1_client)
+	create_packet_interfaces($1_server)
 ')
 
 # create_ibpkey_*_interfaces(name, subnet_prefix, pkeynum,mls_sensitivity)
@@ -939,7 +939,7 @@ define(`create_ibpkey_type_interfaces',`create_ibpkey_interfaces($1,ibpkey_t,typ
 # ib_pkey(name,subnet_prefix pkeynum mls_sensitivity)
 #
 define(`ib_pkey',`
-create_ibpkey_type_interfaces($*)
+	create_ibpkey_type_interfaces($*)
 ')
 
 # create_ibendport_*_interfaces(name, devname, portnum,mls_sensitivity)
@@ -950,5 +950,5 @@ define(`create_ibendport_type_interfaces',`create_ibendport_interfaces($1,ibendp
 # ib_endport(name,device_name, portnum mls_sensitivity)
 #
 define(`ib_endport',`
-create_ibendport_type_interfaces($*)
+	create_ibendport_type_interfaces($*)
 ')

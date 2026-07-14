@@ -21,55 +21,55 @@ interface(`rdisc_exec',`
 
 ########################################
 ## <summary>
-##      Execute rdisc server in the rdisc domain.
+##	Execute rdisc server in the rdisc domain.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed to transition.
-##      </summary>
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
 ## </param>
 #
 interface(`rdisc_systemctl',`
-        gen_require(`
-                type rdisc_t;
-                type rdisc_unit_file_t;
-        ')
+	gen_require(`
+		type rdisc_t;
+		type rdisc_unit_file_t;
+	')
 
-        systemd_exec_systemctl($1)
+	systemd_exec_systemctl($1)
 	init_reload_services($1)
-        systemd_read_fifo_file_passwd_run($1)
-        allow $1 rdisc_unit_file_t:file read_file_perms;
-        allow $1 rdisc_unit_file_t:service manage_service_perms;
+	systemd_read_fifo_file_passwd_run($1)
+	allow $1 rdisc_unit_file_t:file read_file_perms;
+	allow $1 rdisc_unit_file_t:service manage_service_perms;
 
-        ps_process_pattern($1, rdisc_t)
+	ps_process_pattern($1, rdisc_t)
 ')
 
 ########################################
 ## <summary>
-##      All of the rules required to administrate
-##      an rdisc environment
+##	All of the rules required to administrate
+##	an rdisc environment
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`rdisc_admin',`
-        gen_require(`
-            type rdisc_t;
-            type rdisc_unit_file_t;
-        ')
+	gen_require(`
+		type rdisc_t;
+		type rdisc_unit_file_t;
+	')
 
-        allow $1 rdisc_t:process { ptrace signal_perms };
-        ps_process_pattern($1, rdisc_t)
+	allow $1 rdisc_t:process { ptrace signal_perms };
+	ps_process_pattern($1, rdisc_t)
 
-        rdisc_systemctl($1)
-        admin_pattern($1, rdisc_unit_file_t)
-        allow $1 rdisc_unit_file_t:service all_service_perms;
-        optional_policy(`
-                systemd_passwd_agent_exec($1)
-                systemd_read_fifo_file_passwd_run($1)
-        ')
+	rdisc_systemctl($1)
+	admin_pattern($1, rdisc_unit_file_t)
+	allow $1 rdisc_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
 ')
