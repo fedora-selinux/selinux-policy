@@ -2,70 +2,70 @@
 
 #######################################
 ## <summary>
-##  Role access for gnome.  (Deprecated)
+##	Role access for gnome.  (Deprecated)
 ## </summary>
 ## <param name="role">
-##  <summary>
-##  Role allowed access.
-##  </summary>
+##	<summary>
+##	Role allowed access.
+##	</summary>
 ## </param>
 ## <param name="domain">
-##  <summary>
-##  User domain for the role.
-##  </summary>
+##	<summary>
+##	User domain for the role.
+##	</summary>
 ## </param>
 #
 interface(`gnome_role',`
-    refpolicywarn(`$0($*) has been deprecated')
-    ')
-
-######################################
-## <summary>
-##      The role template for the gnome-keyring-daemon.
-## </summary>
-## <param name="user_prefix">
-##      <summary>
-##      The user prefix.
-##      </summary>
-## </param>
-## <param name="user_role">
-##      <summary>
-##      The user role.
-##      </summary>
-## </param>
-## <param name="user_domain">
-##      <summary>
-##      The user domain associated with the role.
-##      </summary>
-## </param>
-#
-interface(`gnome_role_gkeyringd',`
-    refpolicywarn(`$0($*) has been deprecated')
+	refpolicywarn(`$0($*) has been deprecated')
 ')
 
 ######################################
 ## <summary>
-##  The role template for gnome.
+##	The role template for the gnome-keyring-daemon.
 ## </summary>
-## <param name="role_prefix">
-##  <summary>
-##  The prefix of the user domain (e.g., user
-##  is the prefix for user_t).
-##  </summary>
+## <param name="user_prefix">
+##	<summary>
+##	The user prefix.
+##	</summary>
 ## </param>
 ## <param name="user_role">
-##  <summary>
-##  The role associated with the user domain.
-##  </summary>
+##	<summary>
+##	The user role.
+##	</summary>
 ## </param>
 ## <param name="user_domain">
-##  <summary>
-##  The type of the user domain.
-##  </summary>
+##	<summary>
+##	The user domain associated with the role.
+##	</summary>
+## </param>
+#
+interface(`gnome_role_gkeyringd',`
+	refpolicywarn(`$0($*) has been deprecated')
+')
+
+######################################
+## <summary>
+##	The role template for gnome.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
 ## </param>
 #
 template(`gnome_role_template',`
-    gen_require(`
+	gen_require(`
 		attribute gnomedomain, gkeyringd_domain, gnome_home_type;
 		attribute_role gconfd_roles;
 		type gkeyringd_exec_t, gkeyringd_tmp_t;
@@ -102,7 +102,6 @@ template(`gnome_role_template',`
 	allow $3 gconfd_t:unix_stream_socket connectto;
 	ps_process_pattern($3, gconfd_t)
 
-
 	########################################
 	#
 	# Gkeyringd policy
@@ -128,7 +127,7 @@ template(`gnome_role_template',`
 	allow $3 $1_gkeyringd_t:fd use;
 	allow $3 $1_gkeyringd_t:fifo_file rw_fifo_file_perms;
 
-    allow $3 $1_gkeyringd_t:dbus { acquire_svc };
+	allow $3 $1_gkeyringd_t:dbus { acquire_svc };
 
 	stream_connect_pattern($3, gkeyringd_tmp_t, gkeyringd_tmp_t, $1_gkeyringd_t)
 
@@ -145,56 +144,56 @@ template(`gnome_role_template',`
 
 	logging_send_syslog_msg($1_gkeyringd_t)
 
-    userdom_rw_user_tmp_sock_files($1_gkeyringd_t)
+	userdom_rw_user_tmp_sock_files($1_gkeyringd_t)
 
 	allow $1_gkeyringd_t $3:dbus { acquire_svc send_msg };
 	allow $3 $1_gkeyringd_t:dbus send_msg;
 
 	optional_policy(`
-        dbus_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
-        dbus_stream_connect_system_dbusd($1_gkeyringd_t)
-        dbus_send_system_bus($1_gkeyringd_t)
+		dbus_session_domain($1, gkeyringd_exec_t, $1_gkeyringd_t)
+		dbus_stream_connect_system_dbusd($1_gkeyringd_t)
+		dbus_send_system_bus($1_gkeyringd_t)
 		gnome_manage_generic_home_dirs($1_gkeyringd_t)
 		gnome_read_generic_data_home_files($1_gkeyringd_t)
 		gnome_read_generic_data_home_dirs($1_gkeyringd_t)
 
 		optional_policy(`
 			telepathy_mission_control_read_state($1_gkeyringd_t)
-            telepathy_gabble_stream_connect_to($1_gkeyringd_t,gkeyringd_tmp_t,gkeyringd_tmp_t)
+			telepathy_gabble_stream_connect_to($1_gkeyringd_t,gkeyringd_tmp_t,gkeyringd_tmp_t)
 		')
 
-        optional_policy(`
-            systemd_dbus_chat_logind($1_gkeyringd_t)
-        ')
+		optional_policy(`
+			systemd_dbus_chat_logind($1_gkeyringd_t)
+		')
 	')
 
-    optional_policy(`
-        ssh_agent_exec($1_gkeyringd_t)
-    ')
+	optional_policy(`
+		ssh_agent_exec($1_gkeyringd_t)
+	')
 ')
 
 #######################################
 ## <summary>
-##  Allow domain to run gkeyring in the $1_gkeyringd_t domain.
+##	Allow domain to run gkeyring in the $1_gkeyringd_t domain.
 ## </summary>
 ## <param name="user_prefix">
-##      <summary>
-##      The user prefix.
-##      </summary>
+##	<summary>
+##	The user prefix.
+##	</summary>
 ## </param>
 ## <param name="user_role">
-##      <summary>
-##      The user role.
-##      </summary>
+##	<summary>
+##	The user role.
+##	</summary>
 ## </param>
 ## <param name="user_domain">
-##      <summary>
+##	<summary>
 ##	Domain allowed access.
-##      </summary>
+##	</summary>
 ## </param>
 #
 interface(`gnome_run_gkeyringd',`
-    gen_require(`
+	gen_require(`
 		type $1_gkeyringd_t;
 		type gkeyringd_exec_t;
 	')
@@ -223,7 +222,7 @@ interface(`gnome_stream_connect_gconf',`
 
 ########################################
 ## <summary>
-##	Connect to gkeyringd with a unix stream socket. 
+##	Connect to gkeyringd with a unix stream socket.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -233,10 +232,10 @@ interface(`gnome_stream_connect_gconf',`
 #
 interface(`gnome_stream_connect_gkeyringd',`
 	gen_require(`
-			attribute gkeyringd_domain;
-			type gkeyringd_tmp_t;
-			type gconf_tmp_t;
-			type cache_home_t;
+		attribute gkeyringd_domain;
+		type gkeyringd_tmp_t;
+		type gconf_tmp_t;
+		type cache_home_t;
 	')
 
 	allow $1 gconf_tmp_t:dir search_dir_perms;
@@ -317,7 +316,6 @@ interface(`gnome_dontaudit_append_config_files',`
 
 	dontaudit $1 gnome_home_type:file append;
 ')
-
 
 ########################################
 ## <summary>
@@ -784,26 +782,26 @@ interface(`gnome_map_generic_data_home_files',`
 		type data_home_t, gconf_home_t;
 	')
 
-allow $1 data_home_t:file map;
-allow $1 gconf_home_t:file map;
+	allow $1 data_home_t:file map;
+	allow $1 gconf_home_t:file map;
 ')
 
 ######################################
 ## <summary>
-##  Read generic data home dirs.
+##	Read generic data home dirs.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_read_generic_data_home_dirs',`
-    gen_require(`
-        type data_home_t, gconf_home_t;
-    ')
+	gen_require(`
+		type data_home_t, gconf_home_t;
+	')
 
-    list_dirs_pattern($1, { gconf_home_t data_home_t }, data_home_t)
+	list_dirs_pattern($1, { gconf_home_t data_home_t }, data_home_t)
 ')
 
 ######################################
@@ -817,11 +815,11 @@ interface(`gnome_read_generic_data_home_dirs',`
 ## </param>
 #
 interface(`gnome_watch_generic_data_home_dirs',`
-    gen_require(`
-        type data_home_t;
-    ')
+	gen_require(`
+		type data_home_t;
+	')
 
-    watch_dirs_pattern($1, data_home_t, data_home_t)
+	watch_dirs_pattern($1, data_home_t, data_home_t)
 ')
 
 #######################################
@@ -956,26 +954,26 @@ interface(`gnome_read_gconf_config',`
 
 #######################################
 ## <summary>
-##      Manage gconf config files
+##	Manage gconf config files
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_manage_gconf_config',`
-        gen_require(`
-                type gconf_etc_t;
-        ')
+	gen_require(`
+		type gconf_etc_t;
+	')
 
-        allow $1 gconf_etc_t:dir list_dir_perms;
-        manage_files_pattern($1, gconf_etc_t, gconf_etc_t)
+	allow $1 gconf_etc_t:dir list_dir_perms;
+	manage_files_pattern($1, gconf_etc_t, gconf_etc_t)
 ')
 
 ########################################
 ## <summary>
-##	Execute gconf programs in 
+##	Execute gconf programs in
 ##	in the caller domain.
 ## </summary>
 ## <param name="domain">
@@ -1097,42 +1095,42 @@ interface(`gnome_list_gkeyringd_tmp_dirs',`
 
 #######################################
 ## <summary>
-##  Delete gkeyringd temporary
+##	Delete gkeyringd temporary
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_delete_gkeyringd_tmp_content',`
-    gen_require(`
-        type gkeyringd_tmp_t;
-    ')
+	gen_require(`
+		type gkeyringd_tmp_t;
+	')
 
-    files_search_tmp($1)
-    delete_dirs_pattern($1, gkeyringd_tmp_t, gkeyringd_tmp_t)
-    delete_files_pattern($1, gkeyringd_tmp_t, gkeyringd_tmp_t)
-    delete_sock_files_pattern($1, gkeyringd_tmp_t, gkeyringd_tmp_t)
+	files_search_tmp($1)
+	delete_dirs_pattern($1, gkeyringd_tmp_t, gkeyringd_tmp_t)
+	delete_files_pattern($1, gkeyringd_tmp_t, gkeyringd_tmp_t)
+	delete_sock_files_pattern($1, gkeyringd_tmp_t, gkeyringd_tmp_t)
 ')
 
 #######################################
 ## <summary>
-##  Manage gkeyringd temporary directories.
+##	Manage gkeyringd temporary directories.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_manage_gkeyringd_tmp_dirs',`
-    gen_require(`
-        type gkeyringd_tmp_t;
-    ')
+	gen_require(`
+		type gkeyringd_tmp_t;
+	')
 
-    files_search_tmp($1)
-    manage_dirs_pattern($1, gkeyringd_tmp_t, gkeyringd_tmp_t)
+	files_search_tmp($1)
+	manage_dirs_pattern($1, gkeyringd_tmp_t, gkeyringd_tmp_t)
 ')
 
 ########################################
@@ -1331,39 +1329,39 @@ interface(`gnome_read_home_config',`
 
 #######################################
 ## <summary>
-##  append gnome homedir content (.config)
+##	append gnome homedir content (.config)
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_append_home_config',`
-    gen_require(`
-        type config_home_t;
-    ')
+	gen_require(`
+		type config_home_t;
+	')
 
-    append_files_pattern($1, config_home_t, config_home_t)
+	append_files_pattern($1, config_home_t, config_home_t)
 ')
 
 #######################################
 ## <summary>
-##  delete gnome homedir content (.config)
+##	delete gnome homedir content (.config)
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_delete_home_config',`
-    gen_require(`
-        type config_home_t;
-    ')
+	gen_require(`
+		type config_home_t;
+	')
 
-    delete_files_pattern($1, config_home_t, config_home_t)
-    delete_lnk_files_pattern($1, config_home_t, config_home_t)
+	delete_files_pattern($1, config_home_t, config_home_t)
+	delete_lnk_files_pattern($1, config_home_t, config_home_t)
 ')
 
 ########################################
@@ -1404,20 +1402,20 @@ interface(`gnome_create_home_config_dirs',`
 
 #######################################
 ## <summary>
-##  setattr gnome homedir content (.config)
+##	setattr gnome homedir content (.config)
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_setattr_home_config_dirs',`
-    gen_require(`
-        type config_home_t;
-    ')
+	gen_require(`
+		type config_home_t;
+	')
 
-    setattr_dirs_pattern($1, config_home_t, config_home_t)
+	setattr_dirs_pattern($1, config_home_t, config_home_t)
 ')
 
 ########################################
@@ -1442,20 +1440,20 @@ interface(`gnome_manage_home_config',`
 
 #######################################
 ## <summary>
-##  delete gnome homedir content (.config)
+##	delete gnome homedir content (.config)
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_delete_home_config_dirs',`
-    gen_require(`
-        type config_home_t;
-    ')
+	gen_require(`
+		type config_home_t;
+	')
 
-    delete_dirs_pattern($1, config_home_t, config_home_t)
+	delete_dirs_pattern($1, config_home_t, config_home_t)
 ')
 
 ########################################
@@ -1534,124 +1532,123 @@ interface(`gnome_manage_gstreamer_home_files',`
 
 ######################################
 ## <summary>
-##      Allow to execute gstreamer home content files.
+##	Allow to execute gstreamer home content files.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_exec_gstreamer_home_files',`
-        gen_require(`
-                type gstreamer_home_t;
-        ')
+	gen_require(`
+		type gstreamer_home_t;
+	')
 
-        can_exec($1, gstreamer_home_t)
+	can_exec($1, gstreamer_home_t)
 ')
 
 ######################################
 ## <summary>
-##      Allow to execute config home content files.
+##	Allow to execute config home content files.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_exec_config_home_files',`
-        gen_require(`
-                type config_home_t;
-        ')
+	gen_require(`
+		type config_home_t;
+	')
 
-        can_exec($1, config_home_t)
+	can_exec($1, config_home_t)
 ')
 
 #######################################
 ## <summary>
-##  file name transition gstreamer home content files.
+##	file name transition gstreamer home content files.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_filetrans_gstreamer_home_content',`
-    gen_require(`
-        type gstreamer_home_t;
-    ')
+	gen_require(`
+		type gstreamer_home_t;
+	')
 
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-bookmarks")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-metadata-store")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-podcasts")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-0.12")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-0.10")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-1.0")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-1.2")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-10")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-12")
-    userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".orc")
-    userdom_user_tmp_filetrans($1, gstreamer_home_t, dir, ".orc")
-    gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-0.12")
-    gnome_cache_filetrans($1, gstreamer_home_t, dir, "GLCache")
-    gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-0.10")
-    gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-1.0")
-    gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-1.2")
-    gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-10")
-    gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-12")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-bookmarks")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-metadata-store")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-podcasts")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-0.12")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-0.10")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-1.0")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-1.2")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-10")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-12")
+	userdom_user_home_dir_filetrans($1, gstreamer_home_t, dir, ".orc")
+	userdom_user_tmp_filetrans($1, gstreamer_home_t, dir, ".orc")
+	gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-0.12")
+	gnome_cache_filetrans($1, gstreamer_home_t, dir, "GLCache")
+	gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-0.10")
+	gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-1.0")
+	gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-1.2")
+	gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-10")
+	gnome_cache_filetrans($1, gstreamer_home_t, dir, "gstreamer-12")
 ')
-
 
 #######################################
 ## <summary>
-##  file name transition gstreamer admin home content files.
+##	file name transition gstreamer admin home content files.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_filetrans_gstreamer_admin_home_content',`
-    gen_require(`
-        type gstreamer_home_t;
-    ')
+	gen_require(`
+		type gstreamer_home_t;
+	')
 
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-bookmarks")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-metadata-store")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-podcasts")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-0.12")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-0.10")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-1.0")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-1.2")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-10")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-12")
-    userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".orc")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-bookmarks")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-metadata-store")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, file, ".grl-podcasts")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-0.12")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-0.10")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-1.0")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-1.2")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-10")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".gstreamer-12")
+	userdom_admin_home_dir_filetrans($1, gstreamer_home_t, dir, ".orc")
 ')
 
 #######################################
 ## <summary>
-##  manage gstreamer home content files.
+##	manage gstreamer home content files.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_manage_gstreamer_home_dirs',`
-    gen_require(`
-        type gstreamer_home_t;
-    ')
+	gen_require(`
+		type gstreamer_home_t;
+	')
 
-    manage_dirs_pattern($1, gstreamer_home_t, gstreamer_home_t)
+	manage_dirs_pattern($1, gstreamer_home_t, gstreamer_home_t)
 ')
 
 ########################################
 ## <summary>
-##	Read/Write all inherited gnome home config 
+##	Read/Write all inherited gnome home config
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1669,7 +1666,7 @@ interface(`gnome_rw_inherited_config',`
 
 ########################################
 ## <summary>
-##	Dontaudit Read/Write all inherited gnome home config 
+##	Dontaudit Read/Write all inherited gnome home config
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1804,44 +1801,44 @@ interface(`gnome_access_check_usr_config',`
 
 ######################################
 ## <summary>
-##      Allow read kde config content
+##	Allow read kde config content
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_read_usr_config',`
-        gen_require(`
-                type config_usr_t;
-        ')
+	gen_require(`
+		type config_usr_t;
+	')
 
-        files_search_usr($1)
-		list_dirs_pattern($1, config_usr_t, config_usr_t)
-		read_files_pattern($1, config_usr_t, config_usr_t)
-		read_lnk_files_pattern($1, config_usr_t, config_usr_t)	
+	files_search_usr($1)
+	list_dirs_pattern($1, config_usr_t, config_usr_t)
+	read_files_pattern($1, config_usr_t, config_usr_t)
+	read_lnk_files_pattern($1, config_usr_t, config_usr_t)
 ')
 
 #######################################
 ## <summary>
-##      Allow manage kde config content
+##	Allow manage kde config content
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_manage_usr_config',`
-        gen_require(`
-                type config_usr_t;
-        ')
+	gen_require(`
+		type config_usr_t;
+	')
 
-        files_search_usr($1)
-		manage_dirs_pattern($1, config_usr_t, config_usr_t)
-		manage_files_pattern($1, config_usr_t, config_usr_t)
-		manage_lnk_files_pattern($1, config_usr_t, config_usr_t)
+	files_search_usr($1)
+	manage_dirs_pattern($1, config_usr_t, config_usr_t)
+	manage_files_pattern($1, config_usr_t, config_usr_t)
+	manage_lnk_files_pattern($1, config_usr_t, config_usr_t)
 ')
 
 ########################################
@@ -1878,15 +1875,15 @@ interface(`gnome_transition_gkeyringd',`
 #
 interface(`gnome_filetrans_home_content',`
 
-gen_require(`
-	type config_home_t;
-	type cache_home_t;
-	type dbus_home_t;
-	type gconf_home_t;
-	type gnome_home_t;
-	type data_home_t, icc_data_home_t;
-	type gkeyringd_gnome_home_t;
-')
+	gen_require(`
+		type config_home_t;
+		type cache_home_t;
+		type dbus_home_t;
+		type gconf_home_t;
+		type gnome_home_t;
+		type data_home_t, icc_data_home_t;
+		type gkeyringd_gnome_home_t;
+	')
 
 	userdom_user_home_dir_filetrans($1, config_home_t, dir, ".config")
 	userdom_user_home_dir_filetrans($1, config_home_t, file, ".Xdefaults")
@@ -1923,29 +1920,29 @@ gen_require(`
 ## </param>
 #
 interface(`gnome_filetrans_config_home_content',`
-    gen_require(`
-        type config_home_t;
-    ')
+	gen_require(`
+		type config_home_t;
+	')
 
-    gnome_cache_filetrans($1, config_home_t, dir, "dconf")
+	gnome_cache_filetrans($1, config_home_t, dir, "dconf")
 ')
 
 ######################################
 ## <summary>
-##  File name transition for generic home content files.
+##	File name transition for generic home content files.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`gnome_filetrans_cert_home_content',`
-    gen_require(`
-            type home_cert_t;
-    ')
+	gen_require(`
+		type home_cert_t;
+	')
 
-    gnome_data_filetrans($1, home_cert_t, dir, "certificates")
+	gnome_data_filetrans($1, home_cert_t, dir, "certificates")
 ')
 
 ######################################
@@ -1954,18 +1951,18 @@ interface(`gnome_filetrans_cert_home_content',`
 ##	of the user home directory with correct label.
 ## </summary>
 ## <param name="domain">
-##  <summary>
+##	<summary>
 ##	Domain allowed access.
-##  </summary>
+##	</summary>
 ## </param>
 #
 interface(`gnome_filetrans_fontconfig_home_content',`
-    gen_require(`
-            type user_fonts_config_t, user_fonts_cache_t;
-    ')
+	gen_require(`
+		type user_fonts_config_t, user_fonts_cache_t;
+	')
 
-    gnome_config_filetrans($1, user_fonts_config_t, dir, "fontconfig")
-    gnome_cache_filetrans($1, user_fonts_cache_t, dir, "fontconfig")
+	gnome_config_filetrans($1, user_fonts_config_t, dir, "fontconfig")
+	gnome_cache_filetrans($1, user_fonts_cache_t, dir, "fontconfig")
 ')
 
 ########################################
@@ -1981,15 +1978,15 @@ interface(`gnome_filetrans_fontconfig_home_content',`
 #
 interface(`gnome_filetrans_admin_home_content',`
 
-gen_require(`
-	type config_home_t;
-	type cache_home_t;
-	type dbus_home_t;
-	type gstreamer_home_t;
-	type gconf_home_t;
-	type gnome_home_t;
-	type icc_data_home_t;
-')
+	gen_require(`
+		type config_home_t;
+		type cache_home_t;
+		type dbus_home_t;
+		type gstreamer_home_t;
+		type gconf_home_t;
+		type gnome_home_t;
+		type icc_data_home_t;
+	')
 
 	userdom_admin_home_dir_filetrans($1, config_home_t, dir, ".config")
 	userdom_admin_home_dir_filetrans($1, config_home_t, file, ".Xdefaults")
@@ -2008,46 +2005,46 @@ gen_require(`
 
 #####################################
 ## <summary>
-##  Execute gnome-keyring executable
-##  in the specified domain.
+##	Execute gnome-keyring executable
+##	in the specified domain.
 ## </summary>
 ## <desc>
-##  <p>
-##  Execute a gnome-keyring executable
-##  in the specified domain.  This allows
-##  the specified domain to execute any file
-##  on these filesystems in the specified
-##  domain. 
-##  </p>
-##  <p>
-##  No interprocess communication (signals, pipes,
-##  etc.) is provided by this interface since
-##  the domains are not owned by this module.
-##  </p>
-##  <p>
-##  This interface was added to handle
-##  the ssh-agent policy.
-##  </p>
+##	<p>
+##	Execute a gnome-keyring executable
+##	in the specified domain.  This allows
+##	the specified domain to execute any file
+##	on these filesystems in the specified
+##	domain.
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+##	<p>
+##	This interface was added to handle
+##	the ssh-agent policy.
+##	</p>
 ## </desc>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed to transition.
-##  </summary>
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
 ## </param>
 ## <param name="target_domain">
-##  <summary>
-##  The type of the new process.
-##  </summary>
+##	<summary>
+##	The type of the new process.
+##	</summary>
 ## </param>
 #
 interface(`gnome_command_domtrans_gkeyringd', `
-    gen_require(`
-        type gkeyringd_exec_t;
-    ')
+	gen_require(`
+		type gkeyringd_exec_t;
+	')
 
-    allow $2 gkeyringd_exec_t:file entrypoint;
-    domain_transition_pattern($1, gkeyringd_exec_t, $2)
-    type_transition $1 gkeyringd_exec_t:process $2;
+	allow $2 gkeyringd_exec_t:file entrypoint;
+	domain_transition_pattern($1, gkeyringd_exec_t, $2)
+	type_transition $1 gkeyringd_exec_t:process $2;
 ')
 
 ########################################
@@ -2288,7 +2285,6 @@ interface(`gnome_initial_setup_write_fifo_files',`
 		type gnome_initial_setup_t;
 	')
 
-	
 	allow $1 gnome_initial_setup_t:fifo_file write_fifo_file_perms;
 ')
 
@@ -2307,7 +2303,6 @@ interface(`gnome_initial_setup_read_tmp_files',`
 		type gnome_initial_setup_tmp_t;
 	')
 
-	
 	allow $1 gnome_initial_setup_tmp_t:file read_file_perms;
 ')
 
