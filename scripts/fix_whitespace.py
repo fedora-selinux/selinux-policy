@@ -8,6 +8,8 @@ Fixes:
   4. Wrong indentation depth (over/under-indented lines)
   5. ## doc comment indentation with XML nesting awareness
   6. Consecutive blank lines -> single blank line
+  7. Mid-line double spaces in code -> single space (.te/.if only; comments
+     and .fc files are left alone since they use spaces deliberately)
 
 Block depth is determined by parsing M4 block structure:
   - interface/template/define blocks (in .if files)
@@ -64,6 +66,44 @@ def strip_comment(line):
             return stripped[:i]
 
     return stripped
+
+
+def find_comment_pos(code_line):
+    """Find the index of the comment-starting '#' in an already-stripped line.
+
+    Returns -1 if there is no comment. Ignores '#' inside M4 backtick/
+    singlequote strings, matching the quoting logic in strip_comment().
+    """
+    depth = 0
+    for i, ch in enumerate(code_line):
+        if ch == '`':
+            depth += 1
+        elif ch == "'":
+            if depth > 0:
+                depth -= 1
+        elif ch == '#' and depth == 0:
+            return i
+    return -1
+
+
+def collapse_double_spaces(stripped):
+    """Collapse runs of 2+ spaces to a single space in the code portion of a line.
+
+    Only the code portion (before any inline comment) is touched; comment
+    text is left untouched since it may deliberately use double spaces
+    (e.g. two spaces after a sentence-ending period).
+
+    Returns (new_stripped, changed).
+    """
+    comment_pos = find_comment_pos(stripped)
+    if comment_pos == -1:
+        code, comment = stripped, ''
+    else:
+        code, comment = stripped[:comment_pos], stripped[comment_pos:]
+
+    new_code = re.sub(r' {2,}', ' ', code)
+    new_stripped = new_code + comment
+    return new_stripped, new_stripped != stripped
 
 
 def parse_block_depth(lines, file_type):
@@ -312,6 +352,7 @@ def fix_file(filepath, dry_run=False, verbose=False):
         'depth_fixes': 0,
         'doc_comment_fixes': 0,
         'consecutive_blanks': 0,
+        'double_space': 0,
         'total_changed': 0,
     }
 
@@ -357,6 +398,12 @@ def fix_file(filepath, dry_run=False, verbose=False):
 
         doc_state = (0, 0)
 
+        # Collapse mid-line double spaces in code (not in pure comment lines)
+        if not stripped.startswith('#'):
+            stripped, ds_changed = collapse_double_spaces(stripped)
+            if ds_changed:
+                stats['double_space'] += 1
+
         # Regular line (code or # comment): apply expected depth
         new_line = '\t' * expected_depth + stripped
         if line != new_line:
@@ -384,7 +431,8 @@ def fix_file(filepath, dry_run=False, verbose=False):
         stats['total_changed'] = (
             stats['space_indent'] + stats['depth_fixes'] +
             stats['trailing_ws'] + stats['ws_only_lines'] +
-            stats['doc_comment_fixes'] + stats['consecutive_blanks']
+            stats['doc_comment_fixes'] + stats['consecutive_blanks'] +
+            stats['double_space']
         )
         if not dry_run:
             with open(filepath, 'w') as f:
@@ -393,7 +441,8 @@ def fix_file(filepath, dry_run=False, verbose=False):
             print(f"  {filepath}: {stats['total_changed']} lines "
                   f"(indent:{stats['space_indent']} depth:{stats['depth_fixes']} "
                   f"trailing:{stats['trailing_ws']} ws-only:{stats['ws_only_lines']} "
-                  f"doc:{stats['doc_comment_fixes']} dblank:{stats['consecutive_blanks']})")
+                  f"doc:{stats['doc_comment_fixes']} dblank:{stats['consecutive_blanks']} "
+                  f"dblspace:{stats['double_space']})")
 
     return stats
 
@@ -432,6 +481,13 @@ def verify_file(filepath):
             indent = line[:len(line) - len(line.lstrip())]
             if '\t' in indent and ' ' in indent:
                 issues.append(f"{filepath}:{lineno}: mixed tab/space indent")
+
+            stripped = line.strip()
+            if ext != 'fc' and stripped and not stripped.startswith('#'):
+                comment_pos = find_comment_pos(stripped)
+                code = stripped if comment_pos == -1 else stripped[:comment_pos]
+                if '  ' in code:
+                    issues.append(f"{filepath}:{lineno}: mid-line double space")
 
     return issues
 
@@ -488,7 +544,7 @@ def main():
     totals = {
         'trailing_ws': 0, 'ws_only_lines': 0, 'space_indent': 0,
         'depth_fixes': 0, 'doc_comment_fixes': 0, 'consecutive_blanks': 0,
-        'total_changed': 0, 'files_changed': 0,
+        'double_space': 0, 'total_changed': 0, 'files_changed': 0,
     }
 
     for filepath in files:
@@ -511,6 +567,7 @@ def main():
     print(f"  Whitespace-only lines: {totals['ws_only_lines']}")
     print(f"  Doc comment fixes: {totals['doc_comment_fixes']}")
     print(f"  Consecutive blank lines: {totals['consecutive_blanks']}")
+    print(f"  Mid-line double spaces: {totals['double_space']}")
 
 
 if __name__ == '__main__':
