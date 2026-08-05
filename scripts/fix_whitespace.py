@@ -36,6 +36,7 @@ Usage:
 """
 
 import argparse
+import difflib
 import os
 import re
 import sys
@@ -336,22 +337,16 @@ def get_file_type(filepath):
     return None
 
 
-def fix_file(filepath, dry_run=False, verbose=False):
-    """Fix whitespace issues in a single policy file.
+def compute_fixed_lines(original_lines, ext):
+    """Apply all whitespace fixes to a list of lines.
 
-    Returns dict with change statistics.
+    This is the single source of truth for what "fixed" looks like; both
+    fix_file() (which writes the result) and verify_file() (which reports
+    whether a file matches it) must go through this exact computation, or
+    they drift out of sync and verify can miss things fix would change.
+
+    Returns (fixed_lines, stats).
     """
-    ext = get_file_type(filepath)
-    if ext is None:
-        return {'error': f'Unknown file type: {os.path.splitext(filepath)[1].lstrip(".")}'}
-
-    with open(filepath, 'r') as f:
-        original_content = f.read()
-
-    original_lines = original_content.split('\n')
-    if original_lines and original_lines[-1] == '':
-        original_lines = original_lines[:-1]
-
     stats = {
         'trailing_ws': 0,
         'ws_only_lines': 0,
@@ -432,15 +427,37 @@ def fix_file(filepath, dry_run=False, verbose=False):
         collapsed.append(line)
     fixed = collapsed
 
+    stats['total_changed'] = (
+        stats['space_indent'] + stats['depth_fixes'] +
+        stats['trailing_ws'] + stats['ws_only_lines'] +
+        stats['doc_comment_fixes'] + stats['consecutive_blanks'] +
+        stats['double_space']
+    )
+
+    return fixed, stats
+
+
+def fix_file(filepath, dry_run=False, verbose=False):
+    """Fix whitespace issues in a single policy file.
+
+    Returns dict with change statistics.
+    """
+    ext = get_file_type(filepath)
+    if ext is None:
+        return {'error': f'Unknown file type: {os.path.splitext(filepath)[1].lstrip(".")}'}
+
+    with open(filepath, 'r') as f:
+        original_content = f.read()
+
+    original_lines = original_content.split('\n')
+    if original_lines and original_lines[-1] == '':
+        original_lines = original_lines[:-1]
+
+    fixed, stats = compute_fixed_lines(original_lines, ext)
+
     # Write
     new_content = '\n'.join(fixed) + '\n'
     if new_content != original_content:
-        stats['total_changed'] = (
-            stats['space_indent'] + stats['depth_fixes'] +
-            stats['trailing_ws'] + stats['ws_only_lines'] +
-            stats['doc_comment_fixes'] + stats['consecutive_blanks'] +
-            stats['double_space']
-        )
         if not dry_run:
             with open(filepath, 'w') as f:
                 f.write(new_content)
@@ -450,51 +467,88 @@ def fix_file(filepath, dry_run=False, verbose=False):
                   f"trailing:{stats['trailing_ws']} ws-only:{stats['ws_only_lines']} "
                   f"doc:{stats['doc_comment_fixes']} dblank:{stats['consecutive_blanks']} "
                   f"dblspace:{stats['double_space']})")
+    else:
+        stats['total_changed'] = 0
 
     return stats
 
 
 def verify_file(filepath):
-    """Verify a file has no remaining whitespace issues."""
+    """Verify a file has no remaining whitespace issues.
+
+    Runs the specific line-level checks below for readable messages, then
+    falls back to compute_fixed_lines() (the same computation fix_file()
+    writes out) as a catch-all: anything that pipeline would still change
+    but that isn't covered by a specific check is flagged generically, so
+    verify can never miss something fix would actually alter (e.g. an
+    irregular "## \t" doc-comment prefix, only fixable via full
+    re-derivation, not a simple per-line pattern check).
+    """
     issues = []
     ext = get_file_type(filepath)
     prev_blank = False
+    flagged_lines = set()
 
     with open(filepath, 'r') as f:
-        for lineno, line in enumerate(f, 1):
-            line = line.rstrip('\n')
+        original_content = f.read()
 
-            if line.strip() == '':
-                if prev_blank:
-                    issues.append(f"{filepath}:{lineno}: consecutive blank line")
-                prev_blank = True
-            else:
-                prev_blank = False
+    original_lines = original_content.split('\n')
+    if original_lines and original_lines[-1] == '':
+        original_lines = original_lines[:-1]
 
-            if line != line.rstrip():
-                issues.append(f"{filepath}:{lineno}: trailing whitespace")
+    for lineno, line in enumerate(original_lines, 1):
+        if line.strip() == '':
+            if prev_blank:
+                issues.append(f"{filepath}:{lineno}: consecutive blank line")
+                flagged_lines.add(lineno)
+            prev_blank = True
+        else:
+            prev_blank = False
 
-            if line.strip() == '' and line != '':
-                issues.append(f"{filepath}:{lineno}: whitespace-only line")
+        if line != line.rstrip():
+            issues.append(f"{filepath}:{lineno}: trailing whitespace")
+            flagged_lines.add(lineno)
 
-            if line.startswith(' '):
-                stripped = line.lstrip()
-                if ext == 'if' and stripped.startswith('##'):
-                    after = stripped[2:]
-                    if after.startswith(' <') or after.startswith(' </'):
-                        continue
+        if line.strip() == '' and line != '':
+            issues.append(f"{filepath}:{lineno}: whitespace-only line")
+            flagged_lines.add(lineno)
+
+        if line.startswith(' '):
+            stripped = line.lstrip()
+            skip = False
+            if ext == 'if' and stripped.startswith('##'):
+                after = stripped[2:]
+                if after.startswith(' <') or after.startswith(' </'):
+                    skip = True
+            if not skip:
                 issues.append(f"{filepath}:{lineno}: space indentation")
+                flagged_lines.add(lineno)
 
-            indent = line[:len(line) - len(line.lstrip())]
-            if '\t' in indent and ' ' in indent:
-                issues.append(f"{filepath}:{lineno}: mixed tab/space indent")
+        indent = line[:len(line) - len(line.lstrip())]
+        if '\t' in indent and ' ' in indent:
+            issues.append(f"{filepath}:{lineno}: mixed tab/space indent")
+            flagged_lines.add(lineno)
 
-            stripped = line.strip()
-            if ext != 'fc' and stripped and not stripped.startswith('#'):
-                comment_pos = find_comment_pos(stripped)
-                code = stripped if comment_pos == -1 else stripped[:comment_pos]
-                if '  ' in code:
-                    issues.append(f"{filepath}:{lineno}: mid-line double space")
+        stripped = line.strip()
+        if ext != 'fc' and stripped and not stripped.startswith('#'):
+            comment_pos = find_comment_pos(stripped)
+            code = stripped if comment_pos == -1 else stripped[:comment_pos]
+            if '  ' in code:
+                issues.append(f"{filepath}:{lineno}: mid-line double space")
+                flagged_lines.add(lineno)
+
+    # Catch-all: anything the actual fixer would still change.
+    fixed_lines, _ = compute_fixed_lines(original_lines, ext)
+    if fixed_lines != original_lines:
+        matcher = difflib.SequenceMatcher(None, original_lines, fixed_lines)
+        for tag, i1, i2, _j1, _j2 in matcher.get_opcodes():
+            if tag == 'equal':
+                continue
+            lo, hi = (i1, i2) if i1 < i2 else (i1, i1 + 1)
+            for lineno in range(lo + 1, hi + 1):
+                if lineno not in flagged_lines:
+                    issues.append(f"{filepath}:{lineno}: does not match expected formatting")
+                    flagged_lines.add(lineno)
 
     return issues
 
