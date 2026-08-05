@@ -1,0 +1,26 @@
+name: whitespace
+on: [pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check whitespace
+        shell: bash
+        run: |
+          set +e
+          python3 scripts/fix_whitespace.py --verify base.fc policy/modules/ doc/ > verify_output.txt
+          status=$?
+          cat verify_output.txt
+
+          grep -E '^[^:]+:[0-9]+: ' verify_output.txt | while IFS=: read -r file line msg; do
+            echo "::error file=${file},line=${line}::${msg# }"
+          done
+
+          if [ "$status" -ne 0 ]; then
+            echo "::group::Suggested fix (git diff)"
+            python3 scripts/fix_whitespace.py base.fc policy/modules/ doc/ > /dev/null
+            git --no-pager diff
+            echo "::endgroup::"
+            exit 1
+          fi
