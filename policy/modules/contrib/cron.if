@@ -60,20 +60,20 @@ interface(`cron_role',`
 	gen_require(`
 		type cronjob_t, crontab_t, crontab_exec_t;
 		type user_cron_spool_t, crond_t;
-        bool cron_userdomain_transition;
+		bool cron_userdomain_transition;
 	')
 
-    ##############################
-    #
-    # Declarations
-    #
+	##############################
+	#
+	# Declarations
+	#
 
 	role $1 types { cronjob_t crontab_t };
 
-    ##############################
-    #
-    # Local policy
-    #
+	##############################
+	#
+	# Local policy
+	#
 
 	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2_t, crontab_exec_t, crontab_t)
@@ -81,13 +81,13 @@ interface(`cron_role',`
 	dontaudit crond_t $2_t:process { noatsecure siginh rlimitinh };
 	allow $2_t crond_t:process sigchld;
 
-    allow $2_t user_cron_spool_t:file { getattr read write ioctl };
+	allow $2_t user_cron_spool_t:file { getattr read write ioctl };
 
 	# crontab shows up in user ps
 	allow $2_t crontab_t:process signal_perms;
 	ps_process_pattern($2_t, crontab_t)
 
-    cron_common_crontab_template($2)
+	cron_common_crontab_template($2)
 
 	tunable_policy(`deny_ptrace',`',`
 		allow $2_t crontab_t:process ptrace;
@@ -99,29 +99,29 @@ interface(`cron_role',`
 	corecmd_exec_bin(crontab_t)
 	corecmd_exec_shell(crontab_t)
 
-    tunable_policy(`cron_userdomain_transition',`
-        allow crond_t $2_t:process transition;
-        allow crond_t $2_t:fd use;
-        allow crond_t $2_t:key manage_key_perms;
+	tunable_policy(`cron_userdomain_transition',`
+		allow crond_t $2_t:process transition;
+		allow crond_t $2_t:fd use;
+		allow crond_t $2_t:key manage_key_perms;
 
-	    # needs to be authorized SELinux context for cron
-	    allow $2_t user_cron_spool_t:file entrypoint;
-        allow $2_t crond_t:fifo_file rw_fifo_file_perms;
+		# needs to be authorized SELinux context for cron
+		allow $2_t user_cron_spool_t:file entrypoint;
+		allow $2_t crond_t:fifo_file rw_fifo_file_perms;
 
-        allow $2_t cronjob_t:process { signal_perms };
+		allow $2_t cronjob_t:process { signal_perms };
 
-        ps_process_pattern($2_t, cronjob_t)
-    ',`
-        dontaudit crond_t $2_t:process transition;
-        dontaudit crond_t $2_t:fd use;
-        dontaudit crond_t $2_t:key manage_key_perms;
+		ps_process_pattern($2_t, cronjob_t)
+	',`
+		dontaudit crond_t $2_t:process transition;
+		dontaudit crond_t $2_t:fd use;
+		dontaudit crond_t $2_t:key manage_key_perms;
 
-        dontaudit $2_t user_cron_spool_t:file entrypoint;
+		dontaudit $2_t user_cron_spool_t:file entrypoint;
 
-        dontaudit $2_t crond_t:fifo_file rw_fifo_file_perms;
+		dontaudit $2_t crond_t:fifo_file rw_fifo_file_perms;
 
-        dontaudit $2_t cronjob_t:process { signal_perms };
-    ')
+		dontaudit $2_t cronjob_t:process { signal_perms };
+	')
 
 	optional_policy(`
 		gen_require(`
@@ -132,7 +132,7 @@ interface(`cron_role',`
 
 		allow cronjob_t $2_t:dbus send_msg;
 		allow $2_t cronjob_t:dbus send_msg;
-	')		
+	')
 ')
 
 ########################################
@@ -156,56 +156,56 @@ interface(`cron_unconfined_role',`
 	gen_require(`
 		attribute crontab_domain;
 		type unconfined_cronjob_t, crontab_t, crontab_exec_t;
-        type crond_t, user_cron_spool_t;
-        bool cron_userdomain_transition;
+		type crond_t, user_cron_spool_t;
+		bool cron_userdomain_transition;
 	')
 
-    ##############################
-    #
-    # Declarations
-    #
-    
-    role $1 types unconfined_cronjob_t;
+	##############################
+	#
+	# Declarations
+	#
 
-    ##############################
-    #
-    # Local policy
-    #
+	role $1 types unconfined_cronjob_t;
 
-    dontaudit crond_t $2_t:process { noatsecure siginh rlimitinh };
+	##############################
+	#
+	# Local policy
+	#
 
-    allow $2_t crond_t:process sigchld;
+	dontaudit crond_t $2_t:process { noatsecure siginh rlimitinh };
 
-    allow $2_t user_cron_spool_t:file { getattr read write ioctl };
+	allow $2_t crond_t:process sigchld;
+
+	allow $2_t user_cron_spool_t:file { getattr read write ioctl };
 
 	# cronjob shows up in user ps
 	ps_process_pattern($2_t, unconfined_cronjob_t)
 	allow $2_t unconfined_cronjob_t:process signal_perms;
 
-    cron_common_crontab_template($2)
+	cron_common_crontab_template($2)
 	typeattribute $2_t crontab_domain;
 
 	tunable_policy(`deny_ptrace',`',`
 		allow $2_t unconfined_cronjob_t:process ptrace;
 	')
 
-    tunable_policy(`cron_userdomain_transition',`
-        allow crond_t $2_t:process transition;
-        allow crond_t $2_t:fd use;
-        allow crond_t $2_t:key manage_key_perms;
+	tunable_policy(`cron_userdomain_transition',`
+		allow crond_t $2_t:process transition;
+		allow crond_t $2_t:fd use;
+		allow crond_t $2_t:key manage_key_perms;
 
-        allow $2_t user_cron_spool_t:file entrypoint;
+		allow $2_t user_cron_spool_t:file entrypoint;
 
-        allow $2_t crond_t:fifo_file rw_fifo_file_perms;
-    ',`
-        dontaudit crond_t $2_t:process transition;
-        dontaudit crond_t $2_t:fd use;
-        dontaudit crond_t $2_t:key manage_key_perms;
+		allow $2_t crond_t:fifo_file rw_fifo_file_perms;
+	',`
+		dontaudit crond_t $2_t:process transition;
+		dontaudit crond_t $2_t:fd use;
+		dontaudit crond_t $2_t:key manage_key_perms;
 
-        dontaudit $2_t user_cron_spool_t:file entrypoint;
+		dontaudit $2_t user_cron_spool_t:file entrypoint;
 
-        dontaudit $2_t crond_t:fifo_file rw_fifo_file_perms;
-    ')
+		dontaudit $2_t crond_t:fifo_file rw_fifo_file_perms;
+	')
 
 	optional_policy(`
 		gen_require(`
@@ -241,20 +241,20 @@ interface(`cron_admin_role',`
 		type cronjob_t, crontab_exec_t, admin_crontab_t, admin_crontab_tmp_t;
 		type user_cron_spool_t, crond_t;
 		class passwd crontab;
-        bool cron_userdomain_transition;
+		bool cron_userdomain_transition;
 	')
 
-    ##############################
-    #
-    # Declarations
-    #
+	##############################
+	#
+	# Declarations
+	#
 
 	role $1 types { cronjob_t admin_crontab_t admin_crontab_tmp_t };
 
-    ##############################
-    #
-    # Local policy
-    #
+	##############################
+	#
+	# Local policy
+	#
 
 	# Transition from the user domain to the derived domain.
 	domtrans_pattern($2_t, crontab_exec_t, admin_crontab_t)
@@ -267,7 +267,7 @@ interface(`cron_admin_role',`
 	ps_process_pattern($2_t, admin_crontab_t)
 	allow $2_t admin_crontab_t:process signal_perms;
 
-    cron_common_crontab_template($2)
+	cron_common_crontab_template($2)
 	typeattribute $2_t crontab_domain;
 
 	tunable_policy(`deny_ptrace',`',`
@@ -280,26 +280,26 @@ interface(`cron_admin_role',`
 	corecmd_exec_bin(admin_crontab_t)
 	corecmd_exec_shell(admin_crontab_t)
 
-    tunable_policy(`cron_userdomain_transition',`
-        allow crond_t $2_t:process transition;
-        allow crond_t $2_t:fd use;
-        allow crond_t $2_t:key manage_key_perms;
+	tunable_policy(`cron_userdomain_transition',`
+		allow crond_t $2_t:process transition;
+		allow crond_t $2_t:fd use;
+		allow crond_t $2_t:key manage_key_perms;
 
-        allow $2_t user_cron_spool_t:file entrypoint;
+		allow $2_t user_cron_spool_t:file entrypoint;
 
-        allow $2_t crond_t:fifo_file rw_fifo_file_perms;
+		allow $2_t crond_t:fifo_file rw_fifo_file_perms;
 
-        allow $2_t cronjob_t:process { signal_perms };
-        ps_process_pattern($2_t, cronjob_t)
-    ',`
-        dontaudit crond_t $2_t:process transition;
-        dontaudit crond_t $2_t:fd use;
-        dontaudit crond_t $2_t:key manage_key_perms;
+		allow $2_t cronjob_t:process { signal_perms };
+		ps_process_pattern($2_t, cronjob_t)
+	',`
+		dontaudit crond_t $2_t:process transition;
+		dontaudit crond_t $2_t:fd use;
+		dontaudit crond_t $2_t:key manage_key_perms;
 
-        dontaudit $2_t user_cron_spool_t:file entrypoint;
-        dontaudit $2_t crond_t:fifo_file rw_fifo_file_perms;
-        dontaudit $2_t cronjob_t:process { signal_perms };
-    ')
+		dontaudit $2_t user_cron_spool_t:file entrypoint;
+		dontaudit $2_t crond_t:fifo_file rw_fifo_file_perms;
+		dontaudit $2_t cronjob_t:process { signal_perms };
+	')
 
 	optional_policy(`
 		gen_require(`
@@ -310,7 +310,7 @@ interface(`cron_admin_role',`
 
 		allow cronjob_t $2_t:dbus send_msg;
 		allow $2_t cronjob_t:dbus send_msg;
-	')		
+	')
 ')
 
 ########################################
@@ -363,7 +363,7 @@ interface(`cron_domtrans',`
 
 ########################################
 ## <summary>
-##	Execute crond_exec_t 
+##	Execute crond_exec_t
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -512,7 +512,6 @@ interface(`cron_read_state_crond',`
 	kernel_search_proc($1)
 	ps_process_pattern($1, crond_t)
 ')
-
 
 ########################################
 ## <summary>
@@ -988,71 +987,71 @@ interface(`cron_manage_system_job_lib_files',`
 
 #######################################
 ## <summary>
-##  Create, read, write and delete
-##  cron log files.
+##	Create, read, write and delete
+##	cron log files.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`cron_manage_log_files',`
-    gen_require(`
-        type cron_log_t;
-    ')
+	gen_require(`
+		type cron_log_t;
+	')
 
-    manage_files_pattern($1, cron_log_t, cron_log_t)
+	manage_files_pattern($1, cron_log_t, cron_log_t)
 
-    logging_search_logs($1)
+	logging_search_logs($1)
 ')
 
 #######################################
 ## <summary>
-##  Create specified objects in generic
-##  log directories with the cron log file type.
+##	Create specified objects in generic
+##	log directories with the cron log file type.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 ## <param name="object_class">
-##  <summary>
-##  Class of the object being created.
-##  </summary>
+##	<summary>
+##	Class of the object being created.
+##	</summary>
 ## </param>
 ## <param name="name" optional="true">
-##  <summary>
-##  The name of the object being created.
-##  </summary>
+##	<summary>
+##	The name of the object being created.
+##	</summary>
 ## </param>
 #
 interface(`cron_generic_log_filetrans_log',`
-    gen_require(`
-        type cron_log_t;
-    ')
+	gen_require(`
+		type cron_log_t;
+	')
 
-    logging_log_filetrans($1, cron_log_t, $2, $3)
+	logging_log_filetrans($1, cron_log_t, $2, $3)
 ')
 
 #######################################
 ## <summary>
-##  Create redhat-access-insights.log in generic
-##  log directories with the var_log_t file type.
+##	Create redhat-access-insights.log in generic
+##	log directories with the var_log_t file type.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`cron_generic_log_filetrans_log_insights',`
-    gen_require(`
-        type var_log_t;
-    ')
+	gen_require(`
+		type var_log_t;
+	')
 
-    logging_log_filetrans($1, var_log_t, file, "redhat-access-insights.log")
+	logging_log_filetrans($1, var_log_t, file, "redhat-access-insights.log")
 ')
 
 ########################################

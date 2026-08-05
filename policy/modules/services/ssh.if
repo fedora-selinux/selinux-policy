@@ -53,7 +53,7 @@ template(`ssh_basic_client_template',`
 	# Client local policy
 	#
 
-	allow $1_ssh_t self:capability { setuid setgid  dac_read_search };
+	allow $1_ssh_t self:capability { setuid setgid dac_read_search };
 	allow $1_ssh_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
 	allow $1_ssh_t self:fd use;
 	allow $1_ssh_t self:fifo_file rw_fifo_file_perms;
@@ -64,7 +64,7 @@ template(`ssh_basic_client_template',`
 	allow $1_ssh_t self:msgq create_msgq_perms;
 	allow $1_ssh_t self:msg { send receive };
 	allow $1_ssh_t self:tcp_socket create_stream_socket_perms;
-    allow $1_ssh_t self:tun_socket create_socket_perms;
+	allow $1_ssh_t self:tun_socket create_socket_perms;
 
 	# for rsync
 	allow $1_ssh_t $2:unix_stream_socket rw_socket_perms;
@@ -120,7 +120,7 @@ template(`ssh_basic_client_template',`
 	corenet_sendrecv_ssh_client_packets($1_ssh_t)
 	corenet_tcp_bind_generic_node($1_ssh_t)
 	corenet_tcp_bind_all_unreserved_ports($1_ssh_t)
-    corenet_rw_inherited_tun_tap_dev($1_ssh_t)
+	corenet_rw_inherited_tun_tap_dev($1_ssh_t)
 
 	dev_read_urand($1_ssh_t)
 
@@ -144,7 +144,6 @@ template(`ssh_basic_client_template',`
 	logging_send_syslog_msg($1_ssh_t)
 	logging_read_generic_logs($1_ssh_t)
 
-
 	seutil_read_config($1_ssh_t)
 
 	optional_policy(`
@@ -154,12 +153,12 @@ template(`ssh_basic_client_template',`
 
 ######################################
 ## <summary>
-##  The template to define a domain to which sshd dyntransition.
+##	The template to define a domain to which sshd dyntransition.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  The prefix of the dyntransition domain
-##  </summary>
+##	<summary>
+##	The prefix of the dyntransition domain
+##	</summary>
 ## </param>
 #
 template(`ssh_dyntransition_domain_template',`
@@ -170,7 +169,7 @@ template(`ssh_dyntransition_domain_template',`
 	type $1, ssh_dyntransition_domain;
 	domain_type($1)
 	role system_r types $1;
-	
+
 	optional_policy(`
 		ssh_dyntransition_to($1)
 	')
@@ -196,10 +195,10 @@ template(`ssh_dyntransition_domain_template',`
 ## </param>
 #
 template(`ssh_server_template',`
-    gen_require(`
-        type sshd_t, sshd_key_t, sshd_exec_t;
-        attribute ssh_server;
-    ')
+	gen_require(`
+		type sshd_t, sshd_key_t, sshd_exec_t;
+		attribute ssh_server;
+	')
 
 	type $1_t, ssh_server;
 	auth_login_pgm_domain($1_t)
@@ -229,7 +228,7 @@ template(`ssh_server_template',`
 
 	#manage_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
 	#fs_tmpfs_filetrans($1_t, $1_tmpfs_t, file)
-    userdom_manage_tmp_role(system_r, sshd_t)
+	userdom_manage_tmp_role(system_r, sshd_t)
 
 	allow $1_t $1_var_run_t:file manage_file_perms;
 	files_pid_filetrans($1_t, $1_var_run_t, file)
@@ -316,9 +315,9 @@ template(`ssh_server_template',`
 ##	The template to define a domain to which sshd_session dyntransition.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  The prefix of the dyntransition domain
-##  </summary>
+##	<summary>
+##	The prefix of the dyntransition domain
+##	</summary>
 ## </param>
 #
 template(`ssh_session_dyntransition_domain_template',`
@@ -542,20 +541,20 @@ interface(`ssh_read_pipes',`
 
 ######################################
 ## <summary>
-##      Read and write ssh server unix dgram sockets.
+##	Read and write ssh server unix dgram sockets.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`ssh_rw_dgram_sockets',`
-    gen_require(`
-        type sshd_t;
-    ')
+	gen_require(`
+		type sshd_t;
+	')
 
-    allow $1 sshd_t:unix_dgram_socket rw_stream_socket_perms;
+	allow $1 sshd_t:unix_dgram_socket rw_stream_socket_perms;
 ')
 
 ########################################
@@ -921,7 +920,7 @@ interface(`ssh_domtrans_keygen',`
 	')
 
 	domtrans_pattern($1, ssh_keygen_exec_t, ssh_keygen_t)
-    allow $1 ssh_keygen_exec_t:file map;
+	allow $1 ssh_keygen_exec_t:file map;
 ')
 
 ########################################
@@ -944,25 +943,25 @@ interface(`ssh_exec_keygen',`
 
 #######################################
 ## <summary>
-##  Execute ssh-keygen in the iptables domain, and
-##  allow the specified role the ssh-keygen domain.
+##	Execute ssh-keygen in the iptables domain, and
+##	allow the specified role the ssh-keygen domain.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed to transition.
-##  </summary>
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
 ## </param>
 ## <param name="role">
-##  <summary>
-##  Role allowed access.
-##  </summary>
+##	<summary>
+##	Role allowed access.
+##	</summary>
 ## </param>
 ## <rolecap/>
 #
 interface(`ssh_run_keygen',`
-    gen_require(`
-        type ssh_keygen_t;
-    ')
+	gen_require(`
+		type ssh_keygen_t;
+	')
 
 	role $2 types ssh_keygen_t;
 	ssh_domtrans_keygen($1)
@@ -1044,21 +1043,21 @@ interface(`ssh_manage_home_files',`
 
 ########################################
 ## <summary>
-##      Create ssh home directory.
+##	Create ssh home directory.
 ## </summary>
 ## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`ssh_create_home_dirs',`
-        gen_require(`
-                type ssh_home_t;
-        ')
+	gen_require(`
+		type ssh_home_t;
+	')
 
-        allow $1 ssh_home_t:dir create_dir_perms;
-        setattr_dirs_pattern($1, ssh_home_t, ssh_home_t)
+	allow $1 ssh_home_t:dir create_dir_perms;
+	setattr_dirs_pattern($1, ssh_home_t, ssh_home_t)
 ')
 
 #######################################
@@ -1082,22 +1081,22 @@ interface(`ssh_delete_tmp',`
 
 #####################################
 ## <summary>
-##  Allow domain dyntransition to chroot_user_t domain.
+##	Allow domain dyntransition to chroot_user_t domain.
 ## </summary>
 ## <param name="domain">
-##  <summary>
-##  Domain allowed access.
-##  </summary>
+##	<summary>
+##	Domain allowed access.
+##	</summary>
 ## </param>
 #
 interface(`ssh_dyntransition_to',`
-    gen_require(`
-        type sshd_t;
-    ')
+	gen_require(`
+		type sshd_t;
+	')
 
-    allow sshd_t $1:process dyntransition;
-    allow $1 sshd_t:process sigchld;
-    allow sshd_t $1:process { getattr sigkill sigstop signull signal };
+	allow sshd_t $1:process dyntransition;
+	allow $1 sshd_t:process sigchld;
+	allow sshd_t $1:process { getattr sigkill sigstop signull signal };
 ')
 
 ########################################
@@ -1132,7 +1131,7 @@ interface(`ssh_filetrans_admin_home_content',`
 ## </param>
 #
 interface(`ssh_filetrans_home_content',`
-	
+
 	gen_require(`
 		type ssh_home_t;
 	')
@@ -1154,23 +1153,22 @@ interface(`ssh_filetrans_home_content',`
 ## </param>
 #
 interface(`ssh_filetrans_keys',`
-	
 	gen_require(`
 		type sshd_key_t;
 	')
 
-    files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_key")
-    files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_dsa_key")
-    files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_rsa_key")
-    files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_key.pub")
-    files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_dsa_key.pub")
-    files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_rsa_key.pub")
+	files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_key")
+	files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_dsa_key")
+	files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_rsa_key")
+	files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_key.pub")
+	files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_dsa_key.pub")
+	files_etc_filetrans($1, sshd_key_t, file, ".ssh_host_rsa_key.pub")
 ')
 
 ########################################
 ## <summary>
 ##	Do not audit attempts to read and
-##	write the sshd pty type.  
+##	write the sshd pty type.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1188,7 +1186,7 @@ interface(`ssh_dontaudit_use_ptys',`
 
 ########################################
 ## <summary>
-##	Read and write inherited sshd pty type.  
+##	Read and write inherited sshd pty type.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -1240,7 +1238,7 @@ interface(`ssh_systemctl',`
 	')
 
 	systemd_exec_systemctl($1)
-    init_reload_services($1)
+	init_reload_services($1)
 	allow $1 sshd_unit_file_t:file manage_file_perms;
 	allow $1 sshd_unit_file_t:service manage_service_perms;
 
@@ -1371,7 +1369,7 @@ interface(`ssh_auth_dyntransition_to',`
 	gen_require(`
 		type sshd_auth_t;
 	')
-	
+
 	allow sshd_auth_t $1:process dyntransition;
 	allow $1 sshd_auth_t:process sigchld;
 	allow sshd_auth_t $1:process { getattr sigkill sigstop signull signal };
