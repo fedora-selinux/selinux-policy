@@ -220,7 +220,7 @@ def parse_block_depth(lines, file_type):
     return depths
 
 
-def fix_if_doc_comment(stripped, doc_state):
+def fix_if_doc_comment(stripped, doc_state, base_depth=0):
     """Fix ## documentation comment indentation.
 
     Tracks XML nesting to determine indentation. doc_state is a tuple
@@ -229,6 +229,13 @@ def fix_if_doc_comment(stripped, doc_state):
       - visual_depth: counts only <desc> and <p> tags (determines tab count)
       - Depth-0 tags: "## <tag>" (space before tag)
       - Depth > 0: "##" + tabs matching visual_depth
+
+    base_depth is the surrounding code's block-nesting depth (as used for
+    regular code lines). Doc comments almost always precede a top-level
+    interface(...) (base_depth 0), but occasionally document something
+    nested inside a block (e.g. a gen_bool() inside an ifdef()); in that
+    case the whole comment shifts right by base_depth tabs so it lines up
+    with the code it documents, on top of its own XML-nesting indent.
 
     Returns (fixed_line, new_doc_state).
     """
@@ -292,9 +299,9 @@ def fix_if_doc_comment(stripped, doc_state):
             visual_closes -= 1
 
     if xml_depth == 0 and content.startswith('<'):
-        result = '## ' + content
+        result = '##' + ('\t' * base_depth + content if base_depth else ' ' + content)
     else:
-        result = '##' + '\t' * max(1, visual_depth) + content
+        result = '##' + '\t' * (base_depth + max(1, visual_depth)) + content
 
     # Apply net depth change for subsequent lines
     xml_depth += opens - closes
@@ -390,7 +397,7 @@ def fix_file(filepath, dry_run=False, verbose=False):
 
         # ## documentation comments (but not section separators like ######)
         if stripped.startswith('##') and not stripped.startswith('###'):
-            new_line, doc_state = fix_if_doc_comment(stripped, doc_state)
+            new_line, doc_state = fix_if_doc_comment(stripped, doc_state, expected_depth)
             if line != new_line:
                 stats['doc_comment_fixes'] += 1
             fixed.append(new_line)

@@ -51,11 +51,11 @@ define(`network_interface',`
 
 define(`network_interface_controlled',`
 	ifdef(`__network_enabled_declared__',`',`
-## <desc>
-##	<p>
-##	Enable network traffic on all controlled interfaces.
-##	</p>
-## </desc>
+##		<desc>
+##			<p>
+##			Enable network traffic on all controlled interfaces.
+##			</p>
+##		</desc>
 		gen_bool(network_enabled, true)
 		define(`__network_enabled_declared__')
 	')
