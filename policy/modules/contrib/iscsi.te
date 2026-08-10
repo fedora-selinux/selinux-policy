@@ -1,0 +1,135 @@
+policy_module(iscsi, 1.9.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role iscsid_roles;
+
+type iscsid_t;
+type iscsid_exec_t;
+init_daemon_domain(iscsid_t, iscsid_exec_t)
+role iscsid_roles types iscsid_t;
+
+type iscsi_unit_file_t;
+systemd_unit_file(iscsi_unit_file_t)
+
+type iscsi_lock_t;
+files_lock_file(iscsi_lock_t)
+
+type iscsi_log_t;
+logging_log_file(iscsi_log_t)
+
+type iscsi_tmp_t;
+files_tmp_file(iscsi_tmp_t)
+
+type iscsi_var_lib_t;
+files_type(iscsi_var_lib_t)
+
+type iscsi_var_run_t;
+files_pid_file(iscsi_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow iscsid_t self:capability { dac_read_search  ipc_lock net_admin net_raw sys_admin sys_nice sys_module sys_resource };
+allow iscsid_t self:cap_userns sys_ptrace;
+allow iscsid_t self:process { setrlimit setsched signal };
+allow iscsid_t self:fifo_file rw_fifo_file_perms;
+allow iscsid_t self:unix_stream_socket { accept connectto listen };
+allow iscsid_t self:sem create_sem_perms;
+allow iscsid_t self:shm create_shm_perms;
+allow iscsid_t self:netlink_iscsi_socket create_socket_perms;
+allow iscsid_t self:netlink_socket create_socket_perms;
+allow iscsid_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow iscsid_t self:netlink_route_socket nlmsg_write;
+allow iscsid_t self:tcp_socket { listen accept };
+allow iscsid_t self:system module_load;
+
+manage_dirs_pattern(iscsid_t, iscsi_lock_t, iscsi_lock_t)
+manage_files_pattern(iscsid_t, iscsi_lock_t, iscsi_lock_t)
+files_lock_filetrans(iscsid_t, iscsi_lock_t, { dir file })
+
+allow iscsid_t iscsi_log_t:file { append_file_perms create_file_perms setattr_file_perms };
+logging_log_filetrans(iscsid_t, iscsi_log_t, file)
+
+manage_dirs_pattern(iscsid_t, iscsi_tmp_t, iscsi_tmp_t)
+manage_files_pattern(iscsid_t, iscsi_tmp_t, iscsi_tmp_t)
+fs_tmpfs_filetrans(iscsid_t, iscsi_tmp_t, { dir file })
+
+manage_files_pattern(iscsid_t, iscsi_var_lib_t, iscsi_var_lib_t)
+manage_lnk_files_pattern(iscsid_t, iscsi_var_lib_t, iscsi_var_lib_t)
+manage_dirs_pattern(iscsid_t, iscsi_var_lib_t, iscsi_var_lib_t)
+files_var_lib_filetrans(iscsid_t, iscsi_var_lib_t, dir)
+
+manage_files_pattern(iscsid_t, iscsi_var_run_t, iscsi_var_run_t)
+files_pid_filetrans(iscsid_t, iscsi_var_run_t, file)
+
+can_exec(iscsid_t, iscsid_exec_t)
+
+kernel_load_module(iscsid_t)
+kernel_request_load_module(iscsid_t)
+kernel_read_network_state(iscsid_t)
+kernel_read_system_state(iscsid_t)
+kernel_dontaudit_setsched(iscsid_t)
+
+corenet_all_recvfrom_netlabel(iscsid_t)
+corenet_tcp_sendrecv_generic_if(iscsid_t)
+corenet_tcp_sendrecv_generic_node(iscsid_t)
+
+corenet_sendrecv_http_client_packets(iscsid_t)
+corenet_tcp_connect_http_port(iscsid_t)
+corenet_tcp_sendrecv_http_port(iscsid_t)
+
+corenet_sendrecv_iscsi_client_packets(iscsid_t)
+corenet_tcp_connect_iscsi_port(iscsid_t)
+corenet_tcp_sendrecv_iscsi_port(iscsid_t)
+
+corenet_sendrecv_isns_client_packets(iscsid_t)
+corenet_tcp_connect_isns_port(iscsid_t)
+corenet_tcp_sendrecv_isns_port(iscsid_t)
+
+corenet_sendrecv_winshadow_client_packets(iscsid_t)
+corenet_tcp_connect_winshadow_port(iscsid_t)
+corenet_tcp_sendrecv_winshadow_port(iscsid_t)
+
+corecmd_exec_bin(iscsid_t)
+corecmd_exec_shell(iscsid_t)
+
+dev_read_urand(iscsid_t)
+dev_rw_sysfs(iscsid_t)
+dev_map_sysfs(iscsid_t)
+dev_rw_userio_dev(iscsid_t)
+dev_map_userio_dev(iscsid_t)
+
+domain_use_interactive_fds(iscsid_t)
+domain_read_all_domains_state(iscsid_t)
+
+files_read_kernel_modules(iscsid_t)
+files_map_kernel_modules(iscsid_t)
+
+auth_use_nsswitch(iscsid_t)
+
+init_stream_connect_script(iscsid_t)
+
+logging_send_syslog_msg(iscsid_t)
+
+modutils_read_module_config(iscsid_t)
+modutils_read_module_deps_files(iscsid_t)
+
+mount_read_pid_files(iscsid_t)
+
+optional_policy(`
+    iscsi_systemctl(iscsid_t)
+')
+
+optional_policy(`
+	tgtd_manage_semaphores(iscsid_t)
+')
+
+optional_policy(`
+	kdump_rw_inherited_kdumpctl_tmp_pipes(iscsid_t)
+')

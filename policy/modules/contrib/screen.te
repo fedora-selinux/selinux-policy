@@ -1,0 +1,110 @@
+policy_module(screen, 2.6.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether screen can
+##	use fsetid/setuid/setgid capability.
+##	</p>
+## </desc>
+gen_tunable(screen_allow_session_sharing, false)
+
+attribute  screen_domain;
+
+type screen_exec_t;
+application_executable_file(screen_exec_t)
+
+type screen_home_t;
+typealias screen_home_t alias { user_screen_home_t staff_screen_home_t sysadm_screen_home_t };
+typealias screen_home_t alias { auditadm_screen_home_t secadm_screen_home_t };
+userdom_user_home_content(screen_home_t)
+
+type screen_var_run_t;
+typealias screen_var_run_t alias { user_screen_var_run_t staff_screen_var_run_t sysadm_screen_var_run_t };
+typealias screen_var_run_t alias { auditadm_screen_var_run_t secadm_screen_var_run_t screen_dir_t };
+files_pid_file(screen_var_run_t)
+ubac_constrained(screen_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow screen_domain self:capability { sys_tty_config };
+dontaudit screen_domain self:capability { dac_read_search  };
+allow screen_domain self:process signal_perms;
+allow screen_domain self:fifo_file rw_fifo_file_perms;
+allow screen_domain self:tcp_socket create_stream_socket_perms;
+allow screen_domain self:udp_socket create_socket_perms;
+# Internal screen networking
+allow screen_domain self:fd use;
+allow screen_domain self:unix_stream_socket { create_socket_perms connectto };
+allow screen_domain self:unix_dgram_socket create_socket_perms;
+
+# Create fifo
+manage_fifo_files_pattern(screen_domain, screen_var_run_t, screen_var_run_t)
+manage_dirs_pattern(screen_domain, screen_var_run_t, screen_var_run_t)
+manage_sock_files_pattern(screen_domain, screen_var_run_t, screen_var_run_t)
+files_pid_filetrans(screen_domain, screen_var_run_t, dir)
+
+allow screen_domain screen_home_t:dir list_dir_perms;
+manage_dirs_pattern(screen_domain, screen_home_t, screen_home_t)
+manage_fifo_files_pattern(screen_domain, screen_home_t, screen_home_t)
+manage_sock_files_pattern(screen_domain, screen_home_t, screen_home_t)
+userdom_user_home_dir_filetrans(screen_domain, screen_home_t, dir)
+userdom_admin_home_dir_filetrans(screen_domain, screen_home_t, dir)
+read_files_pattern(screen_domain, screen_home_t, screen_home_t)
+read_lnk_files_pattern(screen_domain, screen_home_t, screen_home_t)
+
+kernel_read_kernel_sysctls(screen_domain)
+
+corecmd_list_bin(screen_domain)
+corecmd_read_bin_files(screen_domain)
+corecmd_read_bin_symlinks(screen_domain)
+corecmd_read_bin_pipes(screen_domain)
+corecmd_read_bin_sockets(screen_domain)
+
+corenet_tcp_sendrecv_generic_if(screen_domain)
+corenet_udp_sendrecv_generic_if(screen_domain)
+corenet_tcp_sendrecv_generic_node(screen_domain)
+corenet_udp_sendrecv_generic_node(screen_domain)
+corenet_tcp_sendrecv_all_ports(screen_domain)
+corenet_udp_sendrecv_all_ports(screen_domain)
+corenet_tcp_connect_all_ports(screen_domain)
+
+dev_dontaudit_getattr_all_chr_files(screen_domain)
+dev_dontaudit_getattr_all_blk_files(screen_domain)
+# for SSP
+dev_read_urand(screen_domain)
+
+domain_sigchld_interactive_fds(screen_domain)
+domain_use_interactive_fds(screen_domain)
+domain_read_all_domains_state(screen_domain)
+
+files_search_tmp(screen_domain)
+files_search_home(screen_domain)
+files_list_home(screen_domain)
+
+fs_search_auto_mountpoints(screen_domain)
+fs_getattr_xattr_fs(screen_domain)
+
+auth_dontaudit_read_shadow(screen_domain)
+auth_dontaudit_exec_utempter(screen_domain)
+
+# Write to utmp.
+init_rw_utmp(screen_domain)
+
+seutil_read_config(screen_domain)
+
+userdom_use_user_terminals(screen_domain)
+userdom_create_user_pty(screen_domain)
+userdom_setattr_user_ptys(screen_domain)
+userdom_setattr_user_ttys(screen_domain)
+
+tunable_policy(`screen_allow_session_sharing',`
+    allow screen_domain self:capability { fsetid setgid setuid };
+')

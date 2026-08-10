@@ -1,0 +1,191 @@
+policy_module(dnsmasq, 1.10.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##    <p>
+##    Allow the dnsmasq to creating and using netlink_sockets.
+##     </p>
+## </desc>
+gen_tunable(dnsmasq_use_ipset,false)
+
+type dnsmasq_t;
+type dnsmasq_exec_t;
+init_daemon_domain(dnsmasq_t, dnsmasq_exec_t)
+
+type dnsmasq_initrc_exec_t;
+init_script_file(dnsmasq_initrc_exec_t)
+
+type dnsmasq_etc_t;
+files_config_file(dnsmasq_etc_t)
+
+type dnsmasq_lease_t;
+files_type(dnsmasq_lease_t)
+
+type dnsmasq_var_log_t;
+logging_log_file(dnsmasq_var_log_t)
+
+type dnsmasq_var_run_t;
+files_pid_file(dnsmasq_var_run_t)
+
+type dnsmasq_unit_file_t;
+systemd_unit_file(dnsmasq_unit_file_t)
+
+type dnsmasq_tmp_t;
+files_tmp_file(dnsmasq_tmp_t)
+
+########################################
+#
+# Local policy
+#
+
+allow dnsmasq_t self:capability { chown dac_read_search  net_admin setgid setuid net_raw };
+dontaudit dnsmasq_t self:capability sys_tty_config;
+allow dnsmasq_t self:process { getcap setcap signal_perms };
+dontaudit dnsmasq_t self:process execmem;
+allow dnsmasq_t self:fifo_file rw_fifo_file_perms;
+allow dnsmasq_t self:tcp_socket { accept listen };
+allow dnsmasq_t self:packet_socket create_socket_perms;
+allow dnsmasq_t self:rawip_socket create_socket_perms;
+
+read_files_pattern(dnsmasq_t, dnsmasq_etc_t, dnsmasq_etc_t)
+list_dirs_pattern(dnsmasq_t, dnsmasq_etc_t, dnsmasq_etc_t)
+watch_dirs_pattern(dnsmasq_t, dnsmasq_etc_t, dnsmasq_etc_t)
+
+manage_files_pattern(dnsmasq_t, dnsmasq_lease_t, dnsmasq_lease_t)
+files_var_lib_filetrans(dnsmasq_t, dnsmasq_lease_t, file)
+
+allow dnsmasq_t dnsmasq_var_log_t:file append_file_perms;
+allow dnsmasq_t dnsmasq_var_log_t:file create_file_perms;
+allow dnsmasq_t dnsmasq_var_log_t:file setattr_file_perms;
+logging_log_filetrans(dnsmasq_t, dnsmasq_var_log_t, file)
+
+manage_dirs_pattern(dnsmasq_t, dnsmasq_var_run_t, dnsmasq_var_run_t)
+manage_files_pattern(dnsmasq_t, dnsmasq_var_run_t, dnsmasq_var_run_t)
+files_pid_filetrans(dnsmasq_t, dnsmasq_var_run_t, { dir file })
+
+manage_dirs_pattern(dnsmasq_t, dnsmasq_tmp_t, dnsmasq_tmp_t)
+manage_files_pattern(dnsmasq_t, dnsmasq_tmp_t, dnsmasq_tmp_t)
+files_tmp_filetrans(dnsmasq_t, dnsmasq_tmp_t, { file dir })
+
+kernel_read_kernel_sysctls(dnsmasq_t)
+kernel_read_net_sysctls(dnsmasq_t)
+kernel_read_network_state(dnsmasq_t)
+kernel_read_system_state(dnsmasq_t)
+kernel_request_load_module(dnsmasq_t)
+
+corecmd_exec_bin(dnsmasq_t)
+corecmd_exec_shell(dnsmasq_t)
+
+corenet_all_recvfrom_netlabel(dnsmasq_t)
+corenet_tcp_sendrecv_generic_if(dnsmasq_t)
+corenet_udp_sendrecv_generic_if(dnsmasq_t)
+corenet_raw_sendrecv_generic_if(dnsmasq_t)
+corenet_tcp_sendrecv_generic_node(dnsmasq_t)
+corenet_udp_sendrecv_generic_node(dnsmasq_t)
+corenet_raw_sendrecv_generic_node(dnsmasq_t)
+corenet_tcp_sendrecv_all_ports(dnsmasq_t)
+corenet_udp_sendrecv_all_ports(dnsmasq_t)
+corenet_tcp_bind_generic_node(dnsmasq_t)
+corenet_udp_bind_generic_node(dnsmasq_t)
+
+corenet_sendrecv_dns_server_packets(dnsmasq_t)
+corenet_tcp_bind_dns_port(dnsmasq_t)
+corenet_sendrecv_dhcpd_server_packets(dnsmasq_t)
+corenet_udp_bind_all_ports(dnsmasq_t)
+
+dev_read_sysfs(dnsmasq_t)
+dev_read_urand(dnsmasq_t)
+
+domain_use_interactive_fds(dnsmasq_t)
+
+files_read_etc_runtime_files(dnsmasq_t)
+files_watch_etc_dirs(dnsmasq_t)
+files_manage_mnt_files(dnsmasq_t)
+
+fs_getattr_all_fs(dnsmasq_t)
+fs_search_auto_mountpoints(dnsmasq_t)
+
+auth_use_nsswitch(dnsmasq_t)
+
+libs_exec_ldconfig(dnsmasq_t)
+
+logging_send_syslog_msg(dnsmasq_t)
+
+miscfiles_read_public_files(dnsmasq_t)
+
+userdom_dontaudit_use_unpriv_user_fds(dnsmasq_t)
+userdom_dontaudit_search_user_home_dirs(dnsmasq_t)
+
+tunable_policy(`dnsmasq_use_ipset',`
+     allow dnsmasq_t self:netlink_netfilter_socket create_socket_perms;
+')
+
+optional_policy(`
+	cobbler_read_lib_files(dnsmasq_t)
+')
+
+optional_policy(`
+	cron_manage_pid_files(dnsmasq_t)
+')
+
+optional_policy(`
+	dbus_connect_system_bus(dnsmasq_t)
+	dbus_system_bus_client(dnsmasq_t)
+
+	optional_policy(`
+		networkmanager_dbus_chat(dnsmasq_t)
+	')
+')
+
+optional_policy(`
+	dnsmasq_domtrans(dnsmasq_t)
+')
+
+optional_policy(`
+	networkmanager_read_conf(dnsmasq_t)
+	networkmanager_manage_pid_files(dnsmasq_t)
+    networkmanager_manage_lib_files(dnsmasq_t)
+')
+
+optional_policy(`
+	ppp_read_pid_files(dnsmasq_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(dnsmasq_t)
+')
+
+optional_policy(`
+	tftp_read_content(dnsmasq_t)
+')
+
+optional_policy(`
+	udev_read_db(dnsmasq_t)
+')
+
+optional_policy(`
+    unconfined_dbus_send(dnsmasq_t)
+')
+
+optional_policy(`
+	virt_manage_lib_files(dnsmasq_t)
+	virt_read_lib_files(dnsmasq_t)
+	virt_read_pid_files(dnsmasq_t)
+	virt_pid_filetrans(dnsmasq_t, dnsmasq_var_run_t, { dir file })
+')
+
+optional_policy(`
+    neutron_manage_lib_files(dnsmasq_t)
+    neutron_stream_connect(dnsmasq_t)
+    neutron_rw_fifo_file(dnsmasq_t)
+    neutron_sigchld(dnsmasq_t)
+')
+
+optional_policy(`
+    systemd_resolved_read_pid(dnsmasq_t)
+    systemd_resolved_watch_pid_dirs(dnsmasq_t)
+')

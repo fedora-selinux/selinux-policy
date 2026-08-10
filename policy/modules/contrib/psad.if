@@ -1,0 +1,345 @@
+## <summary>Intrusion Detection and Log Analysis with iptables.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run psad.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`psad_domtrans',`
+	gen_require(`
+		type psad_t, psad_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, psad_exec_t, psad_t)
+')
+
+########################################
+## <summary>
+##	Send generic signals to psad.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`psad_signal',`
+	gen_require(`
+		type psad_t;
+	')
+
+	allow $1 psad_t:process signal;
+')
+
+#######################################
+## <summary>
+##	Send null signals to psad.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`psad_signull',`
+	gen_require(`
+		type psad_t;
+	')
+
+	allow $1 psad_t:process signull;
+')
+
+########################################
+## <summary>
+##	Read psad configuration content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`psad_read_config',`
+	gen_require(`
+		type psad_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 psad_etc_t:dir list_dir_perms;
+	allow $1 psad_etc_t:file read_file_perms;
+	allow $1 psad_etc_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	psad configuration content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`psad_manage_config',`
+	gen_require(`
+		type psad_etc_t;
+	')
+
+	files_search_etc($1)
+	manage_dirs_pattern($1, psad_etc_t, psad_etc_t)
+	manage_files_pattern($1, psad_etc_t, psad_etc_t)
+')
+
+########################################
+## <summary>
+##	Read psad pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`psad_read_pid_files',`
+	gen_require(`
+		type psad_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, psad_var_run_t, psad_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read and write psad PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`psad_rw_pid_files',`
+	gen_require(`
+		type psad_var_run_t;
+	')
+
+	files_search_pids($1)
+	rw_files_pattern($1, psad_var_run_t, psad_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read psad log content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`psad_read_log',`
+	gen_require(`
+		type psad_var_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 psad_var_log_t:dir list_dir_perms;
+	allow $1 psad_var_log_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Append psad log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`psad_append_log',`
+	gen_require(`
+		type psad_var_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, psad_var_log_t, psad_var_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to write to psad's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`psad_write_log',`
+	gen_require(`
+		type psad_var_log_t;
+	')
+
+	logging_search_logs($1)
+	write_files_pattern($1, psad_var_log_t, psad_var_log_t)
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to setattr to psad's log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`psad_setattr_log',`
+    gen_require(`
+        type psad_var_log_t;
+    ')
+
+    logging_search_logs($1)
+    setattr_files_pattern($1, psad_var_log_t, psad_var_log_t)
+')
+
+########################################
+## <summary>
+##	Read and write psad fifo files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`psad_rw_fifo_file',`
+	gen_require(`
+		type psad_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	rw_fifo_files_pattern($1, psad_var_lib_t, psad_var_lib_t)
+')
+
+#######################################
+## <summary>
+##  Allow setattr to psad fifo files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`psad_setattr_fifo_file',`
+    gen_require(`
+        type psad_t, psad_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+	allow $1 psad_var_lib_t:fifo_file setattr;
+    search_dirs_pattern($1, psad_var_lib_t, psad_var_lib_t)
+')
+
+#######################################
+## <summary>
+##  Allow search to psad lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`psad_search_lib_files',`
+    gen_require(`
+        type psad_t, psad_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    search_dirs_pattern($1, psad_var_lib_t, psad_var_lib_t)
+')
+
+#######################################
+## <summary>
+##	Read and write psad temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`psad_rw_tmp_files',`
+	gen_require(`
+		type psad_tmp_t;
+	')
+
+	files_search_tmp($1)
+	rw_files_pattern($1, psad_tmp_t, psad_tmp_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an psad environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`psad_admin',`
+	gen_require(`
+		type psad_t, psad_var_run_t, psad_var_log_t;
+		type psad_initrc_exec_t, psad_var_lib_t, psad_etc_t;
+		type psad_tmp_t;
+	')
+
+	allow $1 psad_t:process signal_perms;
+	ps_process_pattern($1, psad_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 psad_t:process ptrace;
+	')
+
+	init_labeled_script_domtrans($1, psad_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 psad_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, psad_etc_t)
+
+	files_list_pids($1)
+	admin_pattern($1, psad_var_run_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, psad_var_log_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, psad_var_lib_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, psad_tmp_t)
+')

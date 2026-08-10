@@ -1,0 +1,203 @@
+policy_module(sge, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow sge to access nfs file systems.
+## </p>
+## </desc>
+gen_tunable(sge_use_nfs, false)
+
+## <desc>
+## <p>
+## Allow sge to connect to the network using any TCP port
+## </p>
+## </desc>
+gen_tunable(sge_domain_can_network_connect, false)
+
+attribute sge_domain;
+
+sge_basic_types_template(sge_execd)
+init_daemon_domain(sge_execd_t, sge_execd_exec_t)
+
+type sge_spool_t;
+files_type(sge_spool_t)
+
+type sge_tmp_t;
+files_tmp_file(sge_tmp_t)
+
+sge_basic_types_template(sge_shepherd)
+application_domain(sge_shepherd_t, sge_shepherd_exec_t)
+role system_r types sge_shepherd_t;
+
+sge_basic_types_template(sge_job)
+application_domain(sge_job_t, sge_job_exec_t)
+corecmd_shell_entry_type(sge_job_t)
+role system_r types sge_job_t;
+
+#######################################
+#
+# sge_execd local policy
+#
+
+allow sge_execd_t self:capability { dac_read_search  kill setuid chown setgid };
+allow sge_execd_t self:process { setsched signal setpgid };
+
+allow sge_execd_t sge_shepherd_t:process signal;
+
+
+relabelfrom_files_pattern(sge_execd_t, sge_tmp_t, sge_tmp_t)
+
+kernel_read_kernel_sysctls(sge_execd_t)
+
+corenet_tcp_bind_sge_port(sge_execd_t)
+corenet_tcp_connect_sge_port(sge_execd_t)
+
+dev_read_sysfs(sge_execd_t)
+
+files_exec_usr_files(sge_execd_t)
+files_search_spool(sge_execd_t)
+
+fs_getattr_xattr_fs(sge_execd_t)
+fs_read_cgroup_files(sge_execd_t)
+
+auth_use_nsswitch(sge_execd_t)
+
+libs_exec_ld_so(sge_execd_t)
+
+logging_send_syslog_msg(sge_execd_t)
+
+init_read_utmp(sge_execd_t)
+
+userdom_relabel_user_tmp_files(sge_execd_t)
+
+optional_policy(`
+	sendmail_domtrans(sge_execd_t)
+')
+
+######################################
+#
+# sge_shepherd local policy
+#
+
+allow sge_shepherd_t self:capability { setuid sys_nice chown kill setgid dac_read_search  };
+allow sge_shepherd_t self:process { setsched setrlimit setpgid };
+allow sge_shepherd_t self:process signal_perms;
+
+domtrans_pattern(sge_execd_t, sge_shepherd_exec_t, sge_shepherd_t)
+
+kernel_read_sysctl(sge_shepherd_t)
+kernel_read_kernel_sysctls(sge_shepherd_t)
+
+dev_read_sysfs(sge_shepherd_t)
+
+fs_getattr_all_fs(sge_shepherd_t)
+
+logging_send_syslog_msg(sge_shepherd_t)
+
+optional_policy(`
+	mta_send_mail(sge_shepherd_t)
+')
+
+optional_policy(`
+	ssh_domtrans(sge_shepherd_t)
+')
+
+optional_policy(`
+	unconfined_domain(sge_shepherd_t)
+')
+
+#####################################
+#
+# sge_job local policy
+#
+
+allow sge_shepherd_t sge_job_t:process signal_perms;
+
+corecmd_shell_domtrans(sge_shepherd_t, sge_job_t)
+
+kernel_read_kernel_sysctls(sge_job_t)
+
+term_use_all_terms(sge_job_t)
+
+logging_send_syslog_msg(sge_job_t)
+
+optional_policy(`
+	ssh_basic_client_template(sge_job, sge_job_t, system_r)
+	ssh_domtrans(sge_job_t)
+
+	allow sge_job_t sge_job_ssh_t:process sigkill;
+	allow sge_shepherd_t sge_job_ssh_t:process sigkill;
+
+	xserver_exec_xauth(sge_job_ssh_t)
+
+        tunable_policy(`sge_use_nfs',`
+            fs_list_auto_mountpoints(sge_job_ssh_t)
+            fs_manage_nfs_dirs(sge_job_ssh_t)
+            fs_manage_nfs_files(sge_job_ssh_t)
+            fs_read_nfs_symlinks(sge_job_ssh_t)
+        ')
+	')
+
+optional_policy(`
+	xserver_domtrans_xauth(sge_job_t)
+')
+
+optional_policy(`
+	unconfined_domain(sge_job_t)
+')
+
+#####################################
+#
+# sge_domain local policy
+#
+
+allow sge_domain self:fifo_file rw_fifo_file_perms;
+allow sge_domain self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(sge_domain, sge_spool_t, sge_spool_t)
+manage_files_pattern(sge_domain, sge_spool_t, sge_spool_t)
+manage_lnk_files_pattern(sge_domain, sge_spool_t, sge_spool_t)
+
+manage_files_pattern(sge_domain, sge_tmp_t, sge_tmp_t)
+manage_lnk_files_pattern(sge_domain, sge_tmp_t, sge_tmp_t)
+manage_dirs_pattern(sge_domain, sge_tmp_t, sge_tmp_t)
+files_tmp_filetrans(sge_domain, sge_tmp_t, { file dir })
+
+kernel_read_network_state(sge_domain)
+
+corecmd_exec_bin(sge_domain)
+corecmd_exec_shell(sge_domain)
+
+domain_read_all_domains_state(sge_domain)
+
+
+dev_read_urand(sge_domain)
+
+tunable_policy(`sge_domain_can_network_connect',`
+    corenet_tcp_connect_all_ports(sge_domain)
+')
+
+tunable_policy(`sge_use_nfs',`
+    fs_list_auto_mountpoints(sge_domain)
+	fs_manage_nfs_dirs(sge_domain)
+	fs_manage_nfs_files(sge_domain)
+	fs_read_nfs_symlinks(sge_domain)
+	fs_exec_nfs_files(sge_domain)
+')
+
+optional_policy(`
+	sysnet_dns_name_resolve(sge_domain)
+')
+
+optional_policy(`
+    hostname_exec(sge_domain)
+')
+
+optional_policy(`
+	nslcd_stream_connect(sge_domain)
+')

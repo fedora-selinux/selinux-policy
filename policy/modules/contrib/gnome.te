@@ -1,0 +1,489 @@
+policy_module(gnome, 2.3.0)
+
+##############################
+#
+# Declarations
+#
+
+attribute gnomedomain;
+attribute gnome_home_type;
+attribute gkeyringd_domain;
+attribute_role gconfd_roles;
+
+type gconf_etc_t;
+files_config_file(gconf_etc_t)
+
+type data_home_t, gnome_home_type;
+userdom_user_home_content(data_home_t)
+
+type config_home_t, gnome_home_type;
+userdom_user_home_content(config_home_t)
+
+type cache_home_t, gnome_home_type;
+userdom_user_home_content(cache_home_t)
+
+type gstreamer_home_t, gnome_home_type;
+userdom_user_home_content(gstreamer_home_t)
+
+type dbus_home_t, gnome_home_type;
+userdom_user_home_content(dbus_home_t)
+
+type icc_data_home_t, gnome_home_type;
+userdom_user_home_content(icc_data_home_t)
+
+type gconf_home_t, gnome_home_type;
+typealias gconf_home_t alias { user_gconf_home_t staff_gconf_home_t sysadm_gconf_home_t };
+typealias gconf_home_t alias { auditadm_gconf_home_t secadm_gconf_home_t };
+typealias gconf_home_t alias unconfined_gconf_home_t;
+userdom_user_home_content(gconf_home_t)
+
+type gconf_tmp_t;
+typealias gconf_tmp_t alias { user_gconf_tmp_t staff_gconf_tmp_t sysadm_gconf_tmp_t };
+typealias gconf_tmp_t alias { auditadm_gconf_tmp_t secadm_gconf_tmp_t };
+typealias gconf_tmp_t alias unconfined_gconf_tmp_t;
+userdom_user_tmp_file(gconf_tmp_t)
+
+type gconfd_t, gnomedomain;
+type gconfd_exec_t;
+typealias gconfd_t alias { user_gconfd_t staff_gconfd_t sysadm_gconfd_t };
+typealias gconfd_t alias { auditadm_gconfd_t secadm_gconfd_t };
+userdom_user_application_domain(gconfd_t, gconfd_exec_t)
+role gconfd_roles types gconfd_t;
+
+type gnome_home_t, gnome_home_type;
+typealias gnome_home_t alias { user_gnome_home_t staff_gnome_home_t sysadm_gnome_home_t };
+typealias gnome_home_t alias { auditadm_gnome_home_t secadm_gnome_home_t };
+typealias gnome_home_t alias unconfined_gnome_home_t;
+userdom_user_home_content(gnome_home_t)
+
+# type KDE /usr/share/config files
+type config_usr_t;
+files_type(config_usr_t)
+
+type gkeyringd_exec_t;
+corecmd_executable_file(gkeyringd_exec_t)
+
+type gkeyringd_gnome_home_t, gnome_home_type;
+userdom_user_home_content(gkeyringd_gnome_home_t)
+
+type gkeyringd_tmp_t;
+userdom_user_tmp_content(gkeyringd_tmp_t)
+
+type gconfdefaultsm_t;
+type gconfdefaultsm_exec_t;
+init_daemon_domain(gconfdefaultsm_t, gconfdefaultsm_exec_t)
+
+type gnome_initial_setup_t;
+type gnome_initial_setup_exec_t;
+init_system_domain(gnome_initial_setup_t, gnome_initial_setup_exec_t);
+
+type gnome_initial_setup_var_lib_t;
+files_type(gnome_initial_setup_var_lib_t);
+
+type gnome_initial_setup_var_run_t;
+files_pid_file(gnome_initial_setup_var_run_t);
+
+type gnome_initial_setup_tmp_t;
+files_tmp_file(gnome_initial_setup_tmp_t);
+
+type gnomesystemmm_t;
+type gnomesystemmm_exec_t;
+init_daemon_domain(gnomesystemmm_t, gnomesystemmm_exec_t)
+
+# Assistive Technology Service Provider Interface (AT-SPI)
+type gnome_atspi_t;
+type gnome_atspi_exec_t;
+init_daemon_domain(gnome_atspi_t, gnome_atspi_exec_t)
+role system_r types gnome_atspi_t;
+
+optional_policy(`
+	xserver_read_xdm_pid(gnome_atspi_t)
+	xserver_map_xdm_pid(gnome_atspi_t)
+')
+
+##############################
+#
+# Local Policy
+#
+
+allow gconfd_t self:process getsched;
+allow gconfd_t self:fifo_file rw_fifo_file_perms;
+
+manage_dirs_pattern(gconfd_t, gconf_home_t, gconf_home_t)
+manage_files_pattern(gconfd_t, gconf_home_t, gconf_home_t)
+userdom_user_home_dir_filetrans(gconfd_t, gconf_home_t, dir)
+
+manage_dirs_pattern(gconfd_t, gconf_tmp_t, gconf_tmp_t)
+manage_files_pattern(gconfd_t, gconf_tmp_t, gconf_tmp_t)
+userdom_user_tmp_filetrans(gconfd_t, gconf_tmp_t, { dir file })
+
+allow gconfd_t gconf_etc_t:dir list_dir_perms;
+read_files_pattern(gconfd_t, gconf_etc_t, gconf_etc_t)
+
+dev_read_urand(gconfd_t)
+
+logging_send_syslog_msg(gconfd_t)
+
+userdom_manage_user_tmp_sockets(gconfd_t)
+userdom_manage_user_tmp_dirs(gconfd_t)
+userdom_tmp_filetrans_user_tmp(gconfd_t, dir)
+
+optional_policy(`
+	dbus_system_bus_client(gconfd_t)
+	dbus_write_session_tmp_sock_files(gconfd_t)
+')
+
+optional_policy(`
+	nscd_dontaudit_search_pid(gconfd_t)
+')
+
+optional_policy(`
+	xserver_use_xdm_fds(gconfd_t)
+	xserver_rw_xdm_pipes(gconfd_t)
+')
+
+#######################################
+#
+# gconf-defaults-mechanisms local policy
+#
+
+allow gconfdefaultsm_t self:capability { dac_read_search  sys_nice };
+allow gconfdefaultsm_t self:process getsched;
+allow gconfdefaultsm_t self:fifo_file rw_fifo_file_perms;
+
+corecmd_search_bin(gconfdefaultsm_t)
+
+auth_read_passwd(gconfdefaultsm_t)
+
+gnome_manage_gconf_home_files(gconfdefaultsm_t)
+gnome_manage_gconf_config(gconfdefaultsm_t)
+
+userdom_read_all_users_state(gconfdefaultsm_t)
+userdom_search_user_home_dirs(gconfdefaultsm_t)
+
+userdom_dontaudit_search_admin_dir(gconfdefaultsm_t)
+
+optional_policy(`
+	consolekit_dbus_chat(gconfdefaultsm_t)
+')
+
+optional_policy(`
+	dbus_system_domain(gconfdefaultsm_t, gconfdefaultsm_exec_t)
+')
+
+optional_policy(`
+	nscd_dontaudit_search_pid(gconfdefaultsm_t)
+')
+
+optional_policy(`
+	policykit_domtrans_auth(gconfdefaultsm_t)
+	policykit_dbus_chat(gconfdefaultsm_t)
+	policykit_read_lib(gconfdefaultsm_t)
+	policykit_read_reload(gconfdefaultsm_t)
+')
+
+userdom_home_manager(gconfdefaultsm_t)
+
+#######################################
+#
+# gnome-system-monitor-mechanisms local policy
+#
+
+allow gnomesystemmm_t self:capability { sys_admin sys_nice };
+allow gnomesystemmm_t self:fifo_file rw_fifo_file_perms;
+
+rw_files_pattern(gnomesystemmm_t, config_usr_t, config_usr_t)
+
+kernel_read_system_state(gnomesystemmm_t)
+
+corecmd_search_bin(gnomesystemmm_t)
+
+domain_kill_all_domains(gnomesystemmm_t)
+domain_search_all_domains_state(gnomesystemmm_t)
+domain_setpriority_all_domains(gnomesystemmm_t)
+domain_signal_all_domains(gnomesystemmm_t)
+domain_sigstop_all_domains(gnomesystemmm_t)
+
+fs_getattr_xattr_fs(gnomesystemmm_t)
+
+auth_read_passwd(gnomesystemmm_t)
+
+logging_send_syslog_msg(gnomesystemmm_t)
+
+userdom_read_all_users_state(gnomesystemmm_t)
+userdom_dontaudit_search_admin_dir(gnomesystemmm_t)
+
+optional_policy(`
+	consolekit_dbus_chat(gnomesystemmm_t)
+')
+
+optional_policy(`
+	dbus_system_domain(gnomesystemmm_t, gnomesystemmm_exec_t)
+')
+
+optional_policy(`
+ 	gnome_manage_home_config(gnomesystemmm_t)
+')
+
+optional_policy(`
+	nscd_dontaudit_search_pid(gnomesystemmm_t)
+')
+
+optional_policy(`
+	policykit_dbus_chat(gnomesystemmm_t)
+	policykit_domtrans_auth(gnomesystemmm_t)
+	policykit_read_lib(gnomesystemmm_t)
+	policykit_read_reload(gnomesystemmm_t)
+')
+
+######################################
+#
+# gnome-keyring-daemon local policy
+#
+
+allow gkeyringd_domain self:capability ipc_lock;
+allow gkeyringd_domain self:process { getcap getsched setcap signal };
+allow gkeyringd_domain self:fifo_file rw_fifo_file_perms;
+allow gkeyringd_domain self:unix_stream_socket { connectto accept listen };
+
+manage_files_pattern(gkeyringd_domain, config_home_t, config_home_t)
+
+manage_dirs_pattern(gkeyringd_domain, gkeyringd_gnome_home_t, gkeyringd_gnome_home_t)
+manage_files_pattern(gkeyringd_domain, gkeyringd_gnome_home_t, gkeyringd_gnome_home_t)
+allow gkeyringd_domain data_home_t:dir create_dir_perms;
+allow gkeyringd_domain gconf_home_t:dir create_dir_perms;
+filetrans_pattern(gkeyringd_domain, gconf_home_t, data_home_t, dir, "share")
+filetrans_pattern(gkeyringd_domain, gnome_home_t, gkeyringd_gnome_home_t, dir, "keyrings")
+filetrans_pattern(gkeyringd_domain, data_home_t, gkeyringd_gnome_home_t, dir, "keyrings")
+
+manage_dirs_pattern(gkeyringd_domain, gkeyringd_tmp_t, gkeyringd_tmp_t)
+manage_sock_files_pattern(gkeyringd_domain, gkeyringd_tmp_t, gkeyringd_tmp_t)
+files_tmp_filetrans(gkeyringd_domain, gkeyringd_tmp_t, dir)
+fs_tmpfs_filetrans(gkeyringd_domain, gkeyringd_tmp_t, dir)
+userdom_user_tmp_filetrans(gkeyringd_domain, gkeyringd_tmp_t, { sock_file dir })
+
+kernel_read_crypto_sysctls(gkeyringd_domain)
+
+corecmd_search_bin(gkeyringd_domain)
+
+dev_read_rand(gkeyringd_domain)
+dev_read_urand(gkeyringd_domain)
+dev_read_sysfs(gkeyringd_domain)
+
+# for nscd?
+files_search_pids(gkeyringd_domain)
+
+fs_getattr_xattr_fs(gkeyringd_domain)
+fs_getattr_tmpfs(gkeyringd_domain)
+
+userdom_user_home_dir_filetrans(gkeyringd_domain, gconf_home_t, dir, ".local")
+
+optional_policy(`
+	xserver_append_xdm_home_files(gkeyringd_domain)
+	xserver_read_xdm_home_files(gkeyringd_domain)
+	xserver_use_xdm_fds(gkeyringd_domain)
+')
+
+optional_policy(`
+	dbus_dontaudit_stream_connect_system_dbusd(gkeyringd_domain)
+	dbus_write_session_tmp_sock_files(gkeyringd_domain)
+')
+
+optional_policy(`
+    gnome_create_home_config_dirs(gkeyringd_domain)
+	gnome_read_home_config(gkeyringd_domain)
+    gnome_manage_generic_cache_files(gkeyringd_domain)
+	gnome_manage_cache_home_dir(gkeyringd_domain)
+	gnome_manage_generic_cache_sockets(gkeyringd_domain)
+')
+
+optional_policy(`
+	ssh_read_user_home_files(gkeyringd_domain)
+')
+
+domain_use_interactive_fds(gnomedomain)
+
+userdom_use_inherited_user_terminals(gnomedomain)
+
+######################################
+#
+# at-spi local policy
+#
+
+allow gnome_atspi_t self:tcp_socket create_stream_socket_perms;
+
+files_map_read_etc_files(gnome_atspi_t)
+fs_getattr_cgroup(gnome_atspi_t)
+fs_getattr_tmpfs(gnome_atspi_t)
+
+optional_policy(`
+	dbus_acquire_svc_system_dbusd(gnome_atspi_t)
+	dbus_exec_dbusd(gnome_atspi_t)
+	dbus_rw_tmp_sock_files(gnome_atspi_t)
+	dbus_send_system_bus(gnome_atspi_t)
+	dbus_signal(gnome_atspi_t)
+	dbus_stream_connect_session_bus(gnome_atspi_t)
+	dbus_system_bus_client(gnome_atspi_t)
+')
+
+optional_policy(`
+	gnome_manage_home_config(gnome_atspi_t)
+')
+
+optional_policy(`
+	userdom_write_user_tmp_files(gnome_atspi_t)
+')
+
+optional_policy(`
+	xserver_dbus_chat_xdm(gnome_atspi_t)
+	xserver_search_xdm_lib(gnome_atspi_t)
+	xserver_read_inherited_xdm_lib_files(gnome_atspi_t)
+	xserver_read_xdm_lib_files(gnome_atspi_t)
+	xserver_stream_connect(gnome_atspi_t)
+')
+
+######################################
+#
+# gnome-initial-setup local policy
+#
+
+allow gnome_initial_setup_t self:capability { audit_write dac_read_search setgid setuid };
+allow gnome_initial_setup_t self:cap_userns { dac_override net_admin setpcap sys_admin sys_ptrace };
+allow gnome_initial_setup_t self:netlink_route_socket create_netlink_socket_perms;
+allow gnome_initial_setup_t self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+allow gnome_initial_setup_t self:process { setcap setrlimit setsched };
+allow gnome_initial_setup_t self:tcp_socket create_stream_socket_perms;
+allow gnome_initial_setup_t self:udp_socket create_socket_perms;
+allow gnome_initial_setup_t self:unix_dgram_socket create_socket_perms;
+allow gnome_initial_setup_t self:unix_stream_socket connectto;
+allow gnome_initial_setup_t self:user_namespace create;
+
+allow gnome_initial_setup_t gnome_initial_setup_exec_t:file execute_no_trans;
+allow gnome_initial_setup_t gkeyringd_exec_t:file exec_file_perms;
+
+manage_dirs_pattern(gnome_initial_setup_t, gnome_initial_setup_var_lib_t, gnome_initial_setup_var_lib_t)
+manage_files_pattern(gnome_initial_setup_t, gnome_initial_setup_var_lib_t, gnome_initial_setup_var_lib_t)
+
+manage_dirs_pattern(gnome_initial_setup_t, gnome_initial_setup_var_run_t, gnome_initial_setup_var_run_t)
+manage_files_pattern(gnome_initial_setup_t, gnome_initial_setup_var_run_t, gnome_initial_setup_var_run_t)
+manage_sock_files_pattern(gnome_initial_setup_t, gnome_initial_setup_var_run_t, gnome_initial_setup_var_run_t)
+files_pid_filetrans(gnome_initial_setup_t, gnome_initial_setup_var_run_t, dir)
+allow gnome_initial_setup_t gnome_initial_setup_var_run_t:file map;
+
+manage_files_pattern(gnome_initial_setup_t, gnome_initial_setup_tmp_t, gnome_initial_setup_tmp_t)
+files_tmp_filetrans(gnome_initial_setup_t, gnome_initial_setup_tmp_t, file)
+
+rw_files_pattern(gnome_initial_setup_t, config_home_t, config_home_t)
+allow gnome_initial_setup_t config_home_t:file map;
+
+kernel_dgram_send(gnome_initial_setup_t)
+kernel_mount_proc(gnome_initial_setup_t)
+kernel_read_net_sysctls(gnome_initial_setup_t)
+kernel_read_network_state_symlinks(gnome_initial_setup_t)
+kernel_read_proc_files(gnome_initial_setup_t)
+kernel_stream_connect(gnome_initial_setup_t)
+
+auth_read_passwd_file(gnome_initial_setup_t)
+
+corecmd_exec_bin(gnome_initial_setup_t)
+
+corenet_tcp_connect_http_port(gnome_initial_setup_t)
+
+dev_read_sysfs(gnome_initial_setup_t)
+dev_remount_sysfs_fs(gnome_initial_setup_t)
+dev_rw_dri(gnome_initial_setup_t)
+
+files_map_read_etc_files(gnome_initial_setup_t)
+files_mounton_non_security(gnome_initial_setup_t)
+files_watch_etc_dirs(gnome_initial_setup_t)
+files_watch_tmpfs_dirs(gnome_initial_setup_t)
+
+fs_all_mount_fs_perms_tmpfs(gnome_initial_setup_t)
+fs_all_mount_fs_perms_xattr_fs(gnome_initial_setup_t)
+fs_getattr_nsfs_files(gnome_initial_setup_t)
+fs_manage_tmpfs_dirs(gnome_initial_setup_t)
+fs_manage_tmpfs_files(gnome_initial_setup_t)
+fs_manage_tmpfs_symlinks(gnome_initial_setup_t)
+fs_read_cgroup_files(gnome_initial_setup_t)
+
+# memfd objects created by gnome-shell
+fs_map_tmpfs_files(gnome_initial_setup_t)
+fs_rw_inherited_tmpfs_files(gnome_initial_setup_t)
+
+sysnet_read_config(gnome_initial_setup_t)
+
+term_mount_pty_fs(gnome_initial_setup_t)
+term_use_unallocated_ttys(gnome_initial_setup_t)
+
+tunable_policy(`deny_execmem',`',`
+	allow gnome_initial_setup_t self:process execmem;
+')
+
+optional_policy(`
+	dbus_system_bus_client(gnome_initial_setup_t)
+	dbus_write_session_tmp_sock_files(gnome_initial_setup_t)
+
+	optional_policy(`
+		accountsd_dbus_chat(gnome_initial_setup_t)
+	')
+
+	optional_policy(`
+		geoclue_dbus_chat(gnome_initial_setup_t)
+	')
+
+	optional_policy(`
+		networkmanager_dbus_chat(gnome_initial_setup_t)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(gnome_initial_setup_t)
+	')
+
+	optional_policy(`
+		realmd_dbus_chat(gnome_initial_setup_t)
+	')
+
+	optional_policy(`
+		xserver_connect_xdm_bus(gnome_initial_setup_t)
+		xserver_dbus_chat_xdm(gnome_initial_setup_t)
+	')
+')
+
+optional_policy(`
+	fedoratp_domtrans(gnome_initial_setup_t)
+')
+
+optional_policy(`
+	logging_create_devlog_dev(gnome_initial_setup_t)
+	logging_write_syslog_pid_socket(gnome_initial_setup_t)
+')
+
+optional_policy(`
+	miscfiles_map_generic_certs(gnome_initial_setup_t)
+	miscfiles_read_generic_certs(gnome_initial_setup_t)
+')
+
+optional_policy(`
+	systemd_dbus_chat_localed(gnome_initial_setup_t)
+	systemd_dbus_chat_logind(gnome_initial_setup_t)
+	systemd_dbus_chat_timedated(gnome_initial_setup_t)
+	systemd_login_read_pid_files(gnome_initial_setup_t)
+	systemd_read_logind_sessions_files(gnome_initial_setup_t)
+	systemd_machined_stream_connect(gnome_initial_setup_t)
+	systemd_userdbd_stream_connect(gnome_initial_setup_t)
+')
+
+optional_policy(`
+	unconfined_domain(gnome_initial_setup_t)
+')
+
+optional_policy(`
+	userdom_manage_tmp_dirs(gnome_initial_setup_t)
+	userdom_manage_tmp_files(gnome_initial_setup_t)
+	userdom_manage_tmp_sockets(gnome_initial_setup_t)
+')
+
+optional_policy(`
+	xserver_stream_connect_xdm(gnome_initial_setup_t)
+	xserver_xdm_signull(gnome_initial_setup_t)
+')

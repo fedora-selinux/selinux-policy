@@ -1,0 +1,228 @@
+
+## <summary>policy for mandb</summary>
+
+########################################
+## <summary>
+##	Transition to mandb.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mandb_domtrans',`
+	gen_require(`
+		type mandb_t, mandb_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mandb_exec_t, mandb_t)
+')
+
+########################################
+## <summary>
+##	Search mandb cache directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_search_cache',`
+	gen_require(`
+		type mandb_cache_t;
+	')
+
+	allow $1 mandb_cache_t:dir search_dir_perms;
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Read mandb cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_read_cache_files',`
+	gen_require(`
+		type mandb_cache_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, mandb_cache_t, mandb_cache_t)
+')
+
+########################################
+## <summary>
+##	Mmap mandb cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_map_cache_files',`
+	gen_require(`
+		type mandb_cache_t;
+	')
+
+	allow $1 mandb_cache_t:file map;
+')
+
+########################################
+## <summary>
+##	Relabel mandb cache files/directories
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_relabel_cache',`
+	gen_require(`
+		type mandb_cache_t;
+	')
+
+	allow $1 mandb_cache_t:dir relabel_dir_perms;
+	allow $1 mandb_cache_t:file relabel_file_perms;
+')
+
+########################################
+## <summary>
+##	Set attributes on mandb cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_setattr_cache_dirs',`
+	gen_require(`
+		type mandb_cache_t;
+	')
+
+	files_search_var($1)
+	allow $1 mandb_cache_t:dir setattr;
+')
+
+########################################
+## <summary>
+##	Delete mandb cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_delete_cache',`
+	gen_require(`
+		type mandb_cache_t;
+	')
+
+	files_search_var($1)
+	allow $1 mandb_cache_t:dir list_dir_perms;
+	delete_dirs_pattern($1, mandb_cache_t, mandb_cache_t)
+	delete_files_pattern($1, mandb_cache_t, mandb_cache_t)
+	delete_lnk_files_pattern($1, mandb_cache_t, mandb_cache_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	mandb cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_manage_cache_files',`
+	gen_require(`
+		type mandb_cache_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, mandb_cache_t, mandb_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage mandb cache dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_manage_cache_dirs',`
+	gen_require(`
+		type mandb_cache_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, mandb_cache_t, mandb_cache_t)
+')
+
+########################################
+## <summary>
+##	Create configuration files in user
+##	home directories with a named file
+##	type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_filetrans_named_home_content',`
+	gen_require(`
+		type mandb_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, mandb_home_t, file, ".manpath")
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an mandb environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mandb_admin',`
+	gen_require(`
+		type mandb_t;
+		type mandb_cache_t, mandb_lock_t;
+	')
+
+	allow $1 mandb_t:process { ptrace signal_perms };
+	ps_process_pattern($1, mandb_t)
+
+	files_search_var($1)
+	admin_pattern($1, mandb_cache_t)
+
+	files_search_locks($1)
+	admin_pattern($1, mandb_lock_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

@@ -1,0 +1,129 @@
+## <summary>RPC port mapping service.</summary>
+
+########################################
+## <summary>
+##	Execute portmap helper in the helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`portmap_domtrans_helper',`
+	gen_require(`
+		type portmap_helper_t, portmap_helper_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, portmap_helper_exec_t, portmap_helper_t)
+')
+
+########################################
+## <summary>
+##	Execute portmap helper in the helper
+##	domain, and allow the specified role
+##	the helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`portmap_run_helper',`
+	gen_require(`
+		attribute_role portmap_helper_roles;
+	')
+
+	portmap_domtrans_helper($1)
+	roleattribute $2 portmap_helper_roles;
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic to portmap.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portmap_udp_send',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic from portmap.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portmap_udp_chat',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Connect to portmap over a TCP socket  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portmap_tcp_connect',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an portmap environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`portmap_admin',`
+	gen_require(`
+		type portmap_t, portmap_initrc_exec_t, portmap_helper_t;
+		type portmap_var_run_t, portmap_tmp_t;
+	')
+
+	allow $1 { portmap_t portmap_helper_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, { portmap_t portmap_helper_t })
+
+	init_labeled_script_domtrans($1, portmap_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 portmap_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, portmap_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, portmap_tmp_t)
+
+	portmap_run_helper($1, $2)
+')

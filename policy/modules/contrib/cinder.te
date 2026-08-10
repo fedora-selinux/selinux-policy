@@ -1,0 +1,171 @@
+policy_module(cinder, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+#
+# cinder-stack daemons contain security issue with using sudo in the code
+# we make this policy as unconfined until this issue is fixed
+#
+
+attribute cinder_domain;
+
+cinder_domain_template(api)
+cinder_domain_template(backup)
+cinder_domain_template(scheduler)
+cinder_domain_template(volume)
+
+type cinder_log_t;
+logging_log_file(cinder_log_t)
+
+type cinder_var_lib_t;
+files_type(cinder_var_lib_t)
+
+type cinder_var_run_t;
+files_pid_file(cinder_var_run_t)
+
+######################################
+#
+# cinder general domain local policy
+#
+
+allow cinder_domain self:process signal_perms;
+allow cinder_domain self:fifo_file rw_fifo_file_perms;
+allow cinder_domain self:tcp_socket create_stream_socket_perms;
+allow cinder_domain self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(cinder_domain, cinder_log_t, cinder_log_t)
+manage_files_pattern(cinder_domain, cinder_log_t, cinder_log_t)
+
+manage_dirs_pattern(cinder_domain, cinder_var_lib_t, cinder_var_lib_t)
+manage_files_pattern(cinder_domain, cinder_var_lib_t, cinder_var_lib_t)
+
+manage_dirs_pattern(cinder_domain, cinder_var_run_t, cinder_var_run_t)
+manage_files_pattern(cinder_domain, cinder_var_run_t, cinder_var_run_t)
+
+corenet_tcp_connect_amqp_port(cinder_domain)
+corenet_tcp_connect_mysqld_port(cinder_domain)
+
+kernel_read_network_state(cinder_domain)
+
+corecmd_exec_bin(cinder_domain)
+corecmd_exec_shell(cinder_domain)
+corenet_tcp_connect_mysqld_port(cinder_domain)
+
+auth_read_passwd(cinder_domain)
+
+dev_read_sysfs(cinder_domain)
+dev_read_urand(cinder_domain)
+
+fs_getattr_xattr_fs(cinder_domain)
+
+init_read_utmp(cinder_domain)
+
+libs_exec_ldconfig(cinder_domain)
+
+optional_policy(`
+    mysql_stream_connect(cinder_domain)
+    mysql_read_db_lnk_files(cinder_domain)
+')
+
+optional_policy(`
+	sysnet_read_config(cinder_domain)
+	sysnet_exec_ifconfig(cinder_domain)
+')
+
+#######################################
+#
+# cinder api local policy
+#
+
+allow cinder_api_t self:process setfscreate;
+allow cinder_api_t self:key write;
+allow cinder_api_t self:netlink_route_socket r_netlink_socket_perms;
+allow cinder_api_t self:udp_socket create_socket_perms;
+
+kernel_read_kernel_sysctls(cinder_api_t)
+
+corenet_tcp_bind_generic_node(cinder_api_t)
+corenet_udp_bind_generic_node(cinder_api_t)
+# should be add to booleans
+corenet_tcp_connect_all_ports(cinder_api_t)
+corenet_tcp_bind_all_unreserved_ports(cinder_api_t)
+
+auth_read_passwd(cinder_api_t)
+
+logging_send_syslog_msg(cinder_api_t)
+
+miscfiles_read_certs(cinder_api_t)
+
+optional_policy(`
+	iptables_domtrans(cinder_api_t)
+')
+
+optional_policy(`
+	ssh_exec_keygen(cinder_api_t)
+')
+
+optional_policy(`
+    gnome_dontaudit_search_config(cinder_api_t)
+')
+
+optional_policy(`
+	unconfined_domain(cinder_api_t)
+')
+
+#######################################
+#
+# cinder backup local policy
+#
+
+allow cinder_backup_t self:udp_socket create_socket_perms;
+
+auth_use_nsswitch(cinder_backup_t)
+
+systemd_dbus_chat_logind(cinder_backup_t)
+
+optional_policy(`
+    unconfined_domain(cinder_backup_t)
+')
+
+#######################################
+#
+# cinder scheduler local policy
+#
+
+allow cinder_scheduler_t self:netlink_route_socket r_netlink_socket_perms;
+allow cinder_scheduler_t self:udp_socket create_socket_perms;
+
+auth_read_passwd(cinder_scheduler_t)
+
+init_read_utmp(cinder_scheduler_t)
+
+optional_policy(`
+    unconfined_domain(cinder_scheduler_t)
+')
+
+#######################################
+#
+# cinder volume local policy
+#
+
+allow cinder_volume_t self:netlink_route_socket r_netlink_socket_perms;
+
+allow cinder_volume_t self:udp_socket create_socket_perms;
+
+kernel_read_kernel_sysctls(cinder_volume_t)
+
+logging_send_syslog_msg(cinder_volume_t)
+
+systemd_dbus_chat_logind(cinder_volume_t)
+
+optional_policy(`
+	lvm_domtrans(cinder_volume_t)
+')
+
+optional_policy(`
+    unconfined_domain(cinder_volume_t)
+')
+

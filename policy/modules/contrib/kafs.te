@@ -1,0 +1,28 @@
+policy_module(kafs, 1.0)
+
+type kafs_exec_t;
+files_type(kafs_exec_t)
+
+type kafs_t;
+domain_type(kafs_t)
+application_domain(kafs_t, kafs_exec_t)
+role system_r types kafs_t;
+
+allow kafs_t self:netlink_route_socket create_netlink_socket_perms;
+allow kafs_t self:udp_socket create_socket_perms;
+allow kafs_t self:unix_dgram_socket create_socket_perms;
+
+kernel_read_key(kafs_t)
+kernel_view_key(kafs_t)
+kernel_setattr_key(kafs_t)
+
+sysnet_read_config(kafs_t)
+
+optional_policy(`
+	logging_send_syslog_msg(kafs_t)
+')
+
+optional_policy(`
+	# /etc/request-key.d/kafs_dns.conf
+	keyutils_request_domtrans_to(kafs_t, kafs_exec_t)
+')

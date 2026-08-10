@@ -1,0 +1,473 @@
+## <summary>The unconfined domain.</summary>
+
+########################################
+## <summary>
+##	Make the specified domain unconfined.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to make unconfined.
+##	</summary>
+## </param>
+#
+interface(`unconfined_domain_noaudit',`
+	gen_require(`
+		class dbus all_dbus_perms;
+		class nscd all_nscd_perms;
+		class passwd all_passwd_perms;
+	')
+
+	# Transition to myself, to make get_ordered_context_list happy.
+	allow $1 self:process { dyntransition transition };
+
+	# Userland object managers
+	allow $1 self:nscd all_nscd_perms;
+	allow $1 self:dbus all_dbus_perms;
+	allow $1 self:passwd all_passwd_perms;
+	allow $1 self:association all_association_perms;
+	allow $1 self:socket_class_set create_socket_perms;
+
+	kernel_unconfined($1)
+	corenet_unconfined($1)
+	dev_unconfined($1)
+	domain_unconfined($1)
+	files_unconfined($1)
+	fs_unconfined($1)
+	selinux_unconfined($1)
+	systemd_config_all_services($1)
+
+	domain_mmap_low($1)
+    domain_named_filetrans($1)
+	ubac_process_exempt($1)
+
+	tunable_policy(`selinuxuser_execheap',`
+		# Allow making the stack executable via mprotect.
+		allow $1 self:process execheap;
+	')
+
+	tunable_policy(`deny_execmem',`',`
+		# Allow making anonymous memory executable, e.g. 
+		# for runtime-code generation or executable stack.
+		allow $1 self:process execmem;
+	')
+
+	tunable_policy(`selinuxuser_execstack',`
+		allow $1 self:process execstack;
+#		auditallow $1 self:process execstack;
+	')
+
+	optional_policy(`
+		auth_unconfined($1)
+	')
+
+	optional_policy(`
+		# Communicate via dbusd.
+		dbus_system_bus_unconfined($1)
+		dbus_unconfined($1)
+	')
+
+	optional_policy(`
+		ipsec_setcontext_default_spd($1)
+		ipsec_match_default_spd($1)
+	')
+
+	optional_policy(`
+		nscd_unconfined($1)
+	')
+
+	optional_policy(`
+		postgresql_unconfined($1)
+	')
+
+	optional_policy(`
+		seutil_create_bin_policy($1)
+		seutil_relabelto_bin_policy($1)
+	')
+
+	optional_policy(`
+		storage_unconfined($1)
+	')
+
+	optional_policy(`
+		xserver_unconfined($1)
+	')
+')
+
+########################################
+## <summary>
+##	Make the specified domain unconfined and
+##	audit executable heap usage.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified domain unconfined and
+##	audit executable heap usage.  With exception
+##	of memory protections, usage of this interface
+##	will result in the level of access the domain has
+##	is like SELinux	was not being used.
+##	</p>
+##	<p>
+##	Only completely trusted domains should use this interface.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain to make unconfined.
+##	</summary>
+## </param>
+#
+interface(`unconfined_domain',`
+	gen_require(`
+		attribute unconfined_services;
+	')	
+
+	unconfined_domain_noaudit($1)
+
+	tunable_policy(`selinuxuser_execheap',`
+		auditallow $1 self:process execheap;
+	')
+')
+
+########################################
+## <summary>
+##	Add an alias type to the unconfined domain.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Add an alias type to the unconfined domain.  (Deprecated)
+##	</p>
+##	<p>
+##	This is added to support targeted policy.  Its
+##	use should be limited.  It has no effect
+##	on the strict policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	New alias of the unconfined domain.
+##	</summary>
+## </param>
+#
+interface(`unconfined_alias_domain',`
+	refpolicywarn(`$0() has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Add an alias type to the unconfined execmem
+##	program file type.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Add an alias type to the unconfined execmem
+##	program file type.  (Deprecated)
+##	</p>
+##	<p>
+##	This is added to support targeted policy.  Its
+##	use should be limited.  It has no effect
+##	on the strict policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	New alias of the unconfined execmem program type.
+##	</summary>
+## </param>
+#
+interface(`unconfined_execmem_alias_program',`
+	refpolicywarn(`$0() has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Connect to unconfined_server with a unix socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_stream_connect',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	files_search_pids($1)
+	files_write_generic_pid_pipes($1)
+	allow $1 unconfined_service_t:unix_stream_socket { getattr connectto };
+')
+
+########################################
+## <summary>
+##	Connect to unconfined_service_t with a unix socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_stream_connectto',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Read and write to unconfined_service_t unix stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_rw_stream_sockets',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Connect to unconfined_server with a unix socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_domtrans',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	corecmd_bin_domtrans($1, unconfined_service_t)
+')
+
+########################################
+## <summary>
+##	Allow caller domain to dbus chat unconfined_server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_dbus_chat',`
+	gen_require(`
+		type unconfined_service_t;
+        class dbus send_msg;
+	')
+
+        allow $1 unconfined_service_t:dbus send_msg;
+        allow unconfined_service_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send signull to unconfined_service_t.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_signull',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:process signull;
+')
+
+########################################
+## <summary>
+##	Allow inherit signal state
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_siginh',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:process siginh;
+')
+
+########################################
+## <summary>
+##	Allow noatsecure.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_noatsecure',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+    allow $1 unconfined_service_t:process { noatsecure };
+')
+
+########################################
+## <summary>
+##	Create unconfined_service_t TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_create_tcp_sockets',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:tcp_socket create_stream_socket_perms;
+')
+
+########################################
+## <summary>
+##	Create unconfined_service_t UDP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_create_udp_sockets',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:udp_socket create_socket_perms;
+')
+
+########################################
+## <summary>
+##	Create unconfined_service_t UNIX sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_create_unix_sockets',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:unix_stream_socket create_stream_socket_perms;
+	allow $1 unconfined_service_t:unix_dgram_socket create_socket_perms;
+')
+
+########################################
+## <summary>
+##	Create unconfined_service_t UNIX sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_dgram_send',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:unix_dgram_socket sendto;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write
+#	unconfined service domain unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_dontaudit_rw_pipes',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	dontaudit $1 unconfined_service_t:fifo_file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Create and use unconfined service shared memory
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_create_shm',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:shm create_shm_perms;
+')
+
+#######################################
+## <summary>
+##	Allow the specified domain read unconfined service semaphores
+## </summary>
+##	<param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_read_semaphores',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	allow $1 unconfined_service_t:sem r_sem_perms;
+')
+
+#######################################
+## <summary>
+##	Allow the specified domain read unconfined service process state
+## </summary>
+##	<param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`unconfined_server_read_state',`
+	gen_require(`
+		type unconfined_service_t;
+	')
+
+	ps_process_pattern($1, unconfined_service_t)
+')

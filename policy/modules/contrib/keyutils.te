@@ -1,0 +1,58 @@
+policy_module(keyutils, 1.0)
+
+type keyutils_request_exec_t;
+files_type(keyutils_request_exec_t)
+
+type keyutils_dns_resolver_exec_t;
+files_type(keyutils_dns_resolver_exec_t)
+
+type keyutils_request_t;
+domain_type(keyutils_request_t)
+domain_entry_file(keyutils_request_t, keyutils_request_exec_t)
+role system_r types keyutils_request_t;
+
+type keyutils_dns_resolver_t;
+domain_type(keyutils_dns_resolver_t)
+domain_entry_file(keyutils_dns_resolver_t, keyutils_dns_resolver_exec_t)
+role system_r types keyutils_dns_resolver_t;
+
+### policy for the keyutils_request_t domain
+allow keyutils_request_t self:unix_dgram_socket create_socket_perms;
+allow keyutils_request_t keyutils_request_exec_t:file execute_no_trans;
+
+corecmd_exec_bin(keyutils_request_t)
+
+domain_manage_all_domains_keyrings(keyutils_request_t)
+
+optional_policy(`
+	auth_dontaudit_read_passwd_file(keyutils_request_t)
+')
+
+optional_policy(`
+	init_search_pid_dirs(keyutils_request_t)
+	logging_send_syslog_msg(keyutils_request_t)
+')
+
+### policy for the keyutils_dns_resolver_t domain
+can_exec(keyutils_dns_resolver_t, keyutils_dns_resolver_exec_t)
+
+domtrans_pattern(keyutils_request_t, keyutils_dns_resolver_exec_t, keyutils_dns_resolver_t)
+
+allow keyutils_dns_resolver_t self:netlink_route_socket r_netlink_socket_perms;
+allow keyutils_dns_resolver_t self:udp_socket create_socket_perms;
+allow keyutils_dns_resolver_t self:unix_dgram_socket create_socket_perms;
+
+kernel_read_key(keyutils_dns_resolver_t)
+kernel_view_key(keyutils_dns_resolver_t)
+kernel_setattr_key(keyutils_dns_resolver_t)
+
+init_search_pid_dirs(keyutils_dns_resolver_t)
+sysnet_read_config(keyutils_dns_resolver_t)
+
+optional_policy(`
+	avahi_stream_connect(keyutils_dns_resolver_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(keyutils_dns_resolver_t)
+')

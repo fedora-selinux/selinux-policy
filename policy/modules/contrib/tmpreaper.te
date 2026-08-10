@@ -1,0 +1,170 @@
+policy_module(tmpreaper, 1.7.1)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether tmpreaper can use
+##	nfs file systems.
+##	</p>
+## </desc>
+gen_tunable(tmpreaper_use_nfs, false)
+
+
+## <desc>
+##	<p>
+##	Determine whether tmpreaper can use
+##	cifs file systems.
+##	</p>
+## </desc>
+gen_tunable(tmpreaper_use_cifs, false)
+
+## <desc>
+## <p>
+## Determine whether tmpreaper can use samba_share files
+## </p>
+## </desc>
+gen_tunable(tmpreaper_use_samba, false)
+
+type tmpreaper_t;
+type tmpreaper_exec_t;
+init_system_domain(tmpreaper_t, tmpreaper_exec_t)
+application_domain(tmpreaper_t, tmpreaper_exec_t)
+init_nnp_daemon_domain(tmpreaper_t)
+
+########################################
+#
+# Local Policy
+#
+
+allow tmpreaper_t self:capability { dac_read_search fowner sys_ptrace };
+allow tmpreaper_t self:cap_userns sys_ptrace;
+allow tmpreaper_t self:fifo_file rw_fifo_file_perms;
+
+kernel_list_unlabeled(tmpreaper_t)
+kernel_read_system_state(tmpreaper_t)
+kernel_read_network_state(tmpreaper_t)
+kernel_delete_unlabeled(tmpreaper_t)
+kernel_dontaudit_getattr_all_sysctls(tmpreaper_t)
+
+dev_read_urand(tmpreaper_t)
+dev_getattr_all_chr_files(tmpreaper_t)
+dev_getattr_all_blk_files(tmpreaper_t)
+dev_getattr_mtrr_dev(tmpreaper_t)
+
+corecmd_exec_bin(tmpreaper_t)
+corecmd_exec_shell(tmpreaper_t)
+
+domain_read_all_domains_state(tmpreaper_t)
+domain_getattr_all_sockets(tmpreaper_t)
+domain_getattr_all_pipes(tmpreaper_t)
+
+fs_getattr_xattr_fs(tmpreaper_t)
+fs_getattr_nsfs_files(tmpreaper_t)
+fs_list_all(tmpreaper_t)
+fs_setattr_tmpfs_dirs(tmpreaper_t)
+fs_delete_tmpfs_files(tmpreaper_t)
+
+files_read_var_lib_files(tmpreaper_t)
+files_purge_tmp(tmpreaper_t)
+files_delete_all_non_security_files(tmpreaper_t)
+files_setattr_non_security_dirs(tmpreaper_t)
+files_getattr_all_dirs(tmpreaper_t)
+files_getattr_all_files(tmpreaper_t)
+
+mls_file_read_all_levels(tmpreaper_t)
+mls_file_write_all_levels(tmpreaper_t)
+
+auth_use_nsswitch(tmpreaper_t)
+
+init_use_inherited_script_ptys(tmpreaper_t)
+
+logging_send_syslog_msg(tmpreaper_t)
+
+miscfiles_delete_man_pages(tmpreaper_t)
+
+ifdef(`distro_debian',`
+	term_dontaudit_use_unallocated_ttys(tmpreaper_t)
+')
+
+ifdef(`distro_redhat',`
+	userdom_list_user_home_content(tmpreaper_t)
+	userdom_list_admin_dir(tmpreaper_t)
+	userdom_delete_all_user_home_content_dirs(tmpreaper_t)
+	userdom_delete_all_user_home_content_files(tmpreaper_t)
+	userdom_delete_all_user_home_content_sock_files(tmpreaper_t)
+	userdom_delete_all_user_home_content_symlinks(tmpreaper_t)
+	userdom_setattr_all_user_home_content_dirs(tmpreaper_t)
+')
+
+tunable_policy(`tmpreaper_use_nfs',`
+	fs_setattr_nfs_dirs(tmpreaper_t)
+')
+
+	optional_policy(`
+        tunable_policy(`tmpreaper_use_samba',`
+            samba_setattr_samba_share_dirs(tmpreaper_t)
+    ')
+')
+
+tunable_policy(`tmpreaper_use_cifs',`
+	fs_setattr_cifs_dirs(tmpreaper_t)
+')
+
+	optional_policy(`
+        tunable_policy(`tmpreaper_use_samba',`
+            samba_setattr_samba_share_dirs(tmpreaper_t)
+    ')
+')
+
+optional_policy(`
+	amavis_manage_spool_files(tmpreaper_t)
+')
+
+optional_policy(`
+	apache_delete_sys_content_rw(tmpreaper_t)
+	apache_list_cache(tmpreaper_t)
+	apache_delete_cache_dirs(tmpreaper_t)
+	apache_delete_cache_files(tmpreaper_t)
+	apache_setattr_cache_dirs(tmpreaper_t)
+')
+
+optional_policy(`
+	cron_system_entry(tmpreaper_t, tmpreaper_exec_t)
+')
+
+optional_policy(`
+	kismet_manage_log(tmpreaper_t)
+')
+
+optional_policy(`
+    lpd_manage_spool(tmpreaper_t)
+')
+
+optional_policy(`
+	mandb_delete_cache(tmpreaper_t)
+')
+
+optional_policy(`
+	sandbox_list(tmpreaper_t)
+	sandbox_delete_dirs(tmpreaper_t)
+	sandbox_delete_files(tmpreaper_t)
+	sandbox_delete_sock_files(tmpreaper_t)
+	sandbox_setattr_dirs(tmpreaper_t)
+')
+
+optional_policy(`
+	plymouthd_exec_plymouth(tmpreaper_t)
+')
+
+optional_policy(`
+	rpm_manage_cache(tmpreaper_t)
+')
+
+optional_policy(`
+        ntp_manage_log(tmpreaper_t)
+')
+

@@ -1,0 +1,135 @@
+policy_module(wireshark, 2.4.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role wireshark_roles;
+
+type wireshark_t;
+type wireshark_exec_t;
+typealias wireshark_t alias { user_wireshark_t staff_wireshark_t sysadm_wireshark_t };
+typealias wireshark_t alias { auditadm_wireshark_t secadm_wireshark_t };
+userdom_user_application_domain(wireshark_t, wireshark_exec_t)
+role wireshark_roles types wireshark_t;
+
+type wireshark_home_t;
+typealias wireshark_home_t alias { user_wireshark_home_t staff_wireshark_home_t sysadm_wireshark_home_t };
+typealias wireshark_home_t alias { auditadm_wireshark_home_t secadm_wireshark_home_t };
+userdom_user_home_content(wireshark_home_t)
+
+type wireshark_tmp_t;
+typealias wireshark_tmp_t alias { user_wireshark_tmp_t staff_wireshark_tmp_t sysadm_wireshark_tmp_t };
+typealias wireshark_tmp_t alias { auditadm_wireshark_tmp_t secadm_wireshark_tmp_t };
+userdom_user_tmp_file(wireshark_tmp_t)
+
+type wireshark_tmpfs_t;
+typealias wireshark_tmpfs_t alias { user_wireshark_tmpfs_t staff_wireshark_tmpfs_t sysadm_wireshark_tmpfs_t };
+typealias wireshark_tmpfs_t alias { auditadm_wireshark_tmpfs_t secadm_wireshark_tmpfs_t };
+userdom_user_tmpfs_file(wireshark_tmpfs_t)
+
+##############################
+#
+# Local Policy
+#
+
+allow wireshark_t self:capability { net_admin net_raw };
+allow wireshark_t self:process { setcap signal getsched setsched };
+dontaudit wireshark_t self:process execmem;
+allow wireshark_t self:fifo_file rw_fifo_file_perms;
+allow wireshark_t self:shm create_shm_perms;
+allow wireshark_t self:packet_socket { create_socket_perms map };
+allow wireshark_t self:netlink_netfilter_socket create_socket_perms;
+allow wireshark_t self:netlink_generic_socket create_socket_perms;
+allow wireshark_t self:netlink_rdma_socket create_socket_perms;
+
+manage_dirs_pattern(wireshark_t, wireshark_home_t, wireshark_home_t)
+manage_files_pattern(wireshark_t, wireshark_home_t, wireshark_home_t)
+manage_lnk_files_pattern(wireshark_t, wireshark_home_t, wireshark_home_t)
+userdom_user_home_dir_filetrans(wireshark_t, wireshark_home_t, dir, ".wireshark")
+
+manage_dirs_pattern(wireshark_t, wireshark_tmp_t, wireshark_tmp_t)
+manage_files_pattern(wireshark_t, wireshark_tmp_t, wireshark_tmp_t)
+manage_fifo_files_pattern(wireshark_t, wireshark_tmp_t, wireshark_tmp_t)
+files_tmp_filetrans(wireshark_t, wireshark_tmp_t, { dir file fifo_file })
+userdom_user_tmp_filetrans(wireshark_t, wireshark_tmp_t, { dir file fifo_file })
+
+manage_dirs_pattern(wireshark_t, wireshark_tmpfs_t, wireshark_tmpfs_t)
+manage_files_pattern(wireshark_t, wireshark_tmpfs_t, wireshark_tmpfs_t)
+manage_lnk_files_pattern(wireshark_t, wireshark_tmpfs_t, wireshark_tmpfs_t)
+manage_sock_files_pattern(wireshark_t, wireshark_tmpfs_t, wireshark_tmpfs_t)
+manage_fifo_files_pattern(wireshark_t, wireshark_tmpfs_t, wireshark_tmpfs_t)
+fs_tmpfs_filetrans(wireshark_t, wireshark_tmpfs_t, { dir file lnk_file sock_file fifo_file })
+allow wireshark_t wireshark_tmpfs_t:file map;
+
+can_exec(wireshark_t, wireshark_exec_t)
+
+kernel_read_kernel_sysctls(wireshark_t)
+kernel_read_network_state(wireshark_t)
+kernel_read_system_state(wireshark_t)
+kernel_read_sysctl(wireshark_t)
+kernel_request_load_module(wireshark_t)
+
+corecmd_exec_bin(wireshark_t)
+
+corenet_all_recvfrom_unlabeled(wireshark_t)
+corenet_all_recvfrom_netlabel(wireshark_t)
+corenet_tcp_sendrecv_generic_if(wireshark_t)
+corenet_udp_sendrecv_generic_if(wireshark_t)
+corenet_raw_sendrecv_generic_if(wireshark_t)
+corenet_tcp_sendrecv_generic_node(wireshark_t)
+corenet_udp_sendrecv_generic_node(wireshark_t)
+corenet_raw_sendrecv_generic_node(wireshark_t)
+corenet_tcp_sendrecv_all_ports(wireshark_t)
+corenet_udp_sendrecv_all_ports(wireshark_t)
+
+corenet_sendrecv_generic_client_packets(wireshark_t)
+corenet_tcp_connect_generic_port(wireshark_t)
+
+dev_read_rand(wireshark_t)
+dev_read_sysfs(wireshark_t)
+dev_read_urand(wireshark_t)
+
+
+fs_getattr_all_fs(wireshark_t)
+fs_search_auto_mountpoints(wireshark_t)
+
+auth_use_nsswitch(wireshark_t)
+
+miscfiles_read_fonts(wireshark_t)
+miscfiles_read_hwdata(wireshark_t)
+
+userdom_use_user_terminals(wireshark_t)
+userdom_manage_user_home_content_files(wireshark_t)
+userdom_filetrans_home_content(wireshark_t)
+userdom_home_manager(wireshark_t)
+userdom_signull_unpriv_users(wireshark_t)
+userdom_connectto_stream(wireshark_t)
+
+tunable_policy(`deny_bluetooth',`',`
+    allow wireshark_t self:bluetooth_socket create_stream_socket_perms;
+')
+
+optional_policy(`
+	dbus_session_bus_client(wireshark_t)
+	dbus_write_session_tmp_sock_files(wireshark_t)
+')
+
+optional_policy(`
+	gnome_create_home_config_dirs(wireshark_t)
+	gnome_manage_home_config(wireshark_t)
+	gnome_read_generic_cache_files(wireshark_t)
+	gnome_write_generic_cache_files(wireshark_t)
+')
+
+optional_policy(`
+	userhelper_use_fd(wireshark_t)
+	userhelper_sigchld(wireshark_t)
+')
+
+optional_policy(`
+	xserver_user_x_domain_template(wireshark, wireshark_t, wireshark_tmpfs_t)
+	xserver_create_xdm_tmp_sockets(wireshark_t)
+	xserver_map_user_fonts(wireshark_t)
+')

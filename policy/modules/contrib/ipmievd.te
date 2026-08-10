@@ -1,0 +1,75 @@
+policy_module(ipmievd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type ipmievd_t;
+type ipmievd_exec_t;
+init_daemon_domain(ipmievd_t, ipmievd_exec_t)
+
+type ipmievd_helper_t;
+type ipmievd_helper_exec_t;
+init_daemon_domain(ipmievd_helper_t, ipmievd_helper_exec_t)
+domain_system_change_exemption(ipmievd_helper_t)
+
+type ipmievd_var_run_t;
+files_pid_file(ipmievd_var_run_t)
+
+type ipmievd_lock_t;
+files_lock_file(ipmievd_lock_t)
+
+type ipmievd_unit_file_t;
+systemd_unit_file(ipmievd_unit_file_t)
+
+########################################
+#
+# ipmievd local policy
+#
+
+allow ipmievd_t self:process { fork setpgid };
+allow ipmievd_t self:fifo_file rw_fifo_file_perms;
+
+manage_files_pattern(ipmievd_t, ipmievd_var_run_t, ipmievd_var_run_t)
+files_pid_filetrans(ipmievd_t, ipmievd_var_run_t, { file })
+
+manage_files_pattern(ipmievd_t, ipmievd_lock_t, ipmievd_lock_t)
+files_lock_filetrans(ipmievd_t, ipmievd_lock_t, file)
+
+kernel_read_system_state(ipmievd_t)
+kernel_load_module(ipmievd_t)
+
+auth_use_nsswitch(ipmievd_t)
+
+corecmd_exec_bin(ipmievd_t)
+
+dev_manage_ipmi_dev(ipmievd_t)
+dev_filetrans_ipmi(ipmievd_t)
+dev_read_sysfs(ipmievd_t)
+dev_rw_watchdog(ipmievd_t)
+
+files_read_kernel_modules(ipmievd_t)
+files_map_kernel_modules(ipmievd_t)
+
+logging_send_syslog_msg(ipmievd_t)
+
+miscfiles_read_certs(ipmievd_t)
+
+modutils_exec_kmod(ipmievd_t)
+modutils_read_module_config(ipmievd_t)
+
+
+########################################
+#
+# ipmievd-helper local policy
+#
+
+domtrans_pattern(ipmievd_helper_t, ipmievd_exec_t, ipmievd_t)
+can_exec(ipmievd_helper_t, ipmievd_helper_exec_t)
+
+kernel_load_module(ipmievd_helper_t)
+
+optional_policy(`
+    unconfined_domain(ipmievd_helper_t)
+')

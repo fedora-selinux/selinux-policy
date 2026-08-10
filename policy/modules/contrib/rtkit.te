@@ -1,0 +1,46 @@
+policy_module(rtkit, 1.2.0)
+
+########################################
+#
+# Declarations
+#
+
+type rtkit_daemon_t;
+type rtkit_daemon_exec_t;
+init_system_domain(rtkit_daemon_t, rtkit_daemon_exec_t)
+
+type rtkit_daemon_initrc_exec_t;
+init_script_file(rtkit_daemon_initrc_exec_t)
+
+########################################
+#
+# Local policy
+#
+
+allow rtkit_daemon_t self:capability { dac_read_search setuid sys_chroot setgid sys_nice sys_ptrace };
+allow rtkit_daemon_t self:process { setsched getcap setcap setrlimit };
+allow rtkit_daemon_t self:cap_userns { sys_nice sys_ptrace };
+
+kernel_read_system_state(rtkit_daemon_t)
+
+domain_getsched_all_domains(rtkit_daemon_t)
+domain_read_all_domains_state(rtkit_daemon_t)
+
+auth_use_nsswitch(rtkit_daemon_t)
+
+logging_send_syslog_msg(rtkit_daemon_t)
+
+optional_policy(`
+	dbus_system_domain(rtkit_daemon_t, rtkit_daemon_exec_t)
+
+	optional_policy(`
+		policykit_dbus_chat(rtkit_daemon_t)
+	')
+	optional_policy(`
+		systemd_dbus_chat_logind(rtkit_daemon_t)
+	')
+')
+
+optional_policy(`
+	systemd_write_inhibit_pipes(rtkit_daemon_t)
+')

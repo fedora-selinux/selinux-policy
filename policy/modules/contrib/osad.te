@@ -1,0 +1,56 @@
+policy_module(osad, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type osad_t;
+type osad_exec_t;
+init_daemon_domain(osad_t, osad_exec_t)
+
+type osad_initrc_exec_t;
+init_script_file(osad_initrc_exec_t)
+
+type osad_log_t;
+logging_log_file(osad_log_t)
+
+type osad_var_run_t;
+files_pid_file(osad_var_run_t)
+
+########################################
+#
+# osad local policy
+#
+
+allow osad_t self:process { execmem setpgid };
+
+manage_files_pattern(osad_t, osad_log_t, osad_log_t)
+logging_log_filetrans(osad_t, osad_log_t, file)
+
+manage_files_pattern(osad_t, osad_var_run_t, osad_var_run_t)
+files_pid_filetrans(osad_t, osad_var_run_t, file)
+
+kernel_read_system_state(osad_t)
+
+corecmd_exec_bin(osad_t)
+
+corenet_tcp_connect_http_port(osad_t)
+corenet_tcp_connect_jabber_client_port(osad_t)
+
+dev_read_urand(osad_t)
+
+auth_use_nsswitch(osad_t)
+
+optional_policy(`
+    gnome_dontaudit_search_config(osad_t)
+')
+
+optional_policy(`
+    rhnsd_manage_config(osad_t)
+')
+
+# execute rhn_check
+optional_policy(`
+    rpm_domtrans(osad_t)
+')

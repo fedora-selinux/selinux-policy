@@ -1,0 +1,70 @@
+policy_module(rngd, 1.1.0)
+
+## <desc>
+## <p>
+## Allow rngd_t domain to use executable memory
+## </p>
+## </desc>
+gen_tunable(rngd_execmem, false)
+
+########################################
+#
+# Declarations
+#
+
+type rngd_t;
+type rngd_exec_t;
+init_daemon_domain(rngd_t, rngd_exec_t)
+
+type rngd_initrc_exec_t;
+init_script_file(rngd_initrc_exec_t)
+
+type rngd_unit_file_t;
+systemd_unit_file(rngd_unit_file_t)
+
+type rngd_var_run_t;
+files_pid_file(rngd_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow rngd_t self:capability { ipc_lock setgid setuid sys_admin };
+allow rngd_t self:process { setcap setsched signal };
+allow rngd_t self:fifo_file rw_fifo_file_perms;
+allow rngd_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow rngd_t self:unix_stream_socket { accept listen };
+
+allow rngd_t rngd_var_run_t:file manage_file_perms;
+files_pid_filetrans(rngd_t, rngd_var_run_t, file, "rngd.pid")
+
+kernel_rw_kernel_sysctl(rngd_t)
+kernel_read_system_state(rngd_t)
+
+auth_use_nsswitch(rngd_t)
+
+dev_read_rand(rngd_t)
+dev_read_urand(rngd_t)
+dev_rw_generic_usb_dev(rngd_t)
+dev_rw_tpm(rngd_t)
+dev_write_rand(rngd_t)
+dev_read_sysfs(rngd_t)
+
+logging_send_syslog_msg(rngd_t)
+
+miscfiles_read_certs(rngd_t)
+
+term_use_usb_ttys(rngd_t)
+
+tunable_policy(`rngd_execmem',`
+        allow rngd_t self:process { execmem };
+')
+
+optional_policy(`
+	pcscd_stream_connect(rngd_t)
+')
+
+optional_policy(`
+	udev_read_pid_files(rngd_t)
+')

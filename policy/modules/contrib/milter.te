@@ -1,0 +1,182 @@
+policy_module(milter, 1.5.0)
+
+########################################
+#
+# Declarations
+#
+
+# attributes common to all milters
+attribute milter_domains;
+attribute milter_data_type;
+
+# support for dkim-milter - domainKeys Identified Mail sender authentication sendmail milter
+milter_template(dkim)
+
+# type for the private key of dkim-milter
+type dkim_milter_private_key_t;
+files_type(dkim_milter_private_key_t)
+
+type dkim_milter_tmp_t;
+files_tmp_file(dkim_milter_tmp_t)
+
+# currently-supported milters are milter-greylist, milter-regex and spamass-milter
+milter_template(greylist)
+milter_template(regex)
+milter_template(spamass)
+
+# Type for the spamass-milter home directory, under which spamassassin will
+# store system-wide preferences, bayes databases etc. if not configured to
+# use per-user configuration
+type spamass_milter_state_t;
+files_type(spamass_milter_state_t)
+
+
+#######################################
+#
+# milter domains local policy
+#
+
+# Allow communication with MTA over a unix-domain socket
+# Note: usage with TCP sockets requires additional policy
+
+allow milter_domains self:fifo_file rw_fifo_file_perms;
+
+allow milter_domains self:process signull;
+
+# Allow communication with MTA over a TCP socket
+allow milter_domains self:tcp_socket create_stream_socket_perms;
+
+kernel_dontaudit_read_system_state(milter_domains)
+
+corenet_tcp_bind_generic_node(milter_domains)
+corenet_tcp_bind_milter_port(milter_domains)
+
+dev_read_rand(milter_domains)
+dev_read_urand(milter_domains)
+
+mta_read_config(milter_domains)
+
+sysnet_read_config(greylist_milter_t)
+
+#######################################
+#
+# dkim-milter local policy
+#
+
+allow dkim_milter_t self:capability { kill setgid setuid };
+allow dkim_milter_t self:process { signal setrlimit };
+allow dkim_milter_t self:tcp_socket create_stream_socket_perms;
+allow dkim_milter_t self:unix_stream_socket create_stream_socket_perms;
+
+read_files_pattern(dkim_milter_t, dkim_milter_private_key_t, dkim_milter_private_key_t)
+
+manage_files_pattern(dkim_milter_t, dkim_milter_tmp_t, dkim_milter_tmp_t)
+manage_dirs_pattern(dkim_milter_t, dkim_milter_tmp_t, dkim_milter_tmp_t)
+files_tmp_filetrans(dkim_milter_t, dkim_milter_tmp_t, { dir file })
+
+fs_getattr_xattr_fs(dkim_milter_t)
+
+kernel_read_kernel_sysctls(dkim_milter_t)
+
+corecmd_exec_shell(dkim_milter_t)
+
+corenet_tcp_connect_smtp_port(dkim_milter_t)
+corenet_udp_bind_all_ports(dkim_milter_t)
+
+auth_use_nsswitch(dkim_milter_t)
+
+sysnet_dns_name_resolve(dkim_milter_t)
+
+optional_policy(`
+	mta_manage_queue(dkim_milter_t)
+	mta_sendmail_exec(dkim_milter_t)
+')
+
+optional_policy(`
+	sendmail_domtrans(dkim_milter_t)
+')
+
+########################################
+#
+# milter-greylist local policy
+#   ensure smtp clients retry mail like real MTAs and not spamware
+#   http://hcpnet.free.fr/milter-greylist/
+#
+
+# It removes any existing socket (not owned by root) whilst running as root,
+# fixes permissions, renices itself and then calls setgid() and setuid() to
+# drop privileges
+allow greylist_milter_t self:capability { chown dac_read_search  setgid setuid sys_nice };
+allow greylist_milter_t self:process { setsched getsched };
+
+allow greylist_milter_t self:tcp_socket create_stream_socket_perms;
+
+# It creates a pid file /var/run/milter-greylist.pid
+files_pid_filetrans(greylist_milter_t, greylist_milter_data_t, file)
+
+kernel_read_kernel_sysctls(greylist_milter_t)
+kernel_read_network_state(greylist_milter_t)
+
+corecmd_exec_bin(greylist_milter_t)
+corecmd_exec_shell(greylist_milter_t)
+
+corenet_tcp_bind_movaz_ssc_port(greylist_milter_t)
+corenet_tcp_connect_movaz_ssc_port(greylist_milter_t)
+corenet_tcp_bind_rtsclient_port(greylist_milter_t)
+
+# perl getgroups() reads a bunch of files in /etc
+# Allow the milter to read a GeoIP database in /usr/share
+# The milter runs from /var/lib/milter-greylist and maintains files there
+files_search_var_lib(greylist_milter_t)
+
+# Look up username for dropping privs
+auth_use_nsswitch(greylist_milter_t)
+
+optional_policy(`
+	mysql_stream_connect(greylist_milter_t)
+')
+
+########################################
+#
+# milter-regex local policy
+#   filter emails using regular expressions
+#   http://www.benzedrine.cx/milter-regex.html
+#
+
+# It removes any existing socket (not owned by root) whilst running as root
+# and then calls setgid() and setuid() to drop privileges
+allow regex_milter_t self:capability { setuid setgid dac_read_search  };
+
+# The milter's socket directory lives under /var/spool
+files_search_spool(regex_milter_t)
+
+# Look up username for dropping privs
+auth_use_nsswitch(regex_milter_t)
+
+########################################
+#
+# spamass-milter local policy
+#   pipe emails through SpamAssassin
+#   http://savannah.nongnu.org/projects/spamass-milt/
+#
+
+# The milter runs from /var/lib/spamass-milter
+allow spamass_milter_t spamass_milter_state_t:dir search_dir_perms;
+files_search_var_lib(spamass_milter_t)
+
+kernel_read_system_state(spamass_milter_t)
+
+# When used with -b or -B options, the milter invokes sendmail to send mail
+# to a spamtrap address, using popen()
+corecmd_exec_shell(spamass_milter_t)
+corecmd_read_bin_symlinks(spamass_milter_t)
+corecmd_search_bin(spamass_milter_t)
+
+auth_use_nsswitch(spamass_milter_t)
+
+mta_send_mail(spamass_milter_t)
+
+# The main job of the milter is to pipe spam through spamc and act on the result
+optional_policy(`
+	spamassassin_domtrans_client(spamass_milter_t)
+')

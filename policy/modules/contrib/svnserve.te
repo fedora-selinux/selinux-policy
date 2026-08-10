@@ -1,0 +1,106 @@
+policy_module(svnserve, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type svnserve_t;
+type svnserve_exec_t;
+init_daemon_domain(svnserve_t, svnserve_exec_t)
+
+type svnserve_initrc_exec_t;
+init_script_file(svnserve_initrc_exec_t)
+
+type svnserve_unit_file_t;
+systemd_unit_file(svnserve_unit_file_t)
+
+type svnserve_content_t;
+files_type(svnserve_content_t)
+
+type svnserve_var_run_t;
+files_pid_file(svnserve_var_run_t)
+
+type svnserve_tmp_t;
+files_tmp_file(svnserve_tmp_t)
+
+type svnserve_log_t;
+logging_log_file(svnserve_log_t)
+
+########################################
+#
+# Local policy
+#
+
+allow svnserve_t self:fifo_file rw_fifo_file_perms;
+allow svnserve_t self:tcp_socket create_stream_socket_perms;
+allow svnserve_t self:unix_stream_socket { listen accept };
+
+manage_dirs_pattern(svnserve_t, svnserve_tmp_t, svnserve_tmp_t)
+manage_files_pattern(svnserve_t, svnserve_tmp_t, svnserve_tmp_t)
+manage_lnk_files_pattern(svnserve_t, svnserve_tmp_t, svnserve_tmp_t)
+files_tmp_filetrans(svnserve_t, svnserve_tmp_t, { file dir })
+
+manage_dirs_pattern(svnserve_t, svnserve_content_t, svnserve_content_t)
+manage_files_pattern(svnserve_t, svnserve_content_t, svnserve_content_t)
+allow svnserve_t svnserve_content_t:file { execute execute_no_trans };
+
+manage_dirs_pattern(svnserve_t, svnserve_var_run_t, svnserve_var_run_t)
+manage_files_pattern(svnserve_t, svnserve_var_run_t, svnserve_var_run_t)
+files_pid_filetrans(svnserve_t, svnserve_var_run_t, { dir file })
+
+manage_files_pattern(svnserve_t, svnserve_log_t, svnserve_log_t)
+manage_dirs_pattern(svnserve_t, svnserve_log_t, svnserve_log_t)
+logging_log_filetrans(svnserve_t, svnserve_log_t, { dir file })
+
+kernel_read_system_state(svnserve_t)
+
+auth_use_nsswitch(svnserve_t)
+
+corecmd_exec_bin(svnserve_t)
+corecmd_exec_shell(svnserve_t)
+
+corenet_all_recvfrom_unlabeled(svnserve_t)
+corenet_all_recvfrom_netlabel(svnserve_t)
+corenet_tcp_sendrecv_generic_if(svnserve_t)
+corenet_udp_sendrecv_generic_if(svnserve_t)
+corenet_tcp_sendrecv_generic_node(svnserve_t)
+corenet_udp_sendrecv_generic_node(svnserve_t)
+corenet_tcp_bind_generic_node(svnserve_t)
+corenet_udp_bind_generic_node(svnserve_t)
+
+corenet_sendrecv_svn_server_packets(svnserve_t)
+corenet_tcp_bind_svn_port(svnserve_t)
+corenet_tcp_sendrecv_svn_port(svnserve_t)
+corenet_udp_bind_svn_port(svnserve_t)
+corenet_udp_sendrecv_svn_port(svnserve_t)
+
+dev_read_rand(svnserve_t)
+dev_read_urand(svnserve_t)
+
+logging_send_syslog_msg(svnserve_t)
+
+sysnet_dns_name_resolve(svnserve_t)
+
+optional_policy(`
+	kerberos_use(svnserve_t)
+    kerberos_read_keytab(svnserve_t)
+    kerberos_manage_host_rcache(svnserve_t)
+    kerberos_tmp_filetrans_host_rcache(svnserve_t, "svn_0")
+')
+
+optional_policy(`
+	mta_send_mail(svnserve_t)
+')
+
+optional_policy(`
+	postfix_domtrans_postdrop(svnserve_t)
+')
+
+optional_policy(`
+    sasl_connect(svnserve_t)
+')
+
+optional_policy(`
+    systemd_private_tmp(svnserve_tmp_t)
+')

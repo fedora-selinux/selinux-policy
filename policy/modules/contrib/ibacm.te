@@ -1,0 +1,77 @@
+policy_module(ibacm, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type ibacm_t;
+type ibacm_exec_t;
+init_daemon_domain(ibacm_t, ibacm_exec_t)
+
+type ibacm_conf_t;
+files_config_file(ibacm_conf_t)
+
+type ibacm_log_t;
+logging_log_file(ibacm_log_t)
+
+type ibacm_var_run_t;
+files_pid_file(ibacm_var_run_t)
+
+type ibacm_tmpfs_t;
+files_tmpfs_file(ibacm_tmpfs_t)
+
+########################################
+#
+# ibacm local policy
+#
+allow ibacm_t self:capability { ipc_lock net_raw sys_rawio };
+allow ibacm_t self:fifo_file rw_fifo_file_perms;
+allow ibacm_t self:unix_stream_socket create_stream_socket_perms;
+allow ibacm_t ibacm_t:netlink_rdma_socket { create_socket_perms };
+allow ibacm_t ibacm_t:netlink_route_socket { create_socket_perms };
+allow ibacm_t self:udp_socket create_socket_perms;
+allow ibacm_t self:unix_dgram_socket create_socket_perms;
+
+manage_files_pattern(ibacm_t, ibacm_conf_t,ibacm_conf_t)
+manage_dirs_pattern(ibacm_t, ibacm_conf_t,ibacm_conf_t)
+files_etc_filetrans(ibacm_t, ibacm_conf_t, { dir file })
+
+manage_dirs_pattern(ibacm_t, ibacm_log_t, ibacm_log_t)
+manage_files_pattern(ibacm_t, ibacm_log_t, ibacm_log_t)
+manage_lnk_files_pattern(ibacm_t, ibacm_log_t, ibacm_log_t)
+logging_log_filetrans(ibacm_t, ibacm_log_t, { dir file lnk_file })
+
+manage_dirs_pattern(ibacm_t, ibacm_var_run_t, ibacm_var_run_t)
+manage_files_pattern(ibacm_t, ibacm_var_run_t, ibacm_var_run_t)
+manage_lnk_files_pattern(ibacm_t, ibacm_var_run_t, ibacm_var_run_t)
+manage_sock_files_pattern(ibacm_t, ibacm_var_run_t, ibacm_var_run_t)
+files_pid_filetrans(ibacm_t, ibacm_var_run_t, { dir file lnk_file sock_file })
+allow ibacm_t ibacm_var_run_t:file map;
+
+manage_dirs_pattern(ibacm_t, ibacm_tmpfs_t, ibacm_tmpfs_t)
+manage_files_pattern(ibacm_t, ibacm_tmpfs_t, ibacm_tmpfs_t)
+fs_tmpfs_filetrans(ibacm_t, ibacm_tmpfs_t, { dir file })
+allow ibacm_t ibacm_tmpfs_t:file map;
+
+kernel_dgram_send(ibacm_t)
+kernel_read_system_state(ibacm_t)
+kernel_read_network_state(ibacm_t)
+
+auth_use_nsswitch(ibacm_t)
+
+corecmd_exec_bin(ibacm_t)
+corecmd_exec_shell(ibacm_t)
+
+corenet_ib_access_unlabeled_pkeys(ibacm_t)
+
+dev_rw_infiniband_mgmt_dev(ibacm_t)
+dev_rw_infiniband_dev(ibacm_t)
+dev_list_sysfs(ibacm_t)
+dev_read_sysfs(ibacm_t)
+dev_getattr_fs(ibacm_t)
+
+fs_getattr_tmpfs(ibacm_t)
+
+init_named_socket_activation(ibacm_t, ibacm_var_run_t, "ibacm.sock")
+

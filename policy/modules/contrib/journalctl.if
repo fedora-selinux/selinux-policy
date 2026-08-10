@@ -1,0 +1,96 @@
+
+## <summary>policy for journalctl</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the journalctl domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`journalctl_domtrans',`
+	gen_require(`
+		type journalctl_t, journalctl_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, journalctl_exec_t, journalctl_t)
+')
+
+######################################
+## <summary>
+##	Execute journalctl in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`journalctl_exec',`
+	gen_require(`
+		type journalctl_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, journalctl_exec_t)
+    allow $1 journalctl_exec_t:file map;
+')
+
+########################################
+## <summary>
+##	Execute journalctl in the journalctl domain, and
+##	allow the specified role the journalctl domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the journalctl domain.
+##	</summary>
+## </param>
+#
+interface(`journalctl_run',`
+	gen_require(`
+		type journalctl_t;
+		attribute_role journalctl_roles;
+	')
+
+	journalctl_domtrans($1)
+	roleattribute $2 journalctl_roles;
+')
+
+########################################
+## <summary>
+##	Role access for journalctl
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`journalctl_role',`
+	gen_require(`
+		type journalctl_t;
+		attribute_role journalctl_roles;
+	')
+
+	roleattribute $1 journalctl_roles;
+
+	journalctl_domtrans($2)
+
+	ps_process_pattern($2, journalctl_t)
+	allow $2 journalctl_t:process { signull signal sigkill };
+')

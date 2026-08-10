@@ -1,0 +1,86 @@
+policy_module(brltty, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type brltty_t;
+type brltty_exec_t;
+init_daemon_domain(brltty_t, brltty_exec_t)
+
+type brltty_var_lib_t;
+files_type(brltty_var_lib_t)
+
+type brltty_var_run_t;
+files_pid_file(brltty_var_run_t)
+
+type brltty_log_t;
+logging_log_file(brltty_log_t)
+
+type brltty_unit_file_t;
+systemd_unit_file(brltty_unit_file_t)
+
+########################################
+#
+# brltty local policy
+#
+allow brltty_t self:capability { setgid setuid sys_admin sys_tty_config mknod };
+allow brltty_t self:process { fork signal_perms };
+
+allow brltty_t self:fifo_file rw_fifo_file_perms;
+allow brltty_t self:unix_stream_socket create_stream_socket_perms;
+allow brltty_t self:tcp_socket { accept listen };
+
+manage_files_pattern(brltty_t, brltty_log_t, brltty_log_t)
+manage_sock_files_pattern(brltty_t, brltty_log_t, brltty_log_t)
+manage_lnk_files_pattern(brltty_t, brltty_log_t, brltty_log_t)
+files_tmp_filetrans(brltty_t, brltty_log_t, { file dir })
+
+manage_dirs_pattern(brltty_t, brltty_var_lib_t, brltty_var_lib_t)
+manage_files_pattern(brltty_t, brltty_var_lib_t, brltty_var_lib_t)
+manage_sock_files_pattern(brltty_t,brltty_var_lib_t, brltty_var_lib_t)
+files_var_lib_filetrans(brltty_t, brltty_var_lib_t, {file sock_file dir})
+
+manage_dirs_pattern(brltty_t, brltty_var_run_t, brltty_var_run_t)
+manage_files_pattern(brltty_t, brltty_var_run_t, brltty_var_run_t)
+manage_chr_files_pattern(brltty_t, brltty_var_run_t, brltty_var_run_t)
+files_pid_filetrans(brltty_t, brltty_var_run_t, { dir file chr_file })
+allow brltty_t brltty_var_run_t:dir mounton;
+
+kernel_read_system_state(brltty_t)
+kernel_request_load_module(brltty_t)
+
+auth_use_nsswitch(brltty_t)
+
+corenet_tcp_bind_brlp_port(brltty_t)
+
+dev_read_mouse(brltty_t)
+dev_read_sysfs(brltty_t)
+dev_rw_generic_usb_dev(brltty_t)
+dev_rw_input_dev(brltty_t)
+dev_write_sound(brltty_t)
+
+fs_getattr_all_fs(brltty_t)
+
+logging_send_syslog_msg(brltty_t)
+
+modutils_domtrans_kmod(brltty_t)
+
+sysnet_dns_name_resolve(brltty_t)
+
+term_use_unallocated_ttys(brltty_t)
+
+tunable_policy(`deny_bluetooth',`',`
+	allow brltty_t self:bluetooth_socket create_socket_perms;
+')
+
+optional_policy(`
+    dbus_system_bus_client(brltty_t)
+
+    bluetooth_dbus_chat(brltty_t)
+')
+
+optional_policy(`
+	policykit_dbus_chat(brltty_t)
+')

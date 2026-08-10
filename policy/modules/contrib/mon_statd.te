@@ -1,0 +1,77 @@
+policy_module(mon_statd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute mon_statd_domain;
+
+type mon_statd_t, mon_statd_domain;
+type mon_statd_exec_t;
+init_daemon_domain(mon_statd_t, mon_statd_exec_t)
+
+type mon_procd_t, mon_statd_domain;
+type mon_procd_exec_t;
+init_daemon_domain(mon_procd_t, mon_procd_exec_t)
+
+type mon_statd_initrc_exec_t;
+init_script_file(mon_statd_initrc_exec_t)
+
+type mon_statd_var_run_t;
+files_pid_file(mon_statd_var_run_t)
+
+########################################
+#
+# mon_statd domain policy
+#
+
+manage_files_pattern(mon_statd_domain, mon_statd_var_run_t, mon_statd_var_run_t)
+files_pid_filetrans(mon_statd_domain, mon_statd_var_run_t, file)
+
+domain_read_all_domains_state(mon_statd_domain)
+
+dev_rw_monitor_dev(mon_statd_domain)
+
+########################################
+#
+# mon_fstatd local policy
+#
+allow mon_statd_t self:process { fork signal };
+allow mon_statd_t self:fifo_file rw_fifo_file_perms;
+
+allow mon_statd_t self:unix_stream_socket create_stream_socket_perms;
+allow mon_statd_t self:unix_dgram_socket create_socket_perms;
+
+kernel_dgram_send(mon_statd_t)
+kernel_read_fs_sysctls(mon_statd_t)
+
+fs_getattr_all_fs(mon_statd_t)
+fs_getattr_all_dirs(mon_statd_t)
+
+fs_search_cgroup_dirs(mon_statd_t)
+
+logging_send_syslog_msg(mon_statd_t)
+
+optional_policy(`
+    rpc_read_nfs_state_data(mon_statd_t)
+')
+
+########################################
+#
+# mon_procd local policy
+#
+allow mon_procd_t self:capability sys_ptrace;
+allow mon_procd_t self:cap_userns sys_ptrace;
+
+allow mon_procd_t self:unix_dgram_socket { create connect };
+
+auth_read_passwd(mon_procd_t)
+
+kernel_dgram_send(mon_procd_t)
+kernel_read_system_state(mon_procd_t)
+
+init_read_utmp(mon_procd_t)
+
+logging_send_syslog_msg(mon_procd_t)
+

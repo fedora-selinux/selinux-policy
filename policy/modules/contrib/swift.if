@@ -1,0 +1,156 @@
+
+## <summary>policy for swift</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the swift domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`swift_domtrans',`
+	gen_require(`
+		type swift_t, swift_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, swift_exec_t, swift_t)
+')
+
+########################################
+## <summary>
+##	Read swift PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`swift_read_pid_files',`
+	gen_require(`
+		type swift_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, swift_var_run_t, swift_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage swift data files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`swift_manage_data_files',`
+	gen_require(`
+		type swift_data_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, swift_data_t, swift_data_t)
+	manage_dirs_pattern($1, swift_data_t, swift_data_t)
+')
+
+#####################################
+## <summary>
+##	Read and write swift lock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`swift_manage_lock',`
+	gen_require(`
+		type swift_lock_t;
+	')
+
+	files_search_locks($1)
+    manage_files_pattern($1, swift_lock_t, swift_lock_t)
+')
+
+#######################################
+## <summary>
+##  Transition content labels to swift named content
+## </summary>
+## <param name="domain">
+##  <summary>
+##      Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`swift_filetrans_named_lock',`
+    gen_require(`
+        type swift_lock_t;
+    ')
+
+    files_lock_filetrans($1, swift_lock_t, file, "swift_server.lock")
+')
+
+########################################
+## <summary>
+##	Execute swift server in the swift domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`swift_systemctl',`
+	gen_require(`
+		type swift_t;
+		type swift_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 swift_unit_file_t:file read_file_perms;
+	allow $1 swift_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, swift_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an swift environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`swift_admin',`
+	gen_require(`
+		type swift_t;
+		type swift_var_run_t;
+	type swift_unit_file_t;
+	')
+
+	allow $1 swift_t:process { ptrace signal_perms };
+	ps_process_pattern($1, swift_t)
+
+	files_search_pids($1)
+	admin_pattern($1, swift_var_run_t)
+
+	swift_systemctl($1)
+	admin_pattern($1, swift_unit_file_t)
+	allow $1 swift_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

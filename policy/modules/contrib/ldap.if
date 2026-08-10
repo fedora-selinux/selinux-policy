@@ -1,0 +1,249 @@
+## <summary>OpenLDAP directory server</summary>
+
+#######################################
+## <summary>
+##	Execute OpenLDAP in the ldap domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_domtrans',`
+	gen_require(`
+		type slapd_t, slapd_exec_t;
+	')
+
+	domtrans_pattern($1, slapd_exec_t, slapd_t)
+')
+
+#######################################
+## <summary>
+##	Execute OpenLDAP server in the ldap domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_initrc_domtrans',`
+	gen_require(`
+		type slapd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, slapd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute slapd server in the slapd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ldap_systemctl',`
+	gen_require(`
+		type slapd_unit_file_t;
+		type slapd_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 slapd_unit_file_t:file read_file_perms;
+	allow $1 slapd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, slapd_t)
+')
+
+########################################
+## <summary>
+##	Read the contents of the OpenLDAP
+##	database directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_list_db',`
+	gen_require(`
+		type slapd_db_t;
+	')
+
+	allow $1 slapd_db_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read the contents of the OpenLDAP
+##	database files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_read_db_files',`
+	gen_require(`
+		type slapd_db_t;
+	')
+
+	read_files_pattern($1, slapd_db_t, slapd_db_t)
+')
+
+########################################
+## <summary>
+##	Read the OpenLDAP configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ldap_read_config',`
+	gen_require(`
+		type slapd_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 slapd_etc_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read the OpenLDAP cert files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ldap_read_certs',`
+	gen_require(`
+		type slapd_cert_t;
+	')
+
+	files_search_etc($1)
+    allow $1 slapd_cert_t:dir list_dir_perms;
+    read_files_pattern($1, slapd_cert_t, slapd_cert_t)
+    read_lnk_files_pattern($1, slapd_cert_t, slapd_cert_t)
+')
+
+########################################
+## <summary>
+##	Use LDAP over TCP connection.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_use',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Connect to slapd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_stream_connect',`
+	gen_require(`
+		type slapd_t, slapd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, slapd_var_run_t, slapd_var_run_t, slapd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ldap environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the ldap domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ldap_admin',`
+	gen_require(`
+		type slapd_t, slapd_tmp_t, slapd_replog_t;
+		type slapd_lock_t, slapd_etc_t, slapd_var_run_t;
+		type slapd_initrc_exec_t, slapd_log_t, slapd_cert_t;
+		type slapd_db_t, slapd_keytab_t;
+		type slapd_unit_file_t;
+	')
+
+	allow $1 slapd_t:process signal_perms;
+	ps_process_pattern($1, slapd_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 slapd_t:process ptrace;
+	')
+
+	init_labeled_script_domtrans($1, slapd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 slapd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, { slapd_etc_t slapd_db_t slapd_cert_t slapd_keytab_t })
+
+	admin_pattern($1, slapd_lock_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, slapd_replog_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, slapd_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, slapd_var_run_t)
+
+	ldap_systemctl($1)
+	admin_pattern($1, slapd_unit_file_t)
+	allow $1 slapd_unit_file_t:service all_service_perms;
+')
+
+####################################
+## <summary>
+##	Read slapd tmpfs files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ldap_read_tmpfs_files',`
+	gen_require(`
+		type slapd_tmpfs_t;
+	')
+
+	read_files_pattern($1, slapd_tmpfs_t, slapd_tmpfs_t)
+')

@@ -1,0 +1,66 @@
+policy_module(seunshare, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute seunshare_domain;
+type seunshare_exec_t;
+
+########################################
+#
+# seunshare local policy
+#
+allow seunshare_domain self:capability { fowner setgid setuid dac_read_search  setpcap sys_admin sys_nice };
+allow seunshare_domain self:process { fork setexec signal getcap setcap setcurrent setsched };
+
+allow seunshare_domain self:fifo_file rw_file_perms;
+allow seunshare_domain self:unix_stream_socket create_stream_socket_perms;
+
+corecmd_exec_shell(seunshare_domain)
+corecmd_exec_bin(seunshare_domain)
+corecmd_getattr_all_executables(seunshare_domain)
+
+dev_read_urand(seunshare_domain)
+dev_dontaudit_rw_dri(seunshare_domain)
+
+files_search_all(seunshare_domain)
+files_read_etc_files(seunshare_domain)
+files_mounton_all_poly_members(seunshare_domain)
+files_mounton_rootfs(seunshare_domain)
+files_manage_generic_tmp_dirs(seunshare_domain)
+files_relabelfrom_tmp_dirs(seunshare_domain)
+
+fs_manage_cgroup_dirs(seunshare_domain)
+fs_manage_cgroup_files(seunshare_domain)
+fs_unmount_all_fs(seunshare_domain)
+
+userdom_dontaudit_rw_user_tmp_pipes(seunshare_domain)
+userdom_use_inherited_user_terminals(seunshare_domain)
+userdom_list_user_home_content(seunshare_domain)
+ifdef(`hide_broken_symptoms', `
+	optional_policy(`
+		gnome_dontaudit_rw_inherited_config(seunshare_domain)
+	')
+
+	optional_policy(`
+		mozilla_dontaudit_manage_user_home_files(seunshare_domain)
+		mozilla_plugin_dontaudit_leaks(seunshare_domain)
+	')
+')
+optional_policy(`
+	rsync_exec(seunshare_domain)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_mounton_nfs(seunshare_domain)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_mounton_cifs(seunshare_domain)
+')
+
+tunable_policy(`use_fusefs_home_dirs',`
+	fs_mounton_fusefs(seunshare_domain)
+')

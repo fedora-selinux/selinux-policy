@@ -1,0 +1,292 @@
+policy_module(piranha, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Allow piranha-lvs domain to connect to the network using TCP.
+##	</p>
+## </desc>
+gen_tunable(piranha_lvs_can_network_connect, false)
+
+attribute piranha_domain;
+attribute piranha_tmpfs;
+
+piranha_domain_template(fos)
+
+piranha_domain_template(lvs)
+
+piranha_domain_template(pulse)
+
+type piranha_pulse_initrc_exec_t;
+init_script_file(piranha_pulse_initrc_exec_t)
+
+piranha_domain_template(web)
+
+type piranha_web_conf_t;
+files_config_file(piranha_web_conf_t)
+
+type piranha_web_data_t;
+files_type(piranha_web_data_t)
+
+type piranha_web_tmp_t;
+files_tmp_file(piranha_web_tmp_t)
+
+type piranha_etc_rw_t;
+files_config_file(piranha_etc_rw_t)
+
+type piranha_log_t;
+logging_log_file(piranha_log_t)
+
+#######################################
+#
+# piranha-fos local policy
+#
+
+kernel_read_kernel_sysctls(piranha_fos_t)
+
+domain_read_all_domains_state(piranha_fos_t)
+
+optional_policy(`
+	consoletype_exec(piranha_fos_t)
+')
+
+# start and stop services
+init_domtrans_script(piranha_fos_t)
+
+########################################
+#
+# piranha-gui local policy
+#
+
+allow piranha_web_t self:capability { setuid sys_nice kill setgid };
+allow piranha_web_t self:process { getsched setsched signal signull };
+
+allow piranha_web_t self:rawip_socket create_socket_perms;
+allow piranha_web_t self:netlink_route_socket r_netlink_socket_perms;
+allow piranha_web_t self:sem create_sem_perms;
+allow piranha_web_t self:shm create_shm_perms;
+
+manage_files_pattern(piranha_web_t, piranha_web_data_t, piranha_web_data_t)
+manage_dirs_pattern(piranha_web_t, piranha_web_data_t, piranha_web_data_t)
+files_var_lib_filetrans(piranha_web_t, piranha_web_data_t, file)
+
+read_files_pattern(piranha_web_t, piranha_web_conf_t, piranha_web_conf_t)
+
+rw_files_pattern(piranha_web_t, piranha_etc_rw_t, piranha_etc_rw_t)
+
+manage_dirs_pattern(piranha_web_t, piranha_log_t, piranha_log_t)
+manage_files_pattern(piranha_web_t, piranha_log_t, piranha_log_t)
+logging_log_filetrans(piranha_web_t, piranha_log_t, { dir file })
+
+can_exec(piranha_web_t, piranha_web_tmp_t)
+manage_dirs_pattern(piranha_web_t, piranha_web_tmp_t, piranha_web_tmp_t)
+manage_files_pattern(piranha_web_t, piranha_web_tmp_t, piranha_web_tmp_t)
+files_tmp_filetrans(piranha_web_t, piranha_web_tmp_t, { file dir })
+
+piranha_pulse_initrc_domtrans(piranha_web_t)
+
+kernel_read_kernel_sysctls(piranha_web_t)
+
+corenet_tcp_bind_http_cache_port(piranha_web_t)
+corenet_tcp_bind_luci_port(piranha_web_t)
+corenet_tcp_bind_servistaitsm_port(piranha_web_t)
+corenet_tcp_connect_ricci_port(piranha_web_t)
+
+dev_read_rand(piranha_web_t)
+dev_read_urand(piranha_web_t)
+
+domain_read_all_domains_state(piranha_web_t)
+
+
+optional_policy(`
+	consoletype_exec(piranha_web_t)
+')
+
+optional_policy(`
+	apache_read_config(piranha_web_t)
+	apache_exec_modules(piranha_web_t)
+	apache_exec(piranha_web_t)
+')
+
+optional_policy(`
+	gnome_dontaudit_search_config(piranha_web_t)
+')
+
+optional_policy(`
+	sasl_connect(piranha_web_t)
+')
+
+optional_policy(`
+    snmp_dontaudit_read_snmp_var_lib_files(piranha_web_t)
+    snmp_dontaudit_write_snmp_var_lib_files(piranha_web_t)
+')
+
+######################################
+#
+# piranha-lvs local policy
+#
+
+# neede by nanny
+allow piranha_lvs_t self:capability { net_raw sys_nice };
+allow piranha_lvs_t self:process signal;
+allow piranha_lvs_t self:unix_dgram_socket create_socket_perms;
+allow piranha_lvs_t self:rawip_socket create_socket_perms;
+
+manage_files_pattern(piranha_lvs_t, piranha_pulse_tmpfs_t,piranha_pulse_tmpfs_t)
+manage_dirs_pattern(piranha_lvs_t, piranha_pulse_tmpfs_t,piranha_pulse_tmpfs_t)
+
+kernel_read_kernel_sysctls(piranha_lvs_t)
+
+# needed by nanny
+corenet_tcp_connect_ftp_port(piranha_lvs_t)
+corenet_tcp_connect_http_port(piranha_lvs_t)
+corenet_tcp_connect_smtp_port(piranha_lvs_t)
+
+sysnet_dns_name_resolve(piranha_lvs_t)
+
+# needed by nanny
+tunable_policy(`piranha_lvs_can_network_connect',`
+	corenet_tcp_connect_all_ports(piranha_lvs_t)
+')
+
+# needed by ipvsadm
+optional_policy(`
+	iptables_domtrans(piranha_lvs_t)
+')
+
+#######################################
+#
+# piranha-pulse local policy
+#
+
+allow piranha_pulse_t self:capability net_admin;
+
+allow piranha_pulse_t self:packet_socket create_socket_perms;
+
+# pulse starts fos and lvs daemon
+domtrans_pattern(piranha_pulse_t, piranha_fos_exec_t, piranha_fos_t)
+allow piranha_pulse_t piranha_fos_t:process signal;
+
+domtrans_pattern(piranha_pulse_t, piranha_lvs_exec_t, piranha_lvs_t)
+allow piranha_pulse_t piranha_lvs_t:process signal;
+
+kernel_read_kernel_sysctls(piranha_pulse_t)
+kernel_read_rpc_sysctls(piranha_pulse_t)
+kernel_rw_rpc_sysctls(piranha_pulse_t)
+kernel_search_debugfs(piranha_pulse_t)
+kernel_search_network_state(piranha_pulse_t)
+
+corecmd_exec_bin(piranha_pulse_t)
+corecmd_exec_shell(piranha_pulse_t)
+optional_policy(`
+	consoletype_exec(piranha_pulse_t)
+')
+
+corenet_udp_bind_apertus_ldp_port(piranha_pulse_t)
+corenet_udp_bind_cma_port(piranha_pulse_t)
+
+domain_read_all_domains_state(piranha_pulse_t)
+domain_getattr_all_domains(piranha_pulse_t)
+
+fs_getattr_all_fs(piranha_pulse_t)
+
+init_initrc_domain(piranha_pulse_t)
+
+logging_send_syslog_msg(piranha_pulse_t)
+
+# various services to failover
+
+optional_policy(`
+	apache_domtrans(piranha_pulse_t)
+	apache_signal(piranha_pulse_t)
+')
+
+optional_policy(`
+	ftp_domtrans(piranha_pulse_t)
+	ftp_initrc_domtrans(piranha_pulse_t)
+	ftp_systemctl(piranha_pulse_t)
+')
+
+optional_policy(`
+	hostname_exec(piranha_pulse_t)
+')
+
+optional_policy(`
+	iptables_domtrans(piranha_pulse_t)
+')
+
+optional_policy(`
+    ldap_systemctl(piranha_pulse_t)
+    ldap_initrc_domtrans(piranha_pulse_t)
+    ldap_domtrans(piranha_pulse_t)
+')
+
+optional_policy(`
+    mysql_domtrans_mysql_safe(piranha_pulse_t)
+    mysql_stream_connect(piranha_pulse_t)
+')
+
+optional_policy(`
+	netutils_domtrans(piranha_pulse_t)
+	netutils_domtrans_ping(piranha_pulse_t)
+')
+
+optional_policy(`
+	postgresql_domtrans(piranha_pulse_t)
+	postgresql_signal(piranha_pulse_t)
+')
+
+optional_policy(`
+	samba_initrc_domtrans(piranha_pulse_t)
+	samba_systemctl(piranha_pulse_t)
+	samba_domtrans_smbd(piranha_pulse_t)
+	samba_domtrans_nmbd(piranha_pulse_t)
+	samba_manage_var_files(piranha_pulse_t)
+	samba_rw_config(piranha_pulse_t)
+	samba_signal_smbd(piranha_pulse_t)
+	samba_signal_nmbd(piranha_pulse_t)
+')
+
+optional_policy(`
+    sysnet_domtrans_ifconfig(piranha_pulse_t)
+')
+
+optional_policy(`
+    udev_read_db(piranha_pulse_t)
+')
+
+####################################
+#
+# piranha domains common policy
+#
+
+allow piranha_domain self:process signal_perms;
+allow piranha_domain self:fifo_file rw_fifo_file_perms;
+allow piranha_domain self:tcp_socket create_stream_socket_perms;
+allow piranha_domain self:udp_socket create_socket_perms;
+allow piranha_domain self:unix_stream_socket create_stream_socket_perms;
+
+read_files_pattern(piranha_domain, piranha_etc_rw_t, piranha_etc_rw_t)
+
+manage_files_pattern(piranha_pulse_t, piranha_tmpfs,piranha_tmpfs)
+manage_dirs_pattern(piranha_pulse_t, piranha_tmpfs ,piranha_tmpfs)
+
+kernel_read_network_state(piranha_domain)
+
+corenet_tcp_sendrecv_generic_if(piranha_domain)
+corenet_udp_sendrecv_generic_if(piranha_domain)
+corenet_tcp_sendrecv_generic_node(piranha_domain)
+corenet_udp_sendrecv_generic_node(piranha_domain)
+corenet_tcp_sendrecv_all_ports(piranha_domain)
+corenet_udp_sendrecv_all_ports(piranha_domain)
+corenet_tcp_bind_generic_node(piranha_domain)
+corenet_udp_bind_generic_node(piranha_domain)
+
+corecmd_exec_bin(piranha_domain)
+corecmd_exec_shell(piranha_domain)
+
+sysnet_read_config(piranha_domain)

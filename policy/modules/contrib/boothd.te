@@ -1,0 +1,94 @@
+policy_module(boothd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type boothd_t;
+type boothd_exec_t;
+init_daemon_domain(boothd_t, boothd_exec_t)
+
+type boothd_etc_t;
+files_config_file(boothd_etc_t)
+
+type boothd_unit_file_t;
+systemd_unit_file(boothd_unit_file_t)
+
+type boothd_var_run_t;
+files_pid_file(boothd_var_run_t)
+
+type boothd_var_lib_t;
+files_type(boothd_var_lib_t)
+
+########################################
+#
+# boothd local policy
+#
+allow boothd_t self:fifo_file rw_fifo_file_perms;
+allow boothd_t self:capability { chown dac_override dac_read_search net_admin setgid setuid sys_nice sys_resource };
+allow boothd_t self:netlink_route_socket create_netlink_socket_perms;
+allow boothd_t self:process { setsched setrlimit };
+allow boothd_t self:tcp_socket create_stream_socket_perms;
+allow boothd_t self:udp_socket create_socket_perms;
+allow boothd_t self:unix_dgram_socket create_socket_perms;
+allow boothd_t self:unix_stream_socket create_stream_socket_perms;
+
+read_files_pattern(boothd_t, boothd_etc_t, boothd_etc_t)
+
+manage_dirs_pattern(boothd_t, boothd_var_run_t, boothd_var_run_t)
+manage_files_pattern(boothd_t, boothd_var_run_t, boothd_var_run_t)
+files_pid_filetrans(boothd_t, boothd_var_run_t, { dir file} )
+
+manage_dirs_pattern(boothd_t, boothd_var_lib_t, boothd_var_lib_t)
+
+kernel_dgram_send(boothd_t)
+kernel_stream_connect(boothd_t)
+
+corecmd_exec_bin(boothd_t)
+corecmd_exec_shell(boothd_t)
+
+corenet_tcp_bind_boothd_port(boothd_t)
+corenet_udp_bind_boothd_port(boothd_t)
+corenet_tcp_bind_generic_node(boothd_t)
+corenet_udp_bind_generic_node(boothd_t)
+corenet_tcp_connect_boothd_port(boothd_t)
+
+domain_use_interactive_fds(boothd_t)
+
+files_read_etc_files(boothd_t)
+
+optional_policy(`
+	auth_read_passwd(boothd_t)
+')
+
+optional_policy(`
+	logging_create_devlog_dev(boothd_t)
+	logging_read_syslog_pid(boothd_t)
+')
+
+optional_policy(`
+	miscfiles_read_localization(boothd_t)
+')
+
+optional_policy(`
+	rhcs_read_log_cluster(boothd_t)
+	rhcs_rw_cluster_tmpfs(boothd_t)
+	rhcs_stream_connect_cluster(boothd_t)
+')
+
+optional_policy(`
+	systemd_userdbd_stream_connect(boothd_t)
+')
+
+optional_policy(`
+	systemd_homed_stream_connect(boothd_t)
+')
+
+optional_policy(`
+	systemd_machined_stream_connect(boothd_t)
+')
+
+optional_policy(`
+	sysnet_read_config(boothd_t)
+')

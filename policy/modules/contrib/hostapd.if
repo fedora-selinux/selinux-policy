@@ -1,0 +1,101 @@
+
+## <summary>policy for hostapd</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the hostapd domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`hostapd_domtrans',`
+	gen_require(`
+		type hostapd_t, hostapd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, hostapd_exec_t, hostapd_t)
+')
+########################################
+## <summary>
+##	Execute hostapd server in the hostapd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`hostapd_systemctl',`
+	gen_require(`
+		type hostapd_t;
+		type hostapd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 hostapd_unit_file_t:file read_file_perms;
+	allow $1 hostapd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, hostapd_t)
+')
+
+
+########################################
+## <summary>
+##	Read hostapd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hostapd_read_pid_files',`
+	gen_require(`
+		type hostapd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, hostapd_var_run_t, hostapd_var_run_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an hostapd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`hostapd_admin',`
+	gen_require(`
+		type hostapd_t;
+		type hostapd_unit_file_t;
+		type hostapd_var_run_t;
+	')
+
+	allow $1 hostapd_t:process { signal_perms };
+	ps_process_pattern($1, hostapd_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 hostapd_t:process ptrace;
+	')
+
+	hostapd_systemctl($1)
+	admin_pattern($1, hostapd_unit_file_t)
+	allow $1 hostapd_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+
+	admin_pattern($1, hostapd_var_run_t)
+')

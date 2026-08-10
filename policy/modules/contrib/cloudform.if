@@ -1,0 +1,171 @@
+## <summary>cloudform policy</summary>
+
+#######################################
+## <summary>
+##  Creates types and rules for a basic
+##  cloudform daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`cloudform_domain_template',`
+    gen_require(`
+        attribute cloudform_domain;
+    ')
+
+    type $1_t, cloudform_domain;
+    type $1_exec_t;
+    init_daemon_domain($1_t, $1_exec_t)
+
+    kernel_read_system_state($1_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run cloud_init.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`cloudform_init_domtrans',`
+	gen_require(`
+		type cloud_init_t, cloud_init_exec_t;
+	')
+
+	domtrans_pattern($1, cloud_init_exec_t, cloud_init_t)
+')
+
+########################################
+## <summary>
+##	Read and write unnamed cloud-init pipes.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`cloudform_rw_pipes',`
+	gen_require(`
+		type cloud_init_t;
+	')
+
+	allow $1 cloud_init_t:fifo_file rw_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Send a message to cloud-init over a datagram socket.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`cloudform_init_dgram_send',`
+	gen_require(`
+		type cloud_init_t;
+	')
+
+	allow $1 cloud_init_t:unix_dgram_socket sendto;
+')
+
+########################################
+## <summary>
+##	Write to cloud-init temporary files.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`cloudform_init_write_tmp',`
+	gen_require(`
+		type cloud_init_tmp_t;
+	')
+
+	files_search_tmp($1)
+	write_files_pattern($1, cloud_init_tmp_t, cloud_init_tmp_t)
+')
+
+######################################
+## <summary>
+##	Execute mongod in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cloudform_exec_mongod',`
+    gen_require(`
+	type mongod_exec_t;
+    ')
+
+    can_exec($1, mongod_exec_t)
+')
+
+#######################################
+## <summary>
+##  Allow read to cloud lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`cloudform_read_lib_files',`
+    gen_require(`
+        type cloud_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    read_files_pattern($1, cloud_var_lib_t, cloud_var_lib_t)
+')
+
+#######################################
+## <summary>
+##  Allow read to cloud lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`cloudform_read_lib_lnk_files',`
+    gen_require(`
+        type cloud_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    read_lnk_files_pattern($1, cloud_var_lib_t, cloud_var_lib_t)
+')
+
+######################################
+## <summary>
+##	Execute mongod in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cloudform_dontaudit_write_cloud_log',`
+    gen_require(`
+	type cloud_log_t;
+    ')
+
+    dontaudit $1 cloud_log_t:file write_inherited_file_perms;
+')

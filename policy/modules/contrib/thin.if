@@ -1,0 +1,64 @@
+## <summary>thin policy</summary>
+
+#######################################
+## <summary>
+##  Creates types and rules for a basic
+##  thin daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`thin_domain_template',`
+    gen_require(`
+        attribute thin_domain;
+    ')
+
+    type $1_t, thin_domain;
+    type $1_exec_t;
+    init_daemon_domain($1_t, $1_exec_t)
+
+	can_exec($1_t, $1_exec_t)
+
+	kernel_read_system_state($1_t)
+')
+
+######################################
+## <summary>
+##	Execute mongod in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`thin_exec',`
+    gen_require(`
+	type thin_exec_t;
+    ')
+
+    can_exec($1, thin_exec_t)
+')
+
+#####################################
+## <summary>
+##	Connect to thin over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`thin_stream_connect',`
+	gen_require(`
+		type thin_t, thin_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, thin_var_run_t, thin_var_run_t, thin_t)
+')

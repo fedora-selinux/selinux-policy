@@ -1,0 +1,95 @@
+policy_module(gssproxy, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type gssproxy_t;
+type gssproxy_exec_t;
+init_daemon_domain(gssproxy_t, gssproxy_exec_t)
+init_nnp_daemon_domain(gssproxy_t)
+
+type gssproxy_var_lib_t;
+files_type(gssproxy_var_lib_t)
+
+type gssproxy_var_run_t;
+files_pid_file(gssproxy_var_run_t)
+
+type gssproxy_unit_file_t;
+systemd_unit_file(gssproxy_unit_file_t)
+
+########################################
+#
+# gssproxy local policy
+#
+allow gssproxy_t self:capability { setuid setgid dac_read_search sys_ptrace };
+allow gssproxy_t self:capability2 block_suspend;
+allow gssproxy_t self:fifo_file rw_fifo_file_perms;
+allow gssproxy_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(gssproxy_t, gssproxy_var_lib_t, gssproxy_var_lib_t)
+manage_files_pattern(gssproxy_t, gssproxy_var_lib_t, gssproxy_var_lib_t)
+manage_sock_files_pattern(gssproxy_t, gssproxy_var_lib_t, gssproxy_var_lib_t)
+manage_lnk_files_pattern(gssproxy_t, gssproxy_var_lib_t, gssproxy_var_lib_t)
+files_var_lib_filetrans(gssproxy_t, gssproxy_var_lib_t, { dir file lnk_file })
+
+manage_dirs_pattern(gssproxy_t, gssproxy_var_run_t, gssproxy_var_run_t)
+manage_files_pattern(gssproxy_t, gssproxy_var_run_t, gssproxy_var_run_t)
+manage_sock_files_pattern(gssproxy_t, gssproxy_var_run_t, gssproxy_var_run_t)
+manage_lnk_files_pattern(gssproxy_t, gssproxy_var_run_t, gssproxy_var_run_t)
+files_pid_filetrans(gssproxy_t, gssproxy_var_run_t, { dir file lnk_file sock_file })
+
+kernel_read_net_sysctls(gssproxy_t)
+kernel_rw_rpc_sysctls(gssproxy_t)
+kernel_read_network_state(gssproxy_t)
+kernel_read_system_state(gssproxy_t)
+
+domain_use_interactive_fds(gssproxy_t)
+domain_read_all_domains_state(gssproxy_t)
+
+files_read_etc_files(gssproxy_t)
+
+fs_getattr_all_fs(gssproxy_t)
+
+auth_use_nsswitch(gssproxy_t)
+
+dev_read_rand(gssproxy_t)
+dev_read_urand(gssproxy_t)
+dev_read_sysfs(gssproxy_t)
+
+logging_send_syslog_msg(gssproxy_t)
+
+miscfiles_read_localization(gssproxy_t)
+
+userdom_read_all_users_keys(gssproxy_t)
+userdom_manage_user_tmp_dirs(gssproxy_t)
+userdom_manage_user_tmp_files(gssproxy_t)
+
+optional_policy(`
+    apache_domtrans(gssproxy_t)
+    apache_systemctl(gssproxy_t)
+')
+
+optional_policy(`
+	ica_rw_map_tmpfs_files(gssproxy_t)
+')
+
+optional_policy(`
+    ipa_read_lib(gssproxy_t)
+')
+
+optional_policy(`
+	kerberos_use(gssproxy_t)
+	kerberos_filetrans_named_content(gssproxy_t)
+')
+
+optional_policy(`
+	kerberos_keytab_template(gssproxy, gssproxy_t)
+	kerberos_manage_host_rcache(gssproxy_t)
+')
+
+optional_policy(`
+    rpc_domtrans_gssd(gssproxy_t)
+    rpc_read_gssd_state(gssproxy_t)
+')

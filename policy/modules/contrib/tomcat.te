@@ -1,0 +1,166 @@
+policy_module(tomcat, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow tomcat to read rpm database.
+## </p>
+## </desc>
+gen_tunable(tomcat_read_rpm_db, false)
+
+## <desc>
+## <p>
+## Allow tomcat to use executable memory and executable stack
+## </p>
+## </desc>
+gen_tunable(tomcat_use_execmem, false)
+
+## <desc>
+## <p>
+## Allow tomcat to connect to databases over the network.
+## </p>
+## </desc>
+gen_tunable(tomcat_can_network_connect_db, false)
+
+attribute tomcat_domain;
+
+tomcat_domain_template(tomcat)
+
+type tomcat_unit_file_t;
+systemd_unit_file(tomcat_unit_file_t)
+
+#######################################
+#
+# tomcat local policy
+#
+
+auth_use_nsswitch(tomcat_t)
+
+# Temporary fix, while missing SELinux policies for HSM
+init_stream_connect_script(tomcat_t)
+
+optional_policy(`
+    pki_manage_tomcat_cert(tomcat_t)
+    pki_manage_apache_log_files(tomcat_t)
+    pki_manage_tomcat_lib(tomcat_t)
+    pki_manage_tomcat_etc_rw(tomcat_t)
+    pki_search_log_dirs(tomcat_t)
+    pki_manage_tomcat_pid(tomcat_t)
+    pki_manage_tomcat_log(tomcat_t)
+    pki_manage_common_files(tomcat_t)
+    pki_exec_common_files(tomcat_t)
+    pki_stream_connect(tomcat_t)
+')
+
+optional_policy(`
+	unconfined_domain(tomcat_t)
+')
+
+optional_policy(`
+	usermanage_domtrans_crack(tomcat_t)
+')
+
+optional_policy(`
+	ipa_read_lib(tomcat_t)
+	ipa_read_tmp(tomcat_t)
+')
+
+########################################
+#
+# tomcat domain local policy
+#
+
+allow tomcat_t self:capability { setuid kill };
+
+allow tomcat_t self:process { execmem setcap setsched signal signull };
+
+allow tomcat_t self:tcp_socket { accept listen };
+allow tomcat_domain self:fifo_file rw_fifo_file_perms;
+allow tomcat_domain self:unix_stream_socket create_stream_socket_perms;
+
+# we want to stay in a new tomcat domain if we call tomcat binary from a script
+# initrc_t@tomcat_test_exec_t->tomcat_test_t@tomcat_exec_t->tomcat_test_t
+can_exec(tomcat_domain, tomcat_exec_t)
+
+kernel_read_network_state(tomcat_domain)
+kernel_read_net_sysctls(tomcat_domain)
+
+corecmd_exec_bin(tomcat_domain)
+corecmd_exec_shell(tomcat_domain)
+
+corenet_tcp_bind_generic_node(tomcat_domain)
+corenet_udp_bind_generic_node(tomcat_domain)
+corenet_tcp_bind_http_port(tomcat_domain)
+corenet_tcp_bind_http_cache_port(tomcat_domain)
+corenet_tcp_bind_mxi_port(tomcat_domain)
+corenet_tcp_bind_bctp_port(tomcat_domain)
+corenet_tcp_connect_http_port(tomcat_domain)
+corenet_tcp_connect_ldap_port(tomcat_domain)
+corenet_tcp_connect_mxi_port(tomcat_domain)
+corenet_tcp_connect_http_cache_port(tomcat_domain)
+corenet_tcp_connect_amqp_port(tomcat_domain)
+corenet_tcp_connect_ibm_dt_2_port(tomcat_domain)
+corenet_tcp_connect_unreserved_ports(tomcat_domain)
+corenet_tcp_bind_jboss_management_port(tomcat_domain)
+corenet_tcp_connect_smtp_port(tomcat_domain)
+
+dev_dontaudit_append_rand(tomcat_domain)
+dev_read_rand(tomcat_domain)
+dev_read_urand(tomcat_domain)
+dev_read_sysfs(tomcat_domain)
+
+domain_use_interactive_fds(tomcat_domain)
+
+libs_exec_ldconfig(tomcat_domain)
+
+files_delete_usr_dirs(tomcat_domain)
+files_manage_usr_files(tomcat_domain)
+
+fs_getattr_all_fs(tomcat_domain)
+fs_read_hugetlbfs_files(tomcat_domain)
+fs_read_cgroup_files(tomcat_domain)
+
+sysnet_dns_name_resolve(tomcat_domain)
+
+optional_policy(`
+    cobbler_read_lib_files(tomcat_domain)
+')
+
+optional_policy(`
+	# needed by FreeIPA
+	ldap_stream_connect(tomcat_domain)
+	ldap_read_certs(tomcat_domain)
+')
+
+optional_policy(`
+    mta_send_mail(tomcat_domain)
+')
+
+optional_policy(`
+	tomcat_search_lib(tomcat_domain)
+')
+
+tunable_policy(`tomcat_read_rpm_db',`
+    rpm_exec(tomcat_domain)
+    rpm_read_db(tomcat_domain)
+')
+
+tunable_policy(`tomcat_can_network_connect_db',`
+	corenet_tcp_connect_gds_db_port(tomcat_domain)
+	corenet_tcp_connect_mssql_port(tomcat_domain)
+	corenet_tcp_connect_mongod_port(tomcat_domain)
+	corenet_sendrecv_mssql_client_packets(tomcat_domain)
+	corenet_tcp_connect_oracle_port(tomcat_domain)
+	corenet_sendrecv_oracle_client_packets(tomcat_domain)
+    corenet_tcp_connect_postgresql_port(tomcat_domain)
+    corenet_tcp_connect_mysqld_port(tomcat_domain)
+    corenet_tcp_connect_redis_port(tomcat_domain)
+')
+
+tunable_policy(`tomcat_use_execmem',`
+	allow tomcat_domain self:process { execmem execstack };
+')

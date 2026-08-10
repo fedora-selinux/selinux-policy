@@ -1,0 +1,566 @@
+## <summary>Policy for logical volume management programs.</summary>
+
+
+#####################################
+## <summary>
+##  lvm stub domain interface.  No access allowed.
+## </summary>
+## <param name="domain" unused="true">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+#
+interface(`lvm_stub',`
+    gen_require(`
+        type lvm_t;
+    ')
+')
+
+########################################
+## <summary>
+##	Get the attribute of lvm entrypoint files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_getattr_exec_files',`
+	gen_require(`
+		type lvm_exec_t;
+	')
+
+	files_list_etc($1)
+	allow $1 lvm_exec_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Execute lvm programs in the lvm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`lvm_domtrans',`
+	gen_require(`
+		type lvm_t, lvm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, lvm_exec_t, lvm_t)
+')
+
+########################################
+## <summary>
+##	Execute lvm programs in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_exec',`
+	gen_require(`
+		type lvm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, lvm_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute lvm programs in the lvm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the LVM domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_run',`
+	gen_require(`
+		type lvm_t;
+	')
+
+	lvm_domtrans($1)
+	role $2 types lvm_t;
+')
+
+########################################
+## <summary>
+##	Read LVM configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_read_config',`
+	gen_require(`
+		type lvm_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 lvm_etc_t:dir list_dir_perms;
+	read_files_pattern($1, lvm_etc_t, lvm_etc_t)
+')
+
+########################################
+## <summary>
+##	Mmap LVM configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_map_config',`
+	gen_require(`
+		type lvm_etc_t;
+	')
+
+	allow $1 lvm_etc_t:file map;
+')
+
+########################################
+## <summary>
+##	Read LVM configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_read_metadata',`
+	gen_require(`
+        type lvm_etc_t;
+		type lvm_metadata_t;
+	')
+
+	files_search_etc($1)
+	allow $1 lvm_etc_t:dir list_dir_perms;
+	read_files_pattern($1,lvm_metadata_t ,lvm_metadata_t)
+')
+
+########################################
+## <summary>
+##	Read LVM configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_write_metadata',`
+	gen_require(`
+        type lvm_etc_t;
+		type lvm_metadata_t;
+	')
+
+	files_search_etc($1)
+	allow $1 lvm_etc_t:dir list_dir_perms;
+	write_files_pattern($1,lvm_metadata_t ,lvm_metadata_t)
+')
+
+########################################
+## <summary>
+##	Manage LVM metadata files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_manage_metadata',`
+	gen_require(`
+		type lvm_metadata_t;
+	')
+
+	allow $1 lvm_metadata_t:dir list_dir_perms;
+	manage_dirs_pattern($1, lvm_metadata_t, lvm_metadata_t)
+	manage_files_pattern($1, lvm_metadata_t, lvm_metadata_t)
+')
+
+########################################
+## <summary>
+##	Manage LVM configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_manage_config',`
+	gen_require(`
+		type lvm_etc_t;
+	')
+
+	files_search_etc($1)
+	manage_dirs_pattern($1, lvm_etc_t, lvm_etc_t)
+	manage_files_pattern($1, lvm_etc_t, lvm_etc_t)
+')
+
+########################################
+## <summary>
+##	Connect to lvm using a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_stream_connect',`
+	gen_require(`
+		type lvm_t, lvm_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, lvm_var_run_t, lvm_var_run_t, lvm_t)
+')
+
+######################################
+## <summary>
+##	Execute a domain transition to run clvmd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`lvm_domtrans_clvmd',`
+	gen_require(`
+		type clvmd_t, clvmd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, clvmd_exec_t, clvmd_t)
+')
+
+########################################
+## <summary>
+##	Read and write to lvm temporary file system.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_rw_clvmd_tmpfs_files',`
+	gen_require(`
+		type clvmd_tmpfs_t;
+	')
+
+	allow $1 clvmd_tmpfs_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete lvm temporary file system.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_delete_clvmd_tmpfs_files',`
+	gen_require(`
+		type clvmd_tmpfs_t;
+	')
+
+	allow $1 clvmd_tmpfs_t:file unlink;
+')
+
+########################################
+## <summary>
+##	Send lvm a null signal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_signull',`
+	gen_require(`
+		type lvm_t;
+	')
+
+	allow $1 lvm_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send lvm the kill signal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_sigkill',`
+	gen_require(`
+		type lvm_t;
+	')
+
+	allow $1 lvm_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Send lvm a generic signal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_signal',`
+	gen_require(`
+		type lvm_t;
+	')
+
+	allow $1 lvm_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send a message to lvm over the 
+##	datagram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_dgram_send',`
+	gen_require(`
+		type lvm_t;
+	')
+
+	allow $1 lvm_t:unix_dgram_socket sendto;
+')
+
+########################################
+## <summary>
+##	Read and write a lvm unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_rw_pipes',`
+	gen_require(`
+		type lvm_var_run_t;
+	')
+
+	allow $1 lvm_var_run_t:fifo_file rw_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Dontaudit Read and write a lvm unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_dontaudit_rw_pipes',`
+	gen_require(`
+		type lvm_var_run_t;
+	')
+
+	dontaudit $1 lvm_var_run_t:fifo_file rw_fifo_file_perms;
+')
+
+
+########################################
+## <summary>
+##	Do not audit attempts to access check cert dirs/files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`lvm_dontaudit_access_check_lock',`
+	gen_require(`
+		type lvm_lock_t;
+	')
+
+    dontaudit $1 lvm_lock_t:dir audit_access;
+')
+
+########################################
+## <summary>
+##	Dontaudit read and write to lvm_lock_t dir.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_dontaudit_rw_lock_dir',`
+	gen_require(`
+		type lvm_lock_t;
+	')
+
+	dontaudit $1 lvm_lock_t:dir rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read the process state (/proc/pid) of lvm.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_read_state',`
+	gen_require(`
+		type lvm_t;
+	')
+
+	ps_process_pattern($1, lvm_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	lvm lock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_manage_lock',`
+	gen_require(`
+		type lvm_lock_t;
+	')
+
+    files_lock_filetrans($1, lvm_lock_t, dir, "lvm")
+
+    files_search_locks($1)
+    manage_files_pattern($1, lvm_lock_t, lvm_lock_t)
+    manage_dirs_pattern($1, lvm_lock_t, lvm_lock_t)
+
+')
+
+
+########################################
+## <summary>
+##	Allow dbus send for lvm dbus API (only send needed)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_dbus_send_msg',`
+	gen_require(`
+		type lvm_t;
+		class dbus send_msg;
+	')
+	allow $1 lvm_t:dbus send_msg;
+	allow lvm_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Allow lvm hints file access
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lvm_rw_var_run',`
+	gen_require(`
+		type lvm_t;
+		type lvm_var_run_t;
+	')
+    allow $1 lvm_var_run_t:file { rw_file_perms };
+
+')
+
+########################################
+## <summary>
+##      Create, read, write, and delete
+##      lvm var run files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`lvm_manage_var_run',`
+	gen_require(`
+		type lvm_var_run_t;
+	')
+
+	manage_dirs_pattern($1, lvm_var_run_t, lvm_var_run_t)
+	manage_files_pattern($1, lvm_var_run_t, lvm_var_run_t)
+')
+
+########################################
+## <summary>
+##      Create directory cryptsetup in the /var/run
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`lvm_var_run_filetrans',`
+        gen_require(`
+                type lvm_var_run_t;
+        ')
+
+	files_search_pids($1)
+	files_pid_filetrans($1, lvm_var_run_t, dir, "cryptsetup" )
+')

@@ -1,0 +1,251 @@
+policy_module(modutils, 1.14.0)
+
+########################################
+#
+# Declarations
+#
+
+#attribute_role update_modules_roles;
+
+type kmod_t alias { update_modules_t depmod_t insmod_t };
+type kmod_exec_t alias { insmod_exec_t depmod_exec_t update_modules_exec_t };
+init_system_domain(kmod_t, depmod_exec_t)
+init_nnp_daemon_domain(kmod_t)
+application_domain(kmod_t, insmod_exec_t)
+mls_file_write_all_levels(kmod_t)
+mls_process_write_down(kmod_t)
+role system_r types kmod_t;
+
+type kmod_var_run_t;
+files_pid_file(kmod_var_run_t)
+
+# module loading config
+type modules_conf_t;
+files_config_file(modules_conf_t)
+
+# module dependencies
+type modules_dep_t;
+files_type(modules_dep_t)
+
+type kmod_tmp_t;
+files_tmp_file(kmod_tmp_t)
+
+type kmod_tmpfs_t;
+files_tmpfs_file(kmod_tmpfs_t)
+
+########################################
+#
+# kmod local policy
+#
+
+allow kmod_t self:capability { dac_read_search  mknod net_raw sys_nice sys_tty_config };
+allow kmod_t self:process { execmem sigchld sigkill sigstop signull signal };
+allow kmod_t self:system module_load;
+
+allow kmod_t self:fifo_file rw_fifo_file_perms;
+
+allow kmod_t self:udp_socket create_socket_perms;
+allow kmod_t self:rawip_socket create_socket_perms;
+allow kmod_t self:shm create_shm_perms;
+
+# transition to kmod
+domain_auto_trans(kmod_t, kmod_exec_t, kmod_t)
+allow kmod_t kmod_t:fd use;
+
+# Read module config and dependency information
+list_dirs_pattern(kmod_t, modules_conf_t, modules_conf_t)
+manage_files_pattern(kmod_t, modules_conf_t, modules_conf_t)
+files_etc_filetrans(kmod_t, modules_conf_t, file)
+
+list_dirs_pattern(kmod_t, modules_dep_t, modules_dep_t)
+read_files_pattern(kmod_t, modules_dep_t, modules_dep_t)
+allow kmod_t modules_dep_t:file map;
+
+manage_dirs_pattern(kmod_t, kmod_var_run_t, kmod_var_run_t)
+manage_files_pattern(kmod_t, kmod_var_run_t, kmod_var_run_t)
+files_pid_filetrans(kmod_t, kmod_var_run_t, {dir file })
+
+manage_dirs_pattern(kmod_t, kmod_tmp_t, kmod_tmp_t)
+manage_files_pattern(kmod_t, kmod_tmp_t, kmod_tmp_t)
+files_tmp_filetrans(kmod_t, kmod_tmp_t, { file dir })
+
+can_exec(kmod_t, kmod_exec_t)
+can_exec(kmod_t, update_modules_exec_t)
+
+manage_files_pattern(kmod_t,kmod_tmpfs_t,kmod_tmpfs_t)
+fs_tmpfs_filetrans(kmod_t,kmod_tmpfs_t,file)
+
+kernel_load_unsigned_module(kmod_t)
+files_manage_kernel_modules(kmod_t)
+files_map_kernel_modules(kmod_t)
+kernel_read_system_state(kmod_t)
+kernel_read_network_state(kmod_t)
+kernel_write_proc_files(kmod_t)
+kernel_mount_debugfs(kmod_t)
+kernel_mount_kvmfs(kmod_t)
+kernel_read_debugfs(kmod_t)
+kernel_request_load_module(kmod_t)
+# Rules for /proc/sys/kernel/tainted
+kernel_read_kernel_sysctls(kmod_t)
+kernel_rw_kernel_sysctl(kmod_t)
+kernel_setsched(kmod_t)
+
+corecmd_exec_bin(kmod_t)
+corecmd_exec_shell(kmod_t)
+
+dev_rw_sysfs(kmod_t)
+dev_search_usbfs(kmod_t)
+dev_rw_mtrr(kmod_t)
+dev_read_urand(kmod_t)
+dev_rw_agp(kmod_t)
+dev_read_sound(kmod_t)
+dev_write_sound(kmod_t)
+dev_rw_apm_bios(kmod_t)
+dev_create_generic_chr_files(kmod_t)
+
+domain_signal_all_domains(kmod_t)
+domain_use_interactive_fds(kmod_t)
+
+files_list_home(kmod_t)
+files_read_boot_files(kmod_t)
+files_read_kernel_modules(kmod_t)
+files_load_kernel_modules(kmod_t)
+files_delete_kernel_modules(kmod_t)
+files_read_etc_runtime_files(kmod_t)
+files_read_etc_files(kmod_t)
+files_list_usr(kmod_t)
+files_read_usr_files(kmod_t)
+files_read_usr_src_files(kmod_t)
+files_exec_etc_files(kmod_t)
+# users installing vbox put kernel modules in /var/lib
+files_append_var_files(kmod_t)
+files_read_var_lib_files(kmod_t)
+files_read_kernel_symbol_table(kmod_t)
+# for nscd:
+files_dontaudit_search_pids(kmod_t)
+# for when /var is not mounted early in the boot:
+files_dontaudit_search_isid_type_dirs(kmod_t)
+# for locking: (cjp: ????)
+files_write_kernel_modules(kmod_t)
+allow kmod_t modules_dep_t:file manage_file_perms;
+files_kernel_modules_filetrans(kmod_t, modules_dep_t, file)
+
+fs_getattr_xattr_fs(kmod_t)
+fs_dontaudit_use_tmpfs_chr_dev(kmod_t)
+fs_mount_rpc_pipefs(kmod_t)
+fs_rw_tracefs_files(kmod_t)
+fs_search_rpc(kmod_t)
+
+auth_use_nsswitch(kmod_t)
+
+init_rw_initctl(kmod_t)
+init_use_fds(kmod_t)
+init_use_script_fds(kmod_t)
+init_use_script_ptys(kmod_t)
+init_spec_domtrans_script(kmod_t)
+init_rw_script_tmp_files(kmod_t)
+init_dontaudit_rw_stream_socket(kmod_t)
+
+logging_send_syslog_msg(kmod_t)
+logging_search_logs(kmod_t)
+
+seutil_read_file_contexts(kmod_t)
+
+term_use_all_inherited_terms(kmod_t)
+userdom_dontaudit_search_user_home_dirs(kmod_t)
+# needed by kmod in MLS
+userdom_manage_user_tmp_files(kmod_t)
+userdom_manage_user_tmp_pipes(kmod_t)
+userdom_manage_user_tmp_symlinks(kmod_t)
+userdom_manage_user_tmp_dirs(kmod_t)
+userdom_read_user_home_content_files(kmod_t)
+userdom_home_reader(kmod_t)
+userdom_use_inherited_user_terminals(kmod_t)
+
+kernel_domtrans_to(kmod_t, kmod_exec_t)
+
+optional_policy(`
+	alsa_domtrans(kmod_t)
+')
+
+optional_policy(`
+	devicekit_use_fds_disk(kmod_t)
+	devicekit_dontaudit_read_pid_files(kmod_t)
+')
+
+optional_policy(`
+	firstboot_dontaudit_leaks(kmod_t)
+')
+
+optional_policy(`
+    firewalld_dontaudit_write_tmp_files(kmod_t)
+	firewallgui_dontaudit_rw_pipes(kmod_t)
+')
+
+optional_policy(`
+    iptables_read_var_run(kmod_t)
+')
+
+optional_policy(`
+	kdump_manage_kdumpctl_tmp_files(kmod_t)
+')
+
+optional_policy(`
+	mount_domtrans(kmod_t)
+')
+
+optional_policy(`
+	rhgb_use_fds(kmod_t)
+	rhgb_dontaudit_use_ptys(kmod_t)
+
+	xserver_dontaudit_write_log(kmod_t)
+	xserver_stream_connect(kmod_t)
+	xserver_dontaudit_rw_stream_sockets(kmod_t)
+
+	ifdef(`hide_broken_symptoms',`
+		xserver_dontaudit_rw_tcp_sockets(kmod_t)
+	')
+')
+
+optional_policy(`
+	rpm_rw_pipes(kmod_t)
+	rpm_manage_script_tmp_files(kmod_t)
+')
+
+optional_policy(`
+	unconfined_domain(kmod_t)
+	unconfined_dontaudit_rw_pipes(kmod_t)
+')
+
+optional_policy(`
+	virt_dontaudit_write_pipes(kmod_t)
+')
+
+optional_policy(`
+	# cjp: why is this needed:
+	dev_rw_xserver_misc(kmod_t)
+
+	xserver_getattr_log(kmod_t)
+')
+
+optional_policy(`
+	bootloader_rw_tmp_files(kmod_t)
+')
+
+ifdef(`distro_gentoo',`
+	files_search_pids(kmod_t)
+	files_getattr_usr_src_files(kmod_t)
+	files_list_isid_type_dirs(kmod_t) # /var
+
+	# update-modules on Gentoo throws errors when run because it
+	# sources /etc/init.d/functions.sh, which always scans
+	# /var/lib/init.d to set SOFTLEVEL environment var.
+	# This is never used by update-modules.
+	files_dontaudit_search_var_lib(kmod_t)
+	init_dontaudit_read_script_status_files(kmod_t)
+
+	optional_policy(`
+		consoletype_exec(kmod_t)
+	')
+')
+

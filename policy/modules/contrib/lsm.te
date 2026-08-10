@@ -1,0 +1,122 @@
+policy_module(lsm, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+## <desc>
+##	<p>
+##	Determine whether lsmd_plugin can
+##	connect to all TCP ports.
+##	</p>
+## </desc>
+gen_tunable(lsmd_plugin_connect_any, false)
+
+type lsmd_t;
+type lsmd_exec_t;
+init_daemon_domain(lsmd_t, lsmd_exec_t)
+
+type lsmd_var_run_t;
+files_pid_file(lsmd_var_run_t)
+
+type lsmd_unit_file_t;
+systemd_unit_file(lsmd_unit_file_t)
+
+type lsmd_plugin_t;
+type lsmd_plugin_exec_t;
+application_domain(lsmd_plugin_t, lsmd_plugin_exec_t)
+role system_r types lsmd_plugin_t;
+
+type lsmd_plugin_tmp_t;
+files_tmp_file(lsmd_plugin_tmp_t)
+
+########################################
+#
+# Local policy
+#
+
+allow lsmd_t self:capability { setuid setgid };
+allow lsmd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(lsmd_t, lsmd_var_run_t, lsmd_var_run_t)
+manage_files_pattern(lsmd_t, lsmd_var_run_t, lsmd_var_run_t)
+manage_lnk_files_pattern(lsmd_t, lsmd_var_run_t, lsmd_var_run_t)
+manage_sock_files_pattern(lsmd_t, lsmd_var_run_t, lsmd_var_run_t)
+files_pid_filetrans(lsmd_t, lsmd_var_run_t, { dir file sock_file })
+
+auth_use_nsswitch(lsmd_t)
+
+corecmd_exec_bin(lsmd_t)
+corecmd_getattr_all_executables(lsmd_t)
+
+logging_send_syslog_msg(lsmd_t)
+
+optional_policy(`
+    rpm_debuginfo_domtrans(lsmd_t)
+')
+
+optional_policy(`
+	sensord_domtrans(lsmd_t)
+')
+
+########################################
+#
+# Local lsmd plugin policy
+#
+
+allow lsmd_plugin_t self:udp_socket create_socket_perms;
+allow lsmd_plugin_t self:tcp_socket create_stream_socket_perms;
+allow lsmd_plugin_t self:netlink_route_socket r_netlink_socket_perms;
+allow lsmd_plugin_t self:capability { sys_admin sys_rawio } ;
+
+domtrans_pattern(lsmd_t, lsmd_plugin_exec_t, lsmd_plugin_t)
+allow lsmd_plugin_t lsmd_t:unix_stream_socket { getattr read write };
+
+allow lsmd_t lsmd_plugin_exec_t:file { map read_file_perms };
+stream_connect_pattern(lsmd_plugin_t, lsmd_var_run_t, lsmd_var_run_t, lsmd_t)
+
+manage_files_pattern(lsmd_plugin_t, lsmd_plugin_tmp_t, lsmd_plugin_tmp_t)
+manage_dirs_pattern(lsmd_plugin_t, lsmd_plugin_tmp_t, lsmd_plugin_tmp_t)
+files_tmp_filetrans(lsmd_plugin_t, lsmd_plugin_tmp_t, { file dir })
+
+tunable_policy(`lsmd_plugin_connect_any',`
+	corenet_tcp_connect_all_ports(lsmd_plugin_t)
+	corenet_sendrecv_all_packets(lsmd_plugin_t)
+	corenet_tcp_sendrecv_all_ports(lsmd_plugin_t)
+')
+
+kernel_read_system_state(lsmd_plugin_t)
+
+auth_read_passwd(lsmd_plugin_t)
+
+dev_read_urand(lsmd_plugin_t)
+dev_read_sysfs(lsmd_plugin_t)
+
+corecmd_exec_bin(lsmd_plugin_t)
+
+corenet_tcp_connect_http_port(lsmd_plugin_t)
+corenet_tcp_connect_http_cache_port(lsmd_plugin_t)
+corenet_tcp_connect_lsm_plugin_port(lsmd_plugin_t)
+corenet_tcp_connect_pegasus_https_port(lsmd_plugin_t)
+corenet_tcp_connect_pegasus_http_port(lsmd_plugin_t)
+corenet_tcp_connect_ssh_port(lsmd_plugin_t)
+
+auth_use_nsswitch(lsmd_plugin_t)
+
+init_stream_connect(lsmd_plugin_t)
+init_dontaudit_rw_stream_socket(lsmd_plugin_t)
+
+libs_exec_ldconfig(lsmd_plugin_t)
+
+logging_send_syslog_msg(lsmd_plugin_t)
+
+miscfiles_read_certs(lsmd_plugin_t)
+miscfiles_read_hwdata(lsmd_plugin_t)
+
+sysnet_read_config(lsmd_plugin_t)
+
+storage_raw_rw_fixed_disk(lsmd_plugin_t)
+storage_create_fixed_disk_dev(lsmd_plugin_t)
+storage_read_scsi_generic(lsmd_plugin_t)
+storage_write_scsi_generic(lsmd_plugin_t)
+storage_dev_filetrans_named_fixed_disk(lsmd_plugin_t)

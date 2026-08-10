@@ -1,0 +1,78 @@
+policy_module(clock, 1.7.0)
+
+########################################
+#
+# Declarations
+#
+
+type adjtime_t;
+files_type(adjtime_t)
+
+type hwclock_t;
+type hwclock_exec_t;
+init_system_domain(hwclock_t, hwclock_exec_t)
+role system_r types hwclock_t;
+
+########################################
+#
+# Local policy
+#
+
+# Give hwclock the capabilities it requires.   is a surprise,
+# but hwclock does require it.
+allow hwclock_t self:capability { dac_read_search  sys_rawio sys_time sys_tty_config };
+dontaudit hwclock_t self:capability sys_tty_config;
+allow hwclock_t self:process signal_perms;
+allow hwclock_t self:fifo_file rw_fifo_file_perms;
+
+# Allow hwclock to store & retrieve correction factors.
+allow hwclock_t adjtime_t:file { rw_file_perms setattr };
+
+kernel_read_kernel_sysctls(hwclock_t)
+kernel_read_system_state(hwclock_t)
+
+corecmd_exec_bin(hwclock_t)
+corecmd_exec_shell(hwclock_t)
+
+dev_read_sysfs(hwclock_t)
+dev_rw_realtime_clock(hwclock_t)
+
+files_read_etc_files(hwclock_t)
+# for when /usr is not mounted:
+files_dontaudit_search_isid_type_dirs(hwclock_t)
+
+fs_getattr_xattr_fs(hwclock_t)
+fs_search_auto_mountpoints(hwclock_t)
+
+term_dontaudit_use_console(hwclock_t)
+term_use_unallocated_ttys(hwclock_t)
+term_use_all_inherited_ttys(hwclock_t)
+term_use_all_inherited_ptys(hwclock_t)
+
+domain_use_interactive_fds(hwclock_t)
+
+auth_use_nsswitch(hwclock_t)
+
+init_use_fds(hwclock_t)
+init_use_script_ptys(hwclock_t)
+
+logging_send_audit_msgs(hwclock_t)
+logging_send_syslog_msg(hwclock_t)
+
+
+optional_policy(`
+	apm_append_log(hwclock_t)
+	apm_rw_stream_sockets(hwclock_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(hwclock_t)
+')
+
+optional_policy(`
+	udev_read_db(hwclock_t)
+')
+
+optional_policy(`
+	userdom_dontaudit_use_unpriv_user_fds(hwclock_t)
+')

@@ -1,0 +1,140 @@
+policy_module(vmtools, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role vmtools_helper_roles;
+
+roleattribute system_r vmtools_helper_roles;
+
+type vmtools_t;
+type vmtools_exec_t;
+init_daemon_domain(vmtools_t, vmtools_exec_t)
+role vmtools_helper_roles types vmtools_t;
+
+type vmtools_helper_t;
+type vmtools_helper_exec_t;
+application_domain(vmtools_helper_t, vmtools_helper_exec_t)
+domain_system_change_exemption(vmtools_helper_t)
+role vmtools_helper_roles types vmtools_helper_t;
+
+type vmtools_unit_file_t;
+systemd_unit_file(vmtools_unit_file_t)
+
+type vmtools_tmp_t;
+files_tmp_file(vmtools_tmp_t)
+
+type vmtools_unconfined_exec_t;
+application_executable_file(vmtools_unconfined_exec_t)
+
+########################################
+#
+# vmtools local policy
+#
+
+allow vmtools_t self:capability { sys_time sys_rawio };
+allow vmtools_t self:fifo_file rw_fifo_file_perms;
+allow vmtools_t self:unix_stream_socket create_stream_socket_perms;
+allow vmtools_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(vmtools_t, vmtools_tmp_t, vmtools_tmp_t)
+manage_files_pattern(vmtools_t, vmtools_tmp_t, vmtools_tmp_t)
+manage_lnk_files_pattern(vmtools_t, vmtools_tmp_t, vmtools_tmp_t)
+files_tmp_filetrans(vmtools_t, vmtools_tmp_t, { file dir })
+
+kernel_read_system_state(vmtools_t)
+kernel_read_network_state(vmtools_t)
+
+corecmd_exec_bin(vmtools_t)
+corecmd_exec_shell(vmtools_t)
+
+dev_read_urand(vmtools_t)
+dev_getattr_all_blk_files(vmtools_t)
+
+fs_getattr_all_fs(vmtools_t)
+
+auth_use_nsswitch(vmtools_t)
+
+#shutdown
+init_rw_utmp(vmtools_t)
+init_stream_connect(vmtools_t)
+init_telinit(vmtools_t)
+
+logging_send_syslog_msg(vmtools_t)
+
+systemd_exec_systemctl(vmtools_t)
+
+sysnet_domtrans_ifconfig(vmtools_t)
+
+xserver_stream_connect_xdm(vmtools_t)
+xserver_stream_connect(vmtools_t)
+
+optional_policy(`
+    networkmanager_dbus_chat(vmtools_t)
+')
+
+optional_policy(`
+    rpm_transition_script(vmtools_t,system_r)
+')
+
+optional_policy(`
+    vmware_filetrans_content(vmtools_t)
+    vmware_manage_log(vmtools_t)
+')
+
+optional_policy(`
+    unconfined_domain(vmtools_t)
+')
+
+########################################
+#
+# vmtools-helper local policy
+#
+
+domtrans_pattern(vmtools_helper_t, vmtools_exec_t, vmtools_t)
+can_exec(vmtools_helper_t, vmtools_helper_exec_t)
+
+corecmd_exec_bin(vmtools_helper_t)
+
+userdom_stream_connect(vmtools_helper_t)
+userdom_use_inherited_user_ttys(vmtools_helper_t)
+userdom_use_inherited_user_ptys(vmtools_helper_t)
+
+optional_policy(`
+    unconfined_domain(vmtools_helper_t)
+')
+
+########################################
+#
+# vmtools_unconfined_script_t local policy
+#
+
+optional_policy(`
+	type vmtools_unconfined_t;
+	domain_type(vmtools_unconfined_t)
+
+	domain_entry_file(vmtools_unconfined_t, vmtools_unconfined_exec_t)
+	role system_r types vmtools_unconfined_t;
+
+	domtrans_pattern(vmtools_t, vmtools_unconfined_exec_t, vmtools_unconfined_t)
+
+	allow vmtools_t vmtools_unconfined_exec_t:dir search_dir_perms;
+	allow vmtools_t vmtools_unconfined_exec_t:dir read_file_perms;
+	allow vmtools_t vmtools_unconfined_exec_t:file ioctl;
+
+	init_domtrans_script(vmtools_unconfined_t)
+
+    corecmd_exec_shell(vmtools_unconfined_t)
+    corecmd_shell_entry_type(vmtools_unconfined_t)
+    corecmd_shell_domtrans(vmtools_t, vmtools_unconfined_t)
+
+	optional_policy(`
+		rpm_transition_script(vmtools_unconfined_t, system_r)
+	')
+
+	optional_policy(`
+		unconfined_domain(vmtools_unconfined_t)
+	')
+')

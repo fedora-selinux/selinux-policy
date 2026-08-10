@@ -1,0 +1,105 @@
+policy_module(webalizer, 1.13.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role webalizer_roles;
+roleattribute system_r webalizer_roles;
+
+type webalizer_t;
+type webalizer_exec_t;
+application_domain(webalizer_t, webalizer_exec_t)
+role webalizer_roles types webalizer_t;
+
+type webalizer_etc_t;
+files_config_file(webalizer_etc_t)
+
+type webalizer_usage_t;
+files_type(webalizer_usage_t)
+
+type webalizer_tmp_t;
+files_tmp_file(webalizer_tmp_t)
+
+type webalizer_var_lib_t;
+files_type(webalizer_var_lib_t)
+
+type webalizer_write_t;
+files_type(webalizer_write_t)
+
+########################################
+#
+# Local policy
+#
+
+allow webalizer_t self:capability { dac_read_search  };
+allow webalizer_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+allow webalizer_t self:fd use;
+allow webalizer_t self:fifo_file rw_fifo_file_perms;
+allow webalizer_t self:unix_dgram_socket sendto;
+allow webalizer_t self:unix_stream_socket { accept connectto listen };
+allow webalizer_t self:tcp_socket { accept listen };
+
+allow webalizer_t webalizer_etc_t:file read_file_perms;
+
+manage_dirs_pattern(webalizer_t, webalizer_tmp_t, webalizer_tmp_t)
+manage_files_pattern(webalizer_t, webalizer_tmp_t, webalizer_tmp_t)
+files_tmp_filetrans(webalizer_t, webalizer_tmp_t, { file dir })
+
+manage_files_pattern(webalizer_t, webalizer_var_lib_t, webalizer_var_lib_t)
+files_var_lib_filetrans(webalizer_t, webalizer_var_lib_t, file)
+
+can_exec(webalizer_t, webalizer_exec_t)
+
+kernel_read_kernel_sysctls(webalizer_t)
+kernel_read_system_state(webalizer_t)
+
+corenet_all_recvfrom_netlabel(webalizer_t)
+corenet_tcp_sendrecv_generic_if(webalizer_t)
+corenet_tcp_sendrecv_generic_node(webalizer_t)
+corenet_tcp_sendrecv_all_ports(webalizer_t)
+
+fs_search_auto_mountpoints(webalizer_t)
+fs_getattr_xattr_fs(webalizer_t)
+
+files_read_etc_runtime_files(webalizer_t)
+
+logging_list_logs(webalizer_t)
+logging_send_syslog_msg(webalizer_t)
+
+auth_use_nsswitch(webalizer_t)
+
+miscfiles_read_public_files(webalizer_t)
+
+sysnet_dns_name_resolve(webalizer_t)
+sysnet_read_config(webalizer_t)
+
+userdom_use_inherited_user_terminals(webalizer_t)
+userdom_use_unpriv_users_fds(webalizer_t)
+userdom_dontaudit_search_user_home_content(webalizer_t)
+
+dev_list_sysfs(webalizer_t)
+
+optional_policy(`
+	apache_read_log(webalizer_t)
+	apache_content_template(webalizer)
+	apache_content_alias_template(webalizer, webalizer)
+	apache_manage_sys_content(webalizer_t)
+
+	manage_dirs_pattern(webalizer_t,webalizer_rw_content_t,webalizer_rw_content_t)
+	manage_files_pattern(webalizer_t,webalizer_rw_content_t,webalizer_rw_content_t)
+	manage_lnk_files_pattern(webalizer_t,webalizer_rw_content_t,webalizer_rw_content_t)
+')
+
+optional_policy(`
+	cron_system_entry(webalizer_t, webalizer_exec_t)
+')
+
+optional_policy(`
+	ftp_read_log(webalizer_t)
+')
+
+optional_policy(`
+	squid_read_log(webalizer_t)
+')

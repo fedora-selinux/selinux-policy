@@ -1,0 +1,339 @@
+policy_module(insights_core, 1.0)
+
+########################################
+#
+# Declarations
+#
+
+type insights_core_t;
+role system_r types insights_core_t;
+domain_type(insights_core_t)
+
+type insights_core_var_log_t;
+logging_log_file(insights_core_var_log_t)
+
+type insights_core_cache_t;
+files_type(insights_core_cache_t)
+
+type insights_core_tmp_t;
+files_tmp_file(insights_core_tmp_t)
+
+########################################
+#
+# insights_core local policy
+#
+
+#permissive insights_core_t;
+
+allow insights_core_t self:capability { dac_read_search setgid sys_admin sys_rawio};
+allow insights_core_t self:capability2 { checkpoint_restore syslog };
+allow insights_core_t self:cap_userns sys_ptrace;
+allow insights_core_t self:process { getattr setpgid };
+
+allow insights_core_t self:appletalk_socket create_socket_perms;
+allow insights_core_t self:ax25_socket create_socket_perms;
+allow insights_core_t self:ipx_socket create_socket_perms;
+allow insights_core_t self:netlink_route_socket r_netlink_socket_perms;
+allow insights_core_t self:netlink_tcpdiag_socket { create_socket_perms nlmsg_read };
+allow insights_core_t self:netrom_socket create_socket_perms;
+allow insights_core_t self:rose_socket create_socket_perms;
+allow insights_core_t self:socket create_socket_perms;
+allow insights_core_t self:tcp_socket create_stream_socket_perms;
+allow insights_core_t self:udp_socket create_socket_perms;
+allow insights_core_t self:unix_dgram_socket create_socket_perms;
+allow insights_core_t self:unix_stream_socket connectto;
+allow insights_core_t self:x25_socket create_socket_perms;
+
+manage_dirs_pattern(insights_core_t, insights_core_tmp_t, insights_core_tmp_t)
+manage_files_pattern(insights_core_t, insights_core_tmp_t, insights_core_tmp_t)
+manage_chr_files_pattern(insights_core_t, insights_core_tmp_t, insights_core_tmp_t)
+manage_lnk_files_pattern(insights_core_t, insights_core_tmp_t, insights_core_tmp_t)
+files_rw_var_lib_dirs(insights_core_t)
+files_tmp_filetrans(insights_core_t, insights_core_tmp_t, { dir file })
+
+create_dirs_pattern(insights_core_t, insights_core_var_log_t, insights_core_var_log_t)
+manage_files_pattern(insights_core_t, insights_core_cache_t, insights_core_cache_t)
+
+append_files_pattern(insights_core_t, insights_core_var_log_t, insights_core_var_log_t)
+create_files_pattern(insights_core_t, insights_core_var_log_t, insights_core_var_log_t)
+logging_log_filetrans(insights_core_t, insights_core_var_log_t, dir)
+
+
+### Interactions with insights-client
+optional_policy(`
+	insights_client_filetrans_named_content(insights_core_t)
+	insights_client_create_config(insights_core_t)
+	insights_client_create_lib_dirs(insights_core_t)
+	insights_client_read_config(insights_core_t)
+	insights_client_manage_config_rw(insights_core_t)
+	insights_client_manage_lib_files(insights_core_t)
+	insights_client_append_log(insights_core_t)
+	insights_client_manage_tmp_dirs(insights_core_t)
+	insights_client_manage_tmp_files(insights_core_t)
+')
+
+kernel_dgram_send(insights_core_t)
+kernel_get_sysvipc_info(insights_core_t)
+kernel_io_uring_use(insights_core_t)
+kernel_read_all_sysctls(insights_core_t)
+kernel_list_all_proc(insights_core_t)
+kernel_read_proc_files(insights_core_t)
+kernel_list_proc(insights_core_t)
+kernel_read_fs_sysctls(insights_core_t)
+kernel_read_network_state(insights_core_t)
+kernel_read_ring_buffer(insights_core_t)
+kernel_read_security_state(insights_core_t)
+kernel_read_software_raid_state(insights_core_t)
+kernel_read_sysctl(insights_core_t)
+
+corecmd_bin_entry_type(insights_core_t)
+corecmd_exec_bin(insights_core_t)
+corecmd_exec_all_executables(insights_core_t)
+
+corenet_tcp_bind_generic_node(insights_core_t)
+corenet_tcp_connect_all_ports(insights_core_t)
+corenet_udp_bind_generic_node(insights_core_t)
+
+dev_getattr_all_blk_files(insights_core_t)
+dev_getattr_all_chr_files(insights_core_t)
+dev_read_cpuid(insights_core_t)
+dev_read_kmsg(insights_core_t)
+dev_read_netcontrol(insights_core_t)
+dev_read_rand(insights_core_t)
+dev_read_sysfs(insights_core_t)
+dev_rw_lvm_control(insights_core_t)
+
+domain_getattr_all_sockets(insights_core_t)
+domain_connect_all_stream_sockets(insights_core_t)
+domain_getattr_all_domains(insights_core_t)
+domain_getattr_all_pipes(insights_core_t)
+domain_read_all_domains_state(insights_core_t)
+domain_read_view_all_domains_keyrings(insights_core_t)
+
+files_getattr_all_files(insights_core_t)
+files_getattr_all_blk_files(insights_core_t)
+files_getattr_all_chr_files(insights_core_t)
+files_getattr_all_file_type_fs(insights_core_t)
+files_getattr_all_pipes(insights_core_t)
+files_getattr_all_sockets(insights_core_t)
+files_read_all_symlinks(insights_core_t)
+files_read_non_security_files(insights_core_t)
+files_map_non_security_files(insights_core_t)
+
+fs_get_all_fs_quotas(insights_core_t)
+fs_getattr_all_fs(insights_core_t)
+fs_getattr_nsfs_files(insights_core_t)
+fs_read_configfs_dirs(insights_core_t)
+
+storage_raw_read_fixed_disk(insights_core_t)
+
+optional_policy(`
+	abrt_dbus_chat(insights_core_t)
+')
+
+optional_policy(`
+	anaconda_domtrans_install(insights_core_t)
+')
+
+optional_policy(`
+	auth_read_passwd_file(insights_core_t)
+	auth_write_motd_var_run_files(insights_core_t)
+')
+
+optional_policy(`
+	bind_domtrans_ndc(insights_core_t)
+	bind_exec_named_checkconf(insights_core_t)
+')
+
+optional_policy(`
+	bootloader_exec(insights_core_t)
+')
+
+optional_policy(`
+	brctl_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	certmonger_dbus_chat(insights_core_t)
+')
+
+optional_policy(`
+	chronyd_domtrans_chronyc(insights_core_t)
+')
+
+optional_policy(`
+	container_runtime_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(insights_core_t)
+')
+
+optional_policy(`
+	dmesg_exec(insights_core_t)
+')
+
+optional_policy(`
+	dmidecode_exec(insights_core_t)
+')
+
+optional_policy(`
+	fstools_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	gen_require(`
+		type glusterd_log_t;
+	')
+
+	logging_log_filetrans(insights_core_t, glusterd_log_t, dir, "gluster")
+	allow insights_core_t glusterd_log_t:dir { add_name write };
+	allow insights_core_t glusterd_log_t:file { append create };
+')
+
+optional_policy(`
+	gnome_search_gconf(insights_core_t)
+	gnome_manage_generic_cache_files(insights_core_t)
+	gnome_filetrans_cert_home_content(insights_core_t)
+')
+
+optional_policy(`
+	gpg_entry_type(insights_core_t)
+	gpg_domtrans(insights_core_t)
+	gpg_domtrans_agent(insights_core_t)
+')
+
+optional_policy(`
+	hostname_exec(insights_core_t)
+')
+
+optional_policy(`
+	init_status(insights_core_t)
+	init_rw_stream_sockets(insights_core_t)
+')
+
+optional_policy(`
+	iptables_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	iscsid_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	journalctl_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	libs_exec_ldconfig(insights_core_t)
+')
+
+optional_policy(`
+	lvm_write_metadata(insights_core_t)
+')
+
+optional_policy(`
+	lpd_domtrans_lpr(insights_core_t)
+')
+
+optional_policy(`
+	logging_domtrans_auditctl(insights_core_t)
+	logging_read_audit_config(insights_core_t)
+	logging_map_audit_config(insights_core_t)
+	logging_read_audit_log(insights_core_t)
+	logging_map_audit_log(insights_core_t)
+	logging_send_syslog_msg(insights_core_t)
+	logging_mmap_journal(insights_core_t)
+')
+
+optional_policy(`
+	lvm_domtrans(insights_core_t)
+	lvm_manage_metadata(insights_core_t)
+	lvm_manage_var_run(insights_core_t)
+')
+
+optional_policy(`
+	miscfiles_read_generic_certs(insights_core_t)
+')
+
+optional_policy(`
+	modutils_domtrans_kmod(insights_core_t)
+	modutils_read_module_deps_files(insights_core_t)
+')
+
+optional_policy(`
+	mount_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	networkmanager_dbus_chat(insights_core_t)
+')
+
+optional_policy(`
+	netutils_domtrans_traceroute(insights_core_t)
+')
+
+optional_policy(`
+	openvswitch_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	pcp_filetrans_named_content(insights_core_t)
+	pcp_write_pid_sock_file(insights_core_t)
+')
+
+optional_policy(`
+	rhsmcertd_domtrans(insights_core_t)
+	rhsmcertd_manage_config_files(insights_core_t)
+	rhsmcertd_manage_lib_files(insights_core_t)
+	rhsmcertd_append_log(insights_core_t)
+	rhsmcertd_create_log(insights_core_t)
+')
+
+optional_policy(`
+	rpm_domtrans(insights_core_t)
+')
+
+optional_policy(`
+	samba_manage_var_dirs(insights_core_t)
+	samba_manage_var_files(insights_core_t)
+')
+
+optional_policy(`
+	setroubleshoot_dbus_chat(insights_core_t)
+	setroubleshoot_stream_connect(insights_core_t)
+')
+
+optional_policy(`
+	seutil_domtrans_semanage(insights_core_t)
+	seutil_read_config(insights_core_t)
+	seutil_read_module_store(insights_core_t)
+')
+
+optional_policy(`
+	ssh_exec(insights_core_t)
+	ssh_exec_sshd(insights_core_t)
+')
+
+optional_policy(`
+	sysnet_domtrans_ifconfig(insights_core_t)
+')
+
+optional_policy(`
+	systemd_dbus_chat_timedated(insights_core_t)
+	systemd_dbus_chat_localed(insights_core_t)
+	systemd_exec_notify(insights_core_t)
+	systemd_status_all_unit_files(insights_core_t)
+	systemd_userdbd_stream_connect(insights_core_t)
+')
+
+optional_policy(`
+	userdom_search_user_tmp_dirs(insights_core_t)
+	userdom_user_tmp_filetrans(insights_core_t, insights_core_tmp_t, dir)
+	userdom_view_all_users_keys(insights_core_t)
+')
+
+optional_policy(`
+	virt_exec_virsh(insights_core_t)
+	virt_stream_connect(insights_core_t)
+')

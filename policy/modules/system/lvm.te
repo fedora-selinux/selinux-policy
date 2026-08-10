@@ -1,0 +1,423 @@
+policy_module(lvm, 1.15.2)
+
+########################################
+#
+# Declarations
+#
+
+type clvmd_t;
+type clvmd_exec_t;
+init_daemon_domain(clvmd_t, clvmd_exec_t)
+
+type clvmd_initrc_exec_t;
+init_script_file(clvmd_initrc_exec_t)
+
+type clvmd_tmpfs_t alias clmvd_tmpfs_t;
+files_tmpfs_file(clvmd_tmpfs_t)
+
+type clvmd_var_run_t;
+files_pid_file(clvmd_var_run_t)
+
+type lvm_t;
+type lvm_exec_t;
+init_system_domain(lvm_t, lvm_exec_t)
+init_nnp_daemon_domain(lvm_t)
+# needs privowner because it assigns the identity system_u to device nodes
+# but runs as the identity of the sysadmin
+domain_obj_id_change_exemption(lvm_t)
+role system_r types lvm_t;
+
+type lvm_etc_t;
+files_config_file(lvm_etc_t)
+
+type lvm_lock_t;
+files_lock_file(lvm_lock_t)
+
+type lvm_metadata_t;
+files_type(lvm_metadata_t)
+
+type lvm_var_lib_t;
+files_type(lvm_var_lib_t)
+
+type lvm_var_run_t;
+files_pid_file(lvm_var_run_t)
+
+type lvm_tmp_t;
+files_tmp_file(lvm_tmp_t)
+
+type lvm_unit_file_t;
+systemd_unit_file(lvm_unit_file_t)
+
+########################################
+#
+# Cluster LVM daemon local policy
+#
+
+allow clvmd_t self:capability { sys_nice chown ipc_lock sys_admin mknod };
+dontaudit clvmd_t self:capability sys_tty_config;
+allow clvmd_t self:process { signal_perms setsched };
+allow clvmd_t self:socket create_socket_perms;
+allow clvmd_t self:fifo_file rw_fifo_file_perms;
+allow clvmd_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow clvmd_t self:tcp_socket create_stream_socket_perms;
+allow clvmd_t self:udp_socket create_socket_perms;
+
+manage_dirs_pattern(clvmd_t, clvmd_tmpfs_t, clvmd_tmpfs_t)
+manage_files_pattern(clvmd_t, clvmd_tmpfs_t,clvmd_tmpfs_t)
+fs_tmpfs_filetrans(clvmd_t, clvmd_tmpfs_t, { dir file })
+
+manage_dirs_pattern(clvmd_t, clvmd_var_run_t, clvmd_var_run_t)
+manage_files_pattern(clvmd_t, clvmd_var_run_t, clvmd_var_run_t)
+files_pid_filetrans(clvmd_t, clvmd_var_run_t, { file dir })
+
+read_files_pattern(clvmd_t, lvm_metadata_t, lvm_metadata_t)
+
+kernel_read_kernel_sysctls(clvmd_t)
+kernel_read_system_state(clvmd_t)
+kernel_list_proc(clvmd_t)
+kernel_read_proc_symlinks(clvmd_t)
+kernel_search_debugfs(clvmd_t)
+kernel_dontaudit_getattr_core_if(clvmd_t)
+
+corecmd_exec_shell(clvmd_t)
+corecmd_getattr_bin_files(clvmd_t)
+
+corenet_all_recvfrom_netlabel(clvmd_t)
+corenet_tcp_sendrecv_generic_if(clvmd_t)
+corenet_udp_sendrecv_generic_if(clvmd_t)
+corenet_raw_sendrecv_generic_if(clvmd_t)
+corenet_tcp_sendrecv_generic_node(clvmd_t)
+corenet_udp_sendrecv_generic_node(clvmd_t)
+corenet_raw_sendrecv_generic_node(clvmd_t)
+corenet_tcp_sendrecv_all_ports(clvmd_t)
+corenet_udp_sendrecv_all_ports(clvmd_t)
+corenet_tcp_bind_generic_node(clvmd_t)
+corenet_tcp_bind_reserved_port(clvmd_t)
+corenet_dontaudit_tcp_bind_all_reserved_ports(clvmd_t)
+corenet_sendrecv_generic_server_packets(clvmd_t)
+
+dev_read_sysfs(clvmd_t)
+dev_manage_generic_symlinks(clvmd_t)
+dev_relabel_generic_dev_dirs(clvmd_t)
+dev_manage_generic_blk_files(clvmd_t)
+dev_manage_generic_chr_files(clvmd_t)
+dev_rw_lvm_control(clvmd_t)
+dev_dontaudit_getattr_all_blk_files(clvmd_t)
+dev_dontaudit_getattr_all_chr_files(clvmd_t)
+dev_create_generic_dirs(clvmd_t)
+dev_delete_generic_dirs(clvmd_t)
+
+files_read_etc_files(clvmd_t)
+files_list_usr(clvmd_t)
+
+fs_getattr_all_fs(clvmd_t)
+fs_search_auto_mountpoints(clvmd_t)
+fs_dontaudit_list_tmpfs(clvmd_t)
+fs_dontaudit_read_removable_files(clvmd_t)
+
+storage_dontaudit_getattr_removable_dev(clvmd_t)
+storage_manage_fixed_disk(clvmd_t)
+storage_dev_filetrans_fixed_disk(clvmd_t)
+storage_relabel_fixed_disk(clvmd_t)
+storage_raw_read_fixed_disk(clvmd_t)
+
+domain_use_interactive_fds(clvmd_t)
+
+auth_use_nsswitch(clvmd_t)
+
+init_dontaudit_getattr_initctl(clvmd_t)
+
+logging_send_syslog_msg(clvmd_t)
+
+seutil_sigchld_newrole(clvmd_t)
+seutil_read_config(clvmd_t)
+seutil_read_file_contexts(clvmd_t)
+seutil_search_default_contexts(clvmd_t)
+
+userdom_dontaudit_use_unpriv_user_fds(clvmd_t)
+userdom_dontaudit_search_user_home_dirs(clvmd_t)
+
+lvm_domtrans(clvmd_t)
+lvm_read_config(clvmd_t)
+
+ifdef(`distro_redhat',`
+	optional_policy(`
+		unconfined_domain(clvmd_t)
+	')
+')
+
+optional_policy(`
+	aisexec_stream_connect(clvmd_t)
+	corosync_stream_connect(clvmd_t)
+')
+
+optional_policy(`
+	ccs_stream_connect(clvmd_t)
+')
+
+optional_policy(`
+	gpm_dontaudit_getattr_gpmctl(clvmd_t)
+')
+
+optional_policy(`
+	ricci_dontaudit_rw_modcluster_pipes(clvmd_t)
+	ricci_dontaudit_use_modcluster_fds(clvmd_t)
+')
+
+optional_policy(`
+	udev_read_db(clvmd_t)
+')
+
+########################################
+#
+# LVM Local policy
+#
+
+# DAC overrides and mknod for modifying /dev entries (vgmknodes)
+# rawio needed for dmraid
+# net_admin for multipath
+allow lvm_t self:capability { dac_read_search  fowner ipc_lock sys_admin sys_nice mknod chown sys_resource sys_rawio net_admin };
+dontaudit lvm_t self:capability sys_tty_config;
+allow lvm_t self:process { sigchld sigkill sigstop signull signal setfscreate };
+# LVM will complain a lot if it cannot set its priority.
+allow lvm_t self:process setsched;
+allow lvm_t self:sem create_sem_perms;
+allow lvm_t self:file rw_file_perms;
+allow lvm_t self:fifo_file manage_fifo_file_perms;
+allow lvm_t self:unix_dgram_socket create_socket_perms;
+allow lvm_t self:socket create_stream_socket_perms;
+allow lvm_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow lvm_t self:sem create_sem_perms;
+
+allow lvm_t self:unix_stream_socket { connectto create_stream_socket_perms };
+allow lvm_t clvmd_t:unix_stream_socket { connectto rw_socket_perms };
+
+allow lvm_t lvm_unit_file_t:file manage_file_perms;
+systemd_unit_file_filetrans(lvm_t, lvm_unit_file_t, file)
+systemd_create_unit_file_dirs(lvm_t)
+systemd_create_unit_file_lnk(lvm_t)
+
+manage_dirs_pattern(lvm_t, lvm_tmp_t, lvm_tmp_t)
+manage_files_pattern(lvm_t, lvm_tmp_t, lvm_tmp_t)
+files_tmp_filetrans(lvm_t, lvm_tmp_t, { file dir })
+
+# /lib/lvm-<version> holds the actual LVM binaries (and symlinks)
+read_files_pattern(lvm_t, lvm_exec_t, lvm_exec_t)
+read_lnk_files_pattern(lvm_t, lvm_exec_t, lvm_exec_t)
+
+# LVM is split into many individual binaries
+can_exec(lvm_t, lvm_exec_t)
+
+# Creating lock files
+manage_dirs_pattern(lvm_t, lvm_lock_t, lvm_lock_t)
+manage_files_pattern(lvm_t, lvm_lock_t, lvm_lock_t)
+create_dirs_pattern(lvm_t, lvm_lock_t, lvm_lock_t)
+files_lock_filetrans(lvm_t, lvm_lock_t, file)
+files_lock_filetrans(lvm_t, lvm_lock_t, dir, "lvm")
+files_lock_filetrans(lvm_t, lvm_lock_t, dir, "dmraid")
+
+manage_dirs_pattern(lvm_t, lvm_var_lib_t, lvm_var_lib_t)
+manage_files_pattern(lvm_t, lvm_var_lib_t, lvm_var_lib_t)
+files_var_lib_filetrans(lvm_t, lvm_var_lib_t, { dir file })
+
+manage_dirs_pattern(lvm_t, lvm_var_run_t, lvm_var_run_t)
+manage_files_pattern(lvm_t, lvm_var_run_t, lvm_var_run_t)
+manage_fifo_files_pattern(lvm_t, lvm_var_run_t, lvm_var_run_t)
+manage_sock_files_pattern(lvm_t, lvm_var_run_t, lvm_var_run_t)
+files_pid_filetrans(lvm_t, lvm_var_run_t, { dir file fifo_file sock_file })
+init_pid_filetrans(lvm_t, lvm_var_run_t, { dir file fifo_file sock_file })
+
+read_files_pattern(lvm_t, lvm_etc_t, lvm_etc_t)
+allow lvm_t lvm_etc_t:file map;
+read_lnk_files_pattern(lvm_t, lvm_etc_t, lvm_etc_t)
+# Write to /etc/lvm, /etc/lvmtab, /etc/lvmtab.d
+manage_files_pattern(lvm_t, lvm_metadata_t, lvm_metadata_t)
+filetrans_pattern(lvm_t, lvm_etc_t, lvm_metadata_t, file)
+files_etc_filetrans(lvm_t, lvm_metadata_t, file)
+files_search_mnt(lvm_t)
+
+kernel_get_sysvipc_info(lvm_t)
+kernel_read_system_state(lvm_t)
+# Read system variables in /proc/sys
+kernel_read_kernel_sysctls(lvm_t)
+# it has no reason to need this
+kernel_dontaudit_getattr_core_if(lvm_t)
+kernel_use_fds(lvm_t)
+kernel_request_load_module(lvm_t)
+kernel_search_debugfs(lvm_t)
+
+corecmd_exec_bin(lvm_t)
+corecmd_exec_shell(lvm_t)
+
+dev_create_generic_chr_files(lvm_t)
+dev_delete_generic_dirs(lvm_t)
+dev_read_rand(lvm_t)
+dev_read_urand(lvm_t)
+dev_rw_lvm_control(lvm_t)
+dev_write_kmsg(lvm_t)
+dev_manage_generic_symlinks(lvm_t)
+dev_relabel_generic_dev_dirs(lvm_t)
+dev_manage_generic_blk_files(lvm_t)
+# Read /sys/block. Device mapper metadata is kept there.
+# cryptsetup writes read_ahead_kb
+dev_rw_sysfs(lvm_t)
+# cjp: this has no effect since LVM does not
+# have lnk_file relabelto for anything else.
+# perhaps this should be blk_files?
+dev_relabel_generic_symlinks(lvm_t)
+# LVM (vgscan) scans for devices by stating every file in /dev and applying a regex...
+dev_dontaudit_read_all_chr_files(lvm_t)
+dev_dontaudit_read_all_blk_files(lvm_t)
+dev_dontaudit_getattr_generic_chr_files(lvm_t)
+dev_dontaudit_getattr_generic_blk_files(lvm_t)
+dev_dontaudit_getattr_generic_pipes(lvm_t)
+dev_create_generic_dirs(lvm_t)
+dev_rw_generic_files(lvm_t)
+
+domain_use_interactive_fds(lvm_t)
+domain_read_all_domains_state(lvm_t)
+
+files_read_usr_files(lvm_t)
+files_read_etc_files(lvm_t)
+files_read_etc_runtime_files(lvm_t)
+# for when /usr is not mounted:
+files_dontaudit_search_isid_type_dirs(lvm_t)
+fs_rw_inherited_tmpfs_files(lvm_t)
+
+fs_getattr_all_fs(lvm_t)
+fs_search_auto_mountpoints(lvm_t)
+fs_list_tmpfs(lvm_t)
+fs_read_tmpfs_symlinks(lvm_t)
+fs_dontaudit_read_removable_files(lvm_t)
+fs_dontaudit_getattr_tmpfs_files(lvm_t)
+fs_list_auto_mountpoints(lvm_t)
+fs_list_hugetlbfs(lvm_t)
+
+mls_file_read_all_levels(lvm_t)
+mls_file_write_to_clearance(lvm_t)
+mls_file_write_all_levels(lvm_t)
+mls_file_upgrade(lvm_t)
+
+selinux_get_fs_mount(lvm_t)
+selinux_validate_context(lvm_t)
+selinux_compute_access_vector(lvm_t)
+selinux_compute_create_context(lvm_t)
+selinux_compute_relabel_context(lvm_t)
+selinux_compute_user_contexts(lvm_t)
+
+storage_relabel_fixed_disk(lvm_t)
+storage_dontaudit_read_removable_device(lvm_t)
+# LVM creates block devices in /dev/mapper or /dev/<vg>
+# depending on its version
+# LVM(2) needs to create directories (/dev/mapper, /dev/<vg>)
+# and links from /dev/<vg> to /dev/mapper/<vg>-<lv>
+# cjp: needs to create an interface here for fixed disk create
+storage_dev_filetrans_fixed_disk(lvm_t)
+# Access raw devices and old /dev/lvm (c 109,0).  Is this needed?
+storage_manage_fixed_disk(lvm_t)
+
+term_use_all_inherited_terms(lvm_t)
+
+init_use_fds(lvm_t)
+init_dontaudit_getattr_initctl(lvm_t)
+init_use_script_ptys(lvm_t)
+init_read_script_state(lvm_t)
+
+logging_send_syslog_msg(lvm_t)
+logging_stream_connect_syslog(lvm_t)
+
+authlogin_rw_pipes(lvm_t)
+auth_use_nsswitch(lvm_t)
+
+seutil_read_config(lvm_t)
+seutil_read_file_contexts(lvm_t)
+seutil_search_default_contexts(lvm_t)
+seutil_sigchld_newrole(lvm_t)
+
+userdom_use_inherited_user_terminals(lvm_t)
+userdom_use_user_terminals(lvm_t)
+userdom_rw_inherited_user_tmp_pipes(lvm_t)
+userdom_rw_semaphores(lvm_t)
+userdom_search_user_home_dirs(lvm_t)
+
+usermanage_read_crack_db(lvm_t)
+
+ifdef(`distro_redhat',`
+	# this is from the initrd:
+	files_rw_isid_type_dirs(lvm_t)
+
+	optional_policy(`
+		unconfined_domain(lvm_t)
+	')
+')
+
+optional_policy(`
+	aisexec_stream_connect(lvm_t)
+	corosync_stream_connect(lvm_t)
+')
+
+optional_policy(`
+	bootloader_rw_tmp_files(lvm_t)
+')
+
+optional_policy(`
+	ccs_stream_connect(lvm_t)
+')
+
+optional_policy(`
+    container_rw_sem(lvm_t)
+')
+
+optional_policy(`
+	gpm_dontaudit_getattr_gpmctl(lvm_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(lvm_t)
+')
+
+optional_policy(`
+	devicekit_rw_semaphores_disk(lvm_t)
+')
+
+optional_policy(`
+    kdump_rw_inherited_kdumpctl_tmp_pipes(lvm_t)
+')
+
+optional_policy(`
+	livecd_rw_semaphores(lvm_t)
+')
+
+optional_policy(`
+	modutils_domtrans_kmod(lvm_t)
+')
+
+optional_policy(`
+	raid_read_mdadm_pid(lvm_t)
+')
+
+optional_policy(`
+	rpm_manage_script_tmp_files(lvm_t)
+')
+
+optional_policy(`
+    policykit_dbus_chat(lvm_t)
+')
+
+optional_policy(`
+	systemd_manage_passwd_run(lvm_t)
+')
+
+optional_policy(`
+	udev_read_db(lvm_t)
+	udev_read_pid_files(lvm_t)
+')
+
+optional_policy(`
+	virt_manage_images(lvm_t)
+')
+
+optional_policy(`
+	xen_append_log(lvm_t)
+	xen_dontaudit_rw_unix_stream_sockets(lvm_t)
+')

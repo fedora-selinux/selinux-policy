@@ -1,0 +1,58 @@
+## <summary>policy for ica</summary>
+
+########################################
+## <summary>
+##	Read and map ica tmpfs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ica_read_map_tmpfs_files',`
+       gen_require(`
+               type ica_tmpfs_t;
+       ')
+
+       fs_search_tmpfs($1)
+       mmap_read_files_pattern($1, ica_tmpfs_t, ica_tmpfs_t)
+')
+
+########################################
+## <summary>
+##	Read, write, and map ica tmpfs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ica_rw_map_tmpfs_files',`
+       gen_require(`
+               type ica_tmpfs_t;
+       ')
+
+       fs_search_tmpfs($1)
+       mmap_rw_files_pattern($1, ica_tmpfs_t, ica_tmpfs_t)
+')
+
+########################################
+## <summary>
+##	Transition to ica named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ica_filetrans_named_content',`
+	gen_require(`
+		type ica_tmpfs_t;
+	')
+
+	allow $1 ica_tmpfs_t:file create_file_perms;
+	fs_tmpfs_filetrans($1, ica_tmpfs_t, file, "icastats_0")
+')

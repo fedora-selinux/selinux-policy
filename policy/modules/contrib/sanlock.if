@@ -1,0 +1,258 @@
+
+## <summary>Sanlock - lock manager built on shared storage.</summary>
+
+
+########################################
+## <summary>
+##	Execute a domain transition to run sanlock.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`sanlock_domtrans',`
+	gen_require(`
+		type sanlock_t, sanlock_exec_t;
+	')
+
+	domtrans_pattern($1, sanlock_exec_t, sanlock_t)
+')
+
+
+########################################
+## <summary>
+##	Execute sanlock server in the sanlock domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`sanlock_initrc_domtrans',`
+	gen_require(`
+		type sanlock_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, sanlock_initrc_exec_t)
+')
+
+######################################
+## <summary>
+##	Create, read, write, and delete sanlock PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sanlock_manage_pid_files',`
+	gen_require(`
+		type sanlock_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, sanlock_var_run_t, sanlock_var_run_t)
+')
+
+########################################
+## <summary>
+##      Connect to sanlock over a unix stream socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`sanlock_stream_connect',`
+        gen_require(`
+                type sanlock_t, sanlock_var_run_t;
+        ')
+
+        files_search_pids($1)
+        stream_connect_pattern($1, sanlock_var_run_t, sanlock_var_run_t, sanlock_t)
+')
+
+########################################
+## <summary>
+##	Execute virt server in the virt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`sanlock_systemctl',`
+	gen_require(`
+		type sanlock_unit_file_t;
+		type sanlock_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 sanlock_unit_file_t:file read_file_perms;
+	allow $1 sanlock_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, sanlock_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an sanlock environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sanlock_admin',`
+	gen_require(`
+		type sanlock_t;
+		type sanlock_initrc_exec_t;
+		type sanlock_unit_file_t;
+	')
+
+	allow $1 sanlock_t:process signal_perms;
+	ps_process_pattern($1, sanlock_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 sanlock_t:process ptrace;
+	')
+
+	sanlock_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 sanlock_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	virt_systemctl($1)
+	admin_pattern($1, sanlock_unit_file_t)
+	allow $1 sanlock_unit_file_t:service all_service_perms;
+')
+
+########################################
+## <summary>
+##	Execute sanlk_resetd_exec_t in the sanlk_resetd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`sanlock_domtrans_sanlk_resetd',`
+	gen_require(`
+		type sanlk_resetd_t, sanlk_resetd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, sanlk_resetd_exec_t, sanlk_resetd_t)
+')
+
+######################################
+## <summary>
+##	Execute sanlk_resetd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sanlock_exec_sanlk_resetd',`
+	gen_require(`
+		type sanlk_resetd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, sanlk_resetd_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute sanlk_resetd server in the sanlk_resetd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`sanlock_systemctl_sanlk_resetd',`
+	gen_require(`
+		type sanlk_resetd_t;
+		type sanlk_resetd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 sanlk_resetd_unit_file_t:file read_file_perms;
+	allow $1 sanlk_resetd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, sanlk_resetd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an sanlk_resetd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sanlock_admin_sanlk_resetd',`
+	gen_require(`
+		type sanlk_resetd_t;
+	type sanlk_resetd_unit_file_t;
+	type sanlk_resetd_unit_file_t;
+	')
+
+	allow $1 sanlk_resetd_t:process { signal_perms };
+	ps_process_pattern($1, sanlk_resetd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 sanlk_resetd_t:process ptrace;
+    ')
+
+	files_search_pids($1)
+
+	sanlock_systemctl_sanlk_resetd($1)
+	admin_pattern($1, sanlk_resetd_unit_file_t)
+	allow $1 sanlk_resetd_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+########################################
+## <summary>
+##	Read sanlock process state files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sanlock_read_state',`
+	gen_require(`
+		type sanlock_t;
+	')
+
+	ps_process_pattern($1, sanlock_t)
+')

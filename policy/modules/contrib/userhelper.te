@@ -1,0 +1,95 @@
+policy_module(userhelper, 1.8.1)
+
+########################################
+#
+# Declarations
+#
+
+attribute userhelper_type;
+attribute consolehelper_domain;
+
+type userhelper_conf_t;
+files_config_file(userhelper_conf_t)
+
+type userhelper_exec_t;
+application_executable_file(userhelper_exec_t)
+
+type consolehelper_exec_t;
+application_executable_file(consolehelper_exec_t)
+
+########################################
+#
+# consolehelper local policy
+#
+
+allow consolehelper_domain self:shm create_shm_perms;
+allow consolehelper_domain self:capability { setgid setuid dac_read_search  sys_nice }; 
+allow consolehelper_domain self:process { signal_perms getsched setsched };
+
+allow consolehelper_domain  userhelper_conf_t:file audit_access;
+dontaudit consolehelper_domain  userhelper_conf_t:file write;
+read_files_pattern(consolehelper_domain, userhelper_conf_t, userhelper_conf_t)
+
+# Init script handling
+domain_use_interactive_fds(consolehelper_domain)
+
+# internal communication is often done using fifo and unix sockets.
+allow consolehelper_domain self:fifo_file rw_fifo_file_perms;
+allow consolehelper_domain self:unix_stream_socket create_stream_socket_perms;
+
+kernel_read_kernel_sysctls(consolehelper_domain)
+
+corecmd_exec_bin(consolehelper_domain)
+
+dev_getattr_all_chr_files(consolehelper_domain)
+dev_dontaudit_list_all_dev_nodes(consolehelper_domain)
+dev_dontaudit_getattr_all(consolehelper_domain)
+fs_getattr_all_fs(consolehelper_domain)
+fs_getattr_all_dirs(consolehelper_domain)
+
+files_read_config_files(consolehelper_domain)
+
+term_list_ptys(consolehelper_domain)
+
+auth_search_pam_console_data(consolehelper_domain)
+auth_read_pam_pid(consolehelper_domain)
+
+init_read_utmp(consolehelper_domain)
+init_telinit(consolehelper_domain)
+
+miscfiles_read_fonts(consolehelper_domain)
+
+userhelper_exec(consolehelper_domain)
+
+userdom_use_user_ptys(consolehelper_domain)
+userdom_use_user_ttys(consolehelper_domain)
+userdom_read_user_home_content_files(consolehelper_domain)
+userdom_search_admin_dir(consolehelper_domain)
+
+optional_policy(`
+	dbus_session_bus_client(consolehelper_domain)
+	optional_policy(`
+		devicekit_dbus_chat_disk(consolehelper_domain)
+	')
+')
+
+optional_policy(`
+	gnome_read_gconf_home_files(consolehelper_domain)
+')
+
+optional_policy(`
+	xserver_read_home_fonts(consolehelper_domain)
+	xserver_stream_connect(consolehelper_domain)
+	xserver_admin_home_dir_filetrans_xauth(consolehelper_domain)
+	xserver_manage_user_xauth(consolehelper_domain)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+	files_search_mnt(consolehelper_domain)
+	fs_search_nfs(consolehelper_domain)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+	files_search_mnt(consolehelper_domain)
+	fs_search_cifs(consolehelper_domain)
+')

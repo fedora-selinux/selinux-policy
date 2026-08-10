@@ -1,0 +1,104 @@
+## <summary>USB multiplexing daemon for communicating with Apple iPod Touch and iPhone.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run usbmuxd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`usbmuxd_domtrans',`
+	gen_require(`
+		type usbmuxd_t, usbmuxd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, usbmuxd_exec_t, usbmuxd_t)
+')
+
+#####################################
+## <summary>
+##	Connect to usbmuxd with a unix
+##	domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`usbmuxd_stream_connect',`
+	gen_require(`
+		type usbmuxd_t, usbmuxd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, usbmuxd_var_run_t, usbmuxd_var_run_t, usbmuxd_t)
+')
+
+########################################
+## <summary>
+##	Execute usbmuxd server in the usbmuxd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`usbmuxd_systemctl',`
+	gen_require(`
+		type usbmuxd_t;
+		type usbmuxd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 usbmuxd_unit_file_t:file read_file_perms;
+	allow $1 usbmuxd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, usbmuxd_t)
+')
+
+#####################################
+## <summary>
+##	All of the rules required to administrate
+##	an usbmuxd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the usbmuxd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`usbmuxd_admin',`
+	gen_require(`
+		type usbmuxd_t,usbmuxd_var_run_t;
+		type usbmuxd_unit_file_t;
+	')
+
+	allow $1 usbmuxd_t:process { signal_perms };
+	ps_process_pattern($1, usbmuxd_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 usbmuxd_t:process ptrace;
+	')
+
+	allow $2 system_r;
+
+	files_list_pids($1)
+	admin_pattern($1, usbmuxd_var_run_t)
+
+	usbmuxd_systemctl($1)
+	admin_pattern($1, usbmuxd_unit_file_t)
+	allow $1 usbmuxd_unit_file_t:service all_service_perms;
+')

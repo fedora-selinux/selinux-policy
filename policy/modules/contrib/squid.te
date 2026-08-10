@@ -1,0 +1,285 @@
+policy_module(squid, 1.12.1)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether squid can
+##	connect to all TCP ports.
+##	</p>
+## </desc>
+gen_tunable(squid_connect_any, false)
+
+## <desc>
+##	<p>
+##	Determine whether squid can run
+##	as a transparent proxy.
+##	</p>
+## </desc>
+gen_tunable(squid_use_tproxy, false)
+
+## <desc>
+##  <p>
+##  Determine whether squid should
+##  have access to snmp port.
+##  </p>
+## </desc>
+gen_tunable(squid_bind_snmp_port, false)
+
+type squid_t;
+type squid_exec_t;
+init_daemon_domain(squid_t, squid_exec_t)
+
+type squid_cache_t;
+files_type(squid_cache_t)
+
+type squid_conf_t;
+files_config_file(squid_conf_t)
+
+type squid_initrc_exec_t;
+init_script_file(squid_initrc_exec_t)
+
+type squid_log_t;
+logging_log_file(squid_log_t)
+
+type squid_tmpfs_t;
+files_tmpfs_file(squid_tmpfs_t)
+
+type squid_tmp_t;
+files_tmp_file(squid_tmp_t)
+
+
+type squid_var_run_t;
+files_pid_file(squid_var_run_t)
+
+type squid_cron_t;
+type squid_cron_exec_t;
+init_daemon_domain(squid_cron_t, squid_cron_exec_t)
+application_domain(squid_cron_t, squid_cron_exec_t)
+role system_r types squid_cron_t;
+
+########################################
+#
+# Local policy
+#
+
+allow squid_t self:capability { setgid kill setuid dac_read_search  sys_resource };
+dontaudit squid_t self:capability sys_tty_config;
+allow squid_t self:process ~{ ptrace setcurrent setexec setfscreate execmem execstack execheap };
+allow squid_t self:fifo_file rw_fifo_file_perms;
+allow squid_t self:fd use;
+allow squid_t self:shm create_shm_perms;
+allow squid_t self:sem create_sem_perms;
+allow squid_t self:msgq create_msgq_perms;
+allow squid_t self:msg { send receive };
+allow squid_t self:unix_dgram_socket sendto;
+allow squid_t self:unix_stream_socket { accept connectto listen };
+allow squid_t self:tcp_socket { accept listen };
+
+manage_dirs_pattern(squid_t, squid_cache_t, squid_cache_t)
+manage_files_pattern(squid_t, squid_cache_t, squid_cache_t)
+manage_lnk_files_pattern(squid_t, squid_cache_t, squid_cache_t)
+files_var_filetrans(squid_t, squid_cache_t, dir, "squid")
+filetrans_pattern(squid_t, squid_conf_t, squid_cache_t, dir, "ssl_db")
+allow squid_t squid_cache_t:file map;
+
+allow squid_t squid_conf_t:dir list_dir_perms;
+allow squid_t squid_conf_t:file read_file_perms;
+allow squid_t squid_conf_t:lnk_file read_lnk_file_perms;
+
+manage_dirs_pattern(squid_t, squid_log_t, squid_log_t)
+manage_files_pattern(squid_t, squid_log_t, squid_log_t)
+manage_lnk_files_pattern(squid_t, squid_log_t, squid_log_t)
+logging_log_filetrans(squid_t, squid_log_t, { file dir })
+
+manage_files_pattern(squid_t, squid_tmpfs_t, squid_tmpfs_t)
+manage_dirs_pattern(squid_t, squid_tmpfs_t, squid_tmpfs_t)
+fs_tmpfs_filetrans(squid_t, squid_tmpfs_t, { dir file })
+allow squid_t squid_tmpfs_t:file map;
+
+manage_dirs_pattern(squid_t, squid_tmp_t, squid_tmp_t)
+manage_files_pattern(squid_t, squid_tmp_t, squid_tmp_t)
+files_tmp_filetrans(squid_t, squid_tmp_t, { file dir })
+
+manage_dirs_pattern(squid_t, squid_var_run_t, squid_var_run_t)
+manage_files_pattern(squid_t, squid_var_run_t, squid_var_run_t)
+manage_sock_files_pattern(squid_t, squid_var_run_t, squid_var_run_t)
+files_pid_filetrans(squid_t, squid_var_run_t, { dir file sock_file })
+
+can_exec(squid_t, squid_exec_t)
+
+kernel_read_kernel_sysctls(squid_t)
+kernel_read_system_state(squid_t)
+kernel_read_network_state(squid_t)
+
+corenet_all_recvfrom_netlabel(squid_t)
+corenet_tcp_sendrecv_generic_if(squid_t)
+corenet_udp_sendrecv_generic_if(squid_t)
+corenet_tcp_sendrecv_generic_node(squid_t)
+corenet_udp_sendrecv_generic_node(squid_t)
+corenet_tcp_bind_generic_node(squid_t)
+corenet_udp_bind_generic_node(squid_t)
+
+corenet_sendrecv_http_client_packets(squid_t)
+corenet_tcp_connect_http_port(squid_t)
+corenet_sendrecv_http_server_packets(squid_t)
+corenet_tcp_bind_http_port(squid_t)
+corenet_tcp_sendrecv_http_port(squid_t)
+
+corenet_sendrecv_http_cache_client_packets(squid_t)
+corenet_tcp_connect_http_cache_port(squid_t)
+corenet_sendrecv_http_cache_server_packets(squid_t)
+corenet_tcp_bind_http_cache_port(squid_t)
+corenet_udp_bind_http_cache_port(squid_t)
+corenet_tcp_sendrecv_http_cache_port(squid_t)
+corenet_udp_sendrecv_http_cache_port(squid_t)
+
+corenet_sendrecv_ftp_client_packets(squid_t)
+corenet_tcp_connect_ftp_port(squid_t)
+corenet_sendrecv_ftp_server_packets(squid_t)
+corenet_tcp_bind_ftp_port(squid_t)
+corenet_tcp_sendrecv_ftp_port(squid_t)
+
+corenet_sendrecv_gopher_client_packets(squid_t)
+corenet_tcp_connect_gopher_port(squid_t)
+corenet_sendrecv_gopher_server_packets(squid_t)
+corenet_tcp_bind_gopher_port(squid_t)
+corenet_udp_bind_gopher_port(squid_t)
+corenet_tcp_sendrecv_gopher_port(squid_t)
+corenet_udp_sendrecv_gopher_port(squid_t)
+
+corenet_sendrecv_squid_server_packets(squid_t)
+corenet_sendrecv_squid_client_packets(squid_t)
+corenet_tcp_bind_squid_port(squid_t)
+corenet_udp_bind_squid_port(squid_t)
+corenet_tcp_sendrecv_squid_port(squid_t)
+corenet_udp_sendrecv_squid_port(squid_t)
+
+corenet_sendrecv_wccp_server_packets(squid_t)
+corenet_udp_bind_wccp_port(squid_t)
+corenet_udp_sendrecv_wccp_port(squid_t)
+
+corenet_sendrecv_pgpkeyserver_client_packets(squid_t)
+corenet_tcp_connect_pgpkeyserver_port(squid_t)
+corenet_tcp_sendrecv_pgpkeyserver_port(squid_t)
+
+corecmd_exec_bin(squid_t)
+corecmd_exec_shell(squid_t)
+
+dev_read_sysfs(squid_t)
+dev_read_urand(squid_t)
+
+domain_use_interactive_fds(squid_t)
+
+files_read_etc_runtime_files(squid_t)
+files_search_spool(squid_t)
+files_dontaudit_getattr_tmp_dirs(squid_t)
+files_getattr_home_dir(squid_t)
+files_dontaudit_getattr_boot_dirs(squid_t)
+
+fs_getattr_all_fs(squid_t)
+fs_search_auto_mountpoints(squid_t)
+
+selinux_dontaudit_getattr_dir(squid_t)
+
+term_dontaudit_getattr_pty_dirs(squid_t)
+
+auth_use_nsswitch(squid_t)
+auth_domtrans_chk_passwd(squid_t)
+
+libs_exec_lib_files(squid_t)
+libs_exec_ldconfig(squid_t)
+
+logging_send_syslog_msg(squid_t)
+
+miscfiles_read_generic_certs(squid_t)
+
+userdom_use_unpriv_users_fds(squid_t)
+userdom_dontaudit_search_user_home_dirs(squid_t)
+
+tunable_policy(`squid_connect_any',`
+	corenet_tcp_connect_all_ports(squid_t)
+	corenet_tcp_bind_all_ports(squid_t)
+	corenet_sendrecv_all_packets(squid_t)
+	corenet_tcp_sendrecv_all_ports(squid_t)
+')
+
+tunable_policy(`squid_use_tproxy',`
+	allow squid_t self:capability { net_admin net_raw };
+	corenet_sendrecv_netport_server_packets(squid_t)
+	corenet_tcp_bind_netport_port(squid_t)
+	corenet_tcp_sendrecv_netport_port(squid_t)
+')
+
+tunable_policy(`squid_bind_snmp_port',`
+	corenet_udp_bind_snmp_port(squid_t)
+')
+
+optional_policy(`
+	apache_content_template(squid)
+	apache_content_alias_template(squid, squid)
+
+	allow squid_script_t self:tcp_socket create_socket_perms;
+
+	corenet_all_recvfrom_unlabeled(squid_script_t)
+	corenet_all_recvfrom_netlabel(squid_script_t)
+	corenet_tcp_sendrecv_generic_if(squid_script_t)
+	corenet_tcp_sendrecv_generic_node(squid_script_t)
+
+	corenet_sendrecv_http_cache_client_packets(squid_script_t)
+	corenet_tcp_connect_http_cache_port(squid_script_t)
+	corenet_tcp_sendrecv_http_cache_port(squid_script_t)
+
+	corenet_tcp_connect_squid_port(squid_script_t)
+
+	sysnet_dns_name_resolve(squid_script_t)
+
+	optional_policy(`
+		squid_read_config(squid_script_t)
+	')
+')
+
+optional_policy(`
+    kerberos_tmp_filetrans_host_rcache(squid_t, "host_0")
+    kerberos_manage_host_rcache(squid_t)
+')
+
+optional_policy(`
+	mysql_stream_connect(squid_t)
+')
+
+optional_policy(`
+	samba_domtrans_winbind_helper(squid_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(squid_t)
+')
+
+optional_policy(`
+	udev_read_db(squid_t)
+')
+
+########################################
+#
+# squid cron Local policy
+#
+manage_dirs_pattern(squid_cron_t, squid_cache_t, squid_cache_t)
+manage_files_pattern(squid_cron_t, squid_cache_t, squid_cache_t)
+manage_lnk_files_pattern(squid_cron_t, squid_cache_t, squid_cache_t)
+files_var_filetrans(squid_cron_t, squid_cache_t, dir, "squid")
+
+read_files_pattern(squid_cron_t, squid_conf_t, squid_conf_t)
+
+read_files_pattern(squid_cron_t, squid_log_t, squid_log_t)
+
+corecmd_exec_bin(squid_cron_t)
+
+dev_read_urand(squid_cron_t)
+
+optional_policy(`
+	cron_system_entry(squid_cron_t, squid_cron_exec_t)
+')

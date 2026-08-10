@@ -1,0 +1,62 @@
+policy_module(opafm, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type opafm_t;
+type opafm_exec_t;
+init_daemon_domain(opafm_t, opafm_exec_t)
+
+type opafm_var_lib_t;
+files_type(opafm_var_lib_t)
+
+type opafm_var_run_t;
+files_pid_file(opafm_var_run_t)
+
+########################################
+#
+# opafm local policy
+#
+
+allow opafm_t self:capability dac_read_search;
+allow opafm_t self:process setsched;
+
+allow opafm_t self:netlink_rdma_socket create_socket_perms;
+
+allow opafm_t self:unix_dgram_socket create_stream_socket_perms;
+
+manage_dirs_pattern(opafm_t, opafm_var_lib_t, opafm_var_lib_t)
+manage_files_pattern(opafm_t, opafm_var_lib_t, opafm_var_lib_t)
+manage_sock_files_pattern(opafm_t, opafm_var_lib_t, opafm_var_lib_t)
+files_var_lib_filetrans(opafm_t, opafm_var_lib_t, { dir file sock_file })
+
+manage_dirs_pattern(opafm_t, opafm_var_run_t, opafm_var_run_t)
+manage_files_pattern(opafm_t, opafm_var_run_t, opafm_var_run_t)
+manage_fifo_files_pattern(opafm_t, opafm_var_run_t, opafm_var_run_t)
+files_pid_filetrans(opafm_t, opafm_var_run_t, { dir file fifo_file })
+
+kernel_dgram_send(opafm_t)
+
+corenet_ib_manage_subnet_unlabeled_endports(opafm_t)
+corenet_ib_access_unlabeled_pkeys(opafm_t)
+
+dev_rw_infiniband_dev(opafm_t)
+dev_rw_infiniband_mgmt_dev(opafm_t)
+dev_list_sysfs(opafm_t)
+dev_read_sysfs(opafm_t)
+
+fs_create_nfs_dirs(opafm_t)
+fs_create_nfs_files(opafm_t)
+fs_write_nfs_files(opafm_t)
+
+libs_exec_lib_files(opafm_t)
+
+logging_send_syslog_msg(opafm_t)
+
+miscfiles_read_certs(opafm_t)
+
+optional_policy(`
+    kdump_manage_crash(opafm_t)
+')

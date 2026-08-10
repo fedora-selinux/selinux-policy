@@ -1,0 +1,79 @@
+## <summary>IRC client policy.</summary>
+
+########################################
+## <summary>
+##	Role access for IRC.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+interface(`irc_role',`
+	gen_require(`
+		attribute_role irc_roles;
+		type irc_t, irc_exec_t, irc_home_t;
+		type irc_tmp_t, irc_log_home_t;
+		type irssi_t, irssi_exec_t, irssi_home_t;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	roleattribute $1 irc_roles;
+
+	########################################
+	#
+	# Policy
+	#
+
+	domtrans_pattern($2, irc_exec_t, irc_t)
+
+	ps_process_pattern($2, irc_t)
+	allow $2 irc_t:process signal_perms;
+	tunable_policy(`deny_ptrace',`',`
+		allow $2 irc_t:process ptrace;
+	')
+
+	domtrans_pattern($2, irssi_exec_t, irssi_t)
+
+	allow $2 irssi_t:process signal_perms;
+	ps_process_pattern($2, irssi_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $2 irssi_t:process ptrace;
+	')
+
+	allow $2 { irc_home_t irc_log_home_t irc_tmp_t irssi_home_t }:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 { irc_home_t irc_log_home_t irc_tmp_t irssi_home_t }:file { manage_file_perms relabel_file_perms };
+	allow $2 { irc_home_t irc_log_home_t irc_tmp_t irssi_home_t }:lnk_file { manage_lnk_file_perms relabel_lnk_file_perms };
+
+	irc_filetrans_home_content($2)
+')
+
+#######################################
+## <summary>
+##      Transition to alsa named content
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`irc_filetrans_home_content',`
+		gen_require(`
+			type irc_home_t;
+			type irssi_home_t;
+		')
+		userdom_user_home_dir_filetrans($1, irc_home_t, file, ".ircmotd")
+		userdom_user_home_dir_filetrans($1, irc_home_t, dir, ".irssi")
+		userdom_user_home_dir_filetrans($1, irssi_home_t, dir, "irclogs")
+')

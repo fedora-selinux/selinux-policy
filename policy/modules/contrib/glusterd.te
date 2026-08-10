@@ -1,0 +1,349 @@
+policy_module(glusterd, 1.1.3)
+
+## <desc>
+## <p>
+## Allow glusterfsd to modify public files used for public file
+## transfer services.  Files/Directories must be labeled
+## public_content_rw_t.
+## </p>
+## </desc>
+gen_tunable(gluster_anon_write, false)
+
+## <desc>
+## <p>
+## Allow glusterfsd to share any file/directory read only.
+## </p>
+## </desc>
+gen_tunable(gluster_export_all_ro, false)
+
+## <desc>
+## <p>
+## Allow glusterfsd to share any file/directory read/write.
+## </p>
+## </desc>
+gen_tunable(gluster_export_all_rw, true)
+
+## <desc>
+## <p>
+## Allow glusterd_t domain to use executable memory 
+## </p>
+## </desc>
+gen_tunable(gluster_use_execmem, false)
+
+########################################
+#
+# Declarations
+#
+
+type glusterd_t;
+type glusterd_exec_t;
+init_daemon_domain(glusterd_t, glusterd_exec_t)
+domain_obj_id_change_exemption(glusterd_t)
+
+type glusterd_conf_t;
+files_type(glusterd_conf_t)
+
+type glusterd_initrc_exec_t;
+init_script_file(glusterd_initrc_exec_t)
+
+type glusterd_tmp_t;
+files_tmp_file(glusterd_tmp_t)
+
+type glusterd_tmpfs_t;
+files_tmpfs_file(glusterd_tmpfs_t)
+
+type glusterd_log_t;
+logging_log_file(glusterd_log_t)
+
+type glusterd_var_run_t;
+files_pid_file(glusterd_var_run_t)
+
+type glusterd_var_lib_t;
+files_type(glusterd_var_lib_t)
+
+type glusterd_brick_t;
+files_type(glusterd_brick_t)
+
+########################################
+#
+# Local policy
+#
+
+allow glusterd_t self:capability { sys_admin sys_resource sys_ptrace chown dac_read_search dac_override fowner fsetid ipc_lock kill setgid setuid net_admin mknod net_raw };
+
+allow glusterd_t self:capability2 block_suspend;
+allow glusterd_t self:process { getcap setcap setpgid setrlimit signal_perms setsched getsched setfscreate};
+allow glusterd_t self:sem create_sem_perms;
+allow glusterd_t self:fifo_file rw_fifo_file_perms;
+allow glusterd_t self:tcp_socket { accept listen };
+allow glusterd_t self:unix_stream_socket { accept listen connectto };
+allow glusterd_t self:rawip_socket create_socket_perms;
+allow glusterd_t self:unix_stream_socket create_stream_socket_perms;
+allow glusterd_t self:netlink_rdma_socket create_socket_perms;
+
+manage_dirs_pattern(glusterd_t, glusterd_conf_t, glusterd_conf_t)
+manage_files_pattern(glusterd_t, glusterd_conf_t, glusterd_conf_t)
+files_etc_filetrans(glusterd_t, glusterd_conf_t, { dir file }, "glusterfs")
+
+manage_dirs_pattern(glusterd_t, glusterd_tmp_t, glusterd_tmp_t)
+manage_files_pattern(glusterd_t, glusterd_tmp_t, glusterd_tmp_t)
+manage_sock_files_pattern(glusterd_t, glusterd_tmp_t, glusterd_tmp_t)
+files_tmp_filetrans(glusterd_t, glusterd_tmp_t, { dir file sock_file })
+allow glusterd_t glusterd_tmp_t:dir mounton;
+
+manage_dirs_pattern(glusterd_t, glusterd_tmpfs_t, glusterd_tmpfs_t)
+manage_files_pattern(glusterd_t, glusterd_tmpfs_t, glusterd_tmpfs_t)
+fs_tmpfs_filetrans(glusterd_t, glusterd_tmpfs_t, { dir file })
+
+manage_dirs_pattern(glusterd_t, glusterd_log_t, glusterd_log_t)
+manage_files_pattern(glusterd_t, glusterd_log_t, glusterd_log_t)
+logging_log_filetrans(glusterd_t, glusterd_log_t, { file dir })
+
+manage_dirs_pattern(glusterd_t, glusterd_var_run_t, glusterd_var_run_t)
+manage_files_pattern(glusterd_t, glusterd_var_run_t, glusterd_var_run_t)
+manage_sock_files_pattern(glusterd_t, glusterd_var_run_t, glusterd_var_run_t)
+files_pid_filetrans(glusterd_t, glusterd_var_run_t, { dir file sock_file })
+
+manage_dirs_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
+manage_files_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
+manage_sock_files_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
+files_var_lib_filetrans(glusterd_t, glusterd_var_lib_t, dir)
+relabel_files_pattern(glusterd_t, glusterd_var_lib_t, glusterd_var_lib_t)
+
+manage_dirs_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+manage_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+manage_fifo_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+manage_lnk_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+manage_blk_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+manage_chr_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+manage_sock_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+relabel_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+relabel_lnk_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+relabel_dirs_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+relabel_chr_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+relabel_blk_files_pattern(glusterd_t, glusterd_brick_t, glusterd_brick_t)
+
+can_exec(glusterd_t, glusterd_exec_t)
+
+kernel_read_system_state(glusterd_t)
+kernel_read_network_state(glusterd_t)
+kernel_read_net_sysctls(glusterd_t)
+kernel_request_load_module(glusterd_t)
+
+corecmd_exec_bin(glusterd_t)
+corecmd_exec_shell(glusterd_t)
+
+corenet_all_recvfrom_unlabeled(glusterd_t)
+corenet_all_recvfrom_netlabel(glusterd_t)
+corenet_tcp_sendrecv_generic_if(glusterd_t)
+corenet_udp_sendrecv_generic_if(glusterd_t)
+corenet_tcp_sendrecv_generic_node(glusterd_t)
+corenet_udp_sendrecv_generic_node(glusterd_t)
+corenet_tcp_sendrecv_all_ports(glusterd_t)
+corenet_udp_sendrecv_all_ports(glusterd_t)
+corenet_tcp_bind_generic_node(glusterd_t)
+corenet_udp_bind_generic_node(glusterd_t)
+corenet_raw_bind_generic_node(glusterd_t)
+
+corenet_tcp_connect_gluster_port(glusterd_t)
+corenet_tcp_bind_gluster_port(glusterd_t)
+corenet_udp_bind_gluster_port(glusterd_t)
+
+# replacement for rpc.mountd
+corenet_sendrecv_all_server_packets(glusterd_t)
+corenet_tcp_bind_all_reserved_ports(glusterd_t)
+corenet_udp_bind_all_rpc_ports(glusterd_t)
+corenet_tcp_bind_all_rpc_ports(glusterd_t)
+corenet_tcp_bind_nfs_port(glusterd_t)
+corenet_udp_bind_nfs_port(glusterd_t)
+corenet_udp_bind_mountd_port(glusterd_t)
+corenet_tcp_bind_mountd_port(glusterd_t)
+corenet_udp_bind_ipp_port(glusterd_t)
+
+corenet_sendrecv_all_client_packets(glusterd_t)
+corenet_tcp_bind_all_unreserved_ports(glusterd_t)
+corenet_tcp_connect_all_unreserved_ports(glusterd_t)
+corenet_tcp_connect_all_ephemeral_ports(glusterd_t)
+corenet_tcp_connect_ssh_port(glusterd_t)
+corenet_tcp_connect_all_rpc_ports(glusterd_t)
+corenet_tcp_connect_all_ports(glusterd_t)
+
+dev_read_sysfs(glusterd_t)
+dev_read_urand(glusterd_t)
+dev_read_rand(glusterd_t)
+dev_rw_infiniband_dev(glusterd_t)
+
+domain_read_all_domains_state(glusterd_t)
+domain_getattr_all_sockets(glusterd_t)
+
+domain_use_interactive_fds(glusterd_t)
+
+fs_mount_all_fs(glusterd_t)
+fs_unmount_all_fs(glusterd_t)
+fs_getattr_all_fs(glusterd_t)
+fs_getattr_all_dirs(glusterd_t)
+
+files_mounton_non_security(glusterd_t)
+files_relabel_all_file_type_fs(glusterd_t)
+files_mount_all_file_type_fs(glusterd_t)
+files_unmount_all_file_type_fs(glusterd_t)
+files_dontaudit_read_security_files(glusterd_t)
+files_dontaudit_list_security_dirs(glusterd_t)
+
+storage_rw_fuse(glusterd_t)
+#needed by /usr/bin/xfs_db
+storage_raw_read_fixed_disk(glusterd_t)
+storage_raw_write_fixed_disk(glusterd_t)
+
+auth_use_nsswitch(glusterd_t)
+
+fs_getattr_all_fs(glusterd_t)
+
+init_domtrans_script(glusterd_t)
+init_initrc_domain(glusterd_t)
+init_read_script_state(glusterd_t)
+init_rw_script_tmp_files(glusterd_t)
+init_manage_script_status_files(glusterd_t)
+init_status(glusterd_t)
+init_stop_transient_unit(glusterd_t)
+
+systemd_config_systemd_services(glusterd_t)
+systemd_signal_passwd_agent(glusterd_t)
+
+logging_send_syslog_msg(glusterd_t)
+logging_dontaudit_search_audit_logs(glusterd_t)
+
+libs_exec_ldconfig(glusterd_t)
+
+miscfiles_read_localization(glusterd_t)
+miscfiles_read_public_files(glusterd_t)
+
+userdom_manage_user_home_dirs(glusterd_t)
+userdom_filetrans_home_content(glusterd_t)
+userdom_read_user_tmp_files(glusterd_t)
+userdom_delete_user_tmp_files(glusterd_t)
+userdom_rw_user_tmp_files(glusterd_t)
+userdom_map_tmp_files(glusterd_t)
+userdom_kill_all_users(glusterd_t)
+userdom_signal_unpriv_users(glusterd_t)
+
+mount_domtrans(glusterd_t)
+
+fstools_domtrans(glusterd_t)
+
+tunable_policy(`gluster_anon_write',`
+	miscfiles_manage_public_files(glusterd_t)
+') 
+
+tunable_policy(`gluster_export_all_ro',`
+	fs_read_noxattr_fs_files(glusterd_t) 
+	files_read_non_security_files(glusterd_t) 
+    files_getattr_all_pipes(glusterd_t)
+    files_getattr_all_sockets(glusterd_t)
+')
+
+tunable_policy(`gluster_export_all_rw',`
+	fs_manage_noxattr_fs_files(glusterd_t) 
+	files_manage_non_security_dirs(glusterd_t)
+	files_manage_non_security_files(glusterd_t)
+    files_relabel_base_file_types(glusterd_t)
+    files_getattr_all_pipes(glusterd_t)
+    files_getattr_all_sockets(glusterd_t)
+    files_map_non_security_files(glusterd_t)
+')
+
+tunable_policy(`gluster_use_execmem',`
+	allow glusterd_t self:process { execmem };
+')
+
+optional_policy(`
+    automount_write_pipes(glusterd_t)
+')
+
+optional_policy(`
+    ctdbd_domtrans(glusterd_t)
+    ctdbd_signal(glusterd_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(glusterd_t)
+    dbus_connect_system_bus(glusterd_t)
+	unconfined_dbus_chat(glusterd_t)
+
+    optional_policy(`
+        policykit_dbus_chat(glusterd_t)
+    ')
+')
+
+optional_policy(`
+    hostname_exec(glusterd_t)
+')
+
+
+optional_policy(`
+    kerberos_read_keytab(glusterd_t)
+')
+
+optional_policy(`
+    lvm_domtrans(glusterd_t)
+')
+
+optional_policy(`
+    mount_domtrans_showmount(glusterd_t)
+')
+
+optional_policy(`
+    samba_domtrans_smbd(glusterd_t)
+    samba_systemctl(glusterd_t)
+    samba_signal_smbd(glusterd_t)
+    samba_manage_config(glusterd_t)
+')
+
+optional_policy(`
+    ssh_exec_keygen(glusterd_t)
+')
+
+optional_policy(`
+    rpc_domtrans_rpcd(glusterd_t)
+    rpc_kill_rpcd(glusterd_t)
+')
+
+optional_policy(`
+	rsync_exec(glusterd_t)
+	rsync_rw_unix_stream_sockets(glusterd_t)
+')
+
+optional_policy(`
+    rpc_systemctl_nfsd(glusterd_t)
+    rpc_systemctl_rpcd(glusterd_t)
+    rpc_domtrans_nfsd(glusterd_t)
+    rpc_dbus_chat_nfsd(glusterd_t)
+    rpc_domtrans_rpcd(glusterd_t)
+    rpc_manage_nfs_state_data(glusterd_t)
+	rpc_manage_nfs_state_data_dir(glusterd_t)
+	rpcbind_stream_connect(glusterd_t)
+')
+
+optional_policy(`
+    rhcs_dbus_chat_cluster(glusterd_t)
+    rhcs_domtrans_cluster(glusterd_t)
+    rhcs_systemctl_cluster(glusterd_t)
+    rhcs_stream_connect_cluster(glusterd_t)
+')
+
+optional_policy(`
+	ssh_exec(glusterd_t)
+')
+
+
+########################################
+#
+# Local policy for ssh_keygen
+#
+
+gen_require(`
+    type ssh_keygen_t;
+')
+
+manage_dirs_pattern(ssh_keygen_t, glusterd_var_lib_t, glusterd_var_lib_t)
+manage_files_pattern(ssh_keygen_t, glusterd_var_lib_t, glusterd_var_lib_t)

@@ -1,0 +1,151 @@
+policy_module(sudo, 1.10.0)
+
+gen_require(`
+	class passwd { passwd rootok };
+')
+
+########################################
+#
+# Declarations
+attribute sudodomain;
+
+type sudo_exec_t;
+application_executable_file(sudo_exec_t)
+
+type sudo_db_t;
+files_type(sudo_db_t)
+mls_trusted_object(sudo_db_t)
+
+type sudo_log_t;
+logging_log_file(sudo_log_t)
+
+manage_dirs_pattern(sudodomain, sudo_db_t, sudo_db_t)
+manage_files_pattern(sudodomain, sudo_db_t, sudo_db_t)
+
+manage_dirs_pattern(sudodomain, sudo_log_t, sudo_log_t)
+manage_files_pattern(sudodomain, sudo_log_t, sudo_log_t)
+logging_log_filetrans(sudodomain, sudo_log_t, dir, "sudo-io")
+logging_log_filetrans(sudodomain, sudo_log_t, file, "sudo.log")
+
+##############################
+#
+# Local Policy
+#
+
+# Use capabilities.
+allow sudodomain self:capability { chown fowner setuid setgid dac_read_search dac_override sys_nice sys_resource };
+dontaudit sudodomain self:capability net_admin;
+allow sudodomain self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+allow sudodomain self:process { setexec setrlimit };
+allow sudodomain self:fd use;
+allow sudodomain self:fifo_file rw_fifo_file_perms;
+allow sudodomain self:shm create_shm_perms;
+allow sudodomain self:sem create_sem_perms;
+allow sudodomain self:msgq create_msgq_perms;
+allow sudodomain self:msg { send receive };
+allow sudodomain self:unix_dgram_socket create_socket_perms;
+allow sudodomain self:unix_stream_socket create_stream_socket_perms;
+allow sudodomain self:unix_dgram_socket sendto;
+allow sudodomain self:unix_stream_socket connectto;
+allow sudodomain self:key manage_key_perms;
+allow sudodomain self:netlink_kobject_uevent_socket create_socket_perms;
+allow sudodomain self:netlink_selinux_socket create_socket_perms;
+allow sudodomain self:passwd { passwd rootok };
+
+kernel_getattr_core_if(sudodomain)
+kernel_link_key(sudodomain)
+kernel_read_kernel_sysctls(sudodomain)
+
+corecmd_read_bin_symlinks(sudodomain)
+corecmd_exec_all_executables(sudodomain)
+
+dev_getattr_fs(sudodomain)
+dev_read_urand(sudodomain)
+dev_rw_generic_usb_dev(sudodomain)
+dev_read_sysfs(sudodomain)
+dev_dontaudit_getattr_all(sudodomain)
+
+domain_use_interactive_fds(sudodomain)
+domain_sigchld_interactive_fds(sudodomain)
+domain_getattr_all_entry_files(sudodomain)
+
+files_read_etc_files(sudodomain)
+files_list_var(sudodomain)
+files_read_var_files(sudodomain)
+files_read_usr_files(sudodomain)
+# for some PAM modules and for cwd
+files_dontaudit_search_home(sudodomain)
+files_list_tmp(sudodomain)
+
+fs_search_auto_mountpoints(sudodomain)
+fs_getattr_all_fs(sudodomain)
+
+selinux_validate_context(sudodomain)
+selinux_compute_relabel_context(sudodomain)
+selinux_compute_access_vector(sudodomain)
+
+term_getattr_pty_fs(sudodomain)
+term_relabel_all_ttys(sudodomain)
+term_relabel_all_ptys(sudodomain)
+term_use_ptmx(sudodomain)
+
+#auth_run_chk_passwd(sudodomain)
+# sudo stores a token in the pam_pid directory
+auth_manage_pam_pid(sudodomain)
+auth_manage_faillog(sudodomain)
+auth_read_var_auth(sudodomain)
+auth_rw_lastlog(sudodomain)
+
+application_signal(sudodomain)
+
+init_rw_utmp(sudodomain)
+
+logging_send_audit_msgs(sudodomain)
+logging_set_audit_parameters(sudodomain)
+
+seutil_read_default_contexts(sudodomain)
+
+userdom_spec_domtrans_all_users(sudodomain)
+userdom_manage_user_home_content_files(sudodomain)
+userdom_manage_user_home_content_symlinks(sudodomain)
+userdom_manage_user_tmp_files(sudodomain)
+userdom_manage_user_tmp_symlinks(sudodomain)
+userdom_use_user_terminals(sudodomain)
+userdom_create_user_pty(sudodomain)
+userdom_setattr_user_ptys(sudodomain)
+userdom_setattr_user_ttys(sudodomain)
+userdom_signal_all_users(sudodomain)
+userdom_exec_user_home_content_files(sudodomain)
+# for some PAM modules and for cwd
+userdom_search_user_home_content(sudodomain)
+userdom_search_admin_dir(sudodomain)
+userdom_manage_all_users_keys(sudodomain)
+
+tunable_policy(`authlogin_yubikey',`
+    auth_manage_home_content(sudodomain)
+')
+
+optional_policy(`
+	dbus_system_bus_client(sudodomain)
+
+	optional_policy(`
+		systemd_dbus_chat_logind(sudodomain)
+		init_getpgid(sudodomain)
+	')
+')
+
+optional_policy(`
+	gnome_stream_connect_gkeyringd(sudodomain)
+')
+
+optional_policy(`
+	ssh_signull(sudodomain)
+')
+
+optional_policy(`
+    systemd_write_inherited_logind_sessions_pipes(sudodomain)
+')
+
+optional_policy(`
+	fprintd_dbus_chat(sudodomain)
+')

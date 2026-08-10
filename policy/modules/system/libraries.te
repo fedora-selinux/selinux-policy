@@ -1,0 +1,176 @@
+policy_module(libraries, 2.10.0)
+
+########################################
+#
+# Declarations
+#
+
+#
+# ld_so_cache_t is the type of /etc/ld.so.cache.
+#
+type ld_so_cache_t;
+files_type(ld_so_cache_t)
+
+#
+# ld_so_t is the type of the system dynamic loaders.
+#
+type ld_so_t;
+files_type(ld_so_t)
+
+type ldconfig_t;
+type ldconfig_exec_t;
+init_system_domain(ldconfig_t, ldconfig_exec_t)
+role system_r types ldconfig_t;
+
+type ldconfig_cache_t;
+files_type(ldconfig_cache_t)
+
+type ldconfig_tmp_t;
+files_tmp_file(ldconfig_tmp_t)
+
+#
+# lib_t is the type of files in the system lib directories.
+#
+type lib_t alias shlib_t;
+files_ro_base_file(lib_t)
+
+#
+# textrel_shlib_t is the type of shared objects in the system lib
+# directories, which require text relocation.
+#
+type textrel_shlib_t alias texrel_shlib_t;
+files_ro_base_file(textrel_shlib_t)
+
+ifdef(`distro_gentoo',`
+	# openrc unfortunately mounts a tmpfs
+	# at /lib/rc/
+	files_mountpoint(lib_t)
+')
+
+optional_policy(`
+	postgresql_loadable_module(lib_t)
+	postgresql_loadable_module(textrel_shlib_t)
+')
+
+########################################
+#
+# ldconfig local policy
+#
+
+allow ldconfig_t self:capability { dac_read_search  sys_chroot };
+
+manage_dirs_pattern(ldconfig_t, ldconfig_cache_t, ldconfig_cache_t)
+manage_files_pattern(ldconfig_t, ldconfig_cache_t, ldconfig_cache_t)
+files_var_filetrans(ldconfig_t, ldconfig_cache_t, dir, "ldconfig")
+allow ldconfig_t ldconfig_cache_t:file map;
+
+manage_files_pattern(ldconfig_t, ld_so_cache_t, ld_so_cache_t)
+files_etc_filetrans(ldconfig_t, ld_so_cache_t, file)
+
+manage_dirs_pattern(ldconfig_t, ldconfig_tmp_t, ldconfig_tmp_t)
+manage_files_pattern(ldconfig_t, ldconfig_tmp_t, ldconfig_tmp_t)
+manage_lnk_files_pattern(ldconfig_t, ldconfig_tmp_t, ldconfig_tmp_t)
+files_tmp_filetrans(ldconfig_t, ldconfig_tmp_t, { file dir lnk_file })
+
+manage_lnk_files_pattern(ldconfig_t, lib_t, lib_t)
+
+kernel_read_system_state(ldconfig_t)
+kernel_read_network_state(ldconfig_t)
+
+fs_getattr_xattr_fs(ldconfig_t)
+
+files_list_var_lib(ldconfig_t)
+files_dontaudit_leaks(ldconfig_t)
+files_manage_var_lib_symlinks(ldconfig_t)
+
+corecmd_search_bin(ldconfig_t)
+
+domain_use_interactive_fds(ldconfig_t)
+
+files_search_home(ldconfig_t)
+files_read_etc_files(ldconfig_t)
+files_read_usr_files(ldconfig_t)
+files_search_tmp(ldconfig_t)
+files_search_usr(ldconfig_t)
+# for when /etc/ld.so.cache is mislabeled:
+files_delete_etc_files(ldconfig_t)
+
+init_use_script_ptys(ldconfig_t)
+init_read_script_tmp_files(ldconfig_t)
+init_manage_script_tmp_files(ldconfig_t)
+init_write_initrc_tmp_pipes(ldconfig_t)
+
+logging_send_syslog_msg(ldconfig_t)
+
+term_use_console(ldconfig_t)
+userdom_use_inherited_user_terminals(ldconfig_t)
+userdom_use_all_users_fds(ldconfig_t)
+
+ifdef(`distro_ubuntu',`
+	optional_policy(`
+		unconfined_domain(ldconfig_t)
+	')
+')
+
+userdom_dontaudit_list_admin_dir(ldconfig_t)
+userdom_list_user_home_dirs(ldconfig_t)
+userdom_manage_user_home_content_files(ldconfig_t)
+userdom_manage_user_tmp_files(ldconfig_t)
+userdom_manage_user_tmp_symlinks(ldconfig_t)
+userdom_rw_inherited_user_tmp_pipes(ldconfig_t)
+
+ifdef(`hide_broken_symptoms',`
+	ifdef(`distro_gentoo',`
+		# leaked fds from portage
+		files_dontaudit_rw_var_files(ldconfig_t)
+
+		optional_policy(`
+			portage_dontaudit_search_tmp(ldconfig_t)
+			portage_dontaudit_rw_tmp_files(ldconfig_t)
+		')
+	')
+
+	dev_dontaudit_rw_lvm_control(ldconfig_t)
+	dev_dontaudit_read_all_chr_files(ldconfig_t)
+	dev_dontaudit_read_all_blk_files(ldconfig_t)
+	term_dontaudit_use_unallocated_ttys(ldconfig_t)
+
+	optional_policy(`
+		unconfined_dontaudit_rw_tcp_sockets(ldconfig_t)
+	')
+')
+
+optional_policy(`
+	# dontaudit access to /usr/lib/apache, normal programs cannot read these libs anyway
+	apache_dontaudit_search_modules(ldconfig_t)
+')
+
+optional_policy(`
+	apt_rw_pipes(ldconfig_t)
+	apt_use_fds(ldconfig_t)
+	apt_use_ptys(ldconfig_t)
+')
+
+optional_policy(`
+	glusterd_dontaudit_read_lib_dirs(ldconfig_t)
+')
+
+optional_policy(`
+	gnome_append_generic_cache_files(ldconfig_t)
+')
+
+optional_policy(`
+	kdump_manage_kdumpctl_tmp_files(ldconfig_t)
+')
+
+optional_policy(`
+	puppet_rw_tmp(ldconfig_t)
+')
+
+optional_policy(`
+	# When you install a kernel the postinstall builds a initrd image in tmp 
+	# and executes ldconfig on it. If you dont allow this kernel installs 
+	# blow up.
+	rpm_manage_script_tmp_files(ldconfig_t)
+')
+

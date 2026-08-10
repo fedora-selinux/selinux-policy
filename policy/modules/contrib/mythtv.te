@@ -1,0 +1,47 @@
+policy_module(mythtv, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+apache_content_template(mythtv)
+apache_content_alias_template(mythtv, mythtv)
+
+type mythtv_var_lib_t;
+files_type(mythtv_var_lib_t)
+
+type mythtv_var_log_t;
+logging_log_file(mythtv_var_log_t)
+
+########################################
+#
+# mythtv_script local policy
+#
+#============= httpd_mythtv_script_t ==============
+allow httpd_mythtv_script_t self:process setpgid;
+dev_list_sysfs(httpd_mythtv_script_t)
+
+manage_files_pattern(mythtv_script_t, mythtv_var_lib_t, mythtv_var_lib_t)
+manage_dirs_pattern(mythtv_script_t, mythtv_var_lib_t, mythtv_var_lib_t)
+files_var_lib_filetrans(mythtv_script_t, mythtv_var_lib_t, { dir file })
+
+manage_files_pattern(mythtv_script_t, mythtv_var_log_t, mythtv_var_log_t)
+manage_dirs_pattern(mythtv_script_t, mythtv_var_log_t, mythtv_var_log_t)
+logging_log_filetrans(mythtv_script_t, mythtv_var_log_t, file )
+
+domain_use_interactive_fds(mythtv_script_t)
+
+files_read_etc_files(mythtv_script_t)
+
+fs_read_nfs_files(mythtv_script_t)
+
+auth_read_passwd(httpd_mythtv_script_t)
+
+miscfiles_read_localization(httpd_mythtv_script_t)
+
+optional_policy(`
+	mysql_read_config(mythtv_script_t)
+	mysql_stream_connect(mythtv_script_t)
+	mysql_tcp_connect(mythtv_script_t)
+')

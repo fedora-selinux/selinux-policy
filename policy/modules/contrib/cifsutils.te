@@ -1,0 +1,66 @@
+policy_module(cifsutils, 1.0)
+
+type cifs_helper_exec_t;
+files_type(cifs_helper_exec_t)
+
+type cifs_helper_t;
+domain_type(cifs_helper_t)
+application_domain(cifs_helper_t, cifs_helper_exec_t)
+role system_r types cifs_helper_t;
+
+# These capabilities are needed to switch into the namespaces & environment
+# of the process ID parsed from the key description. It is necessary e.g. to
+# work well with processes running in containers.
+allow cifs_helper_t self:capability { dac_read_search setgid setuid sys_admin sys_chroot sys_ptrace };
+allow cifs_helper_t self:key write;
+allow cifs_helper_t self:netlink_route_socket create_netlink_socket_perms;
+allow cifs_helper_t self:process setcap;
+allow cifs_helper_t self:tcp_socket create_stream_socket_perms;
+allow cifs_helper_t self:udp_socket create_socket_perms;
+
+kernel_view_key(cifs_helper_t)
+kernel_setattr_key(cifs_helper_t)
+
+corenet_tcp_connect_kerberos_port(cifs_helper_t)
+
+fs_read_nsfs_files(cifs_helper_t)
+
+mount_read_state(cifs_helper_t)
+
+sysnet_read_config(cifs_helper_t)
+
+optional_policy(`
+	auth_read_passwd(cifs_helper_t)
+')
+
+optional_policy(`
+	init_search_pid_dirs(cifs_helper_t)
+	logging_send_syslog_msg(cifs_helper_t)
+')
+
+optional_policy(`
+	kerberos_read_config(cifs_helper_t)
+	kerberos_read_keytab(cifs_helper_t)
+
+	optional_policy(`
+		sssd_read_public_files(cifs_helper_t)
+	')
+')
+
+optional_policy(`
+	# /etc/request-key.d/cifs.spnego.conf
+	keyutils_request_domtrans_to(cifs_helper_t, cifs_helper_exec_t)
+')
+
+optional_policy(`
+	miscfiles_read_generic_certs(cifs_helper_t)
+')
+
+optional_policy(`
+	sssd_stream_connect(cifs_helper_t)
+	sssd_run_stream_connect(cifs_helper_t)
+')
+
+optional_policy(`
+	userdom_read_all_users_state(cifs_helper_t)
+')

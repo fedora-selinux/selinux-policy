@@ -1,0 +1,147 @@
+policy_module(watchdog, 1.8.0)
+
+#################################
+#
+# Declarations
+#
+
+type watchdog_t;
+type watchdog_exec_t;
+init_daemon_domain(watchdog_t, watchdog_exec_t)
+
+type watchdog_initrc_exec_t;
+init_script_file(watchdog_initrc_exec_t)
+
+type watchdog_cache_t;
+files_type(watchdog_cache_t)
+
+type watchdog_log_t;
+logging_log_file(watchdog_log_t)
+
+type watchdog_var_run_t;
+files_pid_file(watchdog_var_run_t)
+
+type watchdog_unconfined_exec_t;
+application_executable_file(watchdog_unconfined_exec_t)
+
+########################################
+#
+# Local policy
+#
+
+allow watchdog_t self:capability { sys_admin net_admin sys_boot ipc_lock sys_pacct sys_nice sys_resource net_raw };
+dontaudit watchdog_t self:capability sys_tty_config;
+allow watchdog_t self:process { setsched signal_perms };
+allow watchdog_t self:fifo_file rw_fifo_file_perms;
+allow watchdog_t self:tcp_socket { accept listen };
+allow watchdog_t self:rawip_socket create_socket_perms;
+
+manage_files_pattern(watchdog_t, watchdog_cache_t, watchdog_cache_t)
+manage_dirs_pattern(watchdog_t, watchdog_cache_t, watchdog_cache_t)
+
+manage_files_pattern(watchdog_t,watchdog_log_t,watchdog_log_t)
+manage_dirs_pattern(watchdog_t,watchdog_log_t,watchdog_log_t)
+logging_log_filetrans(watchdog_t, watchdog_log_t,{dir file})
+
+manage_files_pattern(watchdog_t, watchdog_var_run_t, watchdog_var_run_t)
+files_pid_filetrans(watchdog_t, watchdog_var_run_t, file)
+
+kernel_read_network_state(watchdog_t)
+kernel_read_system_state(watchdog_t)
+kernel_read_kernel_sysctls(watchdog_t)
+kernel_unmount_proc(watchdog_t)
+
+corecmd_exec_shell(watchdog_t)
+corecmd_exec_bin(watchdog_t)
+
+corenet_all_recvfrom_unlabeled(watchdog_t)
+corenet_all_recvfrom_netlabel(watchdog_t)
+corenet_tcp_sendrecv_generic_if(watchdog_t)
+corenet_tcp_sendrecv_generic_node(watchdog_t)
+corenet_tcp_sendrecv_all_ports(watchdog_t)
+
+corenet_sendrecv_all_client_packets(watchdog_t)
+corenet_tcp_connect_all_ports(watchdog_t)
+
+dev_read_sysfs(watchdog_t)
+dev_write_watchdog(watchdog_t)
+dev_dontaudit_read_rand(watchdog_t)
+dev_dontaudit_read_urand(watchdog_t)
+
+domain_use_interactive_fds(watchdog_t)
+domain_getsession_all_domains(watchdog_t)
+domain_sigchld_all_domains(watchdog_t)
+domain_sigstop_all_domains(watchdog_t)
+domain_signull_all_domains(watchdog_t)
+domain_signal_all_domains(watchdog_t)
+domain_kill_all_domains(watchdog_t)
+
+files_manage_etc_runtime_files(watchdog_t)
+files_etc_filetrans_etc_runtime(watchdog_t, file)
+
+fs_unmount_xattr_fs(watchdog_t)
+fs_getattr_all_fs(watchdog_t)
+fs_search_auto_mountpoints(watchdog_t)
+
+auth_append_login_records(watchdog_t)
+auth_read_passwd(watchdog_t)
+
+logging_send_syslog_msg(watchdog_t)
+
+sysnet_dns_name_resolve(watchdog_t)
+
+userdom_dontaudit_use_unpriv_user_fds(watchdog_t)
+userdom_dontaudit_search_user_home_dirs(watchdog_t)
+
+optional_policy(`
+    cron_system_entry(watchdog_t, watchdog_exec_t)
+')
+
+optional_policy(`
+	mta_send_mail(watchdog_t)
+')
+
+optional_policy(`
+	nis_use_ypbind(watchdog_t)
+')
+
+optional_policy(`
+    rhcs_domtrans_fenced(watchdog_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(watchdog_t)
+')
+
+optional_policy(`
+	udev_read_db(watchdog_t)
+')
+
+optional_policy(`
+	watchdog_unconfined_exec_read_lnk_files(watchdog_t)
+')
+
+########################################
+#
+# watchdog_unconfined_script_t local policy
+#
+
+optional_policy(`
+	type watchdog_unconfined_t;
+	domain_type(watchdog_unconfined_t)
+
+	domain_entry_file(watchdog_unconfined_t, watchdog_unconfined_exec_t)
+	role system_r types watchdog_unconfined_t;
+
+	domtrans_pattern(watchdog_t, watchdog_unconfined_exec_t, watchdog_unconfined_t)
+
+	allow watchdog_t watchdog_unconfined_exec_t:dir search_dir_perms;
+	allow watchdog_t watchdog_unconfined_exec_t:dir read_file_perms;
+	allow watchdog_t watchdog_unconfined_exec_t:file ioctl;
+
+	init_domtrans_script(watchdog_unconfined_t)
+
+	optional_policy(`
+		unconfined_domain(watchdog_unconfined_t)
+	')
+')

@@ -1,0 +1,101 @@
+policy_module(prosody, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##  <p>
+##  Permit to prosody to bind apache port.
+##  Need to be activated to use BOSH.
+##  </p>
+## </desc>
+gen_tunable(prosody_bind_http_port, false)
+
+type prosody_t;
+type prosody_exec_t;
+init_daemon_domain(prosody_t, prosody_exec_t)
+
+type prosody_log_t;
+logging_log_file(prosody_log_t)
+
+type prosody_var_lib_t;
+files_type(prosody_var_lib_t)
+
+type prosody_var_run_t;
+files_pid_file(prosody_var_run_t)
+
+type prosody_tmp_t;
+files_tmp_file(prosody_tmp_t)
+
+type prosody_unit_file_t;
+systemd_unit_file(prosody_unit_file_t)
+
+########################################
+#
+# prosody local policy
+#
+allow prosody_t self:capability { setuid setgid dac_read_search  };
+allow prosody_t self:process { signal_perms execmem };
+allow prosody_t self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(prosody_t, prosody_var_lib_t, prosody_var_lib_t)
+manage_files_pattern(prosody_t, prosody_var_lib_t, prosody_var_lib_t)
+manage_lnk_files_pattern(prosody_t, prosody_var_lib_t, prosody_var_lib_t)
+files_var_lib_filetrans(prosody_t, prosody_var_lib_t, { dir file lnk_file })
+
+manage_dirs_pattern(prosody_t, prosody_var_run_t, prosody_var_run_t)
+manage_files_pattern(prosody_t, prosody_var_run_t, prosody_var_run_t)
+manage_lnk_files_pattern(prosody_t, prosody_var_run_t, prosody_var_run_t)
+manage_sock_files_pattern(prosody_t, prosody_var_run_t, prosody_var_run_t)
+files_pid_filetrans(prosody_t, prosody_var_run_t, { dir file lnk_file })
+
+manage_dirs_pattern(prosody_t, prosody_log_t, prosody_log_t)
+manage_files_pattern(prosody_t, prosody_log_t, prosody_log_t)
+setattr_files_pattern(prosody_t, prosody_log_t, prosody_log_t)
+logging_log_filetrans(prosody_t, prosody_log_t, { file dir })
+
+manage_dirs_pattern(prosody_t, prosody_tmp_t, prosody_tmp_t)
+manage_files_pattern(prosody_t, prosody_tmp_t, prosody_tmp_t)
+files_tmp_filetrans(prosody_t, prosody_tmp_t, { dir file })
+
+can_exec(prosody_t, prosody_exec_t)
+
+kernel_read_net_sysctls(prosody_t)
+kernel_read_system_state(prosody_t)
+
+corecmd_exec_bin(prosody_t)
+corecmd_exec_shell(prosody_t)
+
+corenet_udp_bind_generic_node(prosody_t)
+corenet_tcp_connect_postgresql_port(prosody_t)
+corenet_tcp_connect_jabber_interserver_port(prosody_t)
+corenet_tcp_connect_jabber_client_port(prosody_t)
+corenet_tcp_bind_prosody_port(prosody_t)
+corenet_tcp_bind_jabber_client_port(prosody_t)
+corenet_tcp_bind_jabber_interserver_port(prosody_t)
+corenet_tcp_bind_jabber_router_port(prosody_t)
+corenet_tcp_bind_commplex_main_port(prosody_t)
+corenet_tcp_bind_fac_restore_port(prosody_t)
+
+tunable_policy(`prosody_bind_http_port',`
+    corenet_tcp_bind_http_port(prosody_t)
+')
+
+dev_read_urand(prosody_t)
+
+domain_use_interactive_fds(prosody_t)
+
+files_read_etc_files(prosody_t)
+
+auth_use_nsswitch(prosody_t)
+sysnet_read_config(prosody_t)
+
+logging_send_syslog_msg(prosody_t)
+
+miscfiles_read_localization(prosody_t)
+
+optional_policy(`
+	sasl_connect(prosody_t)
+')

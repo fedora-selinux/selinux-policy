@@ -1,0 +1,90 @@
+## <summary>policy for ajaxterm</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run ajaxterm.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ajaxterm_domtrans',`
+	gen_require(`
+		type ajaxterm_t, ajaxterm_exec_t;
+	')
+
+	domtrans_pattern($1, ajaxterm_exec_t, ajaxterm_t)
+')
+
+########################################
+## <summary>
+##	Execute ajaxterm server in the ajaxterm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ajaxterm_initrc_domtrans',`
+	gen_require(`
+		type ajaxterm_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, ajaxterm_initrc_exec_t)
+')
+
+#######################################
+## <summary>
+##  Read and write the ajaxterm pty type.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ajaxterm_rw_ptys',`
+    gen_require(`
+        type ajaxterm_devpts_t;
+    ')
+
+    allow $1 ajaxterm_devpts_t:chr_file	rw_inherited_term_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ajaxterm environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ajaxterm_admin',`
+	gen_require(`
+		type ajaxterm_t, ajaxterm_initrc_exec_t;
+	')
+
+	allow $1 ajaxterm_t:process signal_perms;
+	ps_process_pattern($1, ajaxterm_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 ajaxterm_t:process ptrace;
+	')
+
+	ajaxterm_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 ajaxterm_initrc_exec_t system_r;
+	allow $2 system_r;
+')

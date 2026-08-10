@@ -1,0 +1,70 @@
+policy_module(dmesg, 1.3.0)
+
+########################################
+#
+# Declarations
+#
+
+type dmesg_t;
+type dmesg_exec_t;
+init_system_domain(dmesg_t, dmesg_exec_t)
+
+ifdef(`enable_mls',`
+	init_ranged_daemon_domain(dmesg_t, dmesg_exec_t, mls_systemhigh)
+')
+
+########################################
+#
+# Local policy
+#
+
+allow dmesg_t self:capability sys_admin;
+dontaudit dmesg_t self:capability sys_tty_config;
+
+allow dmesg_t self:process signal_perms;
+
+kernel_read_system_state(dmesg_t)
+kernel_read_kernel_sysctls(dmesg_t)
+kernel_read_ring_buffer(dmesg_t)
+kernel_clear_ring_buffer(dmesg_t)
+kernel_change_ring_buffer_level(dmesg_t)
+kernel_list_proc(dmesg_t)
+kernel_read_proc_symlinks(dmesg_t)
+kernel_dontaudit_write_kernel_sysctl(dmesg_t)
+
+dev_read_sysfs(dmesg_t)
+dev_read_kmsg(dmesg_t)
+dev_read_raw_memory(dmesg_t)
+
+fs_search_auto_mountpoints(dmesg_t)
+
+term_dontaudit_use_console(dmesg_t)
+
+domain_use_interactive_fds(dmesg_t)
+
+files_list_etc(dmesg_t)
+# for when /usr is not mounted:
+files_dontaudit_search_isid_type_dirs(dmesg_t)
+
+init_use_fds(dmesg_t)
+init_use_script_ptys(dmesg_t)
+
+logging_send_syslog_msg(dmesg_t)
+logging_write_generic_logs(dmesg_t)
+
+miscfiles_read_hwdata(dmesg_t)
+
+userdom_dontaudit_use_unpriv_user_fds(dmesg_t)
+userdom_use_inherited_user_terminals(dmesg_t)
+
+optional_policy(`
+	abrt_rw_inherited_cache(dmesg_t)
+')
+
+optional_policy(`
+	seutil_sigchld_newrole(dmesg_t)
+')
+
+optional_policy(`
+	udev_read_db(dmesg_t)
+')

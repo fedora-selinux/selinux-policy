@@ -1,0 +1,137 @@
+## <summary>A Unix manpage-to-HTML converter.</summary>
+
+########################################
+## <summary>
+##	Transition to man2html_script.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`man2html_script_domtrans',`
+	gen_require(`
+		type man2html_script_t, man2html_script_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, man2html_script_exec_t, man2html_script_t)
+')
+
+########################################
+## <summary>
+##	Search man2html_script content directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`man2html_search_content',`
+	gen_require(`
+		type man2html_content_t;
+		type man2html_rw_content_t;
+	')
+
+	allow $1 { man2html_rw_content_t man2html_content_t }:dir search_dir_perms;
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Read man2html cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`man2html_read_content_files',`
+	gen_require(`
+		type man2html_content_t;
+		type man2html_rw_content_t;
+	')
+
+	files_search_var($1)
+	allow $1 { man2html_rw_content_t man2html_content_t }:dir search_dir_perms;
+	read_files_pattern($1, man2html_rw_content_t, man2html_rw_content_t)
+	read_files_pattern($1, man2html_content_t, man2html_content_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	man2html content files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`man2html_manage_content_files',`
+	gen_require(`
+		type man2html_content_t;
+		type man2html_rw_content_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, man2html_rw_content_t, man2html_rw_content_t)
+	manage_files_pattern($1, man2html_content_t, man2html_content_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	man2html content dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`man2html_manage_content_dirs',`
+	gen_require(`
+		type man2html_content_t;
+		type man2html_rw_content_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, man2html_rw_content_t, man2html_rw_content_t)
+	manage_dirs_pattern($1, man2html_content_t, man2html_content_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an man2html environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`man2html_admin',`
+	gen_require(`
+		type man2html_script_t;
+		type man2html_rw_content_t;
+		type man2html_content_t;
+	')
+
+	allow $1 man2html_script_t:process { ptrace signal_perms };
+	ps_process_pattern($1, man2html_script_t)
+
+	files_search_var($1)
+	admin_pattern($1, man2html_content_t)
+	admin_pattern($1, man2html_rw_content_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

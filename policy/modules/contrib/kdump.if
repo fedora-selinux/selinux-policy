@@ -1,0 +1,360 @@
+## <summary>Kernel crash dumping mechanism</summary>
+
+######################################
+## <summary>
+##	Execute kdump in the kdump domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`kdump_domtrans',`
+	gen_require(`
+		type kdump_t, kdump_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, kdump_exec_t, kdump_t)
+')
+
+######################################
+## <summary>
+##	Execute kdumpctl in the kdumpctl domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`kdumpctl_domtrans',`
+	gen_require(`
+		type kdumpctl_t, kdumpctl_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, kdumpctl_exec_t, kdumpctl_t)
+')
+
+
+#######################################
+## <summary>
+##	Execute kdump in the kdump domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`kdump_initrc_domtrans',`
+	gen_require(`
+		type kdump_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, kdump_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute kdump server in the kdump domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`kdump_systemctl',`
+	gen_require(`
+		type kdump_unit_file_t;
+		type kdump_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	systemd_search_unit_dirs($1)
+	allow $1 kdump_unit_file_t:file read_file_perms;
+	allow $1 kdump_unit_file_t:service all_service_perms;
+
+	ps_process_pattern($1, kdump_t)
+')
+
+#####################################
+## <summary>
+##	Read kdump configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kdump_read_config',`
+	gen_require(`
+		type kdump_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 kdump_etc_t:file read_file_perms;
+')
+
+#####################################
+## <summary>
+##	Read kdump crash files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kdump_read_crash',`
+	gen_require(`
+		type kdump_crash_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, kdump_crash_t, kdump_crash_t)
+	list_dirs_pattern($1, kdump_crash_t, kdump_crash_t)
+')
+
+#####################################
+## <summary>
+##	Read kdump crash files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kdump_manage_crash',`
+	gen_require(`
+		type kdump_crash_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, kdump_crash_t, kdump_crash_t)
+	manage_dirs_pattern($1, kdump_crash_t, kdump_crash_t)
+')
+
+#####################################
+## <summary>
+##	Dontaudit read kdump configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`kdump_dontaudit_read_config',`
+	gen_require(`
+		type kdump_etc_t;
+	')
+
+	dontaudit $1 kdump_etc_t:file read_inherited_file_perms;
+')
+
+####################################
+## <summary>
+##	Manage kdump configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kdump_manage_config',`
+	gen_require(`
+		type kdump_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 kdump_etc_t:file manage_file_perms;
+')
+
+#####################################
+## <summary>
+##	Read and write kdump lock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kdump_rw_lock',`
+	gen_require(`
+		type kdump_lock_t;
+	')
+
+	files_search_locks($1)
+    rw_files_pattern($1, kdump_lock_t, kdump_lock_t)
+')
+
+###################################
+## <summary>
+##      Read/write inherited kdump /var/tmp named pipes.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`kdump_rw_inherited_kdumpctl_tmp_pipes',`
+        gen_require(`
+                type kdumpctl_tmp_t;
+        ')
+
+    files_search_tmp($1)
+    allow $1 kdumpctl_tmp_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+###################################
+## <summary>
+##      Manage kdump /var/tmp files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`kdump_manage_kdumpctl_tmp_files',`
+        gen_require(`
+                type kdumpctl_tmp_t;
+        ')
+
+        files_search_tmp($1)
+        manage_files_pattern($1, kdumpctl_tmp_t, kdumpctl_tmp_t)
+	manage_dirs_pattern($1, kdumpctl_tmp_t, kdumpctl_tmp_t)
+	manage_fifo_files_pattern($1, kdumpctl_tmp_t, kdumpctl_tmp_t)
+	manage_lnk_files_pattern($1, kdumpctl_tmp_t, kdumpctl_tmp_t)
+    allow $1 kdumpctl_tmp_t:file map;
+')
+
+#######################################
+## <summary>
+##  Transition content labels to kdump named content
+## </summary>
+## <param name="domain">
+##  <summary>
+##      Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`kdump_filetrans_named_content',`
+    gen_require(`
+        type kdump_lock_t;
+    ')
+
+    files_lock_filetrans($1, kdump_lock_t, file, "kdump")
+')
+
+######################################
+## <summary>
+##	All of the rules required to administrate 
+##	an kdump environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the kdump domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kdump_admin',`
+	gen_require(`
+		type kdump_t, kdump_etc_t;
+		type kdump_initrc_exec_t;
+		type kdump_unit_file_t;
+		type kdump_crash_t;
+	')
+
+	allow $1 kdump_t:process signal_perms;
+	ps_process_pattern($1, kdump_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 kdump_t:process ptrace;
+	')
+
+	init_labeled_script_domtrans($1, kdump_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 kdump_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, kdump_etc_t)
+
+	files_search_var($1)
+	admin_pattern($1, kdump_crash_t)
+
+	kdump_systemctl($1)
+	admin_pattern($1, kdump_unit_file_t)
+	allow $1 kdump_unit_file_t:service all_service_perms;
+')
+
+###################################
+## <summary>
+##     Dontaudit Read/write inherited kdump /var/tmp named pipes.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain to not audit
+##      </summary>
+## </param>
+#
+interface(`kdump_dontaudit_inherited_kdumpctl_tmp_pipes',`
+        gen_require(`
+                type kdumpctl_tmp_t;
+        ')
+
+        dontaudit $1 kdumpctl_tmp_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+
+###################################
+## <summary>
+##     Manage kdump lib files
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain to allow access
+##      </summary>
+## </param>
+#
+interface(`kdump_manage_lib_files',`
+        gen_require(`
+                type kdump_var_lib_t;
+        ')
+
+	manage_files_pattern($1, kdump_var_lib_t, kdump_var_lib_t)
+')
+
+#######################################
+## <summary>
+##	Send to kdumpctl over a unix dgram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kdump_dgram_send_kdumpctl',`
+	gen_require(`
+		type kdumpctl_t;
+	')
+
+	allow $1 kdumpctl_t:unix_dgram_socket sendto;
+')

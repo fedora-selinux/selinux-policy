@@ -1,0 +1,585 @@
+## <summary>Policy for mount.</summary>
+
+########################################
+## <summary>
+##	Execute mount in the mount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`mount_domtrans',`
+	gen_require(`
+		type mount_t, mount_exec_t;
+	')
+
+	domtrans_pattern($1, mount_exec_t, mount_t)
+	mount_domtrans_fusermount($1)
+	
+	allow $1 mount_t:fd use;
+	ps_process_pattern(mount_t, $1)
+
+	allow mount_t $1:key write;
+	allow mount_t $1:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Execute mount in the mount domain, and
+##	allow the specified role the mount domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mount_run',`
+	gen_require(`
+		attribute_role mount_roles;
+		type mount_t;
+	')
+
+	mount_domtrans($1)
+	roleattribute $2 mount_roles;
+')
+
+########################################
+## <summary>
+##	Execute fusermount in the mount domain, and
+##	allow the specified role the mount domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the mount domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mount_run_fusermount',`
+	gen_require(`
+		type mount_t;
+	')
+
+	mount_domtrans_fusermount($1)
+	role $2 types mount_t;
+
+	fstools_run(mount_t, $2)
+')
+
+########################################
+## <summary>
+##	Read mount PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_read_pid_files',`
+	gen_require(`
+		type mount_var_run_t;
+	')
+
+	read_files_pattern($1, mount_var_run_t, mount_var_run_t)
+	list_dirs_pattern($1, mount_var_run_t, mount_var_run_t)
+	files_search_pids($1)
+')
+
+########################################
+## <summary>
+##	Read mount process state files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_read_state',`
+	gen_require(`
+		type mount_t;
+	')
+	ps_process_pattern($1, mount_t)
+')
+
+########################################
+## <summary>
+##	Read/write mount PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_rw_pid_files',`
+	gen_require(`
+		type mount_var_run_t;
+	')
+
+	rw_files_pattern($1, mount_var_run_t, mount_var_run_t)
+	files_search_pids($1)
+')
+
+#######################################
+## <summary>
+##	Do not audit attemps to write mount PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`mount_dontaudit_write_mount_pid',`
+	gen_require(`
+		type mount_var_run_t;
+	')
+
+	dontaudit $1 mount_var_run_t:file write;
+')
+
+########################################
+## <summary>
+##	Manage mount PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_manage_pid_files',`
+	gen_require(`
+		type mount_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, mount_var_run_t, mount_var_run_t)
+')
+
+########################################
+## <summary>
+##	Watch mount PID directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_watch_pid_dirs',`
+	gen_require(`
+		type mount_var_run_t;
+	')
+
+	files_search_pids($1)
+	watch_dirs_pattern($1, mount_var_run_t, mount_var_run_t)
+')
+
+########################################
+## <summary>
+##	Watch_reads mount PID directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_watch_reads_pid_dirs',`
+	gen_require(`
+		type mount_var_run_t;
+	')
+
+	files_search_pids($1)
+	watch_reads_dirs_pattern($1, mount_var_run_t, mount_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	Watch mount PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_watch_pid_files',`
+	gen_require(`
+		type mount_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 mount_var_run_t:file watch_file_perms;
+')
+
+########################################
+## <summary>
+##	Watch_reads mount PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_watch_reads_pid_files',`
+	gen_require(`
+		type mount_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 mount_var_run_t:file watch_reads_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute mount in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_exec',`
+	gen_require(`
+		type mount_exec_t;
+	')
+
+	# cjp: this should be removed:
+	allow $1 mount_exec_t:dir list_dir_perms;
+
+	allow $1 mount_exec_t:lnk_file read_lnk_file_perms;
+	can_exec($1, mount_exec_t)
+')
+
+########################################
+## <summary>
+##	Send a generic signal to mount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_signal',`
+	gen_require(`
+		type mount_t;
+	')
+
+	allow $1 mount_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send a generic sigkill to mount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_sigkill',`
+	gen_require(`
+		type mount_t;
+	')
+
+	allow $1 mount_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Use file descriptors for mount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_use_fds',`
+	gen_require(`
+		type mount_t;
+	')
+
+	allow $1 mount_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Allow the mount domain to send nfs requests for mounting
+##	network drives
+## </summary>
+## <desc>
+##	<p>
+##	Allow the mount domain to send nfs requests for mounting
+##	network drives
+##	</p>
+##	<p>
+##	This interface has been deprecated as these rules were
+##	a side effect of leaked mount file descriptors.  This
+##	interface has no effect.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_send_nfs_client_request',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Read the mount tmp directory 
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_list_tmp',`
+	gen_require(`
+		type mount_tmp_t;
+	')
+
+	allow $1 mount_tmp_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Execute fusermount in the mount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_domtrans_fusermount',`
+	gen_require(`
+		type mount_t, fusermount_exec_t;
+	')
+
+	domtrans_pattern($1, fusermount_exec_t, mount_t)
+	ps_process_pattern(mount_t, $1)
+
+	allow mount_t $1:unix_stream_socket { read write };
+	allow $1 mount_t:fd use;
+')
+
+########################################
+## <summary>
+##	Execute fusermount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_exec_fusermount',`
+	gen_require(`
+		type fusermount_exec_t;
+	')
+
+	can_exec($1, fusermount_exec_t)
+')
+
+########################################
+## <summary>
+##	dontaudit Execute fusermount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`mount_dontaudit_exec_fusermount',`
+	gen_require(`
+		type fusermount_exec_t;
+	')
+
+	dontaudit $1 fusermount_exec_t:file exec_file_perms;
+')
+
+######################################
+## <summary>
+##  Execute a domain transition to run showmount.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mount_domtrans_showmount',`
+    gen_require(`
+        type showmount_t, showmount_exec_t;
+    ')
+
+    domtrans_pattern($1, showmount_exec_t, showmount_t)
+')
+
+######################################
+## <summary>
+##  Execute showmount in the showmount domain, and
+##  allow the specified role the showmount domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  The role to be allowed the showmount domain.
+##  </summary>
+## </param>
+#
+interface(`mount_run_showmount',`
+    gen_require(`
+        type showmount_t;
+    ')
+
+    mount_domtrans_showmount($1)
+    role $2 types showmount_t;
+')
+
+#######################################
+## <summary>
+##	Transition to ecryptmount.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mount_domtrans_ecryptmount',`
+	gen_require(`
+		type mount_ecryptfs_t, mount_ecryptfs_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mount_ecryptfs_exec_t, mount_ecryptfs_t)
+')
+
+########################################
+## <summary>
+##	Execute ecryptmount in the ecryptmount domain, and
+##	allow the specified role the ecryptmount domain,
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_run_ecryptmount',`
+	gen_require(`
+		attribute_role mount_roles;
+	')
+
+	mount_domtrans_ecryptmount($1)
+	roleattribute $2 mount_roles;
+')
+
+#######################################
+## <summary>
+##  Execute mount in the unconfined mount domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`mount_domtrans_unconfined',`
+    gen_require(`
+        type unconfined_mount_t, mount_exec_t;
+    ')
+
+    domtrans_pattern($1, mount_exec_t, unconfined_mount_t)
+')
+
+#######################################
+## <summary>
+##  Execute mount in the unconfined mount domain, and
+##  allow the specified role the unconfined mount domain,
+##  and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  Role allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`mount_run_unconfined',`
+    gen_require(`
+        type unconfined_mount_t;
+    ')
+
+    mount_domtrans_unconfined($1)
+    role $2 types unconfined_mount_t;
+')
+
+########################################
+## <summary>
+##	Allow mount programs to be an entrypoint for
+##	the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which mount programs is an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`mount_entry_type',`
+	gen_require(`
+		type mount_ecryptfs_exec_t;
+		type mount_exec_t;
+	')
+
+	domain_entry_file($1, mount_ecryptfs_exec_t)
+	domain_entry_file($1, mount_exec_t)
+')
+

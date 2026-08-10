@@ -1,0 +1,149 @@
+policy_module(firewalld, 1.1.1)
+
+########################################
+#
+# Declarations
+#
+
+type firewalld_t;
+type firewalld_exec_t;
+init_daemon_domain(firewalld_t, firewalld_exec_t)
+init_nnp_daemon_domain(firewalld_t)
+
+type firewalld_initrc_exec_t;
+init_script_file(firewalld_initrc_exec_t)
+
+type firewalld_etc_rw_t;
+files_config_file(firewalld_etc_rw_t)
+
+type firewalld_var_log_t;
+logging_log_file(firewalld_var_log_t)
+
+type firewalld_tmp_t;
+files_tmp_file(firewalld_tmp_t)
+
+type firewalld_tmpfs_t;
+files_tmpfs_file(firewalld_tmpfs_t)
+
+type firewalld_var_run_t;
+files_pid_file(firewalld_var_run_t)
+
+type firewalld_unit_file_t;
+systemd_unit_file(firewalld_unit_file_t)
+
+########################################
+#
+# Local policy
+#
+
+allow firewalld_t self:capability { net_admin net_raw setpcap };
+dontaudit firewalld_t self:capability { dac_override sys_tty_config };
+allow firewalld_t self:process setcap;
+allow firewalld_t self:fifo_file rw_fifo_file_perms;
+allow firewalld_t self:unix_stream_socket { accept listen };
+allow firewalld_t self:udp_socket create_socket_perms;
+allow firewalld_t self:netlink_netfilter_socket create_socket_perms;
+allow firewalld_t self:rawip_socket create_socket_perms;
+
+allow firewalld_t firewalld_etc_rw_t:dir watch;
+manage_dirs_pattern(firewalld_t, firewalld_etc_rw_t, firewalld_etc_rw_t)
+manage_files_pattern(firewalld_t, firewalld_etc_rw_t, firewalld_etc_rw_t)
+relabel_files_pattern(firewalld_t, firewalld_etc_rw_t, firewalld_etc_rw_t)
+manage_lnk_files_pattern(firewalld_t, firewalld_etc_rw_t, firewalld_etc_rw_t)
+
+allow firewalld_t firewalld_var_log_t:file append_file_perms;
+allow firewalld_t firewalld_var_log_t:file create_file_perms;
+allow firewalld_t firewalld_var_log_t:file read_file_perms;
+allow firewalld_t firewalld_var_log_t:file setattr_file_perms;
+logging_log_filetrans(firewalld_t, firewalld_var_log_t, file)
+
+manage_files_pattern(firewalld_t, firewalld_tmp_t, firewalld_tmp_t)
+files_tmp_filetrans(firewalld_t, firewalld_tmp_t, file)
+allow firewalld_t firewalld_tmp_t:file mmap_file_perms;
+
+manage_files_pattern(firewalld_t, firewalld_tmpfs_t, firewalld_tmpfs_t)
+fs_tmpfs_filetrans(firewalld_t, firewalld_tmpfs_t, file)
+allow firewalld_t firewalld_tmpfs_t:file mmap_file_perms;
+
+manage_files_pattern(firewalld_t, firewalld_var_run_t, firewalld_var_run_t)
+manage_dirs_pattern(firewalld_t, firewalld_var_run_t, firewalld_var_run_t)
+files_pid_filetrans(firewalld_t, firewalld_var_run_t, { file dir })
+can_exec(firewalld_t, firewalld_var_run_t)
+
+kernel_read_network_state(firewalld_t)
+kernel_read_system_state(firewalld_t)
+kernel_rw_net_sysctls(firewalld_t)
+kernel_load_module(firewalld_t)
+kernel_request_load_module(firewalld_t)
+
+files_list_kernel_modules(firewalld_t)
+
+corecmd_exec_bin(firewalld_t)
+corecmd_exec_shell(firewalld_t)
+
+dev_read_urand(firewalld_t)
+dev_read_sysfs(firewalld_t)
+
+domain_use_interactive_fds(firewalld_t)
+domain_obj_id_change_exemption(firewalld_t)
+
+files_dontaudit_access_check_tmp(firewalld_t)
+files_dontaudit_list_tmp(firewalld_t)
+
+fs_getattr_xattr_fs(firewalld_t)
+fs_dontaudit_all_access_check(firewalld_t)
+
+auth_use_nsswitch(firewalld_t)
+
+libs_exec_ldconfig(firewalld_t)
+libs_dontaudit_write_lib_dirs(firewalld_t)
+libs_watch_lib_dirs(firewalld_t)
+
+logging_send_syslog_msg(firewalld_t)
+
+sysnet_dns_name_resolve(firewalld_t)
+sysnet_manage_config_dirs(firewalld_t)
+sysnet_manage_config(firewalld_t)
+sysnet_relabelfrom_net_conf(firewalld_t)
+sysnet_relabelto_net_conf(firewalld_t)
+
+userdom_dontaudit_create_admin_dir(firewalld_t)
+userdom_dontaudit_manage_admin_dir(firewalld_t)
+
+optional_policy(`
+	dbus_system_domain(firewalld_t, firewalld_exec_t)
+
+	optional_policy(`
+		devicekit_dbus_chat_power(firewalld_t)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(firewalld_t)
+	')
+
+	optional_policy(`
+		networkmanager_dbus_chat(firewalld_t)
+		networkmanager_stream_connect(firewalld_t)
+	')
+')
+
+optional_policy(`
+	gnome_read_generic_data_home_dirs(firewalld_t)
+')
+
+optional_policy(`
+	ica_rw_map_tmpfs_files(firewalld_t)
+')
+
+optional_policy(`
+	iptables_domtrans(firewalld_t)
+	iptables_read_var_run(firewalld_t)
+')
+
+optional_policy(`
+	modutils_domtrans_kmod(firewalld_t)
+')
+
+optional_policy(`
+	networkmanager_read_state(firewalld_t)
+')

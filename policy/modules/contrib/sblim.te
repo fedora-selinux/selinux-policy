@@ -1,0 +1,223 @@
+policy_module(sblim, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute sblim_domain;
+
+sblim_domain_template(gatherd)
+
+sblim_domain_template(reposd)
+
+sblim_domain_template(sfcbd)
+
+type sblim_initrc_exec_t;
+init_script_file(sblim_initrc_exec_t)
+
+type sblim_var_run_t;
+files_pid_file(sblim_var_run_t)
+
+type sblim_var_lib_t;
+files_type(sblim_var_lib_t)
+
+type sblim_tmp_t;
+files_tmp_file(sblim_tmp_t)
+
+type sblim_sfcb_tmpfs_t;
+files_tmpfs_file(sblim_sfcb_tmpfs_t)
+
+######################################
+#
+# Common sblim domain local policy
+#
+
+allow sblim_domain self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
+manage_files_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
+manage_sock_files_pattern(sblim_domain, sblim_var_run_t, sblim_var_run_t)
+files_pid_filetrans(sblim_domain, sblim_var_run_t,dir,"gather")
+
+manage_dirs_pattern(sblim_domain, sblim_var_lib_t, sblim_var_lib_t)
+manage_files_pattern(sblim_domain, sblim_var_lib_t, sblim_var_lib_t)
+manage_lnk_files_pattern(sblim_domain, sblim_var_lib_t, sblim_var_lib_t)
+files_var_lib_filetrans(sblim_domain, sblim_var_lib_t, { dir file lnk_file })
+
+manage_dirs_pattern(sblim_domain, sblim_tmp_t, sblim_tmp_t)
+manage_files_pattern(sblim_domain, sblim_tmp_t, sblim_tmp_t)
+manage_sock_files_pattern(sblim_domain, sblim_tmp_t, sblim_tmp_t)
+files_tmp_filetrans(sblim_domain, sblim_tmp_t, { dir file sock_file})
+
+kernel_read_network_state(sblim_domain)
+kernel_read_sysctl(sblim_domain)
+
+corenet_tcp_sendrecv_generic_if(sblim_domain)
+corenet_tcp_sendrecv_generic_node(sblim_domain)
+
+corenet_tcp_sendrecv_repository_port(sblim_domain)
+
+dev_read_sysfs(sblim_domain)
+dev_read_rand(sblim_domain)
+dev_read_urand(sblim_domain)
+
+auth_read_passwd(sblim_domain)
+
+########################################
+#
+# Gatherd local policy
+#
+
+allow sblim_gatherd_t self:capability { dac_read_search kill sys_nice sys_ptrace };
+allow sblim_gatherd_t self:process { setsched signal };
+allow sblim_gatherd_t self:fifo_file rw_fifo_file_perms;
+allow sblim_gatherd_t self:unix_stream_socket { accept listen };
+
+domtrans_pattern(sblim_gatherd_t, sblim_reposd_exec_t, sblim_reposd_t)
+
+kernel_read_fs_sysctls(sblim_gatherd_t)
+kernel_read_kernel_sysctls(sblim_gatherd_t)
+
+corecmd_exec_bin(sblim_gatherd_t)
+corecmd_exec_shell(sblim_gatherd_t)
+
+corenet_sendrecv_repository_client_packets(sblim_gatherd_t)
+corenet_tcp_connect_repository_port(sblim_gatherd_t)
+
+dev_read_rand(sblim_gatherd_t)
+dev_read_urand(sblim_gatherd_t)
+
+domain_read_all_domains_state(sblim_gatherd_t)
+
+fs_getattr_all_fs(sblim_gatherd_t)
+fs_search_cgroup_dirs(sblim_gatherd_t)
+
+storage_raw_read_fixed_disk(sblim_gatherd_t)
+storage_raw_read_removable_device(sblim_gatherd_t)
+
+auth_use_nsswitch(sblim_gatherd_t)
+
+init_read_utmp(sblim_gatherd_t)
+
+logging_send_syslog_msg(sblim_gatherd_t)
+
+sysnet_dns_name_resolve(sblim_gatherd_t)
+
+term_getattr_pty_fs(sblim_gatherd_t)
+
+userdom_signull_unpriv_users(sblim_gatherd_t)
+
+optional_policy(`
+	locallogin_signull(sblim_gatherd_t)
+')
+
+optional_policy(`
+	rpc_search_nfs_state_data(sblim_gatherd_t)
+')
+
+optional_policy(`
+	ssh_signull(sblim_gatherd_t)
+')
+
+optional_policy(`
+	systemd_read_logind_sessions_files(sblim_gatherd_t)
+')
+
+optional_policy(`
+	virt_read_config(sblim_gatherd_t)
+	virt_stream_connect(sblim_gatherd_t)
+	virt_getattr_exec(sblim_gatherd_t)
+')
+
+optional_policy(`
+	xen_stream_connect(sblim_gatherd_t)
+	xen_stream_connect_xenstore(sblim_gatherd_t)
+')
+
+#######################################
+#
+# Reposd local policy
+#
+
+corenet_tcp_bind_generic_node(sblim_reposd_t)
+
+corenet_sendrecv_repository_server_packets(sblim_reposd_t)
+corenet_tcp_bind_repository_port(sblim_reposd_t)
+
+logging_send_syslog_msg(sblim_reposd_t)
+
+miscfiles_read_certs(sblim_reposd_t)
+
+#######################################
+#
+# Sfcbd local policy
+#
+
+allow sblim_sfcbd_t self:capability { dac_read_search setgid setuid sys_ptrace sys_rawio};
+dontaudit sblim_sfcbd_t self:cap_userns sys_ptrace;
+allow sblim_sfcbd_t self:process signal;
+allow sblim_sfcbd_t self:unix_stream_socket connectto;
+
+allow sblim_sfcbd_t sblim_reposd_t:unix_stream_socket connectto;
+
+manage_dirs_pattern(sblim_sfcbd_t, sblim_sfcb_tmpfs_t, sblim_sfcb_tmpfs_t)
+manage_files_pattern(sblim_sfcbd_t, sblim_sfcb_tmpfs_t, sblim_sfcb_tmpfs_t)
+fs_tmpfs_filetrans(sblim_sfcbd_t, sblim_sfcb_tmpfs_t, { dir file })
+allow sblim_sfcbd_t sblim_sfcb_tmpfs_t:file map;
+
+auth_use_nsswitch(sblim_sfcbd_t)
+auth_domtrans_chkpwd(sblim_sfcbd_t)
+
+corenet_tcp_bind_pegasus_http_port(sblim_sfcbd_t)
+corenet_tcp_connect_pegasus_http_port(sblim_sfcbd_t)
+corenet_tcp_bind_pegasus_https_port(sblim_sfcbd_t)
+corenet_tcp_connect_pegasus_https_port(sblim_sfcbd_t)
+
+corenet_tcp_connect_http_port(sblim_sfcbd_t)
+
+corecmd_exec_shell(sblim_sfcbd_t)
+corecmd_exec_bin(sblim_sfcbd_t)
+
+dev_read_rand(sblim_sfcbd_t)
+dev_read_urand(sblim_sfcbd_t)
+dev_read_raw_memory(sblim_sfcbd_t)
+
+domain_read_all_domains_state(sblim_sfcbd_t)
+domain_use_interactive_fds(sblim_sfcbd_t)
+
+files_getattr_non_auth_dirs(sblim_sfcbd_t)
+
+hostname_exec(sblim_sfcbd_t)
+
+init_read_utmp(sblim_sfcbd_t)
+
+logging_send_audit_msgs(sblim_sfcbd_t)
+
+optional_policy(`
+    setroubleshoot_signull(sblim_sfcbd_t)
+')
+
+optional_policy(`
+    rpm_exec(sblim_sfcbd_t)
+    rpm_dontaudit_manage_db(sblim_sfcbd_t)
+')
+
+optional_policy(`
+	ssh_signull(sblim_sfcbd_t)
+')
+
+optional_policy(`
+	systemd_read_logind_sessions_files(sblim_sfcbd_t)
+')
+
+optional_policy(`
+    virt_manage_config(sblim_sfcbd_t)
+    virt_stream_connect(sblim_sfcbd_t)
+    virt_search_images(sblim_sfcbd_t)
+    virt_getattr_images(sblim_sfcbd_t)
+')
+
+optional_policy(`
+    qemu_getattr_exec(sblim_sfcbd_t)
+')

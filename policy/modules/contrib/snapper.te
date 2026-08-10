@@ -1,0 +1,100 @@
+policy_module(snapper, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type snapperd_t;
+type snapperd_exec_t;
+init_daemon_domain(snapperd_t, snapperd_exec_t)
+
+type snapperd_log_t;
+logging_log_file(snapperd_log_t)
+
+type snapperd_conf_t;
+files_config_file(snapperd_conf_t)
+
+type snapperd_data_t;
+files_type(snapperd_data_t)
+
+########################################
+#
+# snapperd local policy
+#
+
+allow snapperd_t self:capability { dac_read_search dac_override fowner sys_admin };
+allow snapperd_t self:process setsched;
+
+allow snapperd_t self:fifo_file rw_fifo_file_perms;
+allow snapperd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_files_pattern(snapperd_t, snapperd_log_t, snapperd_log_t)
+logging_log_filetrans(snapperd_t, snapperd_log_t, file)
+
+manage_files_pattern(snapperd_t, snapperd_conf_t, snapperd_conf_t)
+manage_dirs_pattern(snapperd_t, snapperd_conf_t, snapperd_conf_t)
+manage_lnk_files_pattern(snapperd_t, snapperd_conf_t, snapperd_conf_t)
+
+manage_files_pattern(snapperd_t, snapperd_data_t, snapperd_data_t)
+manage_dirs_pattern(snapperd_t, snapperd_data_t, snapperd_data_t)
+manage_lnk_files_pattern(snapperd_t, snapperd_data_t, snapperd_data_t)
+allow snapperd_t snapperd_data_t:dir { relabelfrom relabelto mounton };
+allow snapperd_t snapperd_data_t:file relabelfrom;
+snapper_filetrans_named_content(snapperd_t)
+
+kernel_setsched(snapperd_t)
+kernel_stream_connect(snapperd_t)
+
+domain_read_all_domains_state(snapperd_t)
+
+corecmd_exec_shell(snapperd_t)
+corecmd_exec_bin(snapperd_t)
+
+files_write_all_dirs(snapperd_t)
+files_setattr_all_mountpoints(snapperd_t)
+files_relabelto_all_mountpoints(snapperd_t)
+files_relabelfrom_isid_type(snapperd_t)
+files_read_all_files(snapperd_t)
+files_read_all_symlinks(snapperd_t)
+files_list_all(snapperd_t)
+files_rmdir_all_dirs(snapperd_t)
+files_manage_isid_type_dirs(snapperd_t)
+
+fs_getattr_all_fs(snapperd_t)
+fs_getattr_all_dirs(snapperd_t)
+fs_getattr_all_files(snapperd_t)
+fs_getattr_all_pipes(snapperd_t)
+fs_getattr_all_sockets(snapperd_t)
+fs_mount_xattr_fs(snapperd_t)
+fs_unmount_xattr_fs(snapperd_t)
+
+storage_raw_read_fixed_disk(snapperd_t)
+
+auth_use_nsswitch(snapperd_t)
+
+optional_policy(`
+    cron_system_entry(snapperd_t, snapperd_exec_t)
+')
+
+optional_policy(`
+    dbus_system_domain(snapperd_t, snapperd_exec_t)
+	dbus_system_bus_client(snapperd_t)
+	dbus_connect_system_bus(snapperd_t)
+')
+
+optional_policy(`
+    mount_domtrans(snapperd_t)
+')
+
+optional_policy(`
+    lvm_domtrans(snapperd_t)
+')
+
+optional_policy(`
+    snapper_relabel_snapshots(snapperd_t)
+')
+
+optional_policy(`
+	systemd_exec_systemctl(snapperd_t)
+')

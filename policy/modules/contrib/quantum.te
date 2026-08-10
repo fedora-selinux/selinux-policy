@@ -1,0 +1,189 @@
+policy_module(quantum, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##  <p>
+##	Determine whether neutron can
+##	connect to all TCP ports
+##	</p>
+## </desc>
+gen_tunable(neutron_can_network, false)
+
+type neutron_t alias quantum_t;
+type neutron_exec_t alias quantum_exec_t;
+init_daemon_domain(neutron_t, neutron_exec_t)
+
+type neutron_initrc_exec_t alias quantum_initrc_exec_t;
+init_script_file(neutron_initrc_exec_t)
+
+type neutron_log_t alias quantum_log_t;
+logging_log_file(neutron_log_t)
+
+type neutron_tmp_t alias quantum_tmp_t;
+files_tmp_file(neutron_tmp_t)
+
+type neutron_var_lib_t alias quantum_var_lib_t;
+files_type(neutron_var_lib_t)
+
+type neutron_var_run_t alias quantum_var_run_t;
+files_pid_file(neutron_var_run_t)
+
+type neutron_unit_file_t alias quantum_unit_file_t;
+systemd_unit_file(neutron_unit_file_t)
+
+########################################
+#
+# Local policy
+#
+
+allow neutron_t self:capability { chown dac_read_search  sys_ptrace kill setgid setuid sys_resource net_admin sys_admin net_raw net_bind_service};
+allow neutron_t self:capability2 block_suspend;
+allow neutron_t self:process { setsched setrlimit setcap signal_perms };
+
+allow neutron_t self:fifo_file rw_fifo_file_perms;
+allow neutron_t self:key manage_key_perms;
+allow neutron_t self:tcp_socket { accept listen };
+allow neutron_t self:unix_stream_socket { accept listen connectto };
+allow neutron_t self:netlink_route_socket rw_netlink_socket_perms;
+allow neutron_t self:rawip_socket create_socket_perms;
+allow neutron_t self:packet_socket create_socket_perms;
+
+manage_dirs_pattern(neutron_t, neutron_log_t, neutron_log_t)
+append_files_pattern(neutron_t, neutron_log_t, neutron_log_t)
+create_files_pattern(neutron_t, neutron_log_t, neutron_log_t)
+setattr_files_pattern(neutron_t, neutron_log_t, neutron_log_t)
+logging_log_filetrans(neutron_t, neutron_log_t, dir)
+
+manage_files_pattern(neutron_t, neutron_tmp_t, neutron_tmp_t)
+manage_dirs_pattern(neutron_t, neutron_tmp_t, neutron_tmp_t)
+files_tmp_filetrans(neutron_t, neutron_tmp_t, { file dir })
+
+manage_files_pattern(neutron_t, neutron_var_run_t, neutron_var_run_t)
+manage_dirs_pattern(neutron_t, neutron_var_run_t, neutron_var_run_t)
+files_pid_filetrans(neutron_t, neutron_var_run_t, { file dir })
+
+manage_dirs_pattern(neutron_t, neutron_var_lib_t, neutron_var_lib_t)
+manage_files_pattern(neutron_t, neutron_var_lib_t, neutron_var_lib_t)
+manage_sock_files_pattern(neutron_t, neutron_var_lib_t, neutron_var_lib_t)
+files_var_lib_filetrans(neutron_t, neutron_var_lib_t, dir)
+
+can_exec(neutron_t, neutron_tmp_t)
+
+kernel_rw_kernel_sysctl(neutron_t)
+kernel_rw_net_sysctls(neutron_t)
+kernel_read_system_state(neutron_t)
+kernel_read_network_state(neutron_t)
+kernel_request_load_module(neutron_t)
+
+corecmd_exec_shell(neutron_t)
+corecmd_exec_bin(neutron_t)
+
+corenet_all_recvfrom_unlabeled(neutron_t)
+corenet_all_recvfrom_netlabel(neutron_t)
+corenet_tcp_sendrecv_generic_if(neutron_t)
+corenet_tcp_sendrecv_generic_node(neutron_t)
+corenet_tcp_sendrecv_all_ports(neutron_t)
+corenet_tcp_bind_generic_node(neutron_t)
+
+corenet_tcp_bind_neutron_port(neutron_t)
+corenet_tcp_connect_neutron_port(neutron_t)
+corenet_tcp_connect_keystone_port(neutron_t)
+corenet_tcp_connect_amqp_port(neutron_t)
+corenet_tcp_connect_mysqld_port(neutron_t)
+corenet_tcp_connect_osapi_compute_port(neutron_t)
+
+domain_read_all_domains_state(neutron_t)
+domain_named_filetrans(neutron_t)
+
+dev_read_sysfs(neutron_t)
+dev_read_urand(neutron_t)
+dev_mounton_sysfs(neutron_t)
+dev_mount_sysfs_fs(neutron_t)
+dev_unmount_sysfs_fs(neutron_t)
+
+files_mounton_non_security(neutron_t)
+
+auth_use_pam(neutron_t)
+
+init_rw_utmp(neutron_t)
+
+libs_exec_ldconfig(neutron_t)
+
+logging_send_audit_msgs(neutron_t)
+logging_send_syslog_msg(neutron_t)
+
+netutils_exec(neutron_t)
+
+# need to stay in neutron
+sysnet_exec_ifconfig(neutron_t)
+sysnet_manage_ifconfig_run(neutron_t)
+sysnet_filetrans_named_content_ifconfig(neutron_t)
+
+tunable_policy(`neutron_can_network',`
+	corenet_sendrecv_all_client_packets(neutron_t)
+	corenet_tcp_connect_all_ports(neutron_t)
+	corenet_tcp_sendrecv_all_ports(neutron_t)
+')
+
+optional_policy(`
+    dbus_system_bus_client(neutron_t)
+')
+
+optional_policy(`
+	brctl_domtrans(neutron_t)
+')
+
+optional_policy(`
+    dnsmasq_domtrans(neutron_t)
+    dnsmasq_signal(neutron_t)
+    dnsmasq_kill(neutron_t)
+    dnsmasq_read_state(neutron_t)
+')
+
+optional_policy(`
+    rhcs_domtrans_haproxy(neutron_t)
+    rhcs_stream_connect_haproxy(neutron_t)
+')
+
+optional_policy(`
+    iptables_domtrans(neutron_t)
+')
+
+optional_policy(`
+    modutils_domtrans_kmod(neutron_t)
+')
+
+optional_policy(`
+	mysql_stream_connect(neutron_t)
+    mysql_read_db_lnk_files(neutron_t)
+	mysql_read_config(neutron_t)
+	mysql_tcp_connect(neutron_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(neutron_t)
+	postgresql_unpriv_client(neutron_t)
+	postgresql_tcp_connect(neutron_t)
+')
+
+optional_policy(`
+    openvswitch_domtrans(neutron_t)
+    openvswitch_stream_connect(neutron_t)
+')
+
+optional_policy(`
+    rpm_exec(neutron_t)
+    rpm_read_db(neutron_t)
+')
+
+optional_policy(`
+	sudo_exec(neutron_t)
+')
+
+optional_policy(`
+    udev_domtrans(neutron_t)
+')  

@@ -1,0 +1,204 @@
+policy_module(zoneminder, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow ZoneMinder to run su/sudo.
+## </p>
+## </desc>
+gen_tunable(zoneminder_run_sudo, false)
+
+
+## <desc>
+## <p>
+## Allow ZoneMinder to modify public files
+## used for public file transfer services.
+## </p>
+## </desc>
+gen_tunable(zoneminder_anon_write, false)
+
+gen_require(`
+    class passwd rootok;
+    class passwd passwd;
+    ')
+
+type zoneminder_t;
+type zoneminder_exec_t;
+init_daemon_domain(zoneminder_t, zoneminder_exec_t)
+
+type zoneminder_unit_file_t;
+systemd_unit_file(zoneminder_unit_file_t)
+
+type zoneminder_initrc_exec_t;
+init_script_file(zoneminder_initrc_exec_t)
+
+type zoneminder_log_t;
+logging_log_file(zoneminder_log_t)
+
+type zoneminder_tmpfs_t;
+files_tmpfs_file(zoneminder_tmpfs_t)
+
+type zoneminder_spool_t;
+files_type(zoneminder_spool_t)
+
+type zoneminder_var_lib_t;
+files_type(zoneminder_var_lib_t)
+
+type zoneminder_var_run_t;
+files_pid_file(zoneminder_var_run_t)
+
+########################################
+#
+# zoneminder local policy
+#
+allow zoneminder_t self:capability { chown dac_read_search  };
+allow zoneminder_t self:process { signal_perms setpgid };
+allow zoneminder_t self:shm create_shm_perms;
+allow zoneminder_t self:fifo_file rw_fifo_file_perms;
+allow zoneminder_t self:unix_stream_socket { create_stream_socket_perms connectto };
+allow zoneminder_t self:netlink_selinux_socket create_socket_perms;
+
+manage_dirs_pattern(zoneminder_t, zoneminder_log_t, zoneminder_log_t)
+manage_files_pattern(zoneminder_t, zoneminder_log_t, zoneminder_log_t)
+logging_log_filetrans(zoneminder_t, zoneminder_log_t, { dir file })
+
+manage_dirs_pattern(zoneminder_t, zoneminder_tmpfs_t, zoneminder_tmpfs_t)
+manage_files_pattern(zoneminder_t, zoneminder_tmpfs_t, zoneminder_tmpfs_t)
+manage_lnk_files_pattern(zoneminder_t, zoneminder_tmpfs_t, zoneminder_tmpfs_t)
+fs_tmpfs_filetrans(zoneminder_t, zoneminder_tmpfs_t, { dir file lnk_file })
+allow zoneminder_t zoneminder_tmpfs_t:file map;
+
+manage_dirs_pattern(zoneminder_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+manage_files_pattern(zoneminder_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+manage_sock_files_pattern(zoneminder_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+manage_lnk_files_pattern(zoneminder_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+files_var_lib_filetrans(zoneminder_t, zoneminder_var_lib_t, { dir file lnk_file sock_file })
+
+manage_dirs_pattern(zoneminder_t, zoneminder_var_run_t, zoneminder_var_run_t)
+manage_files_pattern(zoneminder_t, zoneminder_var_run_t, zoneminder_var_run_t)
+files_pid_filetrans(zoneminder_t, zoneminder_var_run_t, { dir file })
+
+manage_dirs_pattern(zoneminder_t, zoneminder_spool_t, zoneminder_spool_t)
+manage_files_pattern(zoneminder_t, zoneminder_spool_t, zoneminder_spool_t)
+manage_lnk_files_pattern(zoneminder_t, zoneminder_spool_t, zoneminder_spool_t)
+files_spool_filetrans(zoneminder_t, zoneminder_spool_t, { dir file })
+
+kernel_read_system_state(zoneminder_t)
+
+domain_read_all_domains_state(zoneminder_t)
+
+corecmd_exec_bin(zoneminder_t)
+corecmd_exec_shell(zoneminder_t)
+
+corenet_tcp_bind_http_cache_port(zoneminder_t)
+corenet_tcp_bind_transproxy_port(zoneminder_t)
+corenet_tcp_connect_http_port(zoneminder_t)
+corenet_tcp_connect_smtp_port(zoneminder_t)
+
+dev_read_sysfs(zoneminder_t)
+dev_read_rand(zoneminder_t)
+dev_read_urand(zoneminder_t)
+dev_read_video_dev(zoneminder_t)
+dev_write_video_dev(zoneminder_t)
+dev_map_video_dev(zoneminder_t)
+
+fs_getattr_xattr_fs(zoneminder_t)
+
+auth_use_nsswitch(zoneminder_t)
+#auth_read_shadow(zoneminder_t)     need to debug zmpkg.pl to see why is needed this rule.
+
+logging_send_syslog_msg(zoneminder_t)
+logging_send_audit_msgs(zoneminder_t)
+
+mta_send_mail(zoneminder_t)
+
+tunable_policy(`zoneminder_anon_write',`
+	miscfiles_manage_public_files(zoneminder_t)
+')
+
+tunable_policy(`zoneminder_run_sudo',`
+    allow zoneminder_t self:capability { setuid setgid sys_resource };
+    allow zoneminder_t self:process { setrlimit setsched };
+    allow zoneminder_t self:key write;
+    allow zoneminder_t self:passwd { passwd rootok };
+
+    auth_rw_lastlog(zoneminder_t)
+    auth_rw_faillog(zoneminder_t)
+    auth_exec_chkpwd(zoneminder_t)
+
+    selinux_compute_access_vector(zoneminder_t)
+
+    systemd_write_inherited_logind_sessions_pipes(zoneminder_t)
+    systemd_dbus_chat_logind(zoneminder_t)
+
+    xserver_exec_xauth(zoneminder_t)
+')
+
+optional_policy(`
+    tunable_policy(`zoneminder_run_sudo',`
+        sudo_exec(zoneminder_t)
+        su_exec(zoneminder_t)
+    ')
+')
+
+optional_policy(`
+    dbus_system_bus_client(zoneminder_t)
+')
+
+
+optional_policy(`
+	mysql_stream_connect(zoneminder_t)
+')
+
+optional_policy(`
+    fprintd_dbus_chat(zoneminder_t)
+')
+
+optional_policy(`
+    motion_manage_all_files(zoneminder_t)
+')
+
+########################################
+#
+# zoneminder cgi local policy
+#
+
+optional_policy(`
+	apache_content_template(zoneminder)
+	apache_content_alias_template(zoneminder, zoneminder)
+
+	# need more testing
+	#allow zoneminder_script_t self:shm create_shm_perms;
+
+	manage_sock_files_pattern(zoneminder_script_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+    manage_dirs_pattern(zoneminder_script_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+    manage_files_pattern(zoneminder_script_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+    manage_lnk_files_pattern(zoneminder_script_t, zoneminder_var_lib_t, zoneminder_var_lib_t)
+    files_var_lib_filetrans(zoneminder_script_t, zoneminder_var_lib_t, { dir file lnk_file sock_file })
+    allow zoneminder_script_t zoneminder_tmpfs_t:file map;
+
+    rw_files_pattern(zoneminder_script_t, zoneminder_tmpfs_t, zoneminder_tmpfs_t)
+
+	zoneminder_stream_connect(zoneminder_script_t)
+
+    can_exec(zoneminder_t, zoneminder_script_exec_t)
+	
+    dev_list_sysfs(zoneminder_script_t)
+    dev_read_sysfs(zoneminder_script_t)
+
+	files_search_var_lib(zoneminder_script_t)
+
+	logging_send_syslog_msg(zoneminder_script_t)
+
+    init_search_pid_dirs(zoneminder_script_t)
+
+    miscfiles_read_certs(zoneminder_script_t)
+
+	optional_policy(`
+	    	mysql_stream_connect(zoneminder_script_t)
+	')
+')

@@ -1,0 +1,57 @@
+## <summary>Software watchdog.</summary>
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an watchdog environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`watchdog_admin',`
+	gen_require(`
+		type watchdog_t, watchdog_initrc_exec_t, watchdog_log_t;
+		type watchdog_var_run_t;
+	')
+
+	allow $1 watchdog_t:process { ptrace signal_perms };
+	ps_process_pattern($1, watchdog_t)
+
+	init_labeled_script_domtrans($1, watchdog_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 watchdog_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, watchdog_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, watchdog_var_run_t)
+')
+
+#######################################
+## <summary>
+##  Allow read watchdog_unconfined_t lnk files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`watchdog_unconfined_exec_read_lnk_files',`
+	gen_require(`
+		type watchdog_unconfined_exec_t;
+	')
+
+    read_lnk_files_pattern($1,watchdog_unconfined_exec_t, watchdog_unconfined_exec_t)
+')

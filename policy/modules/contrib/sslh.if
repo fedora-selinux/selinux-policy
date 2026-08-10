@@ -1,0 +1,127 @@
+## <summary>policy for sslh</summary>
+
+########################################
+## <summary>
+##	Execute sslh in the sslh domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`sslh_domtrans',`
+	gen_require(`
+		type sslh_t, sslh_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, sslh_exec_t, sslh_t)
+')
+
+#######################################
+## <summary>
+##      Execute tor server in the tor domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to transition.
+##      </summary>
+## </param>
+#
+interface(`sslh_systemctl',`
+        gen_require(`
+                type sslh_t;
+                type sslh_unit_file_t;
+        ')
+
+        systemd_exec_systemctl($1)
+        init_reload_services($1)
+        allow $1 sslh_unit_file_t:file read_file_perms;
+        allow $1 sslh_unit_file_t:service manage_service_perms;
+
+        ps_process_pattern($1, sslh_t)
+')
+
+
+########################################
+## <summary>
+##      Permit the reading of sslh config files
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to access.
+##      </summary>
+## </param>
+#
+interface(`sslh_read_config',`
+	gen_require(`
+		type sslh_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 sslh_config_t:dir list_dir_perms;
+	allow $1 sslh_config_t:file read_file_perms;
+	allow $1 sslh_config_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##      Permit the creation and writing of sslh config files
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to configure.
+##      </summary>
+## </param>
+#
+interface(`sslh_write_config',`
+        gen_require(`
+                type sslh_config_t;
+        ')
+
+        files_search_etc($1)
+        allow $1 sslh_config_t:dir   rw_dir_perms;
+        allow $1 sslh_config_t:file  { rw_file_perms create };
+        allow $1 sslh_config_t:lnk_file read_lnk_file_perms;
+')
+
+
+#######################################
+## <summary>
+##      All of the rules required to
+##      administrate an sslh environment.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+## <param name="role">
+##      <summary>
+##      Role allowed access.
+##      </summary>
+## </param>
+## <rolecap/>
+#
+interface(`sslh_admin',`
+         gen_require(`
+                 type sslh_t, sslh_config_t;
+                 type sslh_var_run_t;
+                 type sslh_initrc_exec_t;
+         ')
+
+         allow $1 sslh_t:process signal_perms;
+
+         ps_process_pattern($1, sslh_t)
+
+         init_labeled_script_domtrans($1, sslh_initrc_exec_t)
+         domain_system_change_exemption($1)
+         role_transition $2 sslh_initrc_exec_t system_r;
+         allow $2 system_r;
+
+         admin_pattern($1, sslh_config_t)
+
+         files_list_pids($1)
+         admin_pattern($1, sslh_var_run_t)
+')

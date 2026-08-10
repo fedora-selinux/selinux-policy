@@ -1,0 +1,89 @@
+policy_module(drbd, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type drbd_t;
+type drbd_exec_t;
+init_daemon_domain(drbd_t, drbd_exec_t)
+
+type drbd_initrc_exec_t;
+init_script_file(drbd_initrc_exec_t)
+
+type drbd_var_lib_t;
+files_type(drbd_var_lib_t)
+
+type drbd_lock_t;
+files_lock_file(drbd_lock_t)
+
+type drbd_var_run_t;
+files_pid_file(drbd_var_run_t)
+
+type drbd_tmp_t;
+files_tmp_file(drbd_tmp_t)
+
+########################################
+#
+# Local policy
+#
+
+allow drbd_t self:capability { dac_read_search  kill net_admin sys_admin };
+dontaudit drbd_t self:capability sys_tty_config;
+allow drbd_t self:fifo_file rw_fifo_file_perms;
+allow drbd_t self:unix_stream_socket create_stream_socket_perms;
+allow drbd_t self:netlink_socket create_socket_perms;
+allow drbd_t self:netlink_route_socket rw_netlink_socket_perms;
+
+manage_dirs_pattern(drbd_t, drbd_var_lib_t, drbd_var_lib_t)
+manage_files_pattern(drbd_t, drbd_var_lib_t, drbd_var_lib_t)
+manage_lnk_files_pattern(drbd_t, drbd_var_lib_t, drbd_var_lib_t)
+files_var_lib_filetrans(drbd_t, drbd_var_lib_t, dir)
+
+manage_dirs_pattern(drbd_t, drbd_var_run_t, drbd_var_run_t)
+manage_files_pattern(drbd_t, drbd_var_run_t, drbd_var_run_t)
+manage_lnk_files_pattern(drbd_t, drbd_var_run_t, drbd_var_run_t)
+files_pid_filetrans(drbd_t, drbd_var_run_t, { file dir })
+
+manage_files_pattern(drbd_t, drbd_lock_t, drbd_lock_t)
+files_lock_filetrans(drbd_t, drbd_lock_t, file)
+
+manage_dirs_pattern(drbd_t, drbd_tmp_t, drbd_tmp_t)
+manage_files_pattern(drbd_t, drbd_tmp_t, drbd_tmp_t)
+files_tmp_filetrans(drbd_t, drbd_tmp_t, {file dir})
+
+kernel_read_system_state(drbd_t)
+kernel_load_module(drbd_t)
+
+auth_use_nsswitch(drbd_t)
+
+can_exec(drbd_t, drbd_exec_t)
+
+corecmd_exec_bin(drbd_t)
+
+corenet_tcp_connect_http_port(drbd_t)
+
+dev_read_rand(drbd_t)
+dev_read_sysfs(drbd_t)
+dev_read_urand(drbd_t)
+
+files_read_kernel_modules(drbd_t)
+
+logging_send_syslog_msg(drbd_t)
+
+fs_getattr_xattr_fs(drbd_t)
+
+modutils_read_module_config(drbd_t)
+modutils_exec_kmod(drbd_t)
+
+storage_raw_read_fixed_disk(drbd_t)
+storage_raw_write_fixed_disk(drbd_t)
+
+sysnet_dns_name_resolve(drbd_t)
+
+optional_policy(`
+    rhcs_read_log_cluster(drbd_t)
+    rhcs_rw_cluster_tmpfs(drbd_t)
+    rhcs_manage_cluster_lib_files(drbd_t)
+')

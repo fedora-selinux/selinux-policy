@@ -1,0 +1,178 @@
+## <summary>File system quota management</summary>
+
+########################################
+## <summary>
+##	Execute quota management tools in the quota domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`quota_domtrans',`
+	gen_require(`
+		type quota_t, quota_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, quota_exec_t, quota_t)
+')
+
+########################################
+## <summary>
+##	Execute quota management tools in the quota domain, and
+##	allow the specified role the quota domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`quota_run',`
+	gen_require(`
+		type quota_t;
+	')
+
+	quota_domtrans($1)
+	role $2 types quota_t;
+')
+
+#######################################
+## <summary>
+##  Alow to read of filesystem quota data files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`quota_read_db',`
+    gen_require(`
+        type quota_db_t;
+    ')
+
+    allow $1 quota_db_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of filesystem quota data files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`quota_dontaudit_getattr_db',`
+	gen_require(`
+		type quota_db_t;
+	')
+
+	dontaudit $1 quota_db_t:file getattr_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete quota
+##	db files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`quota_manage_db',`
+	gen_require(`
+		type quota_db_t;
+	')
+
+	allow $1 quota_db_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete quota
+##	flag files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`quota_manage_flags',`
+	gen_require(`
+		type quota_flag_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, quota_flag_t, quota_flag_t)
+')
+
+########################################
+## <summary>
+##	Transition to quota named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`quota_filetrans_named_content',`
+	gen_require(`
+		type quota_db_t;
+	')
+
+	files_root_filetrans($1, quota_db_t, file, "aquota.user")
+	files_root_filetrans($1, quota_db_t, file, "aquota.group")
+	files_boot_filetrans($1, quota_db_t, file, "aquota.user")
+	files_boot_filetrans($1, quota_db_t, file, "aquota.group")
+	files_etc_filetrans($1, quota_db_t, file, "aquota.user")
+	files_etc_filetrans($1, quota_db_t, file, "aquota.group")
+	files_tmp_filetrans($1, quota_db_t, file, "aquota.user")
+	files_tmp_filetrans($1, quota_db_t, file, "aquota.group")
+	files_home_filetrans($1, quota_db_t, file, "aquota.user")
+	files_home_filetrans($1, quota_db_t, file, "aquota.group")
+	files_usr_filetrans($1, quota_db_t, file, "aquota.user")
+	files_usr_filetrans($1, quota_db_t, file, "aquota.group")
+	files_var_filetrans($1, quota_db_t, file, "aquota.user")
+	files_var_filetrans($1, quota_db_t, file, "aquota.group")
+	files_spool_filetrans($1, quota_db_t, file, "aquota.user")
+	files_spool_filetrans($1, quota_db_t, file, "aquota.group")
+	mta_spool_filetrans($1, quota_db_t, file, "aquota.user")
+	mta_spool_filetrans($1, quota_db_t, file, "aquota.group")
+	mta_spool_filetrans_queue($1, quota_db_t, file, "aquota.user")
+	mta_spool_filetrans_queue($1, quota_db_t, file, "aquota.group")
+')
+
+#######################################
+## <summary>
+##  Transition to quota_nld.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`quota_domtrans_nld',`
+    gen_require(`
+        type quota_nld_t, quota_nld_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    domtrans_pattern($1, quota_nld_exec_t, quota_nld_t)
+')

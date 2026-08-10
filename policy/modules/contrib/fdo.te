@@ -1,0 +1,165 @@
+policy_module(fdo, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type fdo_t;
+type fdo_exec_t;
+init_daemon_domain(fdo_t, fdo_exec_t)
+
+type fdo_conf_t;
+files_config_file(fdo_conf_t)
+
+type fdo_conf_rw_t;
+files_config_file(fdo_conf_rw_t)
+
+type fdo_device_credentials_t;
+files_type(fdo_device_credentials_t)
+
+type fdo_home_t;
+userdom_user_home_content(fdo_home_t)
+
+type fdo_tmp_t;
+files_tmp_file(fdo_tmp_t)
+
+type fdo_unit_file_t;
+systemd_unit_file(fdo_unit_file_t)
+
+type fdo_var_lib_t;
+files_type(fdo_var_lib_t)
+
+type fdo_var_t;
+files_type(fdo_var_t)
+
+########################################
+#
+# fdo local policy
+#
+allow fdo_t self:capability { chown dac_override dac_read_search sys_admin };
+allow fdo_t self:fifo_file rw_fifo_file_perms;
+allow fdo_t self:netlink_route_socket r_netlink_socket_perms;
+allow fdo_t self:tcp_socket create_stream_socket_perms;
+allow fdo_t self:udp_socket create_socket_perms;
+allow fdo_t self:unix_stream_socket create_stream_socket_perms;
+
+allow fdo_t fdo_exec_t:dir search_dir_perms;
+allow fdo_t fdo_exec_t:lnk_file read_lnk_file_perms;
+can_exec(fdo_t, fdo_exec_t)
+
+manage_dirs_pattern(fdo_t, fdo_conf_t, fdo_conf_t)
+manage_dirs_pattern(fdo_t, fdo_conf_rw_t, fdo_conf_rw_t)
+manage_files_pattern(fdo_t, fdo_conf_rw_t, fdo_conf_rw_t)
+manage_lnk_files_pattern(fdo_t, fdo_conf_rw_t, fdo_conf_rw_t)
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "configs" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "keys" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "logs" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "manufacturing_sessions" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "owner_vouchers" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "owner_onboarding_sessions" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "rendezvous_registered" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "rendezvous_sessions" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, dir, "stores" )
+filetrans_pattern(fdo_t, fdo_conf_t, fdo_conf_rw_t, file, "aio_configuration" )
+#fdouser file is copied by fdo from server to client /etc/sudoers.d/fdouser
+files_etc_filetrans(fdo_t, fdo_conf_rw_t, file, "fdouser")
+
+manage_files_pattern(fdo_t, fdo_device_credentials_t, fdo_device_credentials_t)
+files_etc_filetrans(fdo_t, fdo_device_credentials_t, file, "device-credentials")
+files_etc_filetrans(fdo_t, fdo_device_credentials_t, file, "device_onboarding_performed")
+files_boot_filetrans(fdo_t, fdo_device_credentials_t, file, "device-credentials")
+
+manage_dirs_pattern(fdo_t, fdo_home_t, fdo_home_t)
+manage_files_pattern(fdo_t, fdo_home_t, fdo_home_t)
+
+manage_dirs_pattern(fdo_t, fdo_tmp_t, fdo_tmp_t)
+manage_files_pattern(fdo_t, fdo_tmp_t, fdo_tmp_t)
+files_tmp_filetrans(fdo_t, fdo_tmp_t, { file dir })
+
+manage_dirs_pattern(fdo_t, fdo_var_t, fdo_var_t)
+manage_files_pattern(fdo_t, fdo_var_t, fdo_var_t)
+files_var_filetrans(fdo_t, fdo_var_t, { file dir })
+
+manage_files_pattern(fdo_t, fdo_var_lib_t, fdo_var_lib_t)
+files_var_lib_filetrans(fdo_t, fdo_var_lib_t, { file dir })
+
+kernel_get_sysvipc_info(fdo_t)
+kernel_read_proc_files(fdo_t)
+kernel_stream_connect(fdo_t)
+
+corecmd_exec_bin(fdo_t)
+corecmd_exec_shell(fdo_t)
+
+corenet_tcp_bind_generic_node(fdo_t)
+corenet_tcp_bind_http_cache_port(fdo_t)
+corenet_tcp_connect_http_cache_port(fdo_t)
+corenet_tcp_bind_http_port(fdo_t)
+corenet_tcp_connect_http_port(fdo_t)
+corenet_tcp_connect_postgresql_port(fdo_t)
+corenet_tcp_bind_transproxy_port(fdo_t)
+corenet_tcp_connect_transproxy_port(fdo_t)
+corenet_tcp_bind_us_cli_port(fdo_t)
+corenet_tcp_connect_us_cli_port(fdo_t)
+
+dev_getattr_fs(fdo_t)
+dev_list_sysfs(fdo_t)
+dev_read_rand(fdo_t)
+dev_rw_lvm_control(fdo_t)
+dev_rw_tpm(fdo_t)
+
+domain_use_interactive_fds(fdo_t)
+
+files_read_config_files(fdo_t)
+
+fs_getattr_xattr_fs(fdo_t)
+fs_read_cgroup_files(fdo_t)
+
+storage_raw_rw_fixed_disk(fdo_t)
+
+optional_policy(`
+	auth_read_passwd_file(fdo_t)
+')
+
+optional_policy(`
+	kerberos_search_keytab(fdo_t)
+')
+
+optional_policy(`
+	lvm_domtrans(fdo_t)
+	lvm_manage_var_run(fdo_t)
+	lvm_var_run_filetrans(fdo_t)
+')
+
+optional_policy(`
+	miscfiles_read_generic_certs(fdo_t)
+	miscfiles_read_localization(fdo_t)
+')
+
+optional_policy(`
+	ssh_basic_client_template(fdo, fdo_t, system_r)
+	ssh_create_home_dirs(fdo_t)
+	ssh_filetrans_home_content(fdo_t)
+')
+
+optional_policy(`
+	sssd_run_stream_connect(fdo_t)
+')
+
+optional_policy(`
+	sysnet_read_config(fdo_t)
+')
+
+optional_policy(`
+	systemd_manage_userdbd_runtime_sock_files(fdo_t)
+')
+
+optional_policy(`
+	userdom_home_filetrans_user_home_dir(fdo_home_t)
+')
+
+optional_policy(`
+	usermanage_domtrans_passwd(fdo_t)
+	usermanage_domtrans_useradd(fdo_t)
+	usermanage_read_crack_db(fdo_t)
+')

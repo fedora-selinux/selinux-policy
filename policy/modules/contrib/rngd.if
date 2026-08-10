@@ -1,0 +1,66 @@
+## <summary>Check and feed random data from hardware device to kernel random device.</summary>
+
+########################################
+## <summary>
+##	Execute rngd in the rngd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`rng_systemctl_rngd',`
+	gen_require(`
+		type rngd_t, rngd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 rngd_unit_file_t:file read_file_perms;
+	allow $1 rngd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, rngd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an rng environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rng_admin',`
+	gen_require(`
+		type rngd_t, rngd_initrc_exec_t, rngd_var_run_t, rngd_unit_file_t;
+	')
+
+	allow $1 rngd_t:process signal_perms;
+	ps_process_pattern($1, rngd_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 rngd_t:process ptrace;
+	')
+
+	init_labeled_script_domtrans($1, rngd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 rngd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, rngd_var_run_t)
+
+	rng_systemctl_rngd($1)
+	admin_pattern($1, rngd_unit_file_t)
+	allow $1 rngd_unit_file_t:service all_service_perms;
+')

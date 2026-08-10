@@ -1,0 +1,95 @@
+policy_module(dnssec, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type dnssec_trigger_t;
+type dnssec_trigger_exec_t;
+init_daemon_domain(dnssec_trigger_t, dnssec_trigger_exec_t)
+
+type dnssec_trigger_unit_file_t;
+systemd_unit_file(dnssec_trigger_unit_file_t)
+
+type dnssec_trigger_var_run_t;
+files_pid_file(dnssec_trigger_var_run_t)
+
+type dnssec_trigger_tmp_t;
+files_tmp_file(dnssec_trigger_tmp_t)
+
+########################################
+#
+# dnssec_trigger local policy
+#
+allow dnssec_trigger_t self:capability { net_admin linux_immutable sys_ptrace };
+allow dnssec_trigger_t self:process { setsched signal };
+allow dnssec_trigger_t self:fifo_file rw_fifo_file_perms;
+allow dnssec_trigger_t self:unix_stream_socket create_stream_socket_perms;
+allow dnssec_trigger_t self:tcp_socket create_stream_socket_perms;
+allow dnssec_trigger_t self:udp_socket create_socket_perms;
+
+manage_dirs_pattern(dnssec_trigger_t, dnssec_trigger_var_run_t, dnssec_trigger_var_run_t)
+manage_files_pattern(dnssec_trigger_t, dnssec_trigger_var_run_t, dnssec_trigger_var_run_t)
+manage_lnk_files_pattern(dnssec_trigger_t, dnssec_trigger_var_run_t, dnssec_trigger_var_run_t)
+allow dnssec_trigger_t dnssec_trigger_var_run_t:file  relabelfrom_file_perms;
+files_pid_filetrans(dnssec_trigger_t, dnssec_trigger_var_run_t, { dir file lnk_file })
+
+manage_files_pattern(dnssec_trigger_t,dnssec_trigger_tmp_t,dnssec_trigger_tmp_t)
+manage_dirs_pattern(dnssec_trigger_t,dnssec_trigger_tmp_t,dnssec_trigger_tmp_t)
+files_tmp_filetrans(dnssec_trigger_t,dnssec_trigger_tmp_t,{ file dir })
+
+kernel_read_system_state(dnssec_trigger_t)
+kernel_read_network_state(dnssec_trigger_t)
+kernel_request_load_module(dnssec_trigger_t)
+
+can_exec(dnssec_trigger_t, dnssec_trigger_exec_t)
+
+corecmd_exec_bin(dnssec_trigger_t)
+corecmd_exec_shell(dnssec_trigger_t)
+corecmd_read_all_executables(dnssec_trigger_t)
+
+corenet_tcp_bind_generic_node(dnssec_trigger_t)
+corenet_tcp_bind_dnssec_port(dnssec_trigger_t)
+corenet_tcp_connect_rndc_port(dnssec_trigger_t)
+corenet_tcp_connect_http_port(dnssec_trigger_t)
+
+dev_read_urand(dnssec_trigger_t)
+
+domain_use_interactive_fds(dnssec_trigger_t)
+domain_read_all_domains_state(dnssec_trigger_t)
+
+files_read_etc_runtime_files(dnssec_trigger_t)
+files_dontaudit_list_tmp(dnssec_trigger_t)
+
+libs_exec_ldconfig(dnssec_trigger_t)
+
+logging_send_syslog_msg(dnssec_trigger_t)
+
+auth_use_nsswitch(dnssec_trigger_t)
+
+sysnet_dns_name_resolve(dnssec_trigger_t)
+sysnet_manage_config(dnssec_trigger_t)
+sysnet_filetrans_named_content(dnssec_trigger_t)
+sysnet_relabelfrom_net_conf(dnssec_trigger_t)
+sysnet_relabelto_net_conf(dnssec_trigger_t)
+
+optional_policy(`
+    dbus_system_bus_client(dnssec_trigger_t)
+')
+
+optional_policy(`
+    bind_domtrans(dnssec_trigger_t)
+	bind_read_config(dnssec_trigger_t)
+	bind_read_dnssec_keys(dnssec_trigger_t)
+')
+
+optional_policy(`
+	networkmanager_dbus_chat(dnssec_trigger_t)
+    networkmanager_stream_connect(dnssec_trigger_t)
+    networkmanager_signal(dnssec_trigger_t)
+    networkmanager_sigchld(dnssec_trigger_t)
+    networkmanager_sigkill(dnssec_trigger_t)
+    networkmanager_signull(dnssec_trigger_t)
+    networkmanager_read_conf(dnssec_trigger_t)
+')

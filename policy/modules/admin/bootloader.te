@@ -1,0 +1,243 @@
+policy_module(bootloader, 1.14.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role bootloader_roles;
+roleattribute system_r bootloader_roles;
+
+#
+# boot_runtime_t is the type for /boot/kernel.h,
+# which is automatically generated at boot time.
+# only for Red Hat
+#
+type boot_runtime_t;
+files_type(boot_runtime_t)
+
+type bootloader_t;
+type bootloader_exec_t;
+application_domain(bootloader_t, bootloader_exec_t)
+role bootloader_roles types bootloader_t;
+role system_r types bootloader_t;
+
+type bootloader_var_run_t;
+files_pid_file(bootloader_var_run_t)
+
+type bootloader_var_lib_t;
+files_type(bootloader_var_lib_t)
+
+#
+# bootloader_etc_t is the configuration file,
+# grub.conf, lilo.conf, etc.
+#
+type bootloader_etc_t alias etc_bootloader_t;
+files_config_file(bootloader_etc_t)
+
+#
+# The temp file is used for initrd creation;
+# it consists of files and device nodes
+#
+type bootloader_tmp_t;
+files_tmp_file(bootloader_tmp_t)
+dev_node(bootloader_tmp_t)
+
+########################################
+#
+# bootloader local policy
+#
+
+allow bootloader_t self:capability {  dac_read_search fsetid sys_rawio sys_admin sys_chroot mknod chown };
+allow bootloader_t self:process { signal_perms execmem };
+allow bootloader_t self:fifo_file rw_fifo_file_perms;
+
+allow bootloader_t bootloader_etc_t:file read_file_perms;
+# uncomment the following lines if you use "lilo -p"
+#allow bootloader_t bootloader_etc_t:file manage_file_perms;
+#files_etc_filetrans(bootloader_t,bootloader_etc_t,file)
+
+manage_dirs_pattern(bootloader_t, bootloader_tmp_t, bootloader_tmp_t)
+manage_files_pattern(bootloader_t, bootloader_tmp_t, bootloader_tmp_t)
+manage_lnk_files_pattern(bootloader_t, bootloader_tmp_t, bootloader_tmp_t)
+manage_blk_files_pattern(bootloader_t, bootloader_tmp_t, bootloader_tmp_t)
+manage_chr_files_pattern(bootloader_t, bootloader_tmp_t, bootloader_tmp_t)
+files_tmp_filetrans(bootloader_t, bootloader_tmp_t, { dir file lnk_file chr_file blk_file })
+# for tune2fs (cjp: ?)
+files_root_filetrans(bootloader_t, bootloader_tmp_t, file)
+
+manage_dirs_pattern(bootloader_t, bootloader_var_run_t, bootloader_var_run_t)
+manage_files_pattern(bootloader_t, bootloader_var_run_t, bootloader_var_run_t)
+files_pid_filetrans(bootloader_t, bootloader_var_run_t, {dir file })
+
+manage_dirs_pattern(bootloader_t, bootloader_var_lib_t, bootloader_var_lib_t)
+manage_files_pattern(bootloader_t, bootloader_var_lib_t, bootloader_var_lib_t)
+manage_lnk_files_pattern(bootloader_t, bootloader_var_lib_t, bootloader_var_lib_t)
+files_var_lib_filetrans(bootloader_t, bootloader_var_lib_t, {dir file })
+
+kernel_getattr_core_if(bootloader_t)
+kernel_read_network_state(bootloader_t)
+kernel_read_system_state(bootloader_t)
+kernel_read_software_raid_state(bootloader_t)
+kernel_read_kernel_sysctls(bootloader_t)
+
+storage_raw_read_fixed_disk(bootloader_t)
+storage_raw_write_fixed_disk(bootloader_t)
+storage_raw_read_removable_device(bootloader_t)
+storage_raw_write_removable_device(bootloader_t)
+
+dev_getattr_all_chr_files(bootloader_t)
+dev_getattr_all_blk_files(bootloader_t)
+dev_dontaudit_rw_generic_dev_nodes(bootloader_t)
+dev_read_rand(bootloader_t)
+dev_read_urand(bootloader_t)
+dev_read_sysfs(bootloader_t)
+# needed on some hardware
+dev_rw_nvram(bootloader_t)
+
+fs_getattr_xattr_fs(bootloader_t)
+fs_getattr_tmpfs(bootloader_t)
+fs_list_hugetlbfs(bootloader_t)
+fs_list_tmpfs(bootloader_t)
+fs_read_tmpfs_symlinks(bootloader_t)
+#Needed for ia64
+fs_manage_dos_files(bootloader_t)
+
+mls_file_read_all_levels(bootloader_t)
+mls_file_write_all_levels(bootloader_t)
+
+term_getattr_all_ttys(bootloader_t)
+term_getattr_all_ptys(bootloader_t)
+term_dontaudit_manage_pty_dirs(bootloader_t)
+term_dontaudit_getattr_generic_ptys(bootloader_t)
+term_use_unallocated_ttys(bootloader_t)
+
+corecmd_exec_all_executables(bootloader_t)
+
+domain_use_interactive_fds(bootloader_t)
+
+files_create_boot_dirs(bootloader_t)
+files_manage_boot_files(bootloader_t)
+files_manage_boot_symlinks(bootloader_t)
+files_manage_kernel_modules(bootloader_t)
+files_read_etc_files(bootloader_t)
+files_exec_etc_files(bootloader_t)
+files_read_usr_src_files(bootloader_t)
+files_read_usr_files(bootloader_t)
+files_read_var_files(bootloader_t)
+files_read_kernel_modules(bootloader_t)
+files_read_kernel_symbol_table(bootloader_t)
+# for nscd
+files_dontaudit_search_pids(bootloader_t)
+# for blkid.tab
+files_manage_etc_runtime_files(bootloader_t)
+files_etc_filetrans_etc_runtime(bootloader_t, file)
+files_dontaudit_search_home(bootloader_t)
+
+
+init_read_state(bootloader_t)
+init_getattr_initctl(bootloader_t)
+init_use_script_ptys(bootloader_t)
+init_use_script_fds(bootloader_t)
+init_rw_script_pipes(bootloader_t)
+
+libs_read_lib_files(bootloader_t)
+libs_exec_lib_files(bootloader_t)
+libs_exec_ld_so(bootloader_t)
+
+auth_use_nsswitch(bootloader_t)
+
+logging_send_syslog_msg(bootloader_t)
+logging_manage_generic_logs(bootloader_t)
+
+modutils_domtrans_kmod(bootloader_t)
+
+seutil_read_bin_policy(bootloader_t)
+seutil_read_loadpolicy(bootloader_t)
+
+userdom_getattr_user_tmp_files(bootloader_t)
+userdom_use_inherited_user_terminals(bootloader_t)
+userdom_dontaudit_search_user_home_dirs(bootloader_t)
+
+ifdef(`distro_debian',`
+	allow bootloader_t bootloader_tmp_t:{ dir file } { relabelfrom relabelto };
+	fs_list_tmpfs(bootloader_t)
+
+	files_relabel_kernel_modules(bootloader_t)
+	files_relabelfrom_boot_files(bootloader_t)
+	files_delete_kernel_modules(bootloader_t)
+	files_relabelto_usr_files(bootloader_t)
+	files_search_var_lib(bootloader_t)
+	# for /usr/share/initrd-tools/scripts
+	files_exec_usr_files(bootloader_t)
+
+	fstools_manage_entry_files(bootloader_t)
+	fstools_relabelto_entry_files(bootloader_t)
+
+	libs_relabelto_lib_files(bootloader_t)
+')
+
+ifdef(`distro_redhat',`
+	# for memlock
+	allow bootloader_t self:capability ipc_lock;
+
+	# new file system defaults to file_t, granting file_t access is still bad.
+	allow bootloader_t boot_runtime_t:file { read_file_perms delete_file_perms };
+
+	# new file system defaults to file_t, granting file_t access is still bad.
+	files_manage_isid_type_dirs(bootloader_t)
+	files_manage_isid_type_files(bootloader_t)
+	files_manage_isid_type_symlinks(bootloader_t)
+	files_manage_isid_type_blk_files(bootloader_t)
+	files_manage_isid_type_chr_files(bootloader_t)
+
+	# for mke2fs
+	mount_run(bootloader_t, bootloader_roles)
+
+	optional_policy(`
+		unconfined_domain(bootloader_t)
+	')
+')
+
+optional_policy(`
+	devicekit_dontaudit_read_pid_files(bootloader_t)
+')
+
+optional_policy(`
+	fstools_exec(bootloader_t)
+')
+
+optional_policy(`
+	gpm_getattr_gpmctl(bootloader_t)
+')
+
+optional_policy(`
+	fsadm_manage_pid(bootloader_t)
+')
+
+optional_policy(`
+	dev_rw_lvm_control(bootloader_t)
+
+	lvm_domtrans(bootloader_t)
+	lvm_read_config(bootloader_t)
+')
+
+optional_policy(`
+	modutils_exec_kmod(bootloader_t)
+	modutils_domtrans_kmod(bootloader_t)
+	modutils_list_module_config(bootloader_t)
+	modutils_read_module_deps(bootloader_t)
+	modutils_read_module_config(bootloader_t)
+')
+
+optional_policy(`
+	rpm_rw_pipes(bootloader_t)
+')
+
+optional_policy(`
+	tuned_read_etc_files(bootloader_t)
+')
+
+optional_policy(`
+	udev_read_pid_files(bootloader_t)
+')

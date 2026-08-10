@@ -1,0 +1,129 @@
+policy_module(swift, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##  <p>
+##	Determine whether swift can
+##	connect to all TCP ports
+##	</p>
+## </desc>
+gen_tunable(swift_can_network, false)
+
+
+type swift_t;
+type swift_exec_t;
+init_daemon_domain(swift_t, swift_exec_t)
+
+type swift_lock_t;
+files_lock_file(swift_lock_t)
+
+type swift_tmp_t;
+files_tmp_file(swift_tmp_t)
+
+type swift_tmpfs_t;
+files_tmpfs_file(swift_tmpfs_t)
+
+type swift_var_cache_t;
+files_type(swift_var_cache_t)
+
+type swift_var_run_t;
+files_pid_file(swift_var_run_t)
+
+type swift_unit_file_t;
+systemd_unit_file(swift_unit_file_t)
+
+type swift_data_t;
+files_type(swift_data_t)
+
+########################################
+#
+# swift local policy
+#
+
+allow swift_t self:process signal;
+
+allow swift_t self:fifo_file rw_fifo_file_perms;
+allow swift_t self:tcp_socket create_stream_socket_perms;
+allow swift_t self:unix_stream_socket create_stream_socket_perms;
+allow swift_t self:unix_dgram_socket create_socket_perms;
+
+manage_dirs_pattern(swift_t, swift_lock_t, swift_lock_t)
+manage_files_pattern(swift_t, swift_lock_t, swift_lock_t)
+files_lock_filetrans(swift_t, swift_lock_t, { dir file })
+
+manage_dirs_pattern(swift_t, swift_tmp_t, swift_tmp_t)
+manage_files_pattern(swift_t, swift_tmp_t, swift_tmp_t)
+files_tmp_filetrans(swift_t, swift_tmp_t, { dir file })
+
+manage_dirs_pattern(swift_t, swift_tmpfs_t, swift_tmpfs_t)
+manage_files_pattern(swift_t, swift_tmpfs_t, swift_tmpfs_t)
+fs_tmpfs_filetrans(swift_t, swift_tmpfs_t, { dir file })
+
+manage_dirs_pattern(swift_t, swift_var_cache_t, swift_var_cache_t)
+manage_files_pattern(swift_t, swift_var_cache_t, swift_var_cache_t)
+manage_lnk_files_pattern(swift_t, swift_var_cache_t, swift_var_cache_t)
+files_var_filetrans(swift_t,swift_var_cache_t, { dir file })
+
+manage_dirs_pattern(swift_t, swift_var_run_t, swift_var_run_t)
+manage_files_pattern(swift_t, swift_var_run_t, swift_var_run_t)
+manage_lnk_files_pattern(swift_t, swift_var_run_t, swift_var_run_t)
+files_pid_filetrans(swift_t, swift_var_run_t, { dir })
+
+# swift makes use of rsync, so we need to give rsync permissions
+# to edit swift_data_t files as well as swift_t those permissions
+manage_dirs_pattern(swift_t, swift_data_t, swift_data_t)
+manage_files_pattern(swift_t, swift_data_t, swift_data_t)
+
+kernel_dgram_send(swift_t)
+kernel_read_system_state(swift_t)
+kernel_read_network_state(swift_t)
+
+# bug in swift
+corenet_tcp_bind_xserver_port(swift_t)
+
+corenet_tcp_bind_swift_port(swift_t)
+corenet_tcp_bind_http_cache_port(swift_t)
+
+corenet_tcp_connect_xserver_port(swift_t)
+corenet_tcp_connect_swift_port(swift_t)
+corenet_tcp_connect_keystone_port(swift_t)
+corenet_tcp_connect_memcache_port(swift_t)
+corenet_tcp_connect_all_ephemeral_ports(swift_t)
+
+corecmd_exec_shell(swift_t)
+corecmd_exec_bin(swift_t)
+
+dev_read_urand(swift_t)
+
+domain_use_interactive_fds(swift_t)
+
+files_dontaudit_search_home(swift_t)
+
+fs_getattr_all_fs(swift_t)
+
+auth_use_nsswitch(swift_t)
+
+libs_exec_ldconfig(swift_t)
+
+logging_send_syslog_msg(swift_t)
+
+userdom_dontaudit_search_user_home_dirs(swift_t)
+
+tunable_policy(`swift_can_network',`
+	corenet_sendrecv_all_client_packets(swift_t)
+	corenet_tcp_connect_all_ports(swift_t)
+	corenet_tcp_sendrecv_all_ports(swift_t)
+')
+
+optional_policy(`
+    apache_search_config(swift_t)
+')
+
+optional_policy(`
+    rpm_exec(swift_t)
+    rpm_dontaudit_manage_db(swift_t)
+')

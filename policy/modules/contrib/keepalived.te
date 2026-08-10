@@ -1,0 +1,159 @@
+policy_module(keepalived, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether keepalived can
+##	connect to all TCP ports.
+##	</p>
+## </desc>
+gen_tunable(keepalived_connect_any, false)
+
+type keepalived_t;
+type keepalived_exec_t;
+init_daemon_domain(keepalived_t, keepalived_exec_t)
+
+type keepalived_unit_file_t;
+systemd_unit_file(keepalived_unit_file_t)
+
+type keepalived_var_run_t;
+files_pid_file(keepalived_var_run_t)
+
+type keepalived_unconfined_script_exec_t;
+application_executable_file(keepalived_unconfined_script_exec_t)
+
+type keepalived_tmp_t;
+files_tmp_file(keepalived_tmp_t)
+
+type keepalived_tmpfs_t;
+files_tmpfs_file(keepalived_tmpfs_t)
+
+########################################
+#
+# keepalived local policy
+#
+
+allow keepalived_t self:capability { net_admin net_raw kill dac_read_search setuid setgid sys_admin sys_nice sys_ptrace };
+allow keepalived_t self:capability2 bpf;
+allow keepalived_t self:cap_userns { sys_ptrace };
+allow keepalived_t self:process { signal_perms getpgid setpgid setsched setrlimit };
+allow keepalived_t self:icmp_socket create_socket_perms;
+allow keepalived_t self:netlink_socket create_socket_perms;
+allow keepalived_t self:netlink_generic_socket create_socket_perms;
+allow keepalived_t self:netlink_netfilter_socket create_socket_perms;
+allow keepalived_t self:netlink_connector_socket create_socket_perms;
+allow keepalived_t self:netlink_route_socket nlmsg_write;
+allow keepalived_t self:packet_socket create_socket_perms;
+allow keepalived_t self:rawip_socket create_socket_perms;
+
+manage_dirs_pattern(keepalived_t, keepalived_var_run_t, keepalived_var_run_t)
+manage_files_pattern(keepalived_t, keepalived_var_run_t, keepalived_var_run_t)
+files_pid_filetrans(keepalived_t, keepalived_var_run_t, { dir file })
+allow keepalived_t keepalived_var_run_t:dir mounton;
+
+manage_files_pattern(keepalived_t, keepalived_tmpfs_t, keepalived_tmpfs_t)
+manage_dirs_pattern(keepalived_t, keepalived_tmpfs_t, keepalived_tmpfs_t)
+fs_tmpfs_filetrans(keepalived_t, keepalived_tmpfs_t, { dir file })
+
+manage_files_pattern(keepalived_t, keepalived_tmp_t, keepalived_tmp_t)
+files_tmp_filetrans(keepalived_t, keepalived_tmp_t, file)
+
+kernel_read_system_state(keepalived_t)
+kernel_read_network_state(keepalived_t)
+kernel_request_load_module(keepalived_t)
+kernel_rw_usermodehelper_state(keepalived_t)
+kernel_search_network_sysctl(keepalived_t)
+kernel_rw_net_sysctls(keepalived_t)
+
+auth_use_nsswitch(keepalived_t)
+
+corecmd_exec_bin(keepalived_t)
+corecmd_exec_shell(keepalived_t)
+
+corenet_raw_bind_generic_node(keepalived_t)
+corenet_tcp_connect_connlcli_port(keepalived_t)
+corenet_tcp_connect_http_port(keepalived_t)
+corenet_tcp_connect_mysqld_port(keepalived_t)
+corenet_tcp_connect_smtp_port(keepalived_t)
+corenet_tcp_connect_snmp_port(keepalived_t)
+corenet_tcp_connect_agentx_port(keepalived_t)
+corenet_tcp_connect_squid_port(keepalived_t)
+
+domain_read_all_domains_state(keepalived_t)
+domain_getattr_all_domains(keepalived_t)
+
+dev_read_sysfs(keepalived_t)
+dev_read_urand(keepalived_t)
+
+files_dontaudit_mounton_rootfs(keepalived_var_run_t)
+files_mounton_rootfs(keepalived_t)
+files_watch_var_run_dirs(keepalived_t)
+fs_getattr_tmpfs(keepalived_t)
+fs_read_nsfs_files(keepalived_t)
+fs_unmount_tmpfs(keepalived_t)
+
+modutils_domtrans_kmod(keepalived_t)
+
+init_signal(keepalived_t)
+
+logging_send_syslog_msg(keepalived_t)
+
+optional_policy(`
+    dbus_system_bus_client(keepalived_t)
+    init_dbus_chat(keepalived_t)
+')
+
+optional_policy(`
+    iptables_domtrans(keepalived_t)
+')
+
+optional_policy(`
+    rhcs_signull_haproxy(keepalived_t)
+')
+
+optional_policy(`
+    snmp_manage_var_lib_files(keepalived_t)
+    snmp_manage_var_lib_sock_files(keepalived_t)
+    snmp_manage_var_lib_dirs(keepalived_t)
+    snmp_stream_connect(keepalived_t)
+')
+
+tunable_policy(`keepalived_connect_any',`
+	corenet_tcp_connect_all_ports(keepalived_t)
+	corenet_tcp_bind_all_ports(keepalived_t)
+	corenet_sendrecv_all_packets(keepalived_t)
+	corenet_tcp_sendrecv_all_ports(keepalived_t)
+')
+
+########################################
+#
+# keepalived_unconfined_script_script_t local policy
+#
+
+optional_policy(`
+	type keepalived_unconfined_script_t;
+	domain_type(keepalived_unconfined_script_t)
+
+	domain_entry_file(keepalived_unconfined_script_t, keepalived_unconfined_script_exec_t)
+	role system_r types keepalived_unconfined_script_t;
+
+    allow keepalived_t keepalived_unconfined_script_t:process { sigkill signal };
+
+	domtrans_pattern(keepalived_t, keepalived_unconfined_script_exec_t, keepalived_unconfined_script_t)
+
+	allow keepalived_t keepalived_unconfined_script_exec_t:dir search_dir_perms;
+	allow keepalived_t keepalived_unconfined_script_exec_t:dir read_file_perms;
+	allow keepalived_t keepalived_unconfined_script_exec_t:file ioctl;
+	dontaudit keepalived_t keepalived_unconfined_script_exec_t:file setattr;
+
+
+	init_dbus_chat(keepalived_unconfined_script_t)
+
+	optional_policy(`
+		unconfined_domain(keepalived_unconfined_script_t)
+	')
+')

@@ -1,0 +1,390 @@
+policy_module(puppet, 1.4.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow Puppet client to manage all file
+## types.
+## </p>
+## </desc>
+gen_tunable(puppetagent_manage_all_files, false)
+
+## <desc>
+## <p>
+## Allow Puppet master to use connect to MySQL and PostgreSQL database
+## </p>
+## </desc>
+gen_tunable(puppetmaster_use_db, false)
+
+type puppetagent_t;
+type puppetagent_exec_t;
+typealias puppetagent_exec_t alias puppet_exec_t;
+typealias puppetagent_t alias puppet_t;
+init_daemon_domain(puppetagent_t, puppetagent_exec_t)
+
+type puppet_etc_t;
+files_config_file(puppet_etc_t)
+
+type puppetagent_initrc_exec_t;
+typealias puppetagent_initrc_exec_t alias puppet_initrc_exec_t;
+init_script_file(puppetagent_initrc_exec_t)
+
+type puppet_log_t;
+logging_log_file(puppet_log_t)
+
+type puppet_tmp_t;
+files_tmp_file(puppet_tmp_t)
+
+type puppet_var_lib_t;
+files_type(puppet_var_lib_t)
+
+type puppet_var_run_t;
+files_pid_file(puppet_var_run_t)
+
+type puppetca_t;
+type puppetca_exec_t;
+application_domain(puppetca_t, puppetca_exec_t)
+role system_r types puppetca_t;
+
+type puppetmaster_t;
+type puppetmaster_exec_t;
+init_daemon_domain(puppetmaster_t, puppetmaster_exec_t)
+
+type puppetmaster_initrc_exec_t;
+init_script_file(puppetmaster_initrc_exec_t)
+
+type puppetmaster_tmp_t;
+files_tmp_file(puppetmaster_tmp_t)
+
+########################################
+#
+# Puppet personal policy
+#
+
+allow puppetagent_t self:capability { fowner fsetid setuid setgid dac_read_search  sys_nice sys_tty_config };
+allow puppetagent_t self:process { signal signull getsched setsched };
+allow puppetagent_t self:fifo_file rw_fifo_file_perms;
+allow puppetagent_t self:netlink_route_socket create_netlink_socket_perms;
+allow puppetagent_t self:tcp_socket create_stream_socket_perms;
+allow puppetagent_t self:udp_socket create_socket_perms;
+
+read_files_pattern(puppetagent_t, puppet_etc_t, puppet_etc_t)
+read_lnk_files_pattern(puppetagent_t, puppet_etc_t, puppet_etc_t)
+
+manage_dirs_pattern(puppetagent_t, puppet_var_lib_t, puppet_var_lib_t)
+manage_files_pattern(puppetagent_t, puppet_var_lib_t, puppet_var_lib_t)
+files_search_var_lib(puppetagent_t)
+
+manage_dirs_pattern(puppetagent_t, puppet_var_run_t, puppet_var_run_t)
+manage_files_pattern(puppetagent_t, puppet_var_run_t, puppet_var_run_t)
+files_pid_filetrans(puppetagent_t, puppet_var_run_t, { file dir })
+
+create_dirs_pattern(puppetagent_t, var_log_t, puppet_log_t)
+create_files_pattern(puppetagent_t, puppet_log_t, puppet_log_t)
+append_files_pattern(puppetagent_t, puppet_log_t, puppet_log_t)
+logging_log_filetrans(puppetagent_t, puppet_log_t, { file dir })
+
+manage_dirs_pattern(puppetagent_t, puppet_tmp_t, puppet_tmp_t)
+manage_files_pattern(puppetagent_t, puppet_tmp_t, puppet_tmp_t)
+files_tmp_filetrans(puppetagent_t, puppet_tmp_t, { file dir })
+
+kernel_dontaudit_search_sysctl(puppetagent_t)
+kernel_dontaudit_search_kernel_sysctl(puppetagent_t)
+kernel_read_system_state(puppetagent_t)
+kernel_read_crypto_sysctls(puppetagent_t)
+kernel_read_kernel_sysctls(puppetagent_t)
+
+corecmd_read_all_executables(puppetagent_t)
+corecmd_dontaudit_access_all_executables(puppetagent_t)
+corecmd_exec_bin(puppetagent_t)
+corecmd_exec_shell(puppetagent_t)
+
+corenet_all_recvfrom_netlabel(puppetagent_t)
+corenet_tcp_sendrecv_generic_if(puppetagent_t)
+corenet_tcp_sendrecv_generic_node(puppetagent_t)
+corenet_tcp_bind_generic_node(puppetagent_t)
+corenet_tcp_connect_puppet_port(puppetagent_t)
+corenet_sendrecv_puppet_client_packets(puppetagent_t)
+
+dev_read_rand(puppetagent_t)
+dev_read_sysfs(puppetagent_t)
+dev_read_urand(puppetagent_t)
+
+domain_read_all_domains_state(puppetagent_t)
+domain_interactive_fd(puppetagent_t)
+domain_named_filetrans(puppetagent_t)
+
+files_manage_config_files(puppetagent_t)
+files_manage_config_dirs(puppetagent_t)
+files_manage_etc_dirs(puppetagent_t)
+files_manage_etc_files(puppetagent_t)
+files_read_usr_symlinks(puppetagent_t)
+files_relabel_config_dirs(puppetagent_t)
+files_relabel_config_files(puppetagent_t)
+
+selinux_set_all_booleans(puppetagent_t)
+selinux_set_generic_booleans(puppetagent_t)
+selinux_validate_context(puppetagent_t)
+
+term_dontaudit_getattr_unallocated_ttys(puppetagent_t)
+term_dontaudit_getattr_all_ttys(puppetagent_t)
+
+auth_use_nsswitch(puppetagent_t)
+
+init_all_labeled_script_domtrans(puppetagent_t)
+init_domtrans_script(puppetagent_t)
+init_read_utmp(puppetagent_t)
+init_signull_script(puppetagent_t)
+
+logging_send_syslog_msg(puppetagent_t)
+
+miscfiles_read_hwdata(puppetagent_t)
+
+seutil_domtrans_setfiles(puppetagent_t)
+seutil_domtrans_semanage(puppetagent_t)
+seutil_read_file_contexts(puppetagent_t)
+
+sysnet_run_ifconfig(puppetagent_t, system_r)
+
+usermanage_access_check_groupadd(puppetagent_t)
+usermanage_access_check_passwd(puppetagent_t)
+usermanage_access_check_useradd(puppetagent_t)
+
+tunable_policy(`puppetagent_manage_all_files',`
+	files_manage_non_security_files(puppetagent_t)
+')
+
+optional_policy(`
+    mysql_stream_connect(puppetagent_t)
+')
+
+optional_policy(`
+    postgresql_stream_connect(puppetagent_t)
+')
+
+optional_policy(`
+	cfengine_read_lib_files(puppetagent_t)
+')
+
+optional_policy(`
+	consoletype_exec(puppetagent_t)
+')
+
+optional_policy(`
+	hostname_exec(puppetagent_t)
+')
+
+optional_policy(`
+	mount_domtrans(puppetagent_t)
+')
+
+optional_policy(`
+	mta_send_mail(puppetagent_t)
+')
+
+optional_policy(`
+	networkmanager_dbus_chat(puppetagent_t)
+')
+
+optional_policy(`
+        firewalld_dbus_chat(puppetagent_t)
+')
+
+optional_policy(`
+	portage_domtrans(puppetagent_t)
+	portage_domtrans_fetch(puppetagent_t)
+	portage_domtrans_gcc_config(puppetagent_t)
+')
+
+optional_policy(`
+	files_rw_var_files(puppetagent_t)
+
+	rpm_domtrans(puppetagent_t)
+	rpm_manage_db(puppetagent_t)
+	rpm_manage_log(puppetagent_t)
+')
+
+optional_policy(`
+        shorewall_domtrans(puppetagent_t)
+')
+
+optional_policy(`
+    unconfined_domain_noaudit(puppetagent_t)
+')
+
+optional_policy(`
+        shorewall_domtrans(puppet_t)
+')
+
+optional_policy(`
+    rhsmcertd_dbus_chat(puppetagent_t)
+')
+
+########################################
+#
+# PuppetCA personal policy
+#
+
+allow puppetca_t self:capability { dac_read_search  setgid setuid };
+allow puppetca_t self:fifo_file rw_fifo_file_perms;
+
+read_files_pattern(puppetca_t, puppet_etc_t, puppet_etc_t)
+read_lnk_files_pattern(puppetca_t, puppet_etc_t, puppet_etc_t)
+
+allow puppetca_t puppet_var_lib_t:dir list_dir_perms;
+manage_files_pattern(puppetca_t, puppet_var_lib_t, puppet_var_lib_t)
+manage_dirs_pattern(puppetca_t, puppet_var_lib_t, puppet_var_lib_t)
+
+allow puppetca_t puppet_log_t:dir search_dir_perms;
+
+allow puppetca_t puppet_var_run_t:dir search_dir_perms;
+
+kernel_read_system_state(puppetca_t)
+# Maybe dontaudit this like we did with other puppet domains?
+kernel_read_kernel_sysctls(puppetca_t)
+
+corecmd_exec_bin(puppetca_t)
+corecmd_exec_shell(puppetca_t)
+
+dev_read_urand(puppetca_t)
+dev_search_sysfs(puppetca_t)
+
+files_search_var_lib(puppetca_t)
+
+selinux_validate_context(puppetca_t)
+
+logging_search_logs(puppetca_t)
+
+miscfiles_read_generic_certs(puppetca_t)
+
+seutil_read_file_contexts(puppetca_t)
+
+optional_policy(`
+	hostname_exec(puppetca_t)
+')
+
+optional_policy(`
+	mta_sendmail_access_check(puppetca_t)
+')
+
+
+########################################
+#
+# Pupper master personal policy
+#
+
+allow puppetmaster_t self:capability { dac_read_search  setuid setgid fowner chown fsetid sys_tty_config };
+allow puppetmaster_t self:process { signal_perms getsched setsched };
+allow puppetmaster_t self:fifo_file rw_fifo_file_perms;
+allow puppetmaster_t self:netlink_route_socket create_netlink_socket_perms;
+allow puppetmaster_t self:socket create;
+allow puppetmaster_t self:tcp_socket create_stream_socket_perms;
+allow puppetmaster_t self:udp_socket create_socket_perms;
+
+domtrans_pattern(puppetmaster_t, puppetagent_exec_t, puppetagent_t)
+
+list_dirs_pattern(puppetmaster_t, puppet_etc_t, puppet_etc_t)
+read_files_pattern(puppetmaster_t, puppet_etc_t, puppet_etc_t)
+read_lnk_files_pattern(puppetmaster_t, puppet_etc_t, puppet_etc_t)
+
+allow puppetmaster_t puppet_log_t:dir { rw_dir_perms setattr_dir_perms };
+allow puppetmaster_t puppet_log_t:file { rw_file_perms create_file_perms setattr_file_perms };
+logging_log_filetrans(puppetmaster_t, puppet_log_t, { file dir })
+allow puppetmaster_t puppet_log_t:file relabel_file_perms;
+
+manage_dirs_pattern(puppetmaster_t, puppet_var_lib_t, puppet_var_lib_t)
+manage_files_pattern(puppetmaster_t, puppet_var_lib_t, puppet_var_lib_t)
+allow puppetmaster_t puppet_var_lib_t:dir relabel_dir_perms;
+allow puppetmaster_t puppet_var_lib_t:file relabel_file_perms;
+
+setattr_dirs_pattern(puppetmaster_t, puppet_var_run_t, puppet_var_run_t)
+create_dirs_pattern(puppetmaster_t, puppet_var_run_t, puppet_var_run_t)
+manage_files_pattern(puppetmaster_t, puppet_var_run_t, puppet_var_run_t)
+files_pid_filetrans(puppetmaster_t, puppet_var_run_t, { file dir })
+allow puppetmaster_t puppet_var_run_t:dir relabel_dir_perms;
+
+manage_dirs_pattern(puppetmaster_t, puppetmaster_tmp_t, puppetmaster_tmp_t)
+manage_files_pattern(puppetmaster_t, puppetmaster_tmp_t, puppetmaster_tmp_t)
+files_tmp_filetrans(puppetmaster_t, puppetmaster_tmp_t, { file dir })
+allow puppetmaster_t puppet_tmp_t:dir relabel_dir_perms;
+
+kernel_dontaudit_search_kernel_sysctl(puppetmaster_t)
+kernel_read_network_state(puppetmaster_t)
+kernel_read_system_state(puppetmaster_t)
+kernel_read_crypto_sysctls(puppetmaster_t)
+kernel_read_kernel_sysctls(puppetmaster_t)
+
+corecmd_exec_bin(puppetmaster_t)
+corecmd_exec_shell(puppetmaster_t)
+
+corenet_all_recvfrom_netlabel(puppetmaster_t)
+corenet_tcp_sendrecv_generic_if(puppetmaster_t)
+corenet_tcp_sendrecv_generic_node(puppetmaster_t)
+corenet_tcp_bind_generic_node(puppetmaster_t)
+corenet_tcp_bind_puppet_port(puppetmaster_t)
+corenet_sendrecv_puppet_server_packets(puppetmaster_t)
+corenet_tcp_connect_ntop_port(puppetmaster_t)
+
+# This needs investigation. Puppermasterd is confirmed to bind udp sockets to random high ports.
+corenet_udp_bind_generic_node(puppetmaster_t)
+corenet_udp_bind_generic_port(puppetmaster_t)
+
+dev_read_rand(puppetmaster_t)
+dev_read_urand(puppetmaster_t)
+dev_search_sysfs(puppetmaster_t)
+
+domain_read_all_domains_state(puppetmaster_t)
+domain_obj_id_change_exemption(puppetmaster_t)
+
+
+selinux_validate_context(puppetmaster_t)
+
+auth_use_nsswitch(puppetmaster_t)
+
+logging_send_syslog_msg(puppetmaster_t)
+
+miscfiles_read_generic_certs(puppetmaster_t)
+
+seutil_read_file_contexts(puppetmaster_t)
+
+sysnet_run_ifconfig(puppetmaster_t, system_r)
+
+mta_send_mail(puppetmaster_t)
+
+optional_policy(`
+	tunable_policy(`puppetmaster_use_db',`
+		mysql_stream_connect(puppetmaster_t)
+	')
+')
+
+optional_policy(`
+	tunable_policy(`puppetmaster_use_db',`
+		postgresql_stream_connect(puppetmaster_t)
+	')
+')
+
+optional_policy(`
+	systemd_dbus_chat_timedated(puppetagent_t)
+	systemd_dbus_chat_timedated(puppetmaster_t)
+')
+
+optional_policy(`
+	hostname_exec(puppetmaster_t)
+')
+
+optional_policy(`
+	files_read_usr_symlinks(puppetmaster_t)
+
+	rpm_exec(puppetmaster_t)
+	rpm_read_db(puppetmaster_t)
+')
+
+optional_policy(`
+	usermanage_access_check_groupadd(puppetmaster_t)
+	usermanage_access_check_passwd(puppetmaster_t)
+	usermanage_access_check_useradd(puppetmaster_t)
+')

@@ -1,0 +1,4569 @@
+## <summary>Policy controlling access to network objects</summary>
+## <required val="true">
+##	Contains the initial SIDs for network objects.
+## </required>
+
+########################################
+## <summary>
+##	Define type to be a network port type
+## </summary>
+## <desc>
+##	<p>
+##	Define type to be a network port type
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for network ports.
+##	</summary>
+## </param>
+#
+interface(`corenet_port',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	typeattribute $1 port_type;
+')
+
+########################################
+## <summary>
+##	Define network type to be a reserved port (lt 1024)
+## </summary>
+## <desc>
+##	<p>
+##	Define network type to be a reserved port (lt 1024)
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for network ports.
+##	</summary>
+## </param>
+#
+interface(`corenet_reserved_port',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	typeattribute $1 reserved_port_type;
+	corenet_port($1)
+')
+
+########################################
+## <summary>
+##	Define network type to be a rpc port ( 512 lt PORT lt 1024)
+## </summary>
+## <desc>
+##	<p>
+##	Define network type to be a rpc port ( 512 lt PORT lt 1024)
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for network ports.
+##	</summary>
+## </param>
+#
+interface(`corenet_rpc_port',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	typeattribute $1 rpc_port_type;
+	corenet_port($1)
+')
+
+########################################
+## <summary>
+##	Define type to be a network node type
+## </summary>
+## <desc>
+##	<p>
+##	Define type to be a network node type
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for network nodes.
+##	</summary>
+## </param>
+#
+interface(`corenet_node',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	typeattribute $1 node_type;
+')
+
+########################################
+## <summary>
+##	Define type to be a network packet type
+## </summary>
+## <desc>
+##	<p>
+##	Define type to be a network packet type
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for a network packet.
+##	</summary>
+## </param>
+#
+interface(`corenet_packet',`
+	gen_require(`
+		attribute packet_type;
+	')
+
+	typeattribute $1 packet_type;
+')
+
+########################################
+## <summary>
+##	Define type to be a network client packet type
+## </summary>
+## <desc>
+##	<p>
+##	Define type to be a network client packet type
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for a network client packet.
+##	</summary>
+## </param>
+#
+interface(`corenet_client_packet',`
+	gen_require(`
+		attribute packet_type, client_packet_type;
+	')
+
+	typeattribute $1 client_packet_type, packet_type;
+')
+
+########################################
+## <summary>
+##	Define type to be a network server packet type
+## </summary>
+## <desc>
+##	<p>
+##	Define type to be a network server packet type
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for a network server packet.
+##	</summary>
+## </param>
+#
+interface(`corenet_server_packet',`
+	gen_require(`
+		attribute packet_type, server_packet_type;
+	')
+
+	typeattribute $1 server_packet_type, packet_type;
+')
+
+########################################
+## <summary>
+##	Make the specified type usable
+##	for labeled ipsec.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Type to be used for labeled ipsec.
+##	</summary>
+## </param>
+#
+interface(`corenet_spd_type',`
+	gen_require(`
+		attribute ipsec_spd_type;
+	')
+
+	typeattribute $1 ipsec_spd_type;
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on generic interfaces.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to send and receive TCP network
+##	traffic on generic network interfaces.
+##	</p>
+##	<p>
+##	Related interface:
+##	</p>
+##	<ul>
+##		<li>corenet_all_recvfrom_unlabeled()</li>
+##		<li>corenet_tcp_sendrecv_generic_node()</li>
+##		<li>corenet_tcp_sendrecv_all_ports()</li>
+##		<li>corenet_tcp_connect_all_ports()</li>
+##	</ul>
+##	<p>
+##	Example client being able to connect to all ports over
+##	generic nodes, without labeled networking:
+##	</p>
+##	<p>
+##	allow myclient_t self:tcp_socket create_stream_socket_perms;
+##	corenet_tcp_sendrecv_generic_if(myclient_t)
+##	corenet_tcp_sendrecv_generic_node(myclient_t)
+##	corenet_tcp_sendrecv_all_ports(myclient_t)
+##	corenet_tcp_connect_all_ports(myclient_t)
+##	corenet_all_recvfrom_unlabeled(myclient_t)
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_tcp_sendrecv_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif { tcp_send tcp_recv egress ingress };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif { udp_send egress };
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to send UDP network traffic
+##	on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_send_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	dontaudit $1 netif_t:netif { udp_send egress };
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif { udp_recv ingress };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive UDP network
+##	traffic on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_receive_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	dontaudit $1 netif_t:netif { udp_recv ingress };
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on generic interfaces.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to send and receive UDP network
+##	traffic on generic network interfaces.
+##	</p>
+##	<p>
+##	Related interface:
+##	</p>
+##	<ul>
+##		<li>corenet_all_recvfrom_unlabeled()</li>
+##		<li>corenet_udp_sendrecv_generic_node()</li>
+##		<li>corenet_udp_sendrecv_all_ports()</li>
+##	</ul>
+##	<p>
+##	Example client being able to send to all ports over
+##	generic nodes, without labeled networking:
+##	</p>
+##	<p>
+##	allow myclient_t self:udp_socket create_socket_perms;
+##	corenet_udp_sendrecv_generic_if(myclient_t)
+##	corenet_udp_sendrecv_generic_node(myclient_t)
+##	corenet_udp_sendrecv_all_ports(myclient_t)
+##	corenet_all_recvfrom_unlabeled(myclient_t)
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_udp_sendrecv_generic_if',`
+	corenet_udp_send_generic_if($1)
+	corenet_udp_receive_generic_if($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to send and receive UDP network
+##	traffic on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_sendrecv_generic_if',`
+	corenet_dontaudit_udp_send_generic_if($1)
+	corenet_dontaudit_udp_receive_generic_if($1)
+')
+
+########################################
+## <summary>
+##	Send raw IP packets on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_send_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif { rawip_send egress };
+')
+
+########################################
+## <summary>
+##	Receive raw IP packets on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_receive_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif { rawip_recv ingress };
+')
+
+########################################
+## <summary>
+##	Send and receive raw IP packets on generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_sendrecv_generic_if',`
+	corenet_raw_send_generic_if($1)
+	corenet_raw_receive_generic_if($1)
+')
+
+########################################
+## <summary>
+##	Allow outgoing network traffic on the generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The peer label of the outgoing network traffic.
+##	</summary>
+## </param>
+## <infoflow type="write" weight="10"/>
+#
+interface(`corenet_out_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif egress;
+')
+
+########################################
+## <summary>
+##	Allow incoming traffic on the generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The peer label of the incoming network traffic.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="10"/>
+#
+interface(`corenet_in_generic_if',`
+	gen_require(`
+		type netif_t;
+	')
+
+	allow $1 netif_t:netif ingress;
+')
+
+########################################
+## <summary>
+##	Allow incoming and outgoing network traffic on the generic interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The peer label of the network traffic.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_inout_generic_if',`
+	corenet_in_generic_if($1)
+	corenet_out_generic_if($1)
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif { tcp_send tcp_recv egress ingress };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif { udp_send egress };
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif { udp_recv ingress };
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_all_if',`
+	corenet_udp_send_all_if($1)
+	corenet_udp_receive_all_if($1)
+')
+
+########################################
+## <summary>
+##	Send raw IP packets on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_send_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif { rawip_send egress };
+')
+
+########################################
+## <summary>
+##	Send and receive SCTP network traffic on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_sendrecv_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node { sendto recvfrom };
+')
+
+########################################
+## <summary>
+##	Receive raw IP packets on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_receive_all_if',`
+	gen_require(`
+		attribute netif_type;
+	')
+
+	allow $1 netif_type:netif { rawip_recv ingress };
+')
+
+########################################
+## <summary>
+##	Send and receive raw IP packets on all interfaces.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_sendrecv_all_if',`
+	corenet_raw_send_all_if($1)
+	corenet_raw_receive_all_if($1)
+')
+
+########################################
+## <summary>
+##	Send and receive DCCP network traffic on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_sendrecv_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node { dccp_send dccp_recv sendto recvfrom };
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on generic nodes.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to send and receive TCP network
+##	traffic to/from generic network nodes (hostnames/networks).
+##	</p>
+##	<p>
+##	Related interface:
+##	</p>
+##	<ul>
+##		<li>corenet_all_recvfrom_unlabeled()</li>
+##		<li>corenet_tcp_sendrecv_generic_if()</li>
+##		<li>corenet_tcp_sendrecv_all_ports()</li>
+##		<li>corenet_tcp_connect_all_ports()</li>
+##	</ul>
+##	<p>
+##	Example client being able to connect to all ports over
+##	generic nodes, without labeled networking:
+##	</p>
+##	<p>
+##	allow myclient_t self:tcp_socket create_stream_socket_perms;
+##	corenet_tcp_sendrecv_generic_if(myclient_t)
+##	corenet_tcp_sendrecv_generic_node(myclient_t)
+##	corenet_tcp_sendrecv_all_ports(myclient_t)
+##	corenet_tcp_connect_all_ports(myclient_t)
+##	corenet_all_recvfrom_unlabeled(myclient_t)
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_tcp_sendrecv_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node { tcp_send tcp_recv sendto recvfrom };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node { udp_send sendto };
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node { udp_recv recvfrom };
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on generic nodes.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to send and receive UDP network
+##	traffic to/from generic network nodes (hostnames/networks).
+##	</p>
+##	<p>
+##	Related interface:
+##	</p>
+##	<ul>
+##		<li>corenet_all_recvfrom_unlabeled()</li>
+##		<li>corenet_udp_sendrecv_generic_if()</li>
+##		<li>corenet_udp_sendrecv_all_ports()</li>
+##	</ul>
+##	<p>
+##	Example client being able to send to all ports over
+##	generic nodes, without labeled networking:
+##	</p>
+##	<p>
+##	allow myclient_t self:udp_socket create_socket_perms;
+##	corenet_udp_sendrecv_generic_if(myclient_t)
+##	corenet_udp_sendrecv_generic_node(myclient_t)
+##	corenet_udp_sendrecv_all_ports(myclient_t)
+##	corenet_all_recvfrom_unlabeled(myclient_t)
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_udp_sendrecv_generic_node',`
+	corenet_udp_send_generic_node($1)
+	corenet_udp_receive_generic_node($1)
+')
+
+########################################
+## <summary>
+##	Send raw IP packets on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_send_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node { rawip_send sendto };
+')
+
+########################################
+## <summary>
+##	Receive raw IP packets on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_receive_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node { rawip_recv recvfrom };
+')
+
+########################################
+## <summary>
+##	Send and receive raw IP packets on generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_sendrecv_generic_node',`
+	corenet_raw_send_generic_node($1)
+	corenet_raw_receive_generic_node($1)
+')
+
+########################################
+## <summary>
+##	Bind DCCP sockets to generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:dccp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind SCTP sockets to generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:sctp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind ICMP sockets to generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_icmp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:icmp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to generic nodes.
+## </summary>
+## <desc>
+##	<p>
+##	Bind TCP sockets to generic nodes.  This is
+##	necessary for binding a socket so it
+##	can be used for servers to listen
+##	for incoming connections.
+##	</p>
+##	<p>
+##	Related interface:
+##	</p>
+##	<ul>
+##		<li>corenet_udp_bind_generic_node()</li>
+##	</ul>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="1"/>
+#
+interface(`corenet_tcp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:tcp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to generic nodes.
+## </summary>
+## <desc>
+##	<p>
+##	Bind UDP sockets to generic nodes.  This is
+##	necessary for binding a socket so it
+##	can be used for servers to listen
+##	for incoming connections.
+##	</p>
+##	<p>
+##	Related interface:
+##	</p>
+##	<ul>
+##		<li>corenet_tcp_bind_generic_node()</li>
+##	</ul>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="1"/>
+#
+interface(`corenet_udp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:udp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to bind TCP sockets to generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="1"/>
+#
+interface(`corenet_dontaudit_tcp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	dontaudit $1 node_t:tcp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to bind UDP sockets to generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="1"/>
+#
+interface(`corenet_dontaudit_udp_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	dontaudit $1 node_t:udp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind raw sockets to genric nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+# rawip_socket node_bind does not make much sense.
+# cjp: vmware hits this too
+interface(`corenet_raw_bind_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:rawip_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Allow outgoing network traffic to generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The peer label of the outgoing network traffic.
+##	</summary>
+## </param>
+## <infoflow type="write" weight="10"/>
+#
+interface(`corenet_out_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node sendto;
+')
+
+########################################
+## <summary>
+##	Allow incoming network traffic from generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The peer label of the incoming network traffic.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="10"/>
+#
+interface(`corenet_in_generic_node',`
+	gen_require(`
+		type node_t;
+	')
+
+	allow $1 node_t:node recvfrom;
+')
+
+########################################
+## <summary>
+##	Allow incoming and outgoing network traffic with generic nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The peer label of the network traffic.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_inout_generic_node',`
+	corenet_in_generic_node($1)
+	corenet_out_generic_node($1)
+')
+
+########################################
+## <summary>
+##	Send and receive DCCP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_sendrecv_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node { dccp_send dccp_recv sendto recvfrom };
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node { tcp_send tcp_recv sendto recvfrom };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node { udp_send sendto };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to send UDP network
+##	traffic on any nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_send_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	dontaudit $1 node_type:node { udp_send sendto };
+')
+
+########################################
+## <summary>
+##	Send and receive SCTP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_sendrecv_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node { sendto recvfrom };
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node { udp_recv recvfrom };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive UDP
+##	network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_receive_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	dontaudit $1 node_type:node { udp_recv recvfrom };
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_all_nodes',`
+	corenet_udp_send_all_nodes($1)
+	corenet_udp_receive_all_nodes($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to send and receive UDP
+##	network traffic on any nodes nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_sendrecv_all_nodes',`
+	corenet_dontaudit_udp_send_all_nodes($1)
+	corenet_dontaudit_udp_receive_all_nodes($1)
+')
+
+########################################
+## <summary>
+##	Send raw IP packets on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_send_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node { rawip_send sendto };
+')
+
+########################################
+## <summary>
+##	Receive raw IP packets on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_receive_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:node { rawip_recv recvfrom };
+')
+
+########################################
+## <summary>
+##	Send and receive raw IP packets on all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_sendrecv_all_nodes',`
+	corenet_raw_send_all_nodes($1)
+	corenet_raw_receive_all_nodes($1)
+')
+
+########################################
+## <summary>
+##	Bind DCCP sockets to all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_bind_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:dccp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:tcp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:udp_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Bind raw sockets to all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+# rawip_socket node_bind does not make much sense.
+# cjp: vmware hits this too
+interface(`corenet_raw_bind_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:rawip_socket node_bind;
+')
+
+########################################
+## <summary>
+##	Send and receive DCCP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_sendrecv_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:dccp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to send and
+##	receive DCCP network traffic on
+##	generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_sendrecv_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	dontaudit $1 { port_t unreserved_port_t ephemeral_port_t }:dccp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Bind SCTP sockets to all nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_bind_all_nodes',`
+	gen_require(`
+		attribute node_type;
+	')
+
+	allow $1 node_type:sctp_socket node_bind;
+')
+
+
+########################################
+## <summary>
+##	Do not audit send and receive TCP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_sendrecv_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	dontaudit $1 { port_t unreserved_port_t ephemeral_port_t }:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:udp_socket send_msg;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:udp_socket recv_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_generic_port',`
+	corenet_udp_send_generic_port($1)
+	corenet_udp_receive_generic_port($1)
+')
+
+########################################
+## <summary>
+##	Bind DCCP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_bind_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+		attribute defined_port_type;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:dccp_socket name_bind;
+	dontaudit $1 defined_port_type:dccp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+		attribute defined_port_type;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:tcp_socket name_bind;
+	dontaudit $1 defined_port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind DCCP
+##	sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_bind_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	dontaudit $1 { port_t unreserved_port_t ephemeral_port_t }:dccp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Do not audit bind TCP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_bind_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	dontaudit $1 { port_t unreserved_port_t ephemeral_port_t }:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+		attribute defined_port_type;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:udp_socket name_bind;
+	dontaudit $1 defined_port_type:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Connect DCCP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_connect_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t,ephemeral_port_t;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:dccp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Send and receive DCCP network traffic on all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_sendrecv_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:dccp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on all ports.
+## </summary>
+## <desc>
+##	<p>
+##	Send and receive TCP network traffic on all ports.
+##	Related interfaces:
+##	</p>
+##	<ul>
+##		<li>corenet_all_recvfrom_unlabeled()</li>
+##		<li>corenet_tcp_sendrecv_generic_if()</li>
+##		<li>corenet_tcp_sendrecv_generic_node()</li>
+##		<li>corenet_tcp_connect_all_ports()</li>
+##		<li>corenet_tcp_bind_all_ports()</li>
+##	</ul>
+##	<p>
+##	Example client being able to connect to all ports over
+##	generic nodes, without labeled networking:
+##	</p>
+##	<p>
+##	allow myclient_t self:tcp_socket create_stream_socket_perms;
+##	corenet_tcp_sendrecv_generic_if(myclient_t)
+##	corenet_tcp_sendrecv_generic_node(myclient_t)
+##	corenet_tcp_sendrecv_all_ports(myclient_t)
+##	corenet_tcp_connect_all_ports(myclient_t)
+##	corenet_all_recvfrom_unlabeled(myclient_t)
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_tcp_sendrecv_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:udp_socket send_msg;
+')
+
+########################################
+## <summary>
+##	Bind rawip sockets to unreserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_rawip_bind_unreserved_port',`
+	gen_require(`
+		type unreserved_port_t;
+	')
+
+	allow $1 unreserved_port_t:rawip_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind SCTP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_bind_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t, ephemeral_port_t;
+		attribute defined_port_type;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:sctp_socket name_bind;
+	dontaudit $1 defined_port_type:sctp_socket name_bind;
+')
+
+########################################
+## <summary>
+##     Do not audit attempts to bind SCTP
+##     sockets to generic ports.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain to not audit.
+##     </summary>
+## </param>
+#
+interface(`corenet_dontaudit_sctp_bind_generic_port',`
+   gen_require(`
+       type port_t, unreserved_port_t, ephemeral_port_t;
+   ')
+
+   dontaudit $1 { port_t unreserved_port_t ephemeral_port_t }:sctp_socket name_bind;
+')
+
+########################################
+## <summary>
+##     Do not audit attepts to bind SCTP sockets to any ports.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain to not audit.
+##     </summary>
+## </param>
+#
+interface(`corenet_dontaudit_sctp_bind_all_ports',`
+       gen_require(`
+               attribute port_type;
+       ')
+
+       dontaudit $1 port_type:sctp_socket name_bind;
+')
+
+########################################
+## <summary>
+##     Do not audit attempts to connect SCTP sockets
+##     to all ports.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain to not audit.
+##     </summary>
+## </param>
+#
+interface(`corenet_dontaudit_sctp_connect_all_ports',`
+       gen_require(`
+               attribute port_type;
+       ')
+
+       dontaudit $1 port_type:sctp_socket name_connect;
+')
+
+########################################
+## <summary>
+##     Connect SCTP sockets to all ports > 1024.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`corenet_sctp_connect_all_unreserved_ports',`
+       gen_require(`
+               attribute unreserved_port_type;
+       ')
+
+       allow $1 unreserved_port_type:sctp_socket name_connect;
+')
+
+########################################
+## <summary>
+##     Connect SCTP sockets to all ports.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`corenet_sctp_connect_all_ports',`
+       gen_require(`
+               attribute port_type;
+       ')
+
+       allow $1 port_type:sctp_socket name_connect;
+')
+
+########################################
+## <summary>
+##     Bind SCTP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`corenet_sctp_bind_all_reserved_ports',`
+       gen_require(`
+               attribute reserved_port_type;
+       ')
+
+       allow $1 reserved_port_type:sctp_socket name_bind;
+       allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:udp_socket recv_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on all ports.
+## </summary>
+## <desc>
+##	<p>
+##	Send and receive UDP network traffic on all ports.
+##	Related interfaces:
+##	</p>
+##	<ul>
+##		<li>corenet_all_recvfrom_unlabeled()</li>
+##		<li>corenet_udp_sendrecv_generic_if()</li>
+##		<li>corenet_udp_sendrecv_generic_node()</li>
+##		<li>corenet_udp_bind_all_ports()</li>
+##	</ul>
+##	<p>
+##	Example client being able to send to all ports over
+##	generic nodes, without labeled networking:
+##	</p>
+##	<p>
+##	allow myclient_t self:udp_socket create_socket_perms;
+##	corenet_udp_sendrecv_generic_if(myclient_t)
+##	corenet_udp_sendrecv_generic_node(myclient_t)
+##	corenet_udp_sendrecv_all_ports(myclient_t)
+##	corenet_all_recvfrom_unlabeled(myclient_t)
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`corenet_udp_sendrecv_all_ports',`
+	corenet_udp_send_all_ports($1)
+	corenet_udp_receive_all_ports($1)
+')
+
+########################################
+## <summary>
+##	Bind DCCP sockets to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:dccp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:tcp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Do not audit attepts to bind DCCP sockets to any ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	dontaudit $1 port_type:dccp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Do not audit attepts to bind TCP sockets to any ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	dontaudit $1 port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:udp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Connect SCTP sockets to generic ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_connect_generic_port',`
+	gen_require(`
+		type port_t, unreserved_port_t,ephemeral_port_t;
+	')
+
+	allow $1 { port_t unreserved_port_t ephemeral_port_t }:sctp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attepts to bind UDP sockets to any ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	dontaudit $1 port_type:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Connect DCCP sockets to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_connect_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:dccp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to all ports.
+## </summary>
+## <desc>
+##	<p>
+##	Connect TCP sockets to all ports
+##	</p>
+##	<p>
+##	Related interfaces:
+##	</p>
+##	<ul>
+##		<li>corenet_all_recvfrom_unlabeled()</li>
+##		<li>corenet_tcp_sendrecv_generic_if()</li>
+##		<li>corenet_tcp_sendrecv_generic_node()</li>
+##		<li>corenet_tcp_sendrecv_all_ports()</li>
+##		<li>corenet_tcp_bind_all_ports()</li>
+##	</ul>
+##	<p>
+##	Example client being able to connect to all ports over
+##	generic nodes, without labeled networking:
+##	</p>
+##	<p>
+##	allow myclient_t self:tcp_socket create_stream_socket_perms;
+##	corenet_tcp_sendrecv_generic_if(myclient_t)
+##	corenet_tcp_sendrecv_generic_node(myclient_t)
+##	corenet_tcp_sendrecv_all_ports(myclient_t)
+##	corenet_tcp_connect_all_ports(myclient_t)
+##	corenet_all_recvfrom_unlabeled(myclient_t)
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="write" weight="1"/>
+#
+interface(`corenet_tcp_connect_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to connect DCCP sockets
+##	to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_connect_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	dontaudit $1 port_type:dccp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to connect TCP sockets
+##	to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_connect_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	dontaudit $1 port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Send and receive DCCP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_sendrecv_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:dccp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:udp_socket send_msg;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:udp_socket recv_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_reserved_port',`
+	corenet_udp_send_reserved_port($1)
+	corenet_udp_receive_reserved_port($1)
+')
+
+########################################
+## <summary>
+##	Bind DCCP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_bind_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:dccp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:tcp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Bind SCTP sockets to all ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_bind_all_ports',`
+	gen_require(`
+		attribute port_type;
+	')
+
+	allow $1 port_type:sctp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:udp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Connect DCCP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_connect_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:dccp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Send and receive DCCP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_sendrecv_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:dccp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send and receive TCP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_sendrecv_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:tcp_socket { send_msg recv_msg };
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_send_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:udp_socket send_msg;
+')
+
+########################################
+## <summary>
+##	Receive UDP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_receive_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:udp_socket recv_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive UDP network traffic on all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_sendrecv_all_reserved_ports',`
+	corenet_udp_send_all_reserved_ports($1)
+	corenet_udp_receive_all_reserved_ports($1)
+')
+
+########################################
+## <summary>
+##	Bind DCCP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:dccp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:tcp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind DCCP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:dccp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind TCP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:udp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind UDP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind DCCP sockets to all ports > 1024.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_bind_all_unreserved_ports',`
+	gen_require(`
+		attribute unreserved_port_type;
+	')
+
+	allow $1 unreserved_port_type:dccp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all ports > 1024.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_unreserved_ports',`
+	gen_require(`
+		attribute unreserved_port_type;
+	')
+
+	allow $1 unreserved_port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all ports > 1024.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_unreserved_ports',`
+	gen_require(`
+		attribute unreserved_port_type;
+	')
+
+	allow $1 unreserved_port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all ports > 1024.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_unreserved_ports',`
+	gen_require(`
+		attribute unreserved_port_type;
+	')
+
+	allow $1 unreserved_port_type:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all ports > 32768.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_ephemeral_ports',`
+	gen_require(`
+		attribute ephemeral_port_type;
+	')
+
+	allow $1 ephemeral_port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all ports > 32768.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_ephemeral_ports',`
+	gen_require(`
+		attribute ephemeral_port_type;
+	')
+
+	allow $1 ephemeral_port_type:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Connect DCCP sockets to reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_connect_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:dccp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect DCCP sockets to all ports > 1024.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_connect_all_unreserved_ports',`
+	gen_require(`
+		attribute unreserved_port_type;
+	')
+
+	allow $1 unreserved_port_type:dccp_socket name_connect;
+')
+
+#######################################
+## <summary>
+##  Connect TCP sockets to ports > 1024.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`corenet_tcp_connect_unreserved_ports',`
+    gen_require(`
+        type unreserved_port_t;
+    ')
+
+    allow $1 unreserved_port_t:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to all ports > 1024.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_all_unreserved_ports',`
+	gen_require(`
+		attribute unreserved_port_type;
+	')
+
+	allow $1 unreserved_port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to all ports > 32768.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_all_ephemeral_ports',`
+	gen_require(`
+		attribute ephemeral_port_type;
+	')
+
+	allow $1 ephemeral_port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to connect DCCP sockets
+##	all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_connect_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:dccp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to connect TCP sockets
+##	all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_connect_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect DCCP sockets to rpc ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_connect_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	allow $1 rpc_port_type:dccp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Connect TCP sockets to rpc ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_connect_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	allow $1 rpc_port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to connect DCCP sockets
+##	all rpc ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_connect_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	dontaudit $1 rpc_port_type:dccp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to connect TCP sockets
+##	all rpc ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_connect_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	dontaudit $1 rpc_port_type:tcp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Read and write the TUN/TAP virtual network device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_bind_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:sctp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_rw_tun_tap_dev',`
+	gen_require(`
+		type tun_tap_device_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 tun_tap_device_t:chr_file rw_chr_file_perms;
+')
+
+########################################
+## <summary>
+##	Relabel to and from the TUN/TAP virtual network device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_relabel_tun_tap_dev',`
+	gen_require(`
+		type tun_tap_device_t;
+	')
+
+	relabel_chr_files_pattern($1, tun_tap_device_t, tun_tap_device_t)
+')
+
+########################################
+## <summary>
+##	Read and write inherited TUN/TAP virtual network device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_rw_inherited_tun_tap_dev',`
+	gen_require(`
+		type tun_tap_device_t;
+	')
+
+	allow $1 tun_tap_device_t:chr_file rw_inherited_chr_file_perms;
+')
+
+########################################
+## <summary>
+##	Connect SCTP sockets to generic reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_connect_reserved_port',`
+	gen_require(`
+		type reserved_port_t;
+	')
+
+	allow $1 reserved_port_t:sctp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read or write the TUN/TAP
+##	virtual network device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_rw_tun_tap_dev',`
+	gen_require(`
+		type tun_tap_device_t;
+	')
+
+	dontaudit $1 tun_tap_device_t:chr_file { read write };
+')
+
+########################################
+## <summary>
+##	Getattr the point-to-point device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_getattr_ppp_dev',`
+	gen_require(`
+		type ppp_device_t;
+	')
+
+	allow $1 ppp_device_t:chr_file getattr;
+')
+
+########################################
+## <summary>
+##	Read and write the point-to-point device.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_rw_ppp_dev',`
+	gen_require(`
+		type ppp_device_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 ppp_device_t:chr_file rw_chr_file_perms;
+')
+
+########################################
+## <summary>
+##	Bind DCCP sockets to all RPC ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_bind_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	allow $1 rpc_port_type:dccp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Bind TCP sockets to all RPC ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_bind_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	allow $1 rpc_port_type:tcp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind DCCP sockets to all RPC ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_bind_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	dontaudit $1 rpc_port_type:dccp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind TCP sockets to all RPC ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_bind_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	dontaudit $1 rpc_port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Bind UDP sockets to all RPC ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_bind_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	allow $1 rpc_port_type:udp_socket name_bind;
+	allow $1 self:capability net_bind_service;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind UDP sockets to all RPC ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_bind_all_rpc_ports',`
+	gen_require(`
+		attribute rpc_port_type;
+	')
+
+	dontaudit $1 rpc_port_type:udp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Send and receive messages on a
+##	non-encrypted (no IPSEC) network
+##	session.
+## </summary>
+## <desc>
+##	<p>
+##	Send and receive messages on a
+##	non-encrypted (no IPSEC) network
+##	session.  (Deprecated)
+##	</p>
+##	<p>
+##	The corenet_all_recvfrom_unlabeled() interface should be used instead
+##	of this one.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_non_ipsec_sendrecv',`
+	refpolicywarn(`$0($*) has been deprecated, use corenet_all_recvfrom_unlabeled() instead.')
+	corenet_all_recvfrom_unlabeled($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to send and receive
+##	messages on a non-encrypted (no IPSEC) network
+##	session.
+## </summary>
+## <desc>
+##	<p>
+##	Do not audit attempts to send and receive
+##	messages on a non-encrypted (no IPSEC) network
+##	session.
+##	</p>
+##	<p>
+##	The corenet_dontaudit_all_recvfrom_unlabeled() interface should be
+##	used instead of this one.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_non_ipsec_sendrecv',`
+	refpolicywarn(`$0($*) has been deprecated, use corenet_dontaudit_all_recvfrom_unlabeled() instead.')
+	corenet_dontaudit_all_recvfrom_unlabeled($1)
+')
+
+########################################
+## <summary>
+##	Receive TCP packets from a NetLabel connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_recv_netlabel',`
+	refpolicywarn(`$0($*) has been deprecated, use corenet_tcp_recvfrom_netlabel() instead.')
+	corenet_tcp_recvfrom_netlabel($1)
+')
+
+########################################
+## <summary>
+##	Receive DCCP packets from a NetLabel connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	allow $1 netlabel_peer_t:peer recv;
+	allow $1 netlabel_peer_t:dccp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Receive TCP packets from a NetLabel connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	allow $1 netlabel_peer_t:peer recv;
+	allow $1 netlabel_peer_t:tcp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Receive DCCP packets from an unlabled connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_recvfrom_unlabeled',`
+	gen_require(`
+		attribute corenet_unlabeled_type;
+	')
+
+	kernel_dccp_recvfrom_unlabeled($1)
+	kernel_recvfrom_unlabeled_peer($1)
+
+	typeattribute $1 corenet_unlabeled_type;
+	# XXX - at some point the oubound/send access check will be removed
+	# but for right now we need to keep this in place so as not to break
+	# older systems
+	kernel_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to bind SCTP sockets to all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_sctp_bind_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:sctp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive TCP packets from a NetLabel
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_recv_netlabel',`
+	refpolicywarn(`$0($*) has been deprecated, use corenet_dontaudit_tcp_recvfrom_netlabel() instead.')
+	corenet_dontaudit_tcp_recvfrom_netlabel($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive DCCP packets from a NetLabel
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	dontaudit $1 netlabel_peer_t:peer recv;
+	dontaudit $1 netlabel_peer_t:dccp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive TCP packets from a NetLabel
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	dontaudit $1 netlabel_peer_t:peer recv;
+	dontaudit $1 netlabel_peer_t:tcp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive DCCP packets from an unlabeled
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_dccp_recvfrom_unlabeled',`
+	kernel_dontaudit_dccp_recvfrom_unlabeled($1)
+	kernel_dontaudit_recvfrom_unlabeled_peer($1)
+
+	# XXX - at some point the oubound/send access check will be removed
+	# but for right now we need to keep this in place so as not to break
+	# older systems
+	kernel_dontaudit_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive TCP packets from an unlabeled
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_recvfrom_unlabeled',`
+	kernel_dontaudit_tcp_recvfrom_unlabeled($1)
+	kernel_dontaudit_recvfrom_unlabeled_peer($1)
+
+	# XXX - at some point the oubound/send access check will be removed
+	# but for right now we need to keep this in place so as not to break
+	# older systems
+	kernel_dontaudit_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Receive UDP packets from a NetLabel connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_recv_netlabel',`
+	refpolicywarn(`$0($*) has been deprecated, use corenet_udp_recvfrom_netlabel() instead.')
+	corenet_udp_recvfrom_netlabel($1)
+')
+
+########################################
+## <summary>
+##	Receive UDP packets from a NetLabel connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	allow $1 netlabel_peer_t:peer recv;
+	allow $1 netlabel_peer_t:udp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Receive UDP packets from an unlabeled connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_recvfrom_unlabeled',`
+	kernel_udp_recvfrom_unlabeled($1)
+	kernel_recvfrom_unlabeled_peer($1)
+
+	# XXX - at some point the oubound/send access check will be removed
+	# but for right now we need to keep this in place so as not to break
+	# older systems
+	kernel_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Bind SCTP sockets to all ports > 1024.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_bind_all_unreserved_ports',`
+	gen_require(`
+		attribute unreserved_port_type;
+	')
+
+	allow $1 unreserved_port_type:sctp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive UDP packets from a NetLabel
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_recv_netlabel',`
+	refpolicywarn(`$0($*) has been deprecated, use corenet_dontaudit_udp_recvfrom_netlabel($1) instead.')
+	corenet_dontaudit_udp_recvfrom_netlabel($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive UDP packets from a NetLabel
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	dontaudit $1 netlabel_peer_t:peer recv;
+	dontaudit $1 netlabel_peer_t:udp_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive UDP packets from an unlabeled
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_udp_recvfrom_unlabeled',`
+	kernel_dontaudit_udp_recvfrom_unlabeled($1)
+	kernel_dontaudit_recvfrom_unlabeled_peer($1)
+
+	# XXX - at some point the oubound/send access check will be removed
+	# but for right now we need to keep this in place so as not to break
+	# older systems
+	kernel_dontaudit_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Receive Raw IP packets from a NetLabel connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_recv_netlabel',`
+	refpolicywarn(`$0($*) has been deprecated, use corenet_raw_recvfrom_netlabel() instead.')
+	corenet_raw_recvfrom_netlabel($1)
+')
+
+########################################
+## <summary>
+##	Receive Raw IP packets from a NetLabel connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	allow $1 netlabel_peer_t:peer recv;
+	allow $1 netlabel_peer_t:rawip_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Receive Raw IP packets from an unlabeled connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_recvfrom_unlabeled',`
+	kernel_raw_recvfrom_unlabeled($1)
+	kernel_recvfrom_unlabeled_peer($1)
+
+	# XXX - at some point the oubound/send access check will be removed
+	# but for right now we need to keep this in place so as not to break
+	# older systems
+	kernel_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive Raw IP packets from a NetLabel
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_raw_recv_netlabel',`
+	refpolicywarn(`$0($*) has been deprecated, use corenet_dontaudit_raw_recvfrom_netlabel() instead.')
+	corenet_dontaudit_raw_recvfrom_netlabel($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive Raw IP packets from a NetLabel
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_raw_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	dontaudit $1 netlabel_peer_t:peer recv;
+	dontaudit $1 netlabel_peer_t:rawip_socket recvfrom;
+')
+
+########################################
+## <summary>
+##	Connect SCTP sockets to reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_connect_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	allow $1 reserved_port_type:sctp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive Raw IP packets from an unlabeled
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_raw_recvfrom_unlabeled',`
+	kernel_dontaudit_raw_recvfrom_unlabeled($1)
+	kernel_dontaudit_recvfrom_unlabeled_peer($1)
+
+	# XXX - at some point the oubound/send access check will be removed
+	# but for right now we need to keep this in place so as not to break
+	# older systems
+	kernel_dontaudit_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Receive packets from an unlabeled connection.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to receive packets from an
+##	unlabeled connection.  On machines that do not utilize
+##	labeled networking, this will be required on all
+##	networking domains.  On machines tha do utilize
+##	labeled networking, this will be required for any
+##	networking domain that is allowed to receive
+##	network traffic that does not have a label.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="10"/>
+#
+interface(`corenet_all_recvfrom_unlabeled',`
+	gen_require(`
+                attribute corenet_unlabeled_type;
+	')
+	typeattribute $1 corenet_unlabeled_type;
+')
+
+########################################
+## <summary>
+##	Receive packets from a NetLabel connection.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to receive NetLabel
+##	network traffic, which utilizes the Commercial IP
+##	Security Option (CIPSO) to set the MLS level
+##	of the network packets.  This is required for
+##	all networking domains that receive NetLabel
+##	network traffic.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="10"/>
+#
+interface(`corenet_all_recvfrom_netlabel',`
+	gen_require(`
+		attribute netlabel_peer_type;
+	')
+
+	typeattribute $1 netlabel_peer_type;
+')
+
+########################################
+## <summary>
+##	Enable unlabeled net packets
+## </summary>
+## <desc>
+##	<p>
+##	Allow unlabeled_packet_t to be used by all domains that use the network
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="10"/>
+#
+interface(`corenet_enable_unlabeled_packets',`
+	gen_require(`
+		attribute corenet_unlabeled_type;
+	')
+
+	kernel_sendrecv_unlabeled_association(corenet_unlabeled_type)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive packets from an unlabeled connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_all_recvfrom_unlabeled',`
+	kernel_dontaudit_dccp_recvfrom_unlabeled($1)
+	kernel_dontaudit_tcp_recvfrom_unlabeled($1)
+	kernel_dontaudit_udp_recvfrom_unlabeled($1)
+	kernel_dontaudit_raw_recvfrom_unlabeled($1)
+	kernel_dontaudit_recvfrom_unlabeled_peer($1)
+
+	# XXX - at some point the oubound/send access check will be removed
+	# but for right now we need to keep this in place so as not to break
+	# older systems
+	kernel_dontaudit_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to connect SCTP sockets
+##	all reserved ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_sctp_connect_all_reserved_ports',`
+	gen_require(`
+		attribute reserved_port_type;
+	')
+
+	dontaudit $1 reserved_port_type:sctp_socket name_connect;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to receive packets from a NetLabel
+##	connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_all_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	dontaudit $1 netlabel_peer_t:peer recv;
+	dontaudit $1 netlabel_peer_t:{ tcp_socket udp_socket rawip_socket dccp_socket } recvfrom;
+')
+
+########################################
+## <summary>
+##	Rules for receiving labeled DCCP packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="peer_domain">
+##	<summary>
+##	Peer domain.
+##	</summary>
+## </param>
+#
+interface(`corenet_dccp_recvfrom_labeled',`
+	allow { $1 $2 } self:association sendto;
+	allow $1 $2:{ association dccp_socket } recvfrom;
+	allow $2 $1:{ association dccp_socket } recvfrom;
+
+	allow $1 $2:peer recv;
+	allow $2 $1:peer recv;
+
+	# allow receiving packets from MLS-only peers using NetLabel
+	corenet_dccp_recvfrom_netlabel($1)
+	corenet_dccp_recvfrom_netlabel($2)
+')
+
+########################################
+## <summary>
+##	Rules for receiving labeled TCP packets.
+## </summary>
+## <desc>
+##	<p>
+##	Rules for receiving labeled TCP packets.
+##	</p>
+##	<p>
+##	Due to the nature of TCP, this is bidirectional.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="peer_domain">
+##	<summary>
+##	Peer domain.
+##	</summary>
+## </param>
+#
+interface(`corenet_tcp_recvfrom_labeled',`
+	allow { $1 $2 } self:association sendto;
+	allow $1 $2:{ association tcp_socket } recvfrom;
+	allow $2 $1:{ association tcp_socket } recvfrom;
+
+	allow $1 $2:peer recv;
+	allow $2 $1:peer recv;
+
+	# allow receiving packets from MLS-only peers using NetLabel
+	corenet_tcp_recvfrom_netlabel($1)
+	corenet_tcp_recvfrom_netlabel($2)
+')
+
+########################################
+## <summary>
+##	Rules for receiving labeled UDP packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="peer_domain">
+##	<summary>
+##	Peer domain.
+##	</summary>
+## </param>
+#
+interface(`corenet_udp_recvfrom_labeled',`
+	allow $2 self:association sendto;
+	allow $1 $2:{ association udp_socket } recvfrom;
+
+	allow $1 $2:peer recv;
+
+	# allow receiving packets from MLS-only peers using NetLabel
+	corenet_udp_recvfrom_netlabel($1)
+')
+
+########################################
+## <summary>
+##	Rules for receiving labeled raw IP packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="peer_domain">
+##	<summary>
+##	Peer domain.
+##	</summary>
+## </param>
+#
+interface(`corenet_raw_recvfrom_labeled',`
+	allow $2 self:association sendto;
+	allow $1 $2:{ association rawip_socket } recvfrom;
+
+	allow $1 $2:peer recv;
+
+	# allow receiving packets from MLS-only peers using NetLabel
+	corenet_raw_recvfrom_netlabel($1)
+')
+
+########################################
+## <summary>
+##	Rules for receiving labeled packets via TCP, UDP and raw IP.
+## </summary>
+## <desc>
+##	<p>
+##	Rules for receiving labeled packets via TCP, UDP and raw IP.
+##	</p>
+##	<p>
+##	Due to the nature of TCP, the rules (for TCP
+##	networking only) are bidirectional.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="peer_domain">
+##	<summary>
+##	Peer domain.
+##	</summary>
+## </param>
+#
+interface(`corenet_all_recvfrom_labeled',`
+    corenet_sctp_recvfrom_labeled($1, $2)
+	corenet_tcp_recvfrom_labeled($1, $2)
+	corenet_udp_recvfrom_labeled($1, $2)
+	corenet_raw_recvfrom_labeled($1, $2)
+')
+
+########################################
+## <summary>
+##	Make the specified type usable
+##	for labeled ipsec.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Type to be used for labeled ipsec.
+##	</summary>
+## </param>
+#
+interface(`corenet_setcontext_all_spds',`
+	gen_require(`
+		attribute ipsec_spd_type;
+	')
+
+	allow $1 ipsec_spd_type:association setcontext;
+')
+
+########################################
+## <summary>
+##	Send generic client packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_send_generic_client_packets',`
+	gen_require(`
+		type client_packet_t;
+	')
+
+	allow $1 client_packet_t:packet send;
+')
+
+########################################
+## <summary>
+##	Receive generic client packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_receive_generic_client_packets',`
+	gen_require(`
+		type client_packet_t;
+	')
+
+	allow $1 client_packet_t:packet recv;
+')
+
+########################################
+## <summary>
+##	Send and receive generic client packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sendrecv_generic_client_packets',`
+	corenet_send_generic_client_packets($1)
+	corenet_receive_generic_client_packets($1)
+')
+
+########################################
+## <summary>
+##	Relabel packets to the generic client packet type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_relabelto_generic_client_packets',`
+	gen_require(`
+		type client_packet_t;
+	')
+
+	allow $1 client_packet_t:packet relabelto;
+')
+
+########################################
+## <summary>
+##	Send generic server packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_send_generic_server_packets',`
+	gen_require(`
+		type server_packet_t;
+	')
+
+	allow $1 server_packet_t:packet send;
+')
+
+########################################
+## <summary>
+##	Receive generic server packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_receive_generic_server_packets',`
+	gen_require(`
+		type server_packet_t;
+	')
+
+	allow $1 server_packet_t:packet recv;
+')
+
+########################################
+## <summary>
+##	Send and receive generic server packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sendrecv_generic_server_packets',`
+	corenet_send_generic_server_packets($1)
+	corenet_receive_generic_server_packets($1)
+')
+
+########################################
+## <summary>
+##	Relabel packets to the generic server packet type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_relabelto_generic_server_packets',`
+	gen_require(`
+		type server_packet_t;
+	')
+
+	allow $1 server_packet_t:packet relabelto;
+')
+
+########################################
+## <summary>
+##	Send and receive unlabeled packets.
+## </summary>
+## <desc>
+##	<p>
+##	Send and receive unlabeled packets.
+##	These packets do not match any netfilter
+##	SECMARK rules.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sendrecv_unlabeled_packets',`
+	kernel_sendrecv_unlabeled_packets($1)
+')
+
+########################################
+## <summary>
+##	Send all client packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_send_all_client_packets',`
+	gen_require(`
+		attribute client_packet_type;
+	')
+
+	allow $1 client_packet_type:packet send;
+')
+
+########################################
+## <summary>
+##	Receive all client packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_receive_all_client_packets',`
+	gen_require(`
+		attribute client_packet_type;
+	')
+
+	allow $1 client_packet_type:packet recv;
+')
+
+########################################
+## <summary>
+##	Send and receive all client packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sendrecv_all_client_packets',`
+	corenet_send_all_client_packets($1)
+	corenet_receive_all_client_packets($1)
+')
+
+########################################
+## <summary>
+##	Relabel packets to any client packet type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_relabelto_all_client_packets',`
+	gen_require(`
+		attribute client_packet_type;
+	')
+
+	allow $1 client_packet_type:packet relabelto;
+')
+
+########################################
+## <summary>
+##	Send all server packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_send_all_server_packets',`
+	gen_require(`
+		attribute server_packet_type;
+	')
+
+	allow $1 server_packet_type:packet send;
+')
+
+########################################
+## <summary>
+##	Receive SCTP packets from a NetLabel connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_recvfrom_netlabel',`
+	gen_require(`
+		type netlabel_peer_t;
+	')
+
+	allow $1 netlabel_peer_t:peer recv;
+')
+
+########################################
+## <summary>
+##	Receive all server packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_receive_all_server_packets',`
+	gen_require(`
+		attribute server_packet_type;
+	')
+
+	allow $1 server_packet_type:packet recv;
+')
+
+########################################
+## <summary>
+##	Send and receive all server packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sendrecv_all_server_packets',`
+	corenet_send_all_server_packets($1)
+	corenet_receive_all_server_packets($1)
+')
+
+########################################
+## <summary>
+##	Relabel packets to any server packet type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_relabelto_all_server_packets',`
+	gen_require(`
+		attribute server_packet_type;
+	')
+
+	allow $1 server_packet_type:packet relabelto;
+')
+
+########################################
+## <summary>
+##	Receive SCTP packets from an unlabled connection.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_recvfrom_unlabeled',`
+	gen_require(`
+		attribute corenet_unlabeled_type;
+	')
+
+	kernel_recvfrom_unlabeled_peer($1)
+
+	typeattribute $1 corenet_unlabeled_type;
+	kernel_sendrecv_unlabeled_association($1)
+')
+
+########################################
+## <summary>
+##	Send all packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_send_all_packets',`
+	gen_require(`
+		attribute packet_type;
+	')
+
+	allow $1 packet_type:packet send;
+')
+
+########################################
+## <summary>
+##	Receive all packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_receive_all_packets',`
+	gen_require(`
+		attribute packet_type;
+	')
+
+	allow $1 packet_type:packet recv;
+')
+
+########################################
+## <summary>
+##	Send and receive all packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_sendrecv_all_packets',`
+	corenet_send_all_packets($1)
+	corenet_receive_all_packets($1)
+')
+
+########################################
+## <summary>
+##	Relabel packets to any packet type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_relabelto_all_packets',`
+	gen_require(`
+		attribute packet_type;
+	')
+
+	allow $1 packet_type:packet relabelto;
+')
+
+########################################
+## <summary>
+##	Unconfined access to network objects.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_unconfined',`
+	gen_require(`
+		attribute corenet_unconfined_type;
+	')
+
+	typeattribute $1 corenet_unconfined_type;
+')
+
+########################################
+## <summary>
+##	Dontaudit bind tcp sockets to defined ports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_dontaudit_tcp_bind_all_defined_ports',`
+	gen_require(`
+		attribute defined_port_type;
+	')
+	dontaudit $1 defined_port_type:tcp_socket name_bind;
+')
+
+########################################
+## <summary>
+##	Create all network named devices with the correct label
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_filetrans_all_named_dev',`
+
+	gen_require(`
+		type tun_tap_device_t;
+		type ppp_device_t;
+	')
+
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap0")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap1")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap2")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap3")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap4")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap5")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap6")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap7")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap8")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap9")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap10")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap11")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap12")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap13")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap14")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap15")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap16")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap17")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap18")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap19")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap20")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap21")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap22")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap23")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap24")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap25")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap26")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap27")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap28")
+	dev_filetrans($1, tun_tap_device_t, chr_file, "tap29")
+	dev_filetrans($1, ppp_device_t, chr_file, "ppp")
+')
+
+########################################
+## <summary>
+##	Define type to be an infiniband pkey type
+## </summary>
+## <desc>
+##	<p>
+##	Define type to be an infiniband pkey type
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for infiniband pkeys.
+##	</summary>
+## </param>
+#
+interface(`corenet_ib_pkey',`
+	gen_require(`
+		attribute ibpkey_type;
+	')
+
+	typeattribute $1 ibpkey_type;
+')
+
+########################################
+## <summary>
+##	Access unlabeled infiniband pkeys.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_ib_access_unlabeled_pkeys',`
+	kernel_ib_access_unlabeled_pkeys($1)
+')
+
+########################################
+## <summary>
+##	Access all labeled infiniband pkeys.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_ib_access_all_pkeys',`
+	gen_require(`
+		attribute ibpkey_type;
+	')
+
+	allow $1 ibpkey_type:infiniband_pkey access;
+')
+
+########################################
+## <summary>
+##	Define type to be an infiniband endport
+## </summary>
+## <desc>
+##	<p>
+##	Define type to be an infiniband endport
+##	</p>
+##	<p>
+##	This is for supporting third party modules and its
+##	use is not allowed in upstream reference policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Type to be used for infiniband endports.
+##	</summary>
+## </param>
+#
+interface(`corenet_ib_endport',`
+	gen_require(`
+		attribute ibendport_type;
+	')
+
+	typeattribute $1 ibendport_type;
+')
+
+########################################
+## <summary>
+##	Manage subnets on all labeled Infiniband endports
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_ib_manage_subnet_all_endports',`
+	gen_require(`
+		attribute ibendport_type;
+	')
+
+	allow $1 ibendport_type:infiniband_endport manage_subnet;
+')
+
+########################################
+## <summary>
+##	Rules for receiving labeled SCTP packets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="peer_domain">
+##	<summary>
+##	Peer domain.
+##	</summary>
+## </param>
+#
+interface(`corenet_sctp_recvfrom_labeled',`
+	allow { $1 $2 } self:association sendto;
+	allow $1 $2:association recvfrom;
+	allow $2 $1:association recvfrom;
+
+	allow $1 $2:peer recv;
+	allow $2 $1:peer recv;
+
+	# allow receiving packets from MLS-only peers using NetLabel
+	corenet_sctp_recvfrom_netlabel($1)
+	corenet_sctp_recvfrom_netlabel($2)
+')
+
+########################################
+## <summary>
+##	Manage subnet on all unlabeled Infiniband endports
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corenet_ib_manage_subnet_unlabeled_endports',`
+	kernel_ib_manage_subnet_unlabeled_endports($1)
+')

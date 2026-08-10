@@ -1,0 +1,533 @@
+policy_module(rpm, 1.16.0)
+
+attribute rpm_transition_domain;
+attribute_role rpm_script_roles;
+roleattribute system_r rpm_script_roles;
+attribute_role rpmdb_roles;
+roleattribute system_r rpmdb_roles;
+
+########################################
+#
+# Declarations
+#
+type rpm_t;
+type rpm_exec_t;
+init_system_domain(rpm_t, rpm_exec_t)
+domain_obj_id_change_exemption(rpm_t)
+domain_role_change_exemption(rpm_t)
+domain_system_change_exemption(rpm_t)
+domain_interactive_fd(rpm_t)
+role rpm_script_roles types rpm_t;
+
+type rpmdb_t;
+type rpmdb_exec_t;
+init_system_domain(rpmdb_t, rpmdb_exec_t)
+role rpmdb_roles types rpmdb_t;
+
+type debuginfo_exec_t;
+domain_entry_file(rpm_t, debuginfo_exec_t)
+
+type rpm_file_t;
+files_type(rpm_file_t)
+
+type rpm_tmp_t;
+files_tmp_file(rpm_tmp_t)
+
+type rpm_tmpfs_t;
+files_tmpfs_file(rpm_tmpfs_t)
+
+type rpm_log_t;
+logging_log_file(rpm_log_t)
+
+type rpm_var_lib_t;
+files_type(rpm_var_lib_t)
+typealias rpm_var_lib_t alias var_lib_rpm_t;
+
+type rpm_var_cache_t;
+files_type(rpm_var_cache_t)
+
+type rpm_var_run_t;
+files_pid_file(rpm_var_run_t)
+
+type rpmdb_tmp_t;
+files_tmp_file(rpmdb_tmp_t)
+
+type rpm_script_t;
+type rpm_script_exec_t;
+domain_obj_id_change_exemption(rpm_script_t)
+domain_system_change_exemption(rpm_script_t)
+corecmd_shell_entry_type(rpm_script_t)
+corecmd_bin_entry_type(rpm_script_t)
+domain_type(rpm_script_t)
+domain_entry_file(rpm_t, rpm_script_exec_t)
+domain_interactive_fd(rpm_script_t)
+role rpm_script_roles types rpm_script_t;
+
+type rpm_script_tmp_t;
+files_tmp_file(rpm_script_tmp_t)
+
+type rpm_script_tmpfs_t;
+files_tmpfs_file(rpm_script_tmpfs_t)
+
+########################################
+#
+# rpm Local policy
+#
+
+allow rpm_t self:capability2 block_suspend;
+allow rpm_t self:capability { audit_write chown dac_read_search dac_override fowner setfcap fsetid ipc_lock setgid setuid sys_admin sys_chroot sys_nice sys_tty_config mknod };
+allow rpm_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execstack execheap };
+allow rpm_t self:process { getattr setexec setfscreate setrlimit };
+allow rpm_t self:fd use;
+allow rpm_t self:fifo_file rw_fifo_file_perms;
+allow rpm_t self:unix_dgram_socket create_socket_perms;
+allow rpm_t self:unix_stream_socket rw_stream_socket_perms;
+allow rpm_t self:unix_dgram_socket sendto;
+allow rpm_t self:unix_stream_socket connectto;
+allow rpm_t self:udp_socket { connect };
+allow rpm_t self:udp_socket create_socket_perms;
+allow rpm_t self:tcp_socket create_stream_socket_perms;
+allow rpm_t self:shm create_shm_perms;
+allow rpm_t self:sem create_sem_perms;
+allow rpm_t self:msgq create_msgq_perms;
+allow rpm_t self:msg { send receive };
+allow rpm_t self:dir search;
+allow rpm_t self:file rw_file_perms;;
+allow rpm_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow rpm_t self:netlink_audit_socket { nlmsg_relay create_socket_perms };
+
+allow rpm_t rpm_log_t:file manage_file_perms;
+logging_log_filetrans(rpm_t, rpm_log_t, file)
+
+manage_dirs_pattern(rpm_t, rpm_tmp_t, rpm_tmp_t)
+manage_files_pattern(rpm_t, rpm_tmp_t, rpm_tmp_t)
+files_tmp_filetrans(rpm_t, rpm_tmp_t, { file dir })
+can_exec(rpm_t, rpm_tmp_t)
+
+manage_dirs_pattern(rpm_t, rpm_tmpfs_t, rpm_tmpfs_t)
+manage_files_pattern(rpm_t, rpm_tmpfs_t, rpm_tmpfs_t)
+manage_lnk_files_pattern(rpm_t, rpm_tmpfs_t, rpm_tmpfs_t)
+manage_fifo_files_pattern(rpm_t, rpm_tmpfs_t, rpm_tmpfs_t)
+manage_sock_files_pattern(rpm_t, rpm_tmpfs_t, rpm_tmpfs_t)
+fs_tmpfs_filetrans(rpm_t, rpm_tmpfs_t, { dir file lnk_file sock_file fifo_file })
+can_exec(rpm_t, rpm_tmpfs_t)
+
+manage_dirs_pattern(rpm_t, rpm_var_cache_t, rpm_var_cache_t)
+manage_files_pattern(rpm_t, rpm_var_cache_t, rpm_var_cache_t)
+files_var_filetrans(rpm_t, rpm_var_cache_t, dir)
+
+# Access /var/lib/rpm files
+manage_files_pattern(rpm_t, rpm_var_lib_t, rpm_var_lib_t)
+files_var_lib_filetrans(rpm_t, rpm_var_lib_t, dir)
+allow rpm_t rpm_var_lib_t:file map;
+
+manage_dirs_pattern(rpm_t, rpm_var_run_t, rpm_var_run_t)
+manage_files_pattern(rpm_t, rpm_var_run_t, rpm_var_run_t)
+files_pid_filetrans(rpm_t, rpm_var_run_t, { file dir })
+
+kernel_read_crypto_sysctls(rpm_t)
+kernel_read_network_state(rpm_t)
+kernel_read_system_state(rpm_t)
+kernel_read_kernel_sysctls(rpm_t)
+kernel_read_network_state_symlinks(rpm_t)
+kernel_rw_irq_sysctls(rpm_t)
+
+corecmd_exec_all_executables(rpm_t)
+
+corenet_all_recvfrom_netlabel(rpm_t)
+corenet_tcp_sendrecv_generic_if(rpm_t)
+corenet_raw_sendrecv_generic_if(rpm_t)
+corenet_udp_sendrecv_generic_if(rpm_t)
+corenet_tcp_sendrecv_generic_node(rpm_t)
+corenet_raw_sendrecv_generic_node(rpm_t)
+corenet_udp_sendrecv_generic_node(rpm_t)
+corenet_tcp_sendrecv_all_ports(rpm_t)
+corenet_udp_sendrecv_all_ports(rpm_t)
+corenet_tcp_connect_all_ports(rpm_t)
+corenet_sendrecv_all_client_packets(rpm_t)
+
+dev_list_sysfs(rpm_t)
+dev_list_usbfs(rpm_t)
+dev_read_urand(rpm_t)
+dev_read_raw_memory(rpm_t)
+dev_manage_all_dev_nodes(rpm_t)
+
+#devices_manage_all_device_types(rpm_t)
+dev_create_generic_blk_files(rpm_t)
+dev_create_generic_chr_files(rpm_t)
+dev_delete_all_blk_files(rpm_t)
+dev_delete_all_chr_files(rpm_t)
+dev_relabel_all_dev_nodes(rpm_t)
+dev_rename_generic_blk_files(rpm_t)
+dev_rename_generic_chr_files(rpm_t)
+dev_setattr_all_blk_files(rpm_t)
+dev_setattr_all_chr_files(rpm_t)
+
+fs_getattr_all_dirs(rpm_t)
+fs_manage_nfs_dirs(rpm_t)
+fs_manage_nfs_files(rpm_t)
+fs_manage_nfs_symlinks(rpm_t)
+fs_getattr_all_fs(rpm_t)
+fs_search_auto_mountpoints(rpm_t)
+
+mls_file_read_all_levels(rpm_t)
+mls_file_write_all_levels(rpm_t)
+mls_file_upgrade(rpm_t)
+mls_file_downgrade(rpm_t)
+
+selinux_get_fs_mount(rpm_t)
+selinux_validate_context(rpm_t)
+selinux_compute_access_vector(rpm_t)
+selinux_compute_create_context(rpm_t)
+selinux_compute_relabel_context(rpm_t)
+selinux_compute_user_contexts(rpm_t)
+selinux_setcheckreqprot(rpm_t)
+
+storage_raw_write_fixed_disk(rpm_t)
+# for installing kernel packages
+storage_raw_read_fixed_disk(rpm_t)
+
+term_list_ptys(rpm_t)
+
+files_relabel_all_files(rpm_t)
+files_manage_all_files(rpm_t)
+auth_dontaudit_read_shadow(rpm_t)
+auth_use_nsswitch(rpm_t)
+
+# transition to rpm script:
+rpm_domtrans_script(rpm_t)
+
+domain_read_all_domains_state(rpm_t)
+domain_getattr_all_domains(rpm_t)
+domain_use_interactive_fds(rpm_t)
+domain_dontaudit_getattr_all_pipes(rpm_t)
+domain_dontaudit_getattr_all_tcp_sockets(rpm_t)
+domain_dontaudit_getattr_all_udp_sockets(rpm_t)
+domain_dontaudit_getattr_all_packet_sockets(rpm_t)
+domain_dontaudit_getattr_all_raw_sockets(rpm_t)
+domain_dontaudit_getattr_all_stream_sockets(rpm_t)
+domain_dontaudit_getattr_all_dgram_sockets(rpm_t)
+domain_signull_all_domains(rpm_t)
+
+files_exec_etc_files(rpm_t)
+
+init_domtrans_script(rpm_t)
+init_use_script_ptys(rpm_t)
+init_signull_script(rpm_t)
+init_reload_services(rpm_t)
+
+libs_exec_ld_so(rpm_t)
+libs_exec_lib_files(rpm_t)
+
+logging_send_syslog_msg(rpm_t)
+
+miscfiles_filetrans_named_content(rpm_t)
+
+# allow compiling and loading new policy
+seutil_manage_src_policy(rpm_t)
+seutil_manage_bin_policy(rpm_t)
+
+userdom_use_inherited_user_terminals(rpm_t)
+userdom_use_unpriv_users_fds(rpm_t)
+
+optional_policy(`
+	cron_system_entry(rpm_t, rpm_exec_t)
+')
+
+optional_policy(`
+	dbus_system_domain(rpm_t, rpm_exec_t)
+	dbus_system_domain(rpm_t, debuginfo_exec_t)
+
+	optional_policy(`
+		networkmanager_dbus_chat(rpm_t)
+	')
+
+')
+
+optional_policy(`
+	prelink_domtrans(rpm_t)
+')
+
+optional_policy(`
+	unconfined_domain_noaudit(rpm_t)
+	# yum-updatesd requires this
+	unconfined_dbus_chat(rpm_t)
+	unconfined_dbus_chat(rpm_script_t)
+')
+
+########################################
+#
+# rpmdb local policy
+#
+
+can_exec(rpmdb_t, rpm_exec_t)
+can_exec(rpmdb_t, rpmdb_exec_t)
+
+manage_dirs_pattern(rpmdb_t, rpm_var_lib_t, rpm_var_lib_t)
+manage_files_pattern(rpmdb_t, rpm_var_lib_t, rpm_var_lib_t)
+read_lnk_files_pattern(rpmdb_t, rpm_var_lib_t, rpm_var_lib_t)
+allow rpmdb_t rpm_var_lib_t:file map;
+
+manage_dirs_pattern(rpmdb_t, rpmdb_tmp_t, rpmdb_tmp_t)
+manage_files_pattern(rpmdb_t, rpmdb_tmp_t, rpmdb_tmp_t)
+files_tmp_filetrans(rpmdb_t, rpmdb_tmp_t, { file dir })
+allow rpmdb_t rpmdb_tmp_t:file map;
+
+corecmd_exec_bin(rpmdb_t)
+corecmd_exec_shell(rpmdb_t)
+
+files_rw_inherited_non_security_files(rpmdb_t)
+files_usr_filetrans(rpmdb_t, rpm_var_lib_t, dir)
+files_var_lib_filetrans(rpmdb_t, rpm_var_lib_t, dir)
+
+sysnet_dontaudit_read_config(rpmdb_t)
+
+term_use_all_inherited_terms(rpmdb_t)
+
+optional_policy(`
+	auth_dontaudit_read_passwd(rpmdb_t)
+')
+
+optional_policy(`
+	miscfiles_read_generic_certs(rpmdb_t)
+')
+
+optional_policy(`
+	sssd_dontaudit_stream_connect(rpmdb_t)
+')
+
+optional_policy(`
+	userdom_read_admin_home_files(rpmdb_t)
+')
+
+########################################
+#
+# rpm-script Local policy
+#
+
+allow rpm_script_t self:capability { chown  dac_read_search fowner fsetid setgid setuid ipc_lock sys_admin sys_chroot sys_rawio sys_nice mknod kill net_admin };
+
+allow rpm_script_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execheap };
+allow rpm_script_t self:fd use;
+allow rpm_script_t self:fifo_file rw_fifo_file_perms;
+allow rpm_script_t self:unix_dgram_socket create_socket_perms;
+allow rpm_script_t self:unix_stream_socket rw_stream_socket_perms;
+allow rpm_script_t self:unix_dgram_socket sendto;
+allow rpm_script_t self:unix_stream_socket connectto;
+allow rpm_script_t self:shm create_shm_perms;
+allow rpm_script_t self:sem create_sem_perms;
+allow rpm_script_t self:msgq create_msgq_perms;
+allow rpm_script_t self:msg { send receive };
+allow rpm_script_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow rpm_script_t self:netlink_audit_socket { create_socket_perms nlmsg_relay };
+
+allow rpm_script_t rpm_tmp_t:file read_file_perms;
+
+allow rpm_script_t rpm_script_tmp_t:dir mounton;
+manage_dirs_pattern(rpm_script_t, rpm_script_tmp_t, rpm_script_tmp_t)
+manage_files_pattern(rpm_script_t, rpm_script_tmp_t, rpm_script_tmp_t)
+manage_blk_files_pattern(rpm_script_t, rpm_script_tmp_t, rpm_script_tmp_t)
+manage_chr_files_pattern(rpm_script_t, rpm_script_tmp_t, rpm_script_tmp_t)
+files_tmp_filetrans(rpm_script_t, rpm_script_tmp_t, { file dir })
+
+manage_dirs_pattern(rpm_script_t, rpm_script_tmpfs_t, rpm_script_tmpfs_t)
+manage_files_pattern(rpm_script_t, rpm_script_tmpfs_t, rpm_script_tmpfs_t)
+manage_lnk_files_pattern(rpm_script_t, rpm_script_tmpfs_t, rpm_script_tmpfs_t)
+manage_fifo_files_pattern(rpm_script_t, rpm_script_tmpfs_t, rpm_script_tmpfs_t)
+manage_sock_files_pattern(rpm_script_t, rpm_script_tmpfs_t, rpm_script_tmpfs_t)
+fs_tmpfs_filetrans(rpm_script_t, rpm_script_tmpfs_t, { dir file lnk_file sock_file fifo_file })
+can_exec(rpm_script_t, rpm_script_tmpfs_t)
+
+allow rpm_script_t rpm_t:netlink_route_socket { read write };
+
+kernel_read_crypto_sysctls(rpm_script_t)
+kernel_read_kernel_sysctls(rpm_script_t)
+kernel_read_system_state(rpm_script_t)
+kernel_read_network_state(rpm_script_t)
+kernel_list_all_proc(rpm_script_t)
+kernel_read_software_raid_state(rpm_script_t)
+
+# needed by rhn_check
+corenet_tcp_connect_http_port(rpm_script_t)
+# needed by unbound-anchor
+corenet_udp_bind_all_unreserved_ports(rpm_script_t)
+
+dev_list_sysfs(rpm_script_t)
+
+# ideally we would not need this
+dev_manage_generic_blk_files(rpm_script_t)
+dev_manage_generic_chr_files(rpm_script_t)
+dev_manage_all_blk_files(rpm_script_t)
+dev_manage_all_chr_files(rpm_script_t)
+
+fs_manage_nfs_files(rpm_script_t)
+fs_getattr_nfs(rpm_script_t)
+fs_search_all(rpm_script_t)
+fs_getattr_all_fs(rpm_script_t)
+# why is this not using mount?
+fs_getattr_xattr_fs(rpm_script_t)
+fs_mount_xattr_fs(rpm_script_t)
+fs_unmount_xattr_fs(rpm_script_t)
+fs_search_auto_mountpoints(rpm_script_t)
+
+mls_file_read_all_levels(rpm_script_t)
+mls_file_write_all_levels(rpm_script_t)
+
+selinux_get_fs_mount(rpm_script_t)
+selinux_validate_context(rpm_script_t)
+selinux_compute_access_vector(rpm_script_t)
+selinux_compute_create_context(rpm_script_t)
+selinux_compute_relabel_context(rpm_script_t)
+selinux_compute_user_contexts(rpm_script_t)
+
+storage_raw_read_fixed_disk(rpm_script_t)
+storage_raw_write_fixed_disk(rpm_script_t)
+
+term_getattr_unallocated_ttys(rpm_script_t)
+term_list_ptys(rpm_script_t)
+term_use_all_inherited_terms(rpm_script_t)
+
+auth_dontaudit_getattr_shadow(rpm_script_t)
+auth_use_nsswitch(rpm_script_t)
+
+corecmd_exec_all_executables(rpm_script_t)
+can_exec(rpm_script_t, rpm_script_tmp_t)
+can_exec(rpm_script_t, rpm_script_tmpfs_t)
+
+domain_read_all_domains_state(rpm_script_t)
+domain_getattr_all_domains(rpm_script_t)
+domain_use_interactive_fds(rpm_script_t)
+domain_signal_all_domains(rpm_script_t)
+domain_signull_all_domains(rpm_script_t)
+
+# ideally we would not need this
+files_manage_all_files(rpm_script_t)
+files_exec_etc_files(rpm_script_t)
+files_read_etc_runtime_files(rpm_script_t)
+files_exec_usr_files(rpm_script_t)
+files_relabel_all_files(rpm_script_t)
+
+init_disable_services(rpm_script_t)
+init_enable_services(rpm_script_t)
+init_reload_services(rpm_script_t)
+init_manage_transient_unit(rpm_script_t)
+init_domtrans_script(rpm_script_t)
+init_telinit(rpm_script_t)
+init_dbus_chat(rpm_script_t)
+
+systemd_config_all_services(rpm_script_t)
+
+libs_exec_ld_so(rpm_script_t)
+libs_exec_lib_files(rpm_script_t)
+libs_ldconfig_exec_entry_type(rpm_script_t)
+
+logging_send_syslog_msg(rpm_script_t)
+logging_send_audit_msgs(rpm_script_t)
+
+miscfiles_filetrans_named_content(rpm_script_t)
+
+seutil_run_loadpolicy(rpm_script_t, rpm_script_roles)
+seutil_run_setfiles(rpm_script_t, rpm_script_roles)
+seutil_run_semanage(rpm_script_t, rpm_script_roles)
+seutil_run_setsebool(rpm_script_t, rpm_script_roles)
+
+userdom_use_all_users_fds(rpm_script_t)
+userdom_exec_admin_home_files(rpm_script_t)
+
+ifdef(`distro_redhat',`
+	optional_policy(`
+		mta_send_mail(rpm_script_t)
+        mta_role_access_system_mail(rpm_script_roles)
+		mta_system_content(rpm_var_run_t)
+	')
+')
+
+tunable_policy(`deny_execmem',`',`
+	allow rpm_script_t self:process execmem;
+')
+
+optional_policy(`
+	bootloader_run(rpm_script_t, rpm_script_roles)
+')
+
+optional_policy(`
+    bind_systemctl(rpm_script_t)
+')
+
+optional_policy(`
+	certmonger_dbus_chat(rpm_script_t)
+')
+
+optional_policy(`
+	cups_filetrans_named_content(rpm_script_t)
+')
+
+optional_policy(`
+    glusterd_filetrans_named_pid(rpm_script_t)
+') 
+
+optional_policy(`
+    sblim_filetrans_named_content(rpm_script_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(rpm_script_t)
+
+    optional_policy(`
+        systemd_dbus_chat_logind(rpm_script_t)
+        systemd_dbus_chat_timedated(rpm_script_t)
+        systemd_dbus_chat_localed(rpm_script_t)
+    ')
+')
+
+optional_policy(`
+	kdump_manage_lib_files(rpm_script_t)
+')
+
+optional_policy(`
+	lvm_domtrans(rpm_script_t, rpm_script_roles)
+')
+
+optional_policy(`
+	ntp_run(rpm_script_t, rpm_script_roles)
+')
+
+optional_policy(`
+	modutils_run_kmod(rpm_script_t, rpm_script_roles)
+	modutils_run_kmod(rpm_script_t, rpm_script_roles)
+')
+
+optional_policy(`
+	openshift_initrc_run(rpm_script_t, rpm_script_roles)
+')
+
+optional_policy(`
+	sssd_run_sssd(rpm_script_t, rpm_script_roles)
+')
+
+optional_policy(`
+	tzdata_domtrans(rpm_t)
+	tzdata_run(rpm_script_t, rpm_script_roles)
+')
+
+optional_policy(`
+	udev_run(rpm_script_t, rpm_script_roles)
+')
+
+optional_policy(`
+	unconfined_domain_noaudit(rpm_script_t)
+	domain_named_filetrans(rpm_script_t)
+
+	optional_policy(`
+		java_domtrans_unconfined(rpm_script_t)
+	')
+
+	optional_policy(`
+		mono_domtrans(rpm_script_t)
+	')
+')
+
+optional_policy(`
+	usermanage_run_groupadd(rpm_script_t, rpm_script_roles)
+	usermanage_run_useradd(rpm_script_t, rpm_script_roles)
+')

@@ -1,0 +1,69 @@
+policy_module(stratisd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type stratisd_t;
+type stratisd_exec_t;
+init_daemon_domain(stratisd_t, stratisd_exec_t)
+
+type stratisd_var_run_t;
+files_pid_file(stratisd_var_run_t)
+
+type stratisd_data_t;
+files_type(stratisd_data_t)
+dev_associate(stratisd_data_t)
+
+########################################
+#
+# stratisd local policy
+#
+allow stratisd_t self:capability { dac_override sys_admin sys_rawio };
+allow stratisd_t self:fifo_file rw_fifo_file_perms;
+allow stratisd_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow stratisd_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(stratisd_t, stratisd_var_run_t, stratisd_var_run_t)
+manage_files_pattern(stratisd_t, stratisd_var_run_t, stratisd_var_run_t)
+manage_lnk_files_pattern(stratisd_t, stratisd_var_run_t, stratisd_var_run_t)
+files_pid_filetrans(stratisd_t, stratisd_var_run_t, { dir file lnk_file })
+
+manage_dirs_pattern(stratisd_t, stratisd_data_t, stratisd_data_t)
+manage_files_pattern(stratisd_t, stratisd_data_t, stratisd_data_t)
+manage_lnk_files_pattern(stratisd_t, stratisd_data_t, stratisd_data_t)
+files_root_filetrans(stratisd_t, stratisd_data_t, dir, "stratis")
+allow stratisd_t stratisd_data_t:dir mounton;
+
+kernel_request_load_module(stratisd_t)
+
+dev_read_lvm_control(stratisd_t)
+dev_read_sysfs(stratisd_t)
+dev_read_rand(stratisd_t)
+
+fs_mount_xattr_fs(stratisd_t)
+fs_unmount_xattr_fs(stratisd_t)
+
+storage_raw_rw_fixed_disk(stratisd_t)
+storage_raw_read_removable_device(stratisd_t)
+storage_raw_write_removable_device(stratisd_t)
+
+optional_policy(`       
+        dbus_system_bus_client(stratisd_t)
+        dbus_connect_system_bus(stratisd_t)
+')
+
+optional_policy(`
+        fstools_exec(stratisd_t)
+')
+
+optional_policy(`
+        udev_read_db(stratisd_t)
+        udev_exec(stratisd_t)
+')
+
+optional_policy(`
+    unconfined_domain(stratisd_t)
+')
+

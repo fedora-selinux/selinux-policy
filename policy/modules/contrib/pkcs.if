@@ -1,0 +1,277 @@
+## <summary>Implementations of the Cryptoki specification.</summary>
+
+########################################
+## <summary>
+##	Read pkcs lock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_read_lock',`
+	gen_require(`
+		type pkcs_slotd_lock_t;
+	')
+
+    files_search_locks($1)
+    list_dirs_pattern($1, pkcs_slotd_lock_t, pkcs_slotd_lock_t)
+    read_files_pattern($1, pkcs_slotd_lock_t, pkcs_slotd_lock_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	pkcs lock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_manage_lock',`
+	gen_require(`
+		type pkcs_slotd_lock_t;
+	')
+
+    files_search_locks($1)
+    manage_files_pattern($1, pkcs_slotd_lock_t, pkcs_slotd_lock_t)
+    manage_dirs_pattern($1, pkcs_slotd_lock_t, pkcs_slotd_lock_t)
+')
+
+########################################
+## <summary>
+##	Read and write pkcs Shared
+##	memory segments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_rw_shm',`
+	gen_require(`
+		type pkcs_slotd_t;
+	')
+
+	allow $1 pkcs_slotd_t:shm rw_shm_perms;
+')
+
+########################################
+## <summary>
+##	Destroy pkcsslotd sysv shared memory segments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_destroy_shm',`
+	gen_require(`
+		type pkcs_slotd_t;
+	')
+
+	allow $1 pkcs_slotd_t:shm destroy;
+')
+
+########################################
+## <summary>
+##	Connect to pkcs using a unix
+##	domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_stream_connect',`
+	gen_require(`
+		type pkcs_slotd_t, pkcs_slotd_var_run_t;
+	')
+
+	stream_connect_pattern($1, pkcs_slotd_var_run_t, pkcs_slotd_var_run_t, pkcs_slotd_t)
+')
+
+########################################
+## <summary>
+##	Manage pkcs var_lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_manage_var_lib',`
+	gen_require(`
+		type pkcs_slotd_var_lib_t;
+	')
+
+	manage_dirs_pattern($1, pkcs_slotd_var_lib_t, pkcs_slotd_var_lib_t)
+	manage_files_pattern($1, pkcs_slotd_var_lib_t, pkcs_slotd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Get attributes of pkcs executable files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_getattr_exec_files',`
+	gen_require(`
+		type pkcs_slotd_exec_t;
+	')
+
+	allow $1 pkcs_slotd_exec_t:file getattr_file_perms;
+')
+
+########################################
+## <summary>
+##	Transition to pkcs_slotd
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_domtrans',`
+	gen_require(`
+		type pkcs_slotd_t, pkcs_slotd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, pkcs_slotd_exec_t, pkcs_slotd_t)
+')
+
+########################################
+## <summary>
+##	Create specific objects in the tmpfs directories
+##	with a private type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_tmpfs_named_filetrans',`
+	gen_require(`
+		type pkcs_slotd_tmpfs_t;
+	')
+
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.ccatok")
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.ep11tok")
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.lite")
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki_stats_0")
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki_stats_48")
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.swtok")
+	fs_tmpfs_filetrans($1, pkcs_slotd_tmpfs_t, file, "var.lib.opencryptoki.tpm.root")
+')
+
+########################################
+## <summary>
+##	Delete pkcs files in the tmpfs directories
+##	with a private type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_delete_tmpfs_files',`
+	gen_require(`
+		type pkcs_slotd_tmpfs_t;
+	')
+
+	allow $1 pkcs_slotd_tmpfs_t:file delete_file_perms;
+')
+
+########################################
+## <summary>
+##	Use opencryptoki services
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcs_use_opencryptoki',`
+	gen_require(`
+        type pkcs_slotd_t;
+        type pkcs_slotd_tmpfs_t;
+	')
+
+    allow $1 self:capability { fsetid ipc_owner };
+    allow pkcs_slotd_t $1:process signull;
+    allow $1 pkcs_slotd_tmpfs_t:file { create_file_perms mmap_rw_file_perms };
+
+    kernel_search_proc($1)
+    ps_process_pattern(pkcs_slotd_t, $1)
+
+    corenet_tcp_connect_tcs_port($1)
+
+    pkcs_getattr_exec_files($1)
+    pkcs_manage_lock($1)
+    pkcs_rw_shm($1)
+    pkcs_stream_connect($1)
+    pkcs_manage_var_lib($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an pkcs slotd environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`pkcs_admin_slotd',`
+	gen_require(`
+		type pkcs_slotd_t, pkcs_slotd_initrc_exec_t, pkcs_slotd_var_lib_t, pkcs_slotd_lock_t;
+		type pkcs_slotd_var_run_t, pkcs_slotd_tmp_t, pkcs_slotd_tmpfs_t;
+	')
+
+	allow $1 pkcs_slotd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, pkcs_slotd_t)
+
+	init_labeled_script_domtrans($1, pkcs_slotd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 pkcs_slotd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, pkcs_slotd_var_lib_t)
+
+	files_search_locks($1)
+	admin_pattern($1, pkcs_slotd_lock_t)
+
+	files_search_pids($1)
+	admin_pattern($1, pkcs_slotd_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, pkcs_slotd_tmp_t)
+
+	fs_search_tmpfs($1)
+	admin_pattern($1, pkcs_slotd_tmpfs_t)
+')

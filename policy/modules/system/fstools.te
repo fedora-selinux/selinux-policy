@@ -1,0 +1,240 @@
+policy_module(fstools, 1.16.1)
+
+########################################
+#
+# Declarations
+#
+
+type fsadm_t;
+type fsadm_exec_t;
+init_system_domain(fsadm_t, fsadm_exec_t)
+init_nnp_daemon_domain(fsadm_t)
+role system_r types fsadm_t;
+
+type fsadm_log_t;
+logging_log_file(fsadm_log_t)
+
+type fsadm_var_run_t;
+files_pid_file(fsadm_var_run_t)
+
+type fsadm_tmp_t;
+files_tmp_file(fsadm_tmp_t)
+
+type fsadm_tmpfs_t;
+files_tmpfs_file(fsadm_tmpfs_t)
+
+type swapfile_t; # customizable
+files_type(swapfile_t)
+
+########################################
+#
+# local policy
+#
+
+# ipc_lock is for losetup
+allow fsadm_t self:capability { ipc_lock sys_rawio sys_admin sys_resource sys_tty_config  dac_read_search };
+dontaudit fsadm_t self:capability net_admin;
+allow fsadm_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execmem execheap execstack };
+allow fsadm_t self:fd use;
+allow fsadm_t self:fifo_file rw_fifo_file_perms;
+allow fsadm_t self:file mounton;
+allow fsadm_t self:sock_file read_sock_file_perms;
+allow fsadm_t self:unix_dgram_socket create_socket_perms;
+allow fsadm_t self:unix_stream_socket create_stream_socket_perms;
+allow fsadm_t self:unix_dgram_socket sendto;
+allow fsadm_t self:unix_stream_socket connectto;
+allow fsadm_t self:shm create_shm_perms;
+allow fsadm_t self:sem create_sem_perms;
+allow fsadm_t self:msgq create_msgq_perms;
+allow fsadm_t self:msg { send receive };
+
+can_exec(fsadm_t, fsadm_exec_t)
+
+manage_dirs_pattern(fsadm_t, fsadm_var_run_t, fsadm_var_run_t)
+manage_files_pattern(fsadm_t, fsadm_var_run_t, fsadm_var_run_t)
+files_pid_filetrans(fsadm_t, fsadm_var_run_t, {dir file })
+
+manage_dirs_pattern(fsadm_t, fsadm_tmp_t, fsadm_tmp_t)
+manage_files_pattern(fsadm_t, fsadm_tmp_t, fsadm_tmp_t)
+files_tmp_filetrans(fsadm_t, fsadm_tmp_t, { file dir })
+
+manage_dirs_pattern(fsadm_t, fsadm_tmpfs_t, fsadm_tmpfs_t)
+manage_files_pattern(fsadm_t, fsadm_tmpfs_t, fsadm_tmpfs_t)
+fs_tmpfs_filetrans(fsadm_t, fsadm_tmpfs_t, { file dir })
+
+files_create_boot_flag(fsadm_t)
+files_setattr_root_dirs(fsadm_t)
+
+# log files
+allow fsadm_t fsadm_log_t:dir setattr;
+manage_files_pattern(fsadm_t, fsadm_log_t, fsadm_log_t)
+logging_log_filetrans(fsadm_t, fsadm_log_t, file)
+
+# Enable swapping to files
+allow fsadm_t swapfile_t:file { rw_file_perms swapon };
+
+kernel_get_sysvipc_info(fsadm_t)
+kernel_read_system_state(fsadm_t)
+kernel_read_kernel_sysctls(fsadm_t)
+kernel_request_load_module(fsadm_t)
+# Allow console log change (updfstab)
+kernel_change_ring_buffer_level(fsadm_t)
+# mkreiserfs needs this
+kernel_getattr_core_if(fsadm_t)
+# Access to /initrd devices
+kernel_rw_unlabeled_dirs(fsadm_t)
+kernel_rw_unlabeled_blk_files(fsadm_t)
+
+corecmd_exec_bin(fsadm_t)
+#RedHat bug #201164
+corecmd_exec_shell(fsadm_t)
+# cjp: these are probably not needed:
+corecmd_read_bin_files(fsadm_t)
+corecmd_read_bin_pipes(fsadm_t)
+corecmd_read_bin_sockets(fsadm_t)
+
+dev_getattr_all_chr_files(fsadm_t)
+dev_dontaudit_getattr_all_blk_files(fsadm_t)
+dev_dontaudit_getattr_generic_files(fsadm_t)
+# mkreiserfs and other programs need this for UUID
+dev_read_rand(fsadm_t)
+dev_read_urand(fsadm_t)
+dev_write_kmsg(fsadm_t)
+# Recreate /dev/cdrom.
+dev_manage_generic_symlinks(fsadm_t)
+# fdisk needs this for early boot
+dev_manage_generic_blk_files(fsadm_t)
+# Access to /initrd devices
+dev_search_usbfs(fsadm_t)
+# for swapon
+dev_rw_sysfs(fsadm_t)
+# Access to /initrd devices
+dev_getattr_usbfs_dirs(fsadm_t)
+# Access to /dev/mapper/control
+dev_rw_lvm_control(fsadm_t)
+
+domain_use_interactive_fds(fsadm_t)
+
+files_getattr_boot_dirs(fsadm_t)
+files_list_home(fsadm_t)
+files_read_usr_files(fsadm_t)
+files_read_etc_files(fsadm_t)
+files_manage_lost_found(fsadm_t)
+files_manage_isid_type_dirs(fsadm_t)
+# /etc/mtab is a link
+files_read_etc_runtime_files(fsadm_t)
+# Write to /etc/mtab.
+files_manage_etc_runtime_files(fsadm_t)
+files_etc_filetrans_etc_runtime(fsadm_t, file)
+# Access to /initrd devices
+files_rw_isid_type_dirs(fsadm_t)
+files_rw_isid_type_blk_files(fsadm_t)
+files_read_isid_type_files(fsadm_t)
+
+fs_search_auto_mountpoints(fsadm_t)
+fs_getattr_xattr_fs(fsadm_t)
+# remount file system to apply changes
+fs_remount_xattr_fs(fsadm_t)
+# for /dev/shm
+fs_list_auto_mountpoints(fsadm_t)
+fs_search_tmpfs(fsadm_t)
+fs_getattr_tmpfs_dirs(fsadm_t)
+fs_read_tmpfs_symlinks(fsadm_t)
+fs_manage_nfs_files(fsadm_t)
+fs_manage_cifs_files(fsadm_t)
+fs_rw_hugetlbfs_files(fsadm_t)
+fs_getattr_cgroup(fsadm_t)
+# Recreate /mnt/cdrom.
+files_manage_mnt_dirs(fsadm_t)
+# for tune2fs
+files_search_all(fsadm_t)
+
+mls_file_read_all_levels(fsadm_t)
+mls_file_write_all_levels(fsadm_t)
+
+storage_raw_read_fixed_disk(fsadm_t)
+storage_raw_write_fixed_disk(fsadm_t)
+storage_raw_read_removable_device(fsadm_t)
+storage_raw_write_removable_device(fsadm_t)
+storage_read_scsi_generic(fsadm_t)
+storage_rw_fuse(fsadm_t)
+storage_swapon_fixed_disk(fsadm_t)
+
+term_use_console(fsadm_t)
+
+auth_read_passwd(fsadm_t)
+
+init_read_state(fsadm_t)
+init_use_fds(fsadm_t)
+init_use_script_ptys(fsadm_t)
+init_dontaudit_getattr_initctl(fsadm_t)
+init_stream_connect(fsadm_t)
+
+logging_send_syslog_msg(fsadm_t)
+logging_send_audit_msgs(fsadm_t)
+logging_stream_connect_syslog(fsadm_t)
+
+seutil_read_config(fsadm_t)
+
+term_use_all_inherited_terms(fsadm_t)
+
+userdom_rw_inherited_user_tmp_pipes(fsadm_t)
+
+ifdef(`distro_redhat',`
+	optional_policy(`
+		unconfined_domain(fsadm_t)
+	')
+')
+
+optional_policy(`
+	amanda_rw_dumpdates_files(fsadm_t)
+	amanda_append_log_files(fsadm_t)
+')
+
+optional_policy(`
+	# for smartctl cron jobs
+	cron_system_entry(fsadm_t, fsadm_exec_t)
+')
+
+optional_policy(`
+	devicekit_dontaudit_read_pid_files(fsadm_t)
+	devicekit_dontaudit_rw_log(fsadm_t)
+')
+
+optional_policy(`
+    kdump_rw_inherited_kdumpctl_tmp_pipes(fsadm_t)
+')
+
+optional_policy(`
+	livecd_rw_tmp_files(fsadm_t)
+')
+
+optional_policy(`
+	modutils_read_module_config(fsadm_t)
+	modutils_read_module_deps(fsadm_t)
+')
+
+optional_policy(`
+	mount_read_pid_files(fsadm_t)
+')
+
+optional_policy(`
+	nis_use_ypbind(fsadm_t)
+')
+
+optional_policy(`
+	rhgb_stub(fsadm_t)
+')
+
+optional_policy(`
+	udev_read_db(fsadm_t)
+')
+
+optional_policy(`
+	virt_read_blk_images(fsadm_t)
+')
+
+optional_policy(`
+	xen_append_log(fsadm_t)
+	xen_rw_image_files(fsadm_t)
+')

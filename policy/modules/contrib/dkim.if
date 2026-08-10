@@ -1,0 +1,39 @@
+## <summary>DomainKeys Identified Mail milter.</summary>
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an dkim environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dkim_admin',`
+	gen_require(`
+		type dkim_milter_t, dkim_milter_initrc_exec_t, dkim_milter_private_key_t;
+		type dkim_milter_data_t;
+	')
+
+	allow $1 dkim_milter_t:process { ptrace signal_perms };
+	ps_process_pattern($1, dkim_milter_t)
+
+	init_labeled_script_domtrans($1, dkim_milter_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 dkim_milter_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, dkim_milter_private_key_t)
+
+	files_search_pids($1)
+	admin_pattern($1, dkim_milter_data_t)
+')

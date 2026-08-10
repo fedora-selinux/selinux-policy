@@ -1,0 +1,455 @@
+## <summary>DNS forwarder and DHCP server.</summary>
+
+########################################
+## <summary>
+##	Execute dnsmasq server in the dnsmasq domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_domtrans',`
+	gen_require(`
+		type dnsmasq_exec_t, dnsmasq_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, dnsmasq_exec_t, dnsmasq_t)
+')
+
+#######################################
+## <summary>
+##  Execute dnsmasq server in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`dnsmasq_exec',`
+    gen_require(`
+        type dnsmasq_exec_t;
+    ')
+
+    can_exec($1, dnsmasq_exec_t)
+')
+
+########################################
+## <summary>
+##	Allow read/write dnsmasq pipes
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_rw_inherited_pipes',`
+	gen_require(`
+		type dnsmasq_t;
+	')
+
+	allow $1 dnsmasq_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute the dnsmasq init script in
+##	the init script domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+#
+interface(`dnsmasq_initrc_domtrans',`
+	gen_require(`
+		type dnsmasq_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, dnsmasq_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute dnsmasq server in the dnsmasq domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_systemctl',`
+	gen_require(`
+		type dnsmasq_unit_file_t;
+		type dnsmasq_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 dnsmasq_unit_file_t:file read_file_perms;
+	allow $1 dnsmasq_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, dnsmasq_t)
+')
+
+########################################
+## <summary>
+##	Send sigchld to dnsmasq.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`dnsmasq_sigchld',`
+	gen_require(`
+		type dnsmasq_t;
+	')
+
+    allow $1 dnsmasq_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send generic signals to dnsmasq.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`dnsmasq_signal',`
+	gen_require(`
+		type dnsmasq_t;
+	')
+
+	allow $1 dnsmasq_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send null signals to dnsmasq.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`dnsmasq_signull',`
+	gen_require(`
+		type dnsmasq_t;
+	')
+
+	allow $1 dnsmasq_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send kill signals to dnsmasq.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`dnsmasq_kill',`
+	gen_require(`
+		type dnsmasq_t;
+	')
+
+	allow $1 dnsmasq_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	dnsmasq configuration files.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dnsmasq_read_config',`
+	gen_require(`
+		type dnsmasq_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 dnsmasq_etc_t:dir list_dir_perms;
+	allow $1 dnsmasq_etc_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to manage
+##	dnsmasq configuration files.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dnsmasq_manage_config',`
+	gen_require(`
+		type dnsmasq_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 dnsmasq_etc_t:dir manage_dir_perms;
+	allow $1 dnsmasq_etc_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to write
+##	dnsmasq configuration files.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dnsmasq_write_config',`
+	gen_require(`
+		type dnsmasq_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 dnsmasq_etc_t:dir list_dir_perms;
+	allow $1 dnsmasq_etc_t:file write_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete dnsmasq pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_delete_pid_files',`
+	gen_require(`
+		type dnsmasq_var_run_t;
+	')
+
+	files_search_pids($1)
+	delete_files_pattern($1, dnsmasq_var_run_t, dnsmasq_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	dnsmasq pid files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_manage_pid_files',`
+	gen_require(`
+		type dnsmasq_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, dnsmasq_var_run_t, dnsmasq_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read dnsmasq pid files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_read_pid_files',`
+	gen_require(`
+		type dnsmasq_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, dnsmasq_var_run_t, dnsmasq_var_run_t)
+')
+
+########################################
+## <summary>
+##	Create dnsmasq pid directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_create_pid_dirs',`
+	gen_require(`
+		type dnsmasq_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 dnsmasq_var_run_t:dir create_dir_perms;
+')
+
+########################################
+## <summary>
+##	Create dnsmasq pid directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_read_state',`
+	gen_require(`
+		type dnsmasq_t;
+	')
+    ps_process_pattern($1, dnsmasq_t)
+')
+
+########################################
+## <summary>
+##	Transition to dnsmasq named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+## <param name="private type">
+##	<summary>
+##	The type of the directory for the object to be created.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_filetrans_named_content_fromdir',`
+	gen_require(`
+		type dnsmasq_var_run_t;
+	')
+
+	filetrans_pattern($1, $2, dnsmasq_var_run_t, dir, "network")
+	filetrans_pattern($1, $2, dnsmasq_var_run_t, file, "dnsmasq.pid")
+')
+
+#######################################
+## <summary>
+##      Transition to dnsmasq named content
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`dnsmasq_filetrans_named_content',`
+		gen_require(`
+            type dnsmasq_etc_t;
+			type dnsmasq_var_run_t;
+	')
+
+	files_pid_filetrans($1, dnsmasq_var_run_t, dir, "network")
+	files_pid_filetrans($1, dnsmasq_var_run_t, file, "dnsmasq.pid")
+	virt_pid_filetrans($1, dnsmasq_var_run_t, file, "network")
+	files_etc_filetrans($1, dnsmasq_etc_t, file, "dnsmasq.conf")
+	files_etc_filetrans($1, dnsmasq_etc_t, dir, "dnsmasq.d")
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an dnsmasq environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dnsmasq_admin',`
+	gen_require(`
+		type dnsmasq_t, dnsmasq_lease_t, dnsmasq_var_run_t;
+        type dnsmasq_var_log_t;
+		type dnsmasq_initrc_exec_t;
+		type dnsmasq_unit_file_t;
+	')
+
+	allow $1 dnsmasq_t:process signal_perms;
+	ps_process_pattern($1, dnsmasq_t)
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 dnsmasq_t:process ptrace;
+	')
+
+	init_labeled_script_domtrans($1, dnsmasq_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 dnsmasq_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_var_lib($1)
+	admin_pattern($1, dnsmasq_lease_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, dnsmasq_var_log_t)
+
+	files_list_pids($1)
+	admin_pattern($1, dnsmasq_var_run_t)
+
+	dnsmasq_systemctl($1)
+	admin_pattern($1, dnsmasq_unit_file_t)
+	allow $1 dnsmasq_unit_file_t:service all_service_perms;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	dnsmasq over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dnsmasq_dbus_chat',`
+	gen_require(`
+		type dnsmasq_t;
+		class dbus send_msg;
+	')
+
+	allow $1 dnsmasq_t:dbus send_msg;
+	allow dnsmasq_t $1:dbus send_msg;
+')
+
+

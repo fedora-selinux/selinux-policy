@@ -1,0 +1,281 @@
+policy_module(antivirus, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##  <p>
+##  Allow antivirus programs to read non security files on a system
+##  </p>
+## </desc>
+gen_tunable(antivirus_can_scan_system, false)
+
+## <desc>
+##  <p>
+##  Determine whether antivirus programs can use JIT compiler.
+##  </p>
+## </desc>
+gen_tunable(antivirus_use_jit, false)
+
+attribute antivirus_domain;
+
+type antivirus_t;
+type antivirus_exec_t;
+typeattribute antivirus_t antivirus_domain;
+typealias antivirus_t alias { amavis_t clamd_t clamscan_t freshclam_t } ;
+typealias antivirus_exec_t alias { amavis_exec_t clamd_exec_t clamscan_exec_t freshclam_exec_t };
+init_daemon_domain(antivirus_t, antivirus_exec_t)
+init_nnp_daemon_domain(antivirus_t)
+
+type antivirus_initrc_exec_t;
+typealias antivirus_initrc_exec_t alias { clamd_initrc_exec_t amavis_initrc_exec_t };
+init_script_file(antivirus_initrc_exec_t)
+
+type antivirus_unit_file_t;
+typealias antivirus_unit_file_t alias { clamd_unit_file_t };
+systemd_unit_file(antivirus_unit_file_t)
+
+type antivirus_conf_t;
+typealias antivirus_conf_t alias { clamd_etc_t amavis_etc_t };
+files_config_file(antivirus_conf_t)
+
+type antivirus_var_run_t;
+typealias antivirus_var_run_t alias { amavis_var_run_t clamd_var_run_t clamd_sock_t };
+files_pid_file(antivirus_var_run_t)
+
+type antivirus_log_t;
+typealias antivirus_log_t alias { amavis_var_log_t clamd_var_log_t freshclam_var_log_t };
+logging_log_file(antivirus_log_t)
+
+type antivirus_db_t;
+typealias antivirus_db_t alias { amavis_var_lib_t amavis_quarantine_t amavis_spool_t clamd_var_lib_t };
+files_type(antivirus_db_t)
+
+type antivirus_home_t;
+userdom_user_home_content(antivirus_home_t)
+
+type antivirus_tmp_t;
+typealias antivirus_tmp_t alias { amavis_tmp_t clamd_tmp_t clamscan_tmp_t };
+files_tmp_file(antivirus_tmp_t)
+
+########################################
+#
+# antivirus domain local policy
+#
+
+allow antivirus_domain self:capability { dac_read_search dac_override chown kill fsetid setgid setuid sys_admin };
+dontaudit antivirus_domain self:capability sys_tty_config;
+allow antivirus_domain self:process signal_perms;
+
+allow antivirus_domain self:fifo_file rw_fifo_file_perms;
+allow antivirus_domain self:unix_stream_socket { accept connectto listen };
+allow antivirus_domain self:tcp_socket { listen accept };
+
+allow antivirus_domain antivirus_conf_t:dir list_dir_perms;
+read_files_pattern(antivirus_domain, antivirus_conf_t, antivirus_conf_t)
+read_lnk_files_pattern(antivirus_domain, antivirus_conf_t, antivirus_conf_t)
+
+manage_files_pattern(antivirus_domain, antivirus_db_t, antivirus_db_t)
+manage_dirs_pattern(antivirus_domain, antivirus_db_t, antivirus_db_t)
+manage_lnk_files_pattern(antivirus_domain, antivirus_db_t, antivirus_db_t)
+manage_sock_files_pattern(antivirus_domain, antivirus_db_t, antivirus_db_t)
+allow antivirus_t antivirus_db_t:file map;
+
+manage_files_pattern(antivirus_domain, antivirus_home_t, antivirus_home_t)
+manage_dirs_pattern(antivirus_domain, antivirus_home_t, antivirus_home_t)
+manage_lnk_files_pattern(antivirus_domain, antivirus_home_t, antivirus_home_t)
+manage_sock_files_pattern(antivirus_domain, antivirus_home_t, antivirus_home_t)
+
+manage_dirs_pattern(antivirus_domain, antivirus_tmp_t, antivirus_tmp_t)
+manage_files_pattern(antivirus_domain, antivirus_tmp_t, antivirus_tmp_t)
+manage_sock_files_pattern(antivirus_domain, antivirus_tmp_t, antivirus_tmp_t)
+manage_lnk_files_pattern(antivirus_domain, antivirus_tmp_t, antivirus_tmp_t)
+files_tmp_filetrans(antivirus_domain, antivirus_tmp_t, { file dir lnk_file sock_file } )
+
+manage_dirs_pattern(antivirus_domain, antivirus_log_t, antivirus_log_t)
+manage_files_pattern(antivirus_domain, antivirus_log_t, antivirus_log_t)
+manage_sock_files_pattern(antivirus_domain, antivirus_log_t, antivirus_log_t)
+logging_log_filetrans(antivirus_domain, antivirus_log_t, { sock_file file dir })
+
+manage_dirs_pattern(antivirus_domain, antivirus_var_run_t, antivirus_var_run_t)
+manage_files_pattern(antivirus_domain, antivirus_var_run_t, antivirus_var_run_t)
+manage_sock_files_pattern(antivirus_domain, antivirus_var_run_t, antivirus_var_run_t)
+files_pid_filetrans(antivirus_domain, antivirus_var_run_t, {file})
+
+can_exec(antivirus_domain, antivirus_exec_t)
+
+kernel_read_system_state(antivirus_t)
+kernel_read_network_state(antivirus_domain)
+kernel_read_all_sysctls(antivirus_domain)
+
+corecmd_exec_bin(antivirus_domain)
+corecmd_exec_shell(antivirus_domain)
+
+corenet_all_recvfrom_netlabel(antivirus_t)
+corenet_tcp_bind_all_unreserved_ports(antivirus_t)
+corenet_dontaudit_tcp_bind_all_reserved_ports(antivirus_t)
+corenet_tcp_sendrecv_generic_if(antivirus_t)
+corenet_udp_sendrecv_generic_if(antivirus_t)
+corenet_tcp_sendrecv_generic_node(antivirus_domain)
+corenet_udp_sendrecv_generic_node(antivirus_domain)
+corenet_tcp_sendrecv_all_ports(antivirus_domain)
+corenet_udp_sendrecv_all_ports(antivirus_domain)
+corenet_tcp_bind_generic_node(antivirus_domain)
+corenet_udp_bind_generic_node(antivirus_domain)
+
+corenet_sendrecv_amavisd_send_client_packets(antivirus_domain)
+corenet_tcp_connect_amavisd_send_port(antivirus_domain)
+
+corenet_sendrecv_amavisd_recv_server_packets(antivirus_domain)
+corenet_tcp_bind_amavisd_recv_port(antivirus_domain)
+
+corenet_sendrecv_generic_server_packets(antivirus_domain)
+corenet_udp_bind_generic_port(antivirus_domain)
+corenet_dontaudit_udp_bind_all_ports(antivirus_domain)
+
+corenet_sendrecv_razor_client_packets(antivirus_domain)
+corenet_tcp_connect_razor_port(antivirus_domain)
+corenet_tcp_connect_agentx_port(antivirus_domain)
+
+corenet_tcp_connect_clamd_port(antivirus_domain)
+
+corenet_sendrecv_clamd_server_packets(antivirus_domain)
+corenet_tcp_bind_clamd_port(antivirus_domain)
+
+corenet_sendrecv_http_client_packets(antivirus_domain)
+corenet_tcp_connect_http_port(antivirus_domain)
+corenet_tcp_sendrecv_http_port(antivirus_domain)
+
+corenet_sendrecv_http_cache_client_packets(antivirus_domain)
+corenet_tcp_connect_http_cache_port(antivirus_domain)
+corenet_tcp_sendrecv_http_cache_port(antivirus_domain)
+
+#support for MySQL/PostgreSQL
+corenet_tcp_connect_mysqld_port(antivirus_domain)
+corenet_tcp_connect_postgresql_port(antivirus_domain)
+
+corenet_sendrecv_snmp_client_packets(antivirus_domain)
+corenet_tcp_connect_snmp_port(antivirus_domain)
+
+corenet_sendrecv_squid_client_packets(antivirus_domain)
+corenet_tcp_connect_squid_port(antivirus_domain)
+corenet_tcp_sendrecv_squid_port(antivirus_domain)
+
+dev_read_rand(antivirus_domain)
+dev_read_sysfs(antivirus_domain)
+dev_read_urand(antivirus_domain)
+
+domain_read_all_domains_state(antivirus_domain)
+
+files_dontaudit_read_security_files(antivirus_domain)
+files_read_etc_runtime_files(antivirus_domain)
+files_search_spool(antivirus_domain)
+
+fs_getattr_cgroup(antivirus_t)
+fs_getattr_xattr_fs(antivirus_domain)
+
+auth_use_nsswitch(antivirus_t)
+auth_dontaudit_read_shadow(antivirus_domain)
+
+init_read_state(antivirus_domain)
+init_read_utmp(antivirus_domain)
+init_stream_connect_script(antivirus_domain)
+init_dontaudit_write_utmp(antivirus_domain)
+
+logging_send_syslog_msg(antivirus_t)
+
+miscfiles_read_generic_certs(antivirus_domain)
+
+sysnet_use_ldap(antivirus_domain)
+
+userdom_stream_connect(antivirus_domain)
+userdom_dontaudit_search_user_home_dirs(antivirus_domain)
+
+tunable_policy(`antivirus_can_scan_system',`
+	files_read_non_security_files(antivirus_domain)
+	files_getattr_all_pipes(antivirus_domain)
+	files_getattr_all_sockets(antivirus_domain)
+    dev_getattr_all_blk_files(antivirus_domain)
+    dev_getattr_all_chr_files(antivirus_domain)
+')
+
+tunable_policy(`antivirus_use_jit',`
+    allow antivirus_domain self:process execmem;
+    allow antivirus_domain self:process execmem;
+',`
+    dontaudit antivirus_domain self:process execmem;
+    dontaudit antivirus_domain self:process execmem;
+')
+
+optional_policy(`
+	apache_read_sys_content(antivirus_domain)
+')
+
+optional_policy(`
+	antivirus_systemctl(antivirus_domain)
+')
+
+optional_policy(`
+	cron_system_entry(antivirus_t, antivirus_exec_t)
+    cron_use_fds(antivirus_domain)
+    cron_use_system_job_fds(antivirus_domain)
+    cron_rw_pipes(antivirus_domain)
+')
+
+optional_policy(`
+    dcc_domtrans_client(antivirus_domain)
+    dcc_stream_connect_dccifd(antivirus_domain)
+')
+
+optional_policy(`
+    dbus_system_bus_client(antivirus_domain)
+')
+
+optional_policy(`
+    exim_read_spool_files(antivirus_domain)
+')
+
+optional_policy(`
+    mta_read_config(antivirus_domain)
+	mta_read_queue(antivirus_domain)
+	mta_send_mail(antivirus_domain)
+')
+
+optional_policy(`
+    nslcd_stream_connect(antivirus_domain)
+')
+
+optional_policy(`
+	mysql_stream_connect(antivirus_domain)
+	corenet_tcp_connect_mysqld_port(antivirus_domain)
+')
+
+optional_policy(`
+    postfix_read_config(antivirus_domain)
+    postfix_list_spool(antivirus_domain)
+')
+
+optional_policy(`
+    pyzor_domtrans(antivirus_domain)
+    pyzor_signal(antivirus_domain)
+')
+
+optional_policy(`
+    razor_domtrans(antivirus_domain)
+')
+
+optional_policy(`
+    snmp_manage_var_lib_dirs(antivirus_domain)
+    snmp_manage_var_lib_files(antivirus_domain)
+    snmp_stream_connect(antivirus_domain)
+')
+
+optional_policy(`
+	spamd_stream_connect(clamd_t)
+	spamassassin_exec(antivirus_domain)
+	spamassassin_exec_client(antivirus_domain)
+	spamassassin_read_lib_files(antivirus_domain)
+	spamassassin_read_pid_files(antivirus_domain)
+')

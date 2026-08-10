@@ -1,0 +1,241 @@
+policy_module(boinc, 1.3.1)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether boinc can execmem/execstack.
+##	</p>
+## </desc>
+gen_tunable(boinc_execmem, true)
+
+attribute boinc_domain;
+
+type boinc_t, boinc_domain;
+type boinc_exec_t;
+init_daemon_domain(boinc_t, boinc_exec_t)
+
+type boinc_initrc_exec_t;
+init_script_file(boinc_initrc_exec_t)
+
+type boinc_tmp_t;
+files_tmp_file(boinc_tmp_t)
+
+type boinc_tmpfs_t;
+files_tmpfs_file(boinc_tmpfs_t)
+
+type boinc_var_lib_t;
+files_type(boinc_var_lib_t)
+files_mountpoint(boinc_var_lib_t)
+systemd_mount_dir(boinc_var_lib_t)
+
+type boinc_log_t;
+logging_log_file(boinc_log_t)
+
+type boinc_unit_file_t;
+systemd_unit_file(boinc_unit_file_t)
+
+type boinc_project_t;
+domain_type(boinc_project_t)
+role system_r types boinc_project_t;
+
+type boinc_project_tmp_t;
+files_tmp_file(boinc_project_tmp_t)
+
+type boinc_project_var_lib_t;
+files_type(boinc_project_var_lib_t)
+
+#######################################
+#
+# boinc domain local policy
+#
+
+allow boinc_domain self:fifo_file rw_fifo_file_perms;
+allow boinc_domain self:process signal;
+allow boinc_domain self:sem create_sem_perms;
+
+manage_dirs_pattern(boinc_domain, boinc_var_lib_t, boinc_var_lib_t)
+manage_files_pattern(boinc_domain, boinc_var_lib_t, boinc_var_lib_t)
+manage_lnk_files_pattern(boinc_domain, boinc_var_lib_t, boinc_var_lib_t)
+
+corecmd_exec_bin(boinc_domain)
+corecmd_exec_shell(boinc_domain)
+
+dev_read_rand(boinc_domain)
+dev_read_urand(boinc_domain)
+dev_read_sysfs(boinc_domain)
+dev_rw_xserver_misc(boinc_domain)
+
+domain_read_all_domains_state(boinc_domain)
+
+files_read_etc_runtime_files(boinc_domain)
+
+fs_getattr_all_fs(boinc_domain)
+fs_read_cgroup_files(boinc_domain)
+
+miscfiles_read_fonts(boinc_domain)
+
+tunable_policy(`boinc_execmem',`
+    allow boinc_domain self:process { execstack execmem };
+')
+
+optional_policy(`
+	sysnet_dns_name_resolve(boinc_domain)
+')
+
+########################################
+#
+# boinc local policy
+#
+
+allow boinc_t self:process { setsched setpgid signull sigkill };
+
+allow boinc_t self:unix_stream_socket create_stream_socket_perms;
+allow boinc_t self:tcp_socket create_stream_socket_perms;
+allow boinc_t self:shm create_shm_perms;
+
+can_exec(boinc_t, boinc_exec_t)
+
+manage_dirs_pattern(boinc_t, boinc_tmp_t, boinc_tmp_t)
+manage_files_pattern(boinc_t, boinc_tmp_t, boinc_tmp_t)
+files_tmp_filetrans(boinc_t, boinc_tmp_t, { dir file })
+
+manage_files_pattern(boinc_t, boinc_tmpfs_t, boinc_tmpfs_t)
+fs_tmpfs_filetrans(boinc_t, boinc_tmpfs_t, file)
+allow boinc_t boinc_tmpfs_t:file map;
+
+exec_files_pattern(boinc_t, boinc_var_lib_t, boinc_var_lib_t)
+# this should be created by default by boinc
+# we need this label for transition to boinc_project_t
+# other boinc lib files will end up with boinc_var_lib_t
+filetrans_pattern(boinc_t, boinc_var_lib_t, boinc_project_var_lib_t, dir, "slots")
+filetrans_pattern(boinc_t, boinc_var_lib_t, boinc_project_var_lib_t, dir, "projects")
+
+manage_dirs_pattern(boinc_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
+manage_files_pattern(boinc_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
+allow boinc_t boinc_project_var_lib_t:file map;
+
+manage_files_pattern(boinc_t, boinc_log_t, boinc_log_t)
+logging_log_filetrans(boinc_t, boinc_log_t, { file })
+
+# needs read /proc/interrupts
+kernel_read_system_state(boinc_t)
+kernel_read_network_state(boinc_t)
+kernel_search_vm_sysctl(boinc_t)
+kernel_read_vm_sysctls(boinc_t)
+
+dev_getattr_mouse_dev(boinc_t)
+dev_rw_dri(boinc_t)
+
+files_getattr_all_dirs(boinc_t)
+files_getattr_all_files(boinc_t)
+
+corenet_all_recvfrom_netlabel(boinc_t)
+corenet_tcp_sendrecv_generic_if(boinc_t)
+corenet_udp_sendrecv_generic_if(boinc_t)
+corenet_tcp_sendrecv_generic_node(boinc_t)
+corenet_udp_sendrecv_generic_node(boinc_t)
+corenet_tcp_sendrecv_all_ports(boinc_t)
+corenet_udp_sendrecv_all_ports(boinc_t)
+corenet_tcp_bind_generic_node(boinc_t)
+corenet_udp_bind_generic_node(boinc_t)
+corenet_tcp_bind_boinc_port(boinc_t)
+corenet_tcp_bind_boinc_client_port(boinc_t)
+corenet_tcp_connect_boinc_port(boinc_t)
+corenet_tcp_connect_http_port(boinc_t)
+corenet_tcp_connect_http_cache_port(boinc_t)
+corenet_tcp_connect_squid_port(boinc_t)
+
+files_dontaudit_getattr_boot_dirs(boinc_t)
+
+fs_read_cgroup_files(boinc_t)
+
+auth_use_nsswitch(boinc_t)
+
+term_getattr_all_ptys(boinc_t)
+term_getattr_unallocated_ttys(boinc_t)
+
+init_read_utmp(boinc_t)
+
+libs_exec_lib_files(boinc_t)
+
+logging_send_syslog_msg(boinc_t)
+
+modutils_dontaudit_exec_kmod(boinc_t)
+
+xserver_stream_connect(boinc_t)
+
+tunable_policy(`boinc_execmem',`
+	allow boinc_t self:process { execstack execmem };
+')
+
+optional_policy(`
+	mta_send_mail(boinc_t)
+')
+
+########################################
+#
+# boinc-projects local policy
+#
+
+allow boinc_project_t self:capability { setuid setgid };
+
+domtrans_pattern(boinc_t, boinc_project_var_lib_t, boinc_project_t)
+allow boinc_t boinc_project_t:process sigkill;
+allow boinc_t boinc_project_t:process noatsecure;
+
+allow boinc_project_t self:process { setcap getcap setpgid setsched signal signull sigkill sigstop };
+tunable_policy(`deny_ptrace',`',`
+	allow boinc_project_t self:process ptrace;
+')
+
+allow boinc_project_t self:process { execstack };
+
+manage_dirs_pattern(boinc_project_t, boinc_project_tmp_t, boinc_project_tmp_t)
+manage_files_pattern(boinc_project_t, boinc_project_tmp_t, boinc_project_tmp_t)
+manage_sock_files_pattern(boinc_project_t, boinc_project_tmp_t, boinc_project_tmp_t)
+files_tmp_filetrans(boinc_project_t, boinc_project_tmp_t, { dir file sock_file})
+
+allow boinc_project_t boinc_project_var_lib_t:file entrypoint;
+exec_files_pattern(boinc_project_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
+manage_dirs_pattern(boinc_project_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
+manage_files_pattern(boinc_project_t, boinc_project_var_lib_t, boinc_project_var_lib_t)
+files_var_lib_filetrans(boinc_project_t, boinc_project_var_lib_t, dir, "projects")
+files_var_lib_filetrans(boinc_project_t, boinc_project_var_lib_t, dir, "slots" )
+
+allow boinc_project_t boinc_project_var_lib_t:file execmod;
+
+allow boinc_project_t boinc_t:shm rw_shm_perms;
+allow boinc_project_t boinc_tmpfs_t:file rw_inherited_file_perms;
+
+kernel_read_kernel_sysctls(boinc_project_t)
+kernel_search_vm_sysctl(boinc_project_t)
+kernel_read_network_state(boinc_project_t)
+
+corenet_tcp_connect_boinc_port(boinc_project_t)
+
+files_dontaudit_search_home(boinc_project_t)
+
+term_getattr_ptmx(boinc_t)
+term_getattr_generic_ptys(boinc_t)
+
+userdom_getattr_user_ttys(boinc_t)
+
+# needed by java
+fs_read_hugetlbfs_files(boinc_project_t)
+
+optional_policy(`
+	gnome_read_gconf_config(boinc_project_t)	
+')
+
+optional_policy(`
+	java_exec(boinc_project_t)
+')
+
+# until solution for VirtualBox, java ..
+optional_policy(`
+	unconfined_domain(boinc_project_t)
+')

@@ -1,0 +1,127 @@
+
+## <summary>policy for authconfig</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the authconfig domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`authconfig_domtrans',`
+	gen_require(`
+		type authconfig_t, authconfig_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, authconfig_exec_t, authconfig_t)
+')
+
+########################################
+## <summary>
+##	Search authconfig lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`authconfig_search_lib',`
+	gen_require(`
+		type authconfig_var_lib_t;
+	')
+
+	allow $1 authconfig_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read authconfig lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`authconfig_read_lib_files',`
+	gen_require(`
+		type authconfig_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, authconfig_var_lib_t, authconfig_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage authconfig lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`authconfig_manage_lib_files',`
+	gen_require(`
+		type authconfig_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, authconfig_var_lib_t, authconfig_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage authconfig lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`authconfig_manage_lib_dirs',`
+	gen_require(`
+		type authconfig_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, authconfig_var_lib_t, authconfig_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an authconfig environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`authconfig_admin',`
+	gen_require(`
+		type authconfig_t;
+		type authconfig_var_lib_t;
+	')
+
+	allow $1 authconfig_t:process { ptrace signal_perms };
+	ps_process_pattern($1, authconfig_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, authconfig_var_lib_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

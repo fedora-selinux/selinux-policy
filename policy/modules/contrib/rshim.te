@@ -1,0 +1,69 @@
+policy_module(rshim, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type rshim_t;
+type rshim_exec_t;
+init_daemon_domain(rshim_t, rshim_exec_t)
+
+type rshim_var_run_t;
+files_pid_file(rshim_var_run_t)
+
+type rshim_unit_file_t;
+systemd_unit_file(rshim_unit_file_t)
+
+########################################
+#
+# rshim local policy
+#
+allow rshim_t self:capability2 bpf;
+allow rshim_t self:fifo_file rw_fifo_file_perms;
+allow rshim_t self:netlink_kobject_uevent_socket { bind create getattr setopt };
+allow rshim_t self:process { fork };
+allow rshim_t self:system module_load;
+allow rshim_t self:unix_stream_socket create_stream_socket_perms;
+allow rshim_t self:netlink_kobject_uevent_socket getopt;
+
+manage_files_pattern(rshim_t, rshim_var_run_t, rshim_var_run_t)
+files_pid_filetrans(rshim_t, rshim_var_run_t, file)
+
+kernel_read_proc_files(rshim_t)
+
+corecmd_exec_shell(rshim_t)
+
+dev_read_sysfs(rshim_t)
+
+domain_use_interactive_fds(rshim_t)
+
+files_read_etc_files(rshim_t)
+files_read_kernel_modules(rshim_t)
+
+optional_policy(`
+	auth_read_passwd_file(rshim_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(rshim_t)
+')
+
+optional_policy(`
+	miscfiles_read_localization(rshim_t)
+')
+
+optional_policy(`
+	modutils_exec_kmod(rshim_t)
+	modutils_getattr_module_deps(rshim_t)
+	modutils_read_module_config(rshim_t)
+	modutils_read_module_deps_files(rshim_t)
+')
+
+optional_policy(`
+        sssd_read_public_files(rshim_t)
+')
+
+optional_policy(`
+	udev_read_pid_files(rshim_t)
+')

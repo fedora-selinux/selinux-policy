@@ -1,0 +1,312 @@
+## <summary>policy for mock</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run mock.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`mock_domtrans',`
+	gen_require(`
+		type mock_t, mock_exec_t;
+	')
+
+	domtrans_pattern($1, mock_exec_t, mock_t)
+')
+
+########################################
+## <summary>
+##	Search mock lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_search_lib',`
+	gen_require(`
+		type mock_var_lib_t;
+	')
+
+	allow $1 mock_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read mock lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_read_lib_files',`
+	gen_require(`
+		type mock_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+    list_dirs_pattern($1, mock_var_lib_t, mock_var_lib_t)
+	read_files_pattern($1, mock_var_lib_t, mock_var_lib_t)
+	read_lnk_files_pattern($1, mock_var_lib_t, mock_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Getattr on mock lib file,dir,sock_file ...
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_getattr_lib',`
+	gen_require(`
+		type mock_var_lib_t;
+	')
+
+	allow $1 mock_var_lib_t:dir_file_class_set getattr;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	mock lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_manage_lib_files',`
+	gen_require(`
+		type mock_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, mock_var_lib_t, mock_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage mock lib dirs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_manage_lib_dirs',`
+	gen_require(`
+		type mock_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, mock_var_lib_t, mock_var_lib_t)
+')
+
+#########################################
+## <summary>
+##	Manage mock lib symlinks.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_manage_lib_symlinks',`
+	gen_require(`
+		type mock_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_lnk_files_pattern($1, mock_var_lib_t, mock_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage mock lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_manage_lib_chr_files',`
+	gen_require(`
+		type mock_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_chr_files_pattern($1, mock_var_lib_t, mock_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage mock lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_dontaudit_write_lib_chr_files',`
+	gen_require(`
+		type mock_var_lib_t;
+	')
+
+	dontaudit $1 mock_var_lib_t:chr_file write;
+')
+
+#######################################
+## <summary>
+##  Dontaudit read and write an leaked file descriptors
+## </summary>
+## <param name="domain">
+##  <summary>
+##	Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`mock_dontaudit_leaks',`
+    gen_require(`
+        type mock_tmp_t;
+    ')
+
+	dontaudit $1 mock_tmp_t:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute mock in the mock domain, and
+##	allow the specified role the mock domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the mock domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mock_run',`
+	gen_require(`
+		type mock_t;
+		type mock_build_t;
+	')
+
+	mock_domtrans($1)
+	role $2 types mock_t;
+	role $2 types mock_build_t;
+
+	mount_run(mock_t, $2)
+')
+
+########################################
+## <summary>
+##	Role access for mock
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mock_role',`
+	gen_require(`
+		type mock_t;
+	')
+
+	role $1 types mock_t;
+
+	mock_run($2, $1)
+
+	ps_process_pattern($2, mock_t)
+	allow $2 mock_t:process signal_perms;
+
+	tunable_policy(`deny_ptrace',`',`
+		allow $2 mock_t:process ptrace;
+	')
+
+    optional_policy(`
+        mock_read_lib_files($2)
+    ')
+')
+
+#######################################
+## <summary>
+##	Send a generic signal to mock.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_signal',`
+	gen_require(`
+		type mock_t;
+	')
+
+	allow $1 mock_t:process signal;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an mock environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mock_admin',`
+	gen_require(`
+		type mock_t, mock_var_lib_t;
+		type mock_build_t, mock_etc_t, mock_tmp_t;
+	')
+
+	allow $1 mock_t:process signal_perms;
+	ps_process_pattern($1, mock_t)
+	tunable_policy(`deny_ptrace',`',`
+		allow $1 mock_t:process ptrace;
+		allow $1 mock_build_t:process ptrace;
+	')
+
+	allow $1 mock_build_t:process signal_perms;
+	ps_process_pattern($1, mock_build_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, mock_var_lib_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, mock_tmp_t)
+
+	files_search_etc($1)
+	admin_pattern($1, mock_etc_t)
+')

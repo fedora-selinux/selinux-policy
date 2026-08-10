@@ -1,0 +1,200 @@
+policy_module(nova, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+#
+# nova-stack daemons contain security issue with using sudo in the code
+# we make this policy as unconfined until this issue is fixed
+#
+
+attribute nova_domain;
+attribute nova_sudo_domain;
+
+nova_domain_template(ajax)
+nova_domain_template(api)
+nova_domain_template(cert)
+nova_domain_template(conductor)
+nova_domain_template(compute)
+nova_domain_template(console)
+nova_domain_template(direct)
+nova_domain_template(network)
+nova_domain_template(objectstore)
+nova_domain_template(scheduler)
+nova_domain_template(vncproxy)
+nova_domain_template(volume)
+
+typeattribute nova_api_t nova_sudo_domain;
+typeattribute nova_cert_t nova_sudo_domain;
+typeattribute nova_console_t nova_sudo_domain;
+typeattribute nova_network_t nova_sudo_domain;
+typeattribute nova_volume_t nova_sudo_domain;
+
+type nova_t;
+type nova_exec_t;
+init_daemon_domain(nova_t, nova_exec_t)
+typeattribute nova_t nova_domain;
+
+type nova_unit_file_t;
+systemd_unit_file(nova_unit_file_t)
+
+type nova_tmp_t;
+files_tmp_file(nova_tmp_t)
+
+manage_dirs_pattern(nova_t, nova_tmp_t, nova_tmp_t)
+manage_files_pattern(nova_t, nova_tmp_t, nova_tmp_t)
+manage_lnk_files_pattern(nova_t, nova_tmp_t, nova_tmp_t)
+files_tmp_filetrans(nova_t, nova_tmp_t, { lnk_file file dir })
+fs_tmpfs_filetrans(nova_t, nova_tmp_t, { lnk_file file dir })
+can_exec(nova_t, nova_tmp_t)
+
+type nova_log_t;
+logging_log_file(nova_log_t)
+
+type nova_var_lib_t;
+files_type(nova_var_lib_t)
+
+type nova_var_run_t;
+files_pid_file(nova_var_run_t)
+
+
+######################################
+#
+# nova general domain local policy
+#
+
+allow nova_domain self:capability { dac_read_search  net_admin net_bind_service };
+allow nova_domain self:process {  getcap setcap signal_perms setfscreate };
+allow nova_domain self:fifo_file rw_fifo_file_perms;
+allow nova_domain self:tcp_socket create_stream_socket_perms;
+allow nova_domain self:unix_stream_socket create_stream_socket_perms;
+allow nova_domain self:udp_socket create_socket_perms;
+allow nova_domain self:key write;
+allow nova_domain self:netlink_route_socket r_netlink_socket_perms;
+
+manage_dirs_pattern(nova_domain, nova_log_t, nova_log_t)
+manage_files_pattern(nova_domain, nova_log_t, nova_log_t)
+
+manage_dirs_pattern(nova_domain, nova_var_lib_t, nova_var_lib_t)
+manage_files_pattern(nova_domain, nova_var_lib_t, nova_var_lib_t)
+
+manage_dirs_pattern(nova_domain, nova_var_run_t, nova_var_run_t)
+manage_files_pattern(nova_domain, nova_var_run_t, nova_var_run_t)
+
+kernel_read_network_state(nova_domain)
+kernel_read_kernel_sysctls(nova_domain)
+
+kernel_read_system_state(nova_t)
+
+logging_send_syslog_msg(nova_t)
+
+miscfiles_read_generic_certs(nova_t)
+
+corecmd_exec_bin(nova_domain)
+corecmd_exec_shell(nova_domain)
+
+corenet_tcp_bind_generic_node(nova_domain)
+corenet_udp_bind_generic_node(nova_domain)
+# should be add to booleans
+corenet_tcp_connect_all_ports(nova_domain)
+corenet_tcp_bind_all_unreserved_ports(nova_domain)
+corenet_tcp_connect_mysqld_port(nova_domain)
+corenet_tcp_connect_amqp_port(nova_domain)
+corenet_tcp_connect_mysqld_port(nova_domain)
+corenet_tcp_connect_memcache_port(nova_domain)
+corenet_tcp_bind_varnishd_port(nova_domain)
+# should be added to boolean or fixed in the code
+# dnsmasq domtrans does not work since then dnsmasq_t wants
+# to do some stuff with nova_lib, nova_tmp
+# nova-dhcpbridge runs in dnsmasq domain
+corenet_all_recvfrom_netlabel(nova_t)
+corenet_tcp_sendrecv_generic_if(nova_domain)
+corenet_udp_sendrecv_generic_if(nova_domain)
+corenet_raw_sendrecv_generic_if(nova_domain)
+corenet_tcp_sendrecv_generic_node(nova_domain)
+corenet_udp_sendrecv_generic_node(nova_domain)
+corenet_raw_sendrecv_generic_node(nova_domain)
+corenet_tcp_sendrecv_all_ports(nova_domain)
+corenet_udp_sendrecv_all_ports(nova_domain)
+corenet_tcp_bind_dns_port(nova_domain)
+corenet_udp_bind_all_ports(nova_domain)
+corenet_sendrecv_dns_server_packets(nova_domain)
+corenet_sendrecv_dhcpd_server_packets(nova_domain)
+
+auth_use_nsswitch(nova_t)
+auth_use_pam(nova_t)
+auth_read_passwd(nova_domain)
+
+dev_read_sysfs(nova_domain)
+dev_read_urand(nova_domain)
+dev_read_rand(nova_domain)
+
+fs_getattr_all_fs(nova_domain)
+
+init_rw_utmp(nova_domain)
+
+libs_exec_ldconfig(nova_domain)
+
+optional_policy(`
+    apache_search_config(nova_domain)
+')
+
+optional_policy(`
+    mysql_stream_connect(nova_domain)
+    mysql_read_db_lnk_files(nova_domain)
+')
+
+optional_policy(`
+	postgresql_stream_connect(nova_domain)
+')
+
+optional_policy(`
+	sysnet_read_config(nova_domain)
+	sysnet_domtrans_ifconfig(nova_domain)
+')
+
+optional_policy(`
+	iptables_domtrans(nova_domain)
+')
+
+optional_policy(`
+	ssh_exec_keygen(nova_domain)
+')
+
+optional_policy(`
+    gnome_dontaudit_search_config(nova_domain)
+')
+
+optional_policy(`
+	virt_getattr_exec(nova_domain)
+	virt_stream_connect(nova_domain)
+')
+
+optional_policy(`
+	brctl_domtrans(nova_domain)
+')
+
+optional_policy(`
+	dnsmasq_exec(nova_domain)
+')
+
+optional_policy(`
+	lvm_domtrans(nova_domain)
+')
+
+#######################################
+#
+# nova sudo domain local policy
+#
+
+ifdef(`hide_broken_symptoms',`
+	optional_policy(`
+		sudo_exec(nova_sudo_domain)
+        allow nova_sudo_domain self:capability { setuid sys_resource setgid audit_write };
+		allow nova_sudo_domain self:process { setsched setrlimit };
+		logging_send_audit_msgs(nova_sudo_domain)
+	')
+')
+

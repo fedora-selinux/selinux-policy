@@ -1,0 +1,117 @@
+
+## <summary>LTTng 2.x central tracing registry session daemon.</summary>
+
+########################################
+## <summary>
+##	Execute lttng_sessiond_exec_t in the lttng_sessiond domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`lttng_sessiond_domtrans',`
+	gen_require(`
+		type lttng_sessiond_t, lttng_sessiond_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, lttng_sessiond_exec_t, lttng_sessiond_t)
+')
+
+######################################
+## <summary>
+##	Execute lttng_sessiond in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lttng_sessiond_exec',`
+	gen_require(`
+		type lttng_sessiond_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, lttng_sessiond_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute lttng_sessiond server in the lttng_sessiond domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`lttng_sessiond_systemctl',`
+	gen_require(`
+		type lttng_sessiond_t;
+		type lttng_sessiond_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 lttng_sessiond_unit_file_t:file read_file_perms;
+	allow $1 lttng_sessiond_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, lttng_sessiond_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an lttng_sessiond environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lttng_sessiond_admin',`
+	gen_require(`
+		type lttng_sessiond_t;
+    	type lttng_sessiond_unit_file_t;
+	')
+
+	allow $1 lttng_sessiond_t:process { signal_perms };
+	ps_process_pattern($1, lttng_sessiond_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 lttng_sessiond_t:process ptrace;
+    ')
+
+	lttng_sessiond_systemctl($1)
+	admin_pattern($1, lttng_sessiond_unit_file_t)
+	allow $1 lttng_sessiond_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
+
+########################################
+## <summary>
+## Read and write lttng-tools shared memory.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`lttng_read_shm',`
+	gen_require(`
+		type lttng_sessiond_tmpfs_t;
+	')
+
+	read_files_pattern($1, lttng_sessiond_tmpfs_t, lttng_sessiond_tmpfs_t)
+	fs_search_tmpfs($1)
+')

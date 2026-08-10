@@ -1,0 +1,54 @@
+policy_module(tangd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type tangd_t;
+type tangd_exec_t;
+init_daemon_domain(tangd_t, tangd_exec_t)
+
+type tangd_unit_file_t;
+systemd_unit_file(tangd_unit_file_t)
+
+type tangd_cache_t;
+files_pid_file(tangd_cache_t)
+
+type tangd_db_t;
+files_type(tangd_db_t)
+
+########################################
+#
+# tangd local policy
+#
+allow tangd_t self:capability { dac_read_search dac_override };
+
+allow tangd_t self:fifo_file rw_fifo_file_perms;
+allow tangd_t self:unix_stream_socket create_stream_socket_perms;
+allow tangd_t self:tcp_socket create_stream_socket_perms;
+
+manage_files_pattern(tangd_t, tangd_cache_t, tangd_cache_t)
+manage_lnk_files_pattern(tangd_t, tangd_cache_t, tangd_cache_t)
+manage_dirs_pattern(tangd_t, tangd_cache_t, tangd_cache_t)
+files_var_filetrans(tangd_t, tangd_cache_t, { file dir lnk_file })
+
+manage_files_pattern(tangd_t, tangd_db_t, tangd_db_t)
+manage_dirs_pattern(tangd_t, tangd_db_t, tangd_db_t)
+
+kernel_read_system_state(tangd_t)
+
+auth_read_passwd(tangd_t)
+
+corenet_tcp_bind_generic_node(tangd_t)
+corenet_tcp_bind_http_port(tangd_t)
+corenet_tcp_bind_tangd_port(tangd_t)
+
+corecmd_exec_bin(tangd_t)
+
+miscfiles_read_certs(tangd_t)
+
+optional_policy(`
+    sssd_read_public_files(tangd_t)
+    sssd_stream_connect(tangd_t)
+')

@@ -1,0 +1,61 @@
+## <summary>AMQP server written in Erlang.</summary>
+
+########################################
+## <summary>
+##	Execute rabbitmq in the rabbitmq domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rabbitmq_domtrans',`
+	gen_require(`
+		type rabbitmq_t, rabbitmq_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rabbitmq_exec_t, rabbitmq_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an rabbitmq environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rabbitmq_admin',`
+	gen_require(`
+		type rabbitmq_t, rabbitmq_initrc_exec_t;
+		type rabbitmq_var_lib_t, rabbitmq_var_log_t, rabbitmq_var_run_t;
+	')
+
+	allow $1 { rabbitmq_t }:process { ptrace signal_perms };
+	ps_process_pattern($1, rabbitmq_t)
+
+	init_labeled_script_domtrans($1, rabbitmq_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 rabbitmq_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, rabbitmq_var_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, rabbitmq_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, rabbitmq_var_run_t)
+')

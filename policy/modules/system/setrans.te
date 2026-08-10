@@ -1,0 +1,88 @@
+policy_module(setrans, 1.8.0)
+
+gen_require(`
+	class context contains;
+')
+
+########################################
+#
+# Declarations
+#
+
+type setrans_t;
+type setrans_exec_t;
+init_daemon_domain(setrans_t, setrans_exec_t)
+mls_trusted_object(setrans_t)
+
+type setrans_initrc_exec_t;
+init_script_file(setrans_initrc_exec_t)
+
+type setrans_var_run_t;
+files_pid_file(setrans_var_run_t)
+mls_trusted_object(setrans_var_run_t)
+
+ifdef(`enable_mcs',`
+	init_ranged_daemon_domain(setrans_t, setrans_exec_t, s0 - mcs_systemhigh)
+')
+
+ifdef(`enable_mls',`
+	init_ranged_daemon_domain(setrans_t, setrans_exec_t, mls_systemhigh)
+')
+
+########################################
+#
+# setrans local policy
+#
+
+allow setrans_t self:capability sys_resource;
+allow setrans_t self:process { setrlimit getcap setcap signal_perms };
+allow setrans_t self:unix_stream_socket create_stream_socket_perms;
+allow setrans_t self:unix_dgram_socket create_socket_perms;
+allow setrans_t self:netlink_selinux_socket create_socket_perms;
+allow setrans_t self:context contains;
+
+can_exec(setrans_t, setrans_exec_t)
+corecmd_search_bin(setrans_t)
+
+# create unix domain socket in /var
+manage_dirs_pattern(setrans_t, setrans_var_run_t, setrans_var_run_t)
+manage_files_pattern(setrans_t, setrans_var_run_t, setrans_var_run_t)
+manage_sock_files_pattern(setrans_t, setrans_var_run_t, setrans_var_run_t)
+files_pid_filetrans(setrans_t, setrans_var_run_t, { file dir })
+
+kernel_read_system_state(setrans_t)
+kernel_read_kernel_sysctls(setrans_t)
+kernel_read_proc_symlinks(setrans_t)
+
+# allow performing getpidcon() on all processes
+domain_read_all_domains_state(setrans_t)
+domain_dontaudit_search_all_domains_state(setrans_t)
+domain_getattr_all_domains(setrans_t)
+domain_getsession_all_domains(setrans_t)
+
+files_read_etc_runtime_files(setrans_t)
+
+mls_file_read_all_levels(setrans_t)
+mls_file_write_all_levels(setrans_t)
+mls_net_receive_all_levels(setrans_t)
+mls_socket_write_all_levels(setrans_t)
+mls_process_read_up(setrans_t)
+mls_socket_read_all_levels(setrans_t)
+
+selinux_compute_access_vector(setrans_t)
+
+term_dontaudit_use_generic_ptys(setrans_t)
+term_dontaudit_use_unallocated_ttys(setrans_t)
+
+init_dontaudit_use_script_ptys(setrans_t)
+
+locallogin_dontaudit_use_fds(setrans_t)
+
+logging_send_syslog_msg(setrans_t)
+
+
+seutil_read_config(setrans_t)
+
+optional_policy(`
+	rpm_use_script_fds(setrans_t)
+')

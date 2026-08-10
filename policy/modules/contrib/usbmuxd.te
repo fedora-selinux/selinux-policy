@@ -1,0 +1,70 @@
+policy_module(usbmuxd, 1.2.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role usbmuxd_roles;
+roleattribute system_r usbmuxd_roles;
+
+type usbmuxd_t;
+type usbmuxd_exec_t;
+init_daemon_domain(usbmuxd_t, usbmuxd_exec_t)
+role usbmuxd_roles types usbmuxd_t;
+
+type usbmuxd_var_run_t;
+files_pid_file(usbmuxd_var_run_t)
+
+type usbmuxd_var_lib_t;
+files_type(usbmuxd_var_lib_t)
+
+type usbmuxd_unit_file_t;
+systemd_unit_file(usbmuxd_unit_file_t)
+
+########################################
+#
+# Local policy
+#
+
+allow usbmuxd_t self:capability { fowner fsetid chown kill setgid setuid };
+dontaudit usbmuxd_t self:capability sys_resource;
+allow usbmuxd_t self:process { signal_perms setrlimit };
+allow usbmuxd_t self:fifo_file rw_fifo_file_perms;
+allow usbmuxd_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow usbmuxd_t self:unix_stream_socket connectto;
+
+manage_dirs_pattern(usbmuxd_t, usbmuxd_var_run_t, usbmuxd_var_run_t)
+manage_files_pattern(usbmuxd_t, usbmuxd_var_run_t, usbmuxd_var_run_t)
+manage_sock_files_pattern(usbmuxd_t, usbmuxd_var_run_t, usbmuxd_var_run_t)
+files_pid_filetrans(usbmuxd_t, usbmuxd_var_run_t, { file dir sock_file })
+
+manage_dirs_pattern(usbmuxd_t, usbmuxd_var_lib_t, usbmuxd_var_lib_t)
+manage_files_pattern(usbmuxd_t, usbmuxd_var_lib_t, usbmuxd_var_lib_t)
+manage_lnk_files_pattern(usbmuxd_t, usbmuxd_var_lib_t, usbmuxd_var_lib_t)
+files_var_lib_filetrans(usbmuxd_t, usbmuxd_var_lib_t, { dir file })
+
+kernel_read_kernel_sysctls(usbmuxd_t)
+kernel_read_system_state(usbmuxd_t)
+
+dev_read_sysfs(usbmuxd_t)
+dev_read_urand(usbmuxd_t)
+dev_rw_generic_usb_dev(usbmuxd_t)
+
+fs_getattr_cgroup(usbmuxd_t)
+fs_getattr_tmpfs(usbmuxd_t)
+fs_getattr_xattr_fs(usbmuxd_t)
+
+auth_use_nsswitch(usbmuxd_t)
+
+logging_send_syslog_msg(usbmuxd_t)
+
+seutil_dontaudit_read_file_contexts(usbmuxd_t)
+
+optional_policy(`
+    udev_read_pid_files(usbmuxd_t)
+')
+
+optional_policy(`
+	virt_dontaudit_read_chr_dev(usbmuxd_t)
+')

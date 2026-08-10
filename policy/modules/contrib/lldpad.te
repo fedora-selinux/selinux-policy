@@ -1,0 +1,114 @@
+policy_module(lldpad, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type lldpad_t;
+type lldpad_exec_t;
+init_daemon_domain(lldpad_t, lldpad_exec_t)
+
+type lldpad_initrc_exec_t;
+init_script_file(lldpad_initrc_exec_t)
+
+type lldpad_tmpfs_t;
+files_tmpfs_file(lldpad_tmpfs_t)
+
+type lldpad_var_lib_t;
+files_type(lldpad_var_lib_t)
+
+type lldpad_var_run_t;
+files_pid_file(lldpad_var_run_t)
+systemd_mount_dir(lldpad_var_run_t)
+########################################
+#
+# Local policy
+#
+allow lldpad_t self:capability { chown dac_override fowner fsetid kill net_admin net_raw setgid setuid sys_chroot sys_resource };
+dontaudit lldpad_t self:capability { sys_admin };
+allow lldpad_t self:capability2 bpf;
+allow lldpad_t self:shm create_shm_perms;
+allow lldpad_t self:fifo_file rw_fifo_file_perms;
+allow lldpad_t self:unix_stream_socket { accept connectto listen };
+allow lldpad_t self:netlink_generic_socket create_socket_perms;
+allow lldpad_t self:netlink_route_socket create_netlink_socket_perms;
+allow lldpad_t self:packet_socket create_socket_perms;
+allow lldpad_t self:tcp_socket create_socket_perms;
+allow lldpad_t self:udp_socket create_socket_perms;
+
+manage_files_pattern(lldpad_t, lldpad_tmpfs_t, lldpad_tmpfs_t)
+fs_tmpfs_filetrans(lldpad_t, lldpad_tmpfs_t, file)
+allow lldpad_t lldpad_tmpfs_t:file map;
+
+manage_dirs_pattern(lldpad_t, lldpad_var_lib_t, lldpad_var_lib_t)
+manage_files_pattern(lldpad_t, lldpad_var_lib_t, lldpad_var_lib_t)
+
+manage_dirs_pattern(lldpad_t, lldpad_var_run_t, lldpad_var_run_t)
+manage_files_pattern(lldpad_t, lldpad_var_run_t, lldpad_var_run_t)
+manage_sock_files_pattern(lldpad_t, lldpad_var_run_t, lldpad_var_run_t)
+files_pid_filetrans(lldpad_t, lldpad_var_run_t, { dir file sock_file })
+
+kernel_read_all_sysctls(lldpad_t)
+kernel_read_network_state(lldpad_t)
+kernel_request_load_module(lldpad_t)
+
+auth_read_passwd(lldpad_t)
+
+corecmd_exec_bin(lldpad_t)
+
+corenet_tcp_connect_agentx_port(lldpad_t)
+
+dev_read_sysfs(lldpad_t)
+
+fs_getattr_tmpfs(lldpad_t)
+
+logging_send_syslog_msg(lldpad_t)
+
+userdom_dgram_send(lldpad_t)
+
+
+optional_policy(`
+    dbus_system_bus_client(lldpad_t)
+')
+
+optional_policy(`
+    fcoe_dgram_send_fcoemon(lldpad_t)
+')
+
+optional_policy(`
+    kdump_dgram_send_kdumpctl(lldpad_t)
+')
+
+optional_policy(`
+    networkmanager_dgram_send(lldpad_t)
+')
+
+optional_policy(`
+	snmp_stream_connect(lldpad_t)
+')
+
+optional_policy(`
+	sysadm_dgram_send(lldpad_t)
+')
+
+optional_policy(`
+    sysnet_read_config(lldpad_t)
+')
+
+optional_policy(`
+	systemd_machined_stream_connect(lldpad_t)
+	systemd_userdbd_stream_connect(lldpad_t)
+')
+
+optional_policy(`
+	systemd_homed_stream_connect(lldpad_t)
+')
+
+optional_policy(`
+    unconfined_dgram_send(lldpad_t)
+')
+
+optional_policy(`
+    virt_dgram_send(lldpad_t)
+')

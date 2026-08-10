@@ -1,0 +1,123 @@
+policy_module(passenger, 1.1.2)
+
+########################################
+#
+# Declarations
+#
+
+type passenger_t;
+type passenger_exec_t;
+domain_type(passenger_t)
+domain_entry_file(passenger_t, passenger_exec_t)
+role system_r types passenger_t;
+
+type passenger_log_t;
+logging_log_file(passenger_log_t)
+
+type passenger_tmp_t;
+files_tmp_file(passenger_tmp_t)
+
+type passenger_var_lib_t;
+files_type(passenger_var_lib_t)
+
+type passenger_var_run_t;
+files_pid_file(passenger_var_run_t)
+
+########################################
+#
+# passanger local policy
+#
+
+allow passenger_t self:capability { chown dac_read_search  fsetid fowner kill setuid setgid sys_nice sys_ptrace sys_resource };
+allow passenger_t self:capability2 block_suspend;
+allow passenger_t self:process { setpgid setsched getsession signal_perms };
+allow passenger_t self:fifo_file rw_fifo_file_perms;
+allow passenger_t self:tcp_socket { accept listen };
+allow passenger_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+can_exec(passenger_t, passenger_exec_t)
+
+manage_dirs_pattern(passenger_t, passenger_log_t, passenger_log_t)
+manage_files_pattern(passenger_t, passenger_log_t, passenger_log_t)
+logging_log_filetrans(passenger_t, passenger_log_t, { dir file })
+
+manage_dirs_pattern(passenger_t, passenger_var_lib_t, passenger_var_lib_t)
+manage_files_pattern(passenger_t, passenger_var_lib_t, passenger_var_lib_t)
+files_search_var_lib(passenger_t)
+
+manage_dirs_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
+manage_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
+manage_fifo_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
+manage_sock_files_pattern(passenger_t, passenger_var_run_t, passenger_var_run_t)
+files_pid_filetrans(passenger_t, passenger_var_run_t, { file dir sock_file })
+
+#needed by puppet
+manage_dirs_pattern(passenger_t, passenger_tmp_t, passenger_tmp_t)
+manage_files_pattern(passenger_t, passenger_tmp_t, passenger_tmp_t)
+manage_sock_files_pattern(passenger_t, passenger_tmp_t, passenger_tmp_t)
+files_tmp_filetrans(passenger_t, passenger_tmp_t, { file dir sock_file })
+
+kernel_read_system_state(passenger_t)
+kernel_read_kernel_sysctls(passenger_t)
+kernel_read_network_state(passenger_t)
+kernel_read_net_sysctls(passenger_t)
+
+corenet_all_recvfrom_netlabel(passenger_t)
+corenet_tcp_sendrecv_generic_if(passenger_t)
+corenet_tcp_sendrecv_generic_node(passenger_t)
+corenet_tcp_connect_http_port(passenger_t)
+corenet_tcp_connect_postgresql_port(passenger_t)
+corenet_tcp_connect_mysqld_port(passenger_t)
+
+corecmd_exec_bin(passenger_t)
+corecmd_exec_shell(passenger_t)
+
+dev_read_urand(passenger_t)
+
+domain_read_all_domains_state(passenger_t)
+
+auth_use_nsswitch(passenger_t)
+
+fs_getattr_xattr_fs(passenger_t)
+
+logging_send_syslog_msg(passenger_t)
+
+miscfiles_read_localization(passenger_t)
+
+sysnet_exec_ifconfig(passenger_t)
+
+userdom_dontaudit_use_user_terminals(passenger_t)
+
+optional_policy(`
+	apache_append_log(passenger_t)
+	apache_read_sys_content(passenger_t)
+    apache_rw_stream_sockets(passenger_t)
+')
+
+optional_policy(`
+	hostname_exec(passenger_t)
+')
+
+optional_policy(`
+	mta_send_mail(passenger_t)
+')
+
+optional_policy(`
+    mysql_stream_connect(passenger_t)
+    mysql_list_db(passenger_t)
+')
+
+optional_policy(`
+	puppet_domtrans_master(passenger_t)
+	puppet_manage_lib(passenger_t)
+	puppet_read_config(passenger_t)
+	puppet_append_log(passenger_t)
+	puppet_create_log(passenger_t)
+	puppet_read_log(passenger_t)
+	puppet_search_pid(passenger_t)
+')
+
+optional_policy(`
+    rpm_exec(passenger_t)
+    rpm_read_db(passenger_t)
+')

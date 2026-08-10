@@ -1,0 +1,62 @@
+policy_module(bugzilla, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+apache_content_template(bugzilla)
+apache_content_alias_template(bugzilla, bugzilla)
+
+type bugzilla_tmp_t alias httpd_bugzilla_tmp_t;
+files_tmp_file(bugzilla_tmp_t)
+
+########################################
+#
+# Local policy
+#
+
+allow bugzilla_script_t self:netlink_route_socket create_netlink_socket_perms;
+allow bugzilla_script_t self:tcp_socket { accept listen };
+allow bugzilla_script_t self:udp_socket create_socket_perms;
+
+corenet_all_recvfrom_netlabel(bugzilla_script_t)
+corenet_tcp_sendrecv_generic_if(bugzilla_script_t)
+corenet_tcp_sendrecv_generic_node(bugzilla_script_t)
+
+corenet_sendrecv_http_client_packets(bugzilla_script_t)
+corenet_tcp_connect_http_port(bugzilla_script_t)
+corenet_tcp_sendrecv_http_port(bugzilla_script_t)
+
+corenet_sendrecv_smtp_client_packets(bugzilla_script_t)
+corenet_tcp_connect_smtp_port(bugzilla_script_t)
+corenet_tcp_sendrecv_smtp_port(bugzilla_script_t)
+
+manage_dirs_pattern(bugzilla_script_t, bugzilla_tmp_t, bugzilla_tmp_t)
+manage_files_pattern(bugzilla_script_t, bugzilla_tmp_t, bugzilla_tmp_t)
+files_tmp_filetrans(bugzilla_script_t, bugzilla_tmp_t, { file dir })
+
+files_search_var_lib(bugzilla_script_t)
+
+auth_read_passwd(bugzilla_script_t)
+
+dev_read_sysfs(bugzilla_script_t)
+
+sysnet_read_config(bugzilla_script_t)
+sysnet_use_ldap(bugzilla_script_t)
+
+miscfiles_read_certs(bugzilla_script_t)
+
+optional_policy(`
+	mta_send_mail(bugzilla_script_t)
+')
+
+optional_policy(`
+	mysql_stream_connect(bugzilla_script_t)
+	mysql_tcp_connect(bugzilla_script_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(bugzilla_script_t)
+	postgresql_tcp_connect(bugzilla_script_t)
+')

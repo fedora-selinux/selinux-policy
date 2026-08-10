@@ -1,0 +1,49 @@
+%define type refpolicy
+%define POLICYDIR /etc/selinux/%{type}
+%define FILE_CON ${POLICYDIR}/contexts/files/file_contexts
+%define FC_PRE ${FILE_CON}.pre
+
+Summary: SELinux Reference Policy configuration source files 
+Name: selinux-refpolicy-sources
+Version: REFPOL_VERSION
+Release: 1
+License: GPL
+Group: System Environment/Base
+PreReq: m4 make policycoreutils kernel gcc
+Requires: checkpolicy >= 1.33.1
+Requires: python make m4
+BuildRequires: make m4 python
+Obsoletes: policy-sources
+Source: refpolicy-%{version}.tar.bz2
+Url: http://oss.tresys.com/projects/refpolicy
+BuildArch: noarch
+BuildRoot: /tmp/rpmbuild/%{name}
+
+%description
+This subpackage includes the SELinux Reference Policy
+source files, which can be used to build a targeted policy
+or strict policy configuration.
+
+%prep
+%setup -q -n refpolicy
+
+%build
+sed -i -e '/^TYPE/s/strict/targeted/' Makefile
+sed -i -e 's/^#DISTRO/DISTRO/' Makefile
+sed -i -e '/^DIRECT_INITRC/s/n/y/' Makefile
+make conf
+make clean
+rm -f support/*.pyc
+
+%install
+rm -fR $RPM_BUILD_ROOT
+make DESTDIR=$RPM_BUILD_ROOT install-src
+
+%clean
+rm -fR $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root,-)
+%{_sysconfdir}/selinux/%{type}/src/policy/
+
+%changelog

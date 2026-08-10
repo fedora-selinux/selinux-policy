@@ -1,0 +1,99 @@
+policy_module(lttng-tools, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type lttng_sessiond_t;
+type lttng_sessiond_exec_t;
+init_daemon_domain(lttng_sessiond_t, lttng_sessiond_exec_t)
+
+type lttng_sessiond_tmpfs_t;
+files_tmpfs_file(lttng_sessiond_tmpfs_t)
+
+type lttng_sessiond_var_run_t;
+files_pid_file(lttng_sessiond_var_run_t)
+
+type lttng_sessiond_unit_file_t;
+systemd_unit_file(lttng_sessiond_unit_file_t)
+
+type lttng_home_t;
+userdom_user_home_content(lttng_home_t)
+
+type lttng_conf_t;
+files_config_file(lttng_conf_t)
+
+########################################
+#
+# lttng_sessiond local policy
+#
+
+allow lttng_sessiond_t self:capability { chown setgid setuid fsetid net_admin sys_resource };
+allow lttng_sessiond_t self:capability2 block_suspend;
+allow lttng_sessiond_t self:process { setrlimit signal_perms };
+allow lttng_sessiond_t self:fifo_file rw_fifo_file_perms;
+allow lttng_sessiond_t self:tcp_socket listen;
+allow lttng_sessiond_t self:unix_dgram_socket create;
+allow lttng_sessiond_t self:unix_stream_socket { create_stream_socket_perms connectto };
+# Allow lttng-sessiond to exec lttng-consumerd
+allow lttng_sessiond_t lttng_sessiond_exec_t:file execute_no_trans;
+
+# FIXME: this is required because of systemd's notify socket is created while
+# in the initramfs, hence as kernel_t. Once SELinux permits relabeling socket
+# objects created before the policy is loaded, this should be removed and
+# systemd fixed to relabel the socket appropriately.
+# Tracked by [systemd PR](https://github.com/systemd/systemd/pull/31336).
+kernel_dgram_send(lttng_sessiond_t)
+
+# Allow lttng-sessiond to manage the app sockets, lock files and pid files in /run/lttng
+manage_dirs_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
+manage_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
+manage_lnk_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
+manage_sock_files_pattern(lttng_sessiond_t, lttng_sessiond_var_run_t, lttng_sessiond_var_run_t)
+files_pid_filetrans(lttng_sessiond_t, lttng_sessiond_var_run_t, { dir })
+
+# Allow lttng-sessiond to manage and map the tracing buffers in shared memory
+allow lttng_sessiond_t lttng_sessiond_tmpfs_t:file map;
+manage_dirs_pattern(lttng_sessiond_t, lttng_sessiond_tmpfs_t, lttng_sessiond_tmpfs_t)
+manage_files_pattern(lttng_sessiond_t, lttng_sessiond_tmpfs_t, lttng_sessiond_tmpfs_t)
+fs_tmpfs_filetrans(lttng_sessiond_t, lttng_sessiond_tmpfs_t, { dir file })
+
+# Allow lttng-sessiond to manage the config and traces in the user home dir
+userdom_user_home_dir_filetrans(lttng_sessiond_t, lttng_home_t, dir, ".lttng")
+userdom_user_home_dir_filetrans(lttng_sessiond_t, lttng_home_t, dir, "lttng-traces")
+manage_dirs_pattern(lttng_sessiond_t, lttng_home_t, lttng_home_t)
+manage_files_pattern(lttng_sessiond_t, lttng_home_t, lttng_home_t)
+manage_lnk_files_pattern(lttng_sessiond_t, lttng_home_t, lttng_home_t)
+
+# Allow lttng-sessiond to read the system config in /etc/lttng
+list_dirs_pattern(lttng_sessiond_t, lttng_conf_t, lttng_conf_t)
+read_files_pattern(lttng_sessiond_t, lttng_conf_t, lttng_conf_t)
+read_lnk_files_pattern(lttng_sessiond_t, lttng_conf_t, lttng_conf_t)
+
+kernel_read_system_state(lttng_sessiond_t)
+kernel_read_net_sysctls(lttng_sessiond_t)
+kernel_read_fs_sysctls(lttng_sessiond_t)
+
+corecmd_exec_shell(lttng_sessiond_t)
+
+corenet_tcp_bind_generic_node(lttng_sessiond_t)
+corenet_tcp_bind_lltng_port(lttng_sessiond_t)
+
+dev_read_sysfs(lttng_sessiond_t)
+dev_read_rand(lttng_sessiond_t)
+
+fs_getattr_tmpfs(lttng_sessiond_t)
+
+auth_use_nsswitch(lttng_sessiond_t)
+
+# Allow lttng-sessiond to load the lttng kernel modules
+modutils_exec_kmod(lttng_sessiond_t)
+modutils_read_module_config(lttng_sessiond_t)
+modutils_read_module_deps_files(lttng_sessiond_t)
+files_read_kernel_modules(lttng_sessiond_t)
+files_load_kernel_modules(lttng_sessiond_t)
+files_map_kernel_modules(lttng_sessiond_t)
+
+# Allow lttng-sessiond to write to '/proc/lttng'
+kernel_write_proc_files(lttng_sessiond_t)

@@ -1,0 +1,543 @@
+policy_module(sandboxX,1.0.0)
+
+dbus_stub()
+attribute sandbox_x_domain;
+attribute sandbox_web_type;
+attribute sandbox_file_type;
+attribute sandbox_tmpfs_type;
+attribute sandbox_type;
+
+type sandbox_exec_t;
+files_type(sandbox_exec_t)
+
+type sandbox_file_t, sandbox_file_type;
+userdom_user_home_content(sandbox_file_t)
+
+typealias sandbox_file_t alias { sandbox_x_file_t sandbox_web_file_t sandbox_net_file_t sandbox_min_file_t };
+
+########################################
+#
+# Declarations
+#
+sandbox_x_domain_template(sandbox_min)
+sandbox_x_domain_template(sandbox_x)
+sandbox_x_domain_template(sandbox_web)
+sandbox_x_domain_template(sandbox_net)
+
+type sandbox_xserver_t;
+domain_type(sandbox_xserver_t)
+xserver_user_x_domain_template(sandbox_xserver, sandbox_xserver_t, sandbox_xserver_tmpfs_t)
+
+type sandbox_xserver_tmpfs_t;
+files_tmpfs_file(sandbox_xserver_tmpfs_t)
+
+type sandbox_devpts_t;
+term_pty(sandbox_devpts_t)
+files_type(sandbox_devpts_t)
+
+########################################
+#
+# sandbox xserver policy
+#
+allow sandbox_xserver_t self:process { signal_perms execstack };
+
+allow sandbox_web_t sandbox_xserver_t:process2 nnp_transition;
+
+tunable_policy(`deny_execmem',`',`
+	allow sandbox_xserver_t self:process execmem;
+')
+
+allow sandbox_xserver_t self:fifo_file manage_fifo_file_perms;
+allow sandbox_xserver_t self:process setsched;
+allow sandbox_xserver_t self:shm create_shm_perms;
+allow sandbox_xserver_t self:tcp_socket create_stream_socket_perms;
+
+manage_dirs_pattern(sandbox_xserver_t, sandbox_file_t, sandbox_file_t)
+manage_files_pattern(sandbox_xserver_t, sandbox_file_t, sandbox_file_t)
+manage_sock_files_pattern(sandbox_xserver_t, sandbox_file_t, sandbox_file_t)
+allow sandbox_xserver_t sandbox_file_t:file map;
+allow sandbox_xserver_t sandbox_file_t:sock_file create_sock_file_perms;
+
+manage_dirs_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+manage_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+manage_lnk_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+manage_fifo_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+manage_sock_files_pattern(sandbox_xserver_t, sandbox_xserver_tmpfs_t, sandbox_xserver_tmpfs_t)
+fs_tmpfs_filetrans(sandbox_xserver_t, sandbox_xserver_tmpfs_t, { dir file lnk_file sock_file fifo_file })
+
+allow sandbox_xserver_t sandbox_xserver_tmpfs_t:file map;
+
+kernel_dontaudit_request_load_module(sandbox_xserver_t)
+kernel_read_device_sysctls(sandbox_xserver_t)
+kernel_read_system_state(sandbox_xserver_t)
+
+corecmd_exec_bin(sandbox_xserver_t)
+corecmd_exec_shell(sandbox_xserver_t)
+
+corenet_all_recvfrom_netlabel(sandbox_xserver_t)
+corenet_tcp_sendrecv_generic_if(sandbox_xserver_t)
+corenet_udp_sendrecv_generic_if(sandbox_xserver_t)
+corenet_tcp_sendrecv_generic_node(sandbox_xserver_t)
+corenet_udp_sendrecv_generic_node(sandbox_xserver_t)
+corenet_tcp_sendrecv_all_ports(sandbox_xserver_t)
+corenet_udp_sendrecv_all_ports(sandbox_xserver_t)
+corenet_tcp_bind_generic_node(sandbox_xserver_t)
+corenet_tcp_bind_xserver_port(sandbox_xserver_t)
+corenet_tcp_connect_xserver_port(sandbox_xserver_t)
+corenet_sendrecv_xserver_server_packets(sandbox_xserver_t)
+corenet_sendrecv_all_client_packets(sandbox_xserver_t)
+
+dev_read_sysfs(sandbox_xserver_t)
+dev_rwx_zero(sandbox_xserver_t)
+dev_read_urand(sandbox_xserver_t)
+
+domain_use_interactive_fds(sandbox_xserver_t)
+
+files_read_config_files(sandbox_xserver_t)
+files_search_home(sandbox_xserver_t)
+fs_dontaudit_rw_tmpfs_files(sandbox_xserver_t)
+fs_getattr_xattr_fs(sandbox_xserver_t)
+fs_search_auto_mountpoints(sandbox_xserver_t)
+
+miscfiles_read_fonts(sandbox_xserver_t)
+
+selinux_validate_context(sandbox_xserver_t)
+selinux_compute_access_vector(sandbox_xserver_t)
+selinux_compute_create_context(sandbox_xserver_t)
+
+auth_use_nsswitch(sandbox_xserver_t)
+
+logging_send_syslog_msg(sandbox_xserver_t)
+logging_send_audit_msgs(sandbox_xserver_t)
+
+userdom_use_inherited_user_terminals(sandbox_xserver_t)
+userdom_use_user_ptys(sandbox_xserver_t)
+userdom_dontaudit_search_user_home_content(sandbox_xserver_t)
+userdom_dontaudit_rw_user_tmp_pipes(sandbox_xserver_t)
+userdom_map_tmp_files(sandbox_xserver_t)
+userdom_rw_user_tmp_files(sandbox_xserver_t)
+
+xserver_read_xkb_libs(sandbox_xserver_t)
+xserver_dontaudit_xkb_libs_access(sandbox_xserver_t)
+xserver_entry_type(sandbox_xserver_t)
+
+optional_policy(`
+	dbus_system_bus_client(sandbox_xserver_t)
+')
+
+########################################
+#
+# sandbox_x_t local policy
+#
+
+allow sandbox_x_t sandbox_x_client_t:process2 nnp_transition;
+allow sandbox_x_t sandbox_xserver_t:process2 nnp_transition;
+
+files_search_home(sandbox_x_t)
+userdom_use_user_ptys(sandbox_x_t)
+
+# This access is needed due to Wayland
+userdom_manage_user_tmp_dirs(sandbox_x_t)
+userdom_map_tmp_files(sandbox_x_t)
+userdom_manage_user_tmp_files(sandbox_x_t)
+
+########################################
+#
+# sandbox_x_domain local policy
+#
+allow sandbox_x_domain self:process { getattr signal_perms getsched setsched setpgid execstack getcap setcap };
+tunable_policy(`deny_execmem',`',`
+	allow sandbox_x_domain self:process execmem;
+')
+
+allow sandbox_x_domain self:fifo_file manage_file_perms;
+allow sandbox_x_domain self:sem create_sem_perms;
+allow sandbox_x_domain self:shm create_shm_perms;
+allow sandbox_x_domain self:msgq create_msgq_perms;
+allow sandbox_x_domain self:netlink_selinux_socket create_socket_perms;
+allow sandbox_x_domain self:unix_dgram_socket { sendto create_socket_perms };
+allow sandbox_x_domain self:unix_stream_socket { connectto create_stream_socket_perms };
+
+dontaudit sandbox_x_domain sandbox_x_domain:process signal;
+dontaudit sandbox_x_domain sandbox_xserver_t:process signal;
+dontaudit sandbox_x_domain self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+
+allow sandbox_x_domain sandbox_xserver_t:unix_stream_socket connectto;
+
+allow sandbox_x_domain sandbox_devpts_t:chr_file { rw_term_perms setattr };
+term_create_pty(sandbox_x_domain,sandbox_devpts_t)
+
+can_exec(sandbox_x_domain, sandbox_file_t)
+allow sandbox_x_domain sandbox_file_t:filesystem getattr;
+manage_files_pattern(sandbox_x_domain, sandbox_file_t, sandbox_file_t);
+manage_dirs_pattern(sandbox_x_domain, sandbox_file_t, sandbox_file_t);
+manage_sock_files_pattern(sandbox_x_domain, sandbox_file_t, sandbox_file_t);
+manage_fifo_files_pattern(sandbox_x_domain, sandbox_file_t, sandbox_file_t);
+manage_lnk_files_pattern(sandbox_x_domain, sandbox_file_t, sandbox_file_t);
+dontaudit sandbox_x_domain sandbox_file_t:dir mounton;
+allow sandbox_x_domain sandbox_file_t:file execmod;
+
+kernel_read_network_state(sandbox_x_domain)
+kernel_dontaudit_search_kernel_sysctl(sandbox_x_domain)
+
+domain_dontaudit_read_all_domains_state(sandbox_x_domain)
+
+corecmd_exec_all_executables(sandbox_x_domain)
+
+dev_read_urand(sandbox_x_domain)
+dev_dontaudit_read_rand(sandbox_x_domain)
+dev_read_sysfs(sandbox_x_domain)
+dev_dontaudit_rw_dri(sandbox_x_domain)
+
+files_search_home(sandbox_x_domain)
+files_dontaudit_list_all_mountpoints(sandbox_x_domain)
+files_read_config_files(sandbox_x_domain)
+files_read_usr_symlinks(sandbox_x_domain)
+
+corecmd_entrypoint_all_executables(sandbox_x_domain)
+files_entrypoint_all_mountpoint(sandbox_x_domain)
+
+fs_getattr_tmpfs(sandbox_x_domain)
+fs_getattr_xattr_fs(sandbox_x_domain)
+fs_dontaudit_getattr_xattr_fs(sandbox_x_domain)
+fs_get_xattr_fs_quotas(sandbox_x_domain)
+
+auth_dontaudit_read_login_records(sandbox_x_domain)
+auth_dontaudit_write_login_records(sandbox_x_domain)
+auth_search_pam_console_data(sandbox_x_domain)
+
+automount_exec_config(sandbox_x_domain)
+
+init_read_utmp(sandbox_x_domain)
+init_dontaudit_write_utmp(sandbox_x_domain)
+
+libs_dontaudit_setattr_lib_files(sandbox_x_domain)
+libs_dontaudit_setattr_lib_dirs(sandbox_x_domain)
+libs_exec_lib_files(sandbox_x_domain)
+
+miscfiles_dontaudit_setattr_fonts_cache_dirs(sandbox_x_domain)
+
+mta_dontaudit_read_spool_symlinks(sandbox_x_domain)
+
+selinux_validate_context(sandbox_x_domain)
+selinux_compute_access_vector(sandbox_x_domain)
+selinux_compute_create_context(sandbox_x_domain)
+selinux_compute_relabel_context(sandbox_x_domain)
+selinux_compute_user_contexts(sandbox_x_domain)
+seutil_read_default_contexts(sandbox_x_domain)
+
+term_getattr_pty_fs(sandbox_x_domain)
+term_use_ptmx(sandbox_x_domain)
+term_search_ptys(sandbox_x_domain)
+
+application_dontaudit_signal(sandbox_x_domain)
+application_dontaudit_sigkill(sandbox_x_domain)
+
+logging_dontaudit_search_logs(sandbox_x_domain)
+
+miscfiles_read_fonts(sandbox_x_domain)
+
+storage_dontaudit_rw_fuse(sandbox_x_domain)
+
+optional_policy(`
+	bluetooth_dbus_chat(sandbox_x_domain)
+')
+
+optional_policy(`
+	colord_dbus_chat(sandbox_x_domain)
+')
+
+optional_policy(`
+	consolekit_dbus_chat(sandbox_x_domain)
+')
+
+optional_policy(`
+	cups_stream_connect(sandbox_x_domain)
+	cups_read_rw_config(sandbox_x_domain)
+')
+
+optional_policy(`
+	dbus_system_bus_client(sandbox_x_domain)
+')
+
+optional_policy(`
+	devicekit_dontaudit_dbus_chat_disk(sandbox_x_domain)
+')
+
+optional_policy(`
+	gnome_read_gconf_config(sandbox_x_domain)
+    gnome_dontaudit_read_config(sandbox_x_domain)
+	gnome_dontaudit_rw_inherited_config(sandbox_x_domain)
+	gnome_dontaudit_rw_inherited_config(sandbox_xserver_t)
+')
+
+optional_policy(`
+	nscd_dontaudit_search_pid(sandbox_x_domain)
+')
+
+optional_policy(`
+	sssd_dontaudit_search_lib(sandbox_x_domain)
+')
+
+optional_policy(`
+	udev_read_db(sandbox_x_domain)
+')
+
+userdom_use_inherited_user_terminals(sandbox_x_domain)
+userdom_read_user_home_content_symlinks(sandbox_x_domain)
+userdom_search_user_home_content(sandbox_x_domain)
+userdom_dontaudit_rw_user_tmp_pipes(sandbox_x_domain)
+
+fs_search_auto_mountpoints(sandbox_x_domain)
+fs_read_hugetlbfs_files(sandbox_x_domain)
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_search_auto_mountpoints(sandbox_x_domain)
+	fs_search_nfs(sandbox_xserver_t)
+	fs_read_nfs_files(sandbox_xserver_t)
+	fs_manage_nfs_dirs(sandbox_x_domain)
+	fs_manage_nfs_files(sandbox_x_domain)
+	fs_exec_nfs_files(sandbox_x_domain)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_search_cifs(sandbox_xserver_t)
+	fs_read_cifs_files(sandbox_xserver_t)
+	fs_manage_cifs_dirs(sandbox_x_domain)
+	fs_manage_cifs_files(sandbox_x_domain)
+	fs_exec_cifs_files(sandbox_x_domain)
+')
+
+tunable_policy(`use_fusefs_home_dirs',`
+	fs_search_fusefs(sandbox_xserver_t)
+	fs_read_fusefs_files(sandbox_xserver_t)
+	fs_manage_fusefs_dirs(sandbox_x_domain)
+	fs_manage_fusefs_files(sandbox_x_domain)
+	fs_exec_fusefs_files(sandbox_x_domain)
+')
+
+optional_policy(`
+	networkmanager_dontaudit_dbus_chat(sandbox_x_domain)
+')
+
+#1103622
+corenet_tcp_connect_xserver_port(sandbox_x_domain)
+xserver_stream_connect(sandbox_x_domain)
+userdom_connectto_stream(sandbox_x_domain)
+
+########################################
+#
+# sandbox_x_client_t local policy
+#
+allow sandbox_x_client_t self:tcp_socket create_stream_socket_perms;
+allow sandbox_x_client_t self:udp_socket create_socket_perms;
+allow sandbox_x_client_t self:dbus { acquire_svc send_msg };
+
+dev_read_rand(sandbox_x_client_t)
+
+corenet_tcp_connect_ipp_port(sandbox_x_client_t)
+corenet_dontaudit_tcp_connect_xserver_port(sandbox_x_client_t)
+
+auth_use_nsswitch(sandbox_x_client_t)
+
+logging_send_syslog_msg(sandbox_x_client_t)
+
+# This access is needed due to Wayland
+userdom_manage_user_tmp_dirs(sandbox_x_client_t)
+userdom_map_tmp_files(sandbox_x_client_t)
+userdom_manage_user_tmp_files(sandbox_x_client_t)
+
+optional_policy(`
+	accountsd_dbus_chat(sandbox_x_client_t)
+')
+
+optional_policy(`
+	avahi_dbus_chat(sandbox_x_client_t)
+')
+
+optional_policy(`
+	colord_dbus_chat(sandbox_x_client_t)
+')
+
+########################################
+#
+# sandbox_web_client_t local policy
+#
+typeattribute sandbox_web_client_t sandbox_web_type;
+
+allow sandbox_web_client_t self:user_namespace create;
+allow sandbox_web_client_t self:cap_userns sys_chroot;
+allow sandbox_web_t sandbox_web_client_t:process2 nnp_transition;
+
+selinux_get_fs_mount(sandbox_web_client_t)
+
+auth_use_nsswitch(sandbox_web_client_t)
+
+files_watch_etc_dirs(sandbox_web_client_t)
+files_watch_usr_dirs(sandbox_web_client_t)
+
+logging_send_syslog_msg(sandbox_web_client_t)
+
+miscfiles_map_generic_certs(sandbox_web_client_t)
+miscfiles_watch_fonts_dirs(sandbox_web_client_t)
+
+allow sandbox_web_type self:capability { setuid setgid };
+allow sandbox_web_type self:cap_userns { sys_admin sys_ptrace sys_chroot };
+allow sandbox_web_type self:netlink_audit_socket nlmsg_relay;
+dontaudit sandbox_web_type self:process setrlimit;
+
+allow sandbox_web_type self:tcp_socket create_stream_socket_perms;
+allow sandbox_web_type self:udp_socket create_socket_perms;
+allow sandbox_web_type self:dbus { acquire_svc send_msg };
+
+kernel_dontaudit_search_kernel_sysctl(sandbox_web_type)
+kernel_request_load_module(sandbox_web_type)
+
+dev_read_rand(sandbox_web_type)
+dev_write_sound(sandbox_web_type)
+dev_read_sound(sandbox_web_type)
+
+corenet_tcp_sendrecv_generic_if(sandbox_web_type)
+corenet_raw_sendrecv_generic_if(sandbox_web_type)
+corenet_tcp_sendrecv_generic_node(sandbox_web_type)
+corenet_raw_sendrecv_generic_node(sandbox_web_type)
+corenet_tcp_sendrecv_http_port(sandbox_web_type)
+corenet_tcp_sendrecv_http_cache_port(sandbox_web_type)
+corenet_tcp_sendrecv_squid_port(sandbox_web_type)
+corenet_tcp_sendrecv_ftp_port(sandbox_web_type)
+corenet_tcp_sendrecv_ipp_port(sandbox_web_type)
+corenet_tcp_connect_all_ephemeral_ports(sandbox_web_type)
+corenet_tcp_connect_aol_port(sandbox_web_type)
+corenet_tcp_connect_asterisk_port(sandbox_web_type)
+corenet_tcp_connect_commplex_link_port(sandbox_web_type)
+corenet_tcp_connect_couchdb_port(sandbox_web_type)
+corenet_tcp_connect_flash_port(sandbox_web_type)
+corenet_tcp_connect_ftp_port(sandbox_web_type)
+corenet_tcp_connect_gatekeeper_port(sandbox_web_type)
+corenet_tcp_connect_generic_port(sandbox_web_type)
+corenet_tcp_connect_http_cache_port(sandbox_web_type)
+corenet_tcp_connect_http_port(sandbox_web_type)
+corenet_tcp_connect_ipp_port(sandbox_web_type)
+corenet_tcp_connect_ipsecnat_port(sandbox_web_type)
+corenet_tcp_connect_ircd_port(sandbox_web_type)
+corenet_tcp_connect_jabber_client_port(sandbox_web_type)
+corenet_tcp_connect_jboss_management_port(sandbox_web_type)
+corenet_tcp_connect_mmcc_port(sandbox_web_type)
+corenet_tcp_connect_monopd_port(sandbox_web_type)
+corenet_tcp_connect_msnp_port(sandbox_web_type)
+corenet_tcp_connect_ms_streaming_port(sandbox_web_type)
+corenet_tcp_connect_pulseaudio_port(sandbox_web_type)
+corenet_tcp_connect_rtsp_port(sandbox_web_type)
+corenet_tcp_connect_soundd_port(sandbox_web_type)
+corenet_tcp_connect_speech_port(sandbox_web_type)
+corenet_tcp_connect_squid_port(sandbox_web_type)
+corenet_tcp_connect_tor_port(sandbox_web_type)
+corenet_tcp_connect_transproxy_port(sandbox_web_type)
+corenet_tcp_connect_vnc_port(sandbox_web_type)
+corenet_tcp_connect_whois_port(sandbox_web_type)
+corenet_sendrecv_http_client_packets(sandbox_web_type)
+corenet_sendrecv_http_cache_client_packets(sandbox_web_type)
+corenet_sendrecv_squid_client_packets(sandbox_web_type)
+corenet_sendrecv_ftp_client_packets(sandbox_web_type)
+corenet_sendrecv_ipp_client_packets(sandbox_web_type)
+corenet_sendrecv_generic_client_packets(sandbox_web_type)
+corenet_dontaudit_tcp_connect_xserver_port(sandbox_web_type)
+
+corenet_dontaudit_tcp_sendrecv_generic_port(sandbox_web_type)
+corenet_dontaudit_tcp_bind_generic_port(sandbox_web_type)
+
+files_dontaudit_getattr_all_dirs(sandbox_web_type)
+
+fs_dontaudit_getattr_all_fs(sandbox_web_type)
+
+libs_dontaudit_setattr_lib_dirs(sandbox_web_type)
+
+storage_dontaudit_getattr_fixed_disk_dev(sandbox_web_type)
+
+dbus_system_bus_client(sandbox_web_type)
+dbus_read_config(sandbox_web_type)
+selinux_validate_context(sandbox_web_type)
+selinux_compute_access_vector(sandbox_web_type)
+selinux_compute_create_context(sandbox_web_type)
+selinux_compute_relabel_context(sandbox_web_type)
+selinux_compute_user_contexts(sandbox_web_type)
+seutil_read_default_contexts(sandbox_web_type)
+
+userdom_rw_user_tmp_files(sandbox_web_type)
+userdom_delete_user_tmp_files(sandbox_web_type)
+userdom_dontaudit_manage_user_tmp_dirs(sandbox_web_type)
+
+optional_policy(`
+	alsa_read_rw_config(sandbox_web_type)
+')
+
+optional_policy(`
+	avahi_dbus_chat(sandbox_web_type)
+')
+
+optional_policy(`
+	bluetooth_dontaudit_dbus_chat(sandbox_web_type)
+')
+
+optional_policy(`
+	chrome_domtrans_sandbox(sandbox_web_type)
+')
+
+optional_policy(`
+	dbus_watch_config(sandbox_web_type)
+')
+
+optional_policy(`
+	mozilla_plugin_rw_sem(sandbox_web_type)
+')
+
+optional_policy(`
+	pulseaudio_stream_connect(sandbox_web_type)
+	allow sandbox_web_type self:netlink_kobject_uevent_socket create_socket_perms;
+')
+
+optional_policy(`
+	rtkit_daemon_dontaudit_dbus_chat(sandbox_web_type)
+')
+
+optional_policy(`
+    # needed by pulseaudio
+    systemd_read_logind_sessions_files(sandbox_web_type)
+    systemd_login_read_pid_files(sandbox_web_type)
+')
+
+optional_policy(`
+	udev_read_state(sandbox_web_type)
+')
+
+########################################
+#
+# sandbox_net_client_t local policy
+#
+typeattribute sandbox_net_client_t sandbox_web_type;
+
+corenet_tcp_sendrecv_generic_if(sandbox_net_client_t)
+corenet_udp_sendrecv_generic_if(sandbox_net_client_t)
+corenet_tcp_sendrecv_generic_node(sandbox_net_client_t)
+corenet_udp_sendrecv_generic_node(sandbox_net_client_t)
+corenet_tcp_sendrecv_all_ports(sandbox_net_client_t)
+corenet_udp_sendrecv_all_ports(sandbox_net_client_t)
+corenet_tcp_connect_all_ports(sandbox_net_client_t)
+corenet_sendrecv_all_client_packets(sandbox_net_client_t)
+
+selinux_get_fs_mount(sandbox_net_client_t)
+
+auth_use_nsswitch(sandbox_net_client_t)
+
+logging_send_syslog_msg(sandbox_net_client_t)
+
+optional_policy(`
+	mozilla_plugin_rw_tmpfs_files(sandbox_x_domain)
+	mozilla_dontaudit_rw_user_home_files(sandbox_x_t)
+	mozilla_dontaudit_rw_user_home_files(sandbox_xserver_t)
+	mozilla_dontaudit_rw_user_home_files(sandbox_x_domain)
+	mozilla_plugin_rw_sem(sandbox_x_domain)
+	mozilla_plugin_dontaudit_leaks(sandbox_x_domain)
+')
+userdom_dontaudit_open_user_ptys(sandbox_x_domain)
+

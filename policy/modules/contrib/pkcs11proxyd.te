@@ -1,0 +1,42 @@
+policy_module(pkcs11proxyd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type pkcs11proxyd_t;
+type pkcs11proxyd_exec_t;
+init_daemon_domain(pkcs11proxyd_t, pkcs11proxyd_exec_t)
+
+type pkcs11proxyd_unit_file_t;
+systemd_unit_file(pkcs11proxyd_unit_file_t)
+
+type pkcs11proxyd_var_lib_t;
+files_type(pkcs11proxyd_var_lib_t)
+
+type pkcs11proxyd_var_run_t;
+files_pid_file(pkcs11proxyd_var_run_t)
+
+########################################
+#
+# pkcs11proxyd local policy
+#
+
+allow pkcs11proxyd_t self:capability { kill setuid setgid };
+allow pkcs11proxyd_t self:process { getpgid setpgid  };
+
+manage_dirs_pattern(pkcs11proxyd_t, pkcs11proxyd_var_lib_t, pkcs11proxyd_var_lib_t)
+manage_files_pattern(pkcs11proxyd_t, pkcs11proxyd_var_lib_t, pkcs11proxyd_var_lib_t)
+manage_lnk_files_pattern(pkcs11proxyd_t, pkcs11proxyd_var_lib_t, pkcs11proxyd_var_lib_t)
+files_var_lib_filetrans(pkcs11proxyd_t, pkcs11proxyd_var_lib_t, { dir })
+
+manage_sock_files_pattern(pkcs11proxyd_t, pkcs11proxyd_var_run_t, pkcs11proxyd_var_run_t)
+files_pid_filetrans(pkcs11proxyd_t, pkcs11proxyd_var_run_t, { sock_file })
+
+dev_read_urand(pkcs11proxyd_t)
+
+auth_use_nsswitch(pkcs11proxyd_t)
+
+logging_send_syslog_msg(pkcs11proxyd_t)
+

@@ -1,0 +1,173 @@
+policy_module(realmd, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type realmd_t;
+type realmd_exec_t;
+init_daemon_domain(realmd_t, realmd_exec_t)
+application_domain(realmd_t, realmd_exec_t)
+role system_r types realmd_t;
+
+type realmd_tmp_t;
+files_tmp_file(realmd_tmp_t)
+
+type realmd_var_cache_t;
+files_type(realmd_var_cache_t)
+
+type realmd_var_lib_t;
+files_type(realmd_var_lib_t)
+
+########################################
+#
+# realmd local policy
+#
+
+allow realmd_t self:capability { sys_nice };
+allow realmd_t self:capability2 block_suspend;
+allow realmd_t self:process setsched;
+allow realmd_t self:key manage_key_perms;
+
+manage_dirs_pattern(realmd_t, realmd_tmp_t, realmd_tmp_t)
+manage_files_pattern(realmd_t, realmd_tmp_t, realmd_tmp_t)
+files_tmp_filetrans(realmd_t, realmd_tmp_t, { dir file })
+
+manage_files_pattern(realmd_t, realmd_var_cache_t, realmd_var_cache_t)
+manage_dirs_pattern(realmd_t, realmd_var_cache_t, realmd_var_cache_t)
+
+manage_dirs_pattern(realmd_t, realmd_var_lib_t, realmd_var_lib_t)
+manage_files_pattern(realmd_t, realmd_var_lib_t, realmd_var_lib_t)
+files_var_lib_filetrans(realmd_t, realmd_var_lib_t, dir)
+
+kernel_read_system_state(realmd_t)
+kernel_read_network_state(realmd_t)
+
+corecmd_exec_bin(realmd_t)
+corecmd_exec_shell(realmd_t)
+
+corenet_tcp_connect_http_port(realmd_t)
+corenet_tcp_connect_ldap_port(realmd_t)
+corenet_tcp_connect_smbd_port(realmd_t)
+
+domain_use_interactive_fds(realmd_t)
+
+dev_read_rand(realmd_t)
+dev_read_urand(realmd_t)
+
+files_manage_etc_files(realmd_t)
+
+fs_getattr_all_fs(realmd_t)
+
+auth_use_nsswitch(realmd_t)
+
+init_filetrans_named_content(realmd_t)
+
+logging_manage_generic_logs(realmd_t)
+logging_send_syslog_msg(realmd_t)
+
+miscfiles_manage_generic_cert_files(realmd_t)
+
+seutil_domtrans_setfiles(realmd_t)
+seutil_read_file_contexts(realmd_t)
+
+sysnet_dns_name_resolve(realmd_t)
+systemd_exec_systemctl(realmd_t)
+
+#userdom_admin_home_dir_filetrans(realmd_t, cache_home_t, dir, ".cache")
+#userdom_user_home_dir_filetrans(realmd_t, cache_home_t, dir, ".cache")
+
+optional_policy(`
+	authconfig_domtrans(realmd_t)
+')
+
+optional_policy(`
+	dbus_system_domain(realmd_t, realmd_exec_t)
+
+	optional_policy(`
+		certmonger_dbus_chat(realmd_t)
+	')
+
+	optional_policy(`
+		networkmanager_dbus_chat(realmd_t)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(realmd_t)
+	')
+')
+
+optional_policy(`
+	hostname_exec(realmd_t)
+')
+
+optional_policy(`
+	kerberos_use(realmd_t)
+	kerberos_rw_keytab(realmd_t)
+	kerberos_rw_config(realmd_t)
+	kerberos_filetrans_named_content(realmd_t)
+')
+
+optional_policy(`
+	ntp_domtrans_ntpdate(realmd_t)
+')
+
+optional_policy(`
+	ssh_domtrans(realmd_t)
+	ssh_systemctl(realmd_t)
+')
+
+optional_policy(`
+	nis_exec_ypbind(realmd_t)
+	nis_systemctl_ypbind(realmd_t)
+')
+
+optional_policy(`
+	gnome_read_config(realmd_t)
+	gnome_read_generic_cache_files(realmd_t)
+	gnome_write_generic_cache_files(realmd_t)
+	gnome_manage_cache_home_dir(realmd_t)
+
+')
+
+optional_policy(`
+	samba_domtrans_net(realmd_t)
+	samba_manage_config(realmd_t)
+	samba_getattr_winbind(realmd_t)
+')
+
+optional_policy(`
+	rpm_dbus_chat(realmd_t)
+')
+
+optional_policy(`
+	sssd_getattr_exec(realmd_t)
+	sssd_manage_config(realmd_t)
+	sssd_manage_lib_files(realmd_t)
+	sssd_manage_public_files(realmd_t)
+	sssd_read_pid_files(realmd_t)
+	sssd_systemctl(realmd_t)
+')
+
+optional_policy(`
+	xserver_read_state_xdm(realmd_t)
+')
+
+optional_policy(`
+	unconfined_domain(realmd_t)
+')
+
+#####################################
+#
+# realmd consolehelper local policy
+#
+
+optional_policy(`
+    userhelper_console_role_template(realmd, system_r, realmd_t)
+	authconfig_manage_lib_files(realmd_consolehelper_t)
+
+	oddjob_systemctl(realmd_consolehelper_t)	
+
+	unconfined_domain_noaudit(realmd_consolehelper_t)
+')

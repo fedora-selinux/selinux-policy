@@ -1,0 +1,100 @@
+## <summary>SELinux policy for systemd-homed components</summary>
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	systemd homed over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_homed_dbus_chat',`
+	gen_require(`
+		type systemd_homed_t;
+		class dbus send_msg;
+	')
+
+	allow $1 systemd_homed_t:dbus send_msg;
+	allow systemd_homed_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to connect to
+##	systemd homed with a unix socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_homed_stream_connect',`
+	gen_require(`
+		type systemd_homed_t;
+	')
+
+	allow $1 systemd_homed_t:unix_stream_socket connectto;
+')
+
+#######################################
+## <summary>
+##	Write to systemd_homed PID socket files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`systemd_homed_write_pid_sock_files',`
+    gen_require(`
+        type systemd_homed_runtime_dir_t;
+        type systemd_homed_runtime_socket_t;
+    ')
+
+	write_sock_files_pattern($1, systemd_homed_runtime_dir_t, systemd_homed_runtime_socket_t)
+')
+
+######################################
+## <summary>
+##	Write systemd homed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_homed_write_pipes',`
+	gen_require(`
+		type systemd_homed_runtime_dir_t;
+		type systemd_homed_runtime_pipe_t;
+	')
+
+	write_fifo_files_pattern($1, systemd_homed_runtime_dir_t, systemd_homed_runtime_pipe_t)
+')
+
+########################################
+## <summary>
+##	Create /var/cache/systemd/home
+##	with a private type using a type_transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_homed_cache_filetrans',`
+	gen_require(`
+		type systemd_homed_cache_t;
+	')
+
+	optional_policy(`
+		systemd_cache_filetrans($1, systemd_homed_cache_t, dir, "home")
+	')
+')

@@ -1,0 +1,56 @@
+policy_module(stalld, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type stalld_t;
+type stalld_exec_t;
+init_daemon_domain(stalld_t, stalld_exec_t)
+
+type stalld_unit_file_t;
+systemd_unit_file(stalld_unit_file_t)
+
+type stalld_var_run_t;
+files_pid_file(stalld_var_run_t)
+
+########################################
+#
+# stalld local policy
+#
+allow stalld_t self:bpf { map_create map_read map_write prog_load prog_run };
+allow stalld_t self:capability { sys_nice sys_resource };
+allow stalld_t self:capability2 { bpf perfmon };
+allow stalld_t self:process { fork setsched setrlimit };
+allow stalld_t self:fifo_file rw_fifo_file_perms;
+allow stalld_t self:process setrlimit;
+allow stalld_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(stalld_t, stalld_var_run_t, stalld_var_run_t)
+manage_files_pattern(stalld_t, stalld_var_run_t, stalld_var_run_t)
+manage_lnk_files_pattern(stalld_t, stalld_var_run_t, stalld_var_run_t)
+files_pid_filetrans(stalld_t, stalld_var_run_t, { dir file lnk_file })
+
+kernel_getsched(stalld_t)
+kernel_manage_debugfs(stalld_t)
+kernel_read_all_proc(stalld_t)
+kernel_setsched(stalld_t)
+
+dev_read_sysfs(stalld_t)
+dev_map_sysfs(stalld_t)
+
+domain_getsched_all_domains(stalld_t)
+domain_read_all_domains_state(stalld_t)
+domain_setpriority_all_domains(stalld_t)
+domain_use_interactive_fds(stalld_t)
+
+files_read_etc_files(stalld_t)
+
+fs_list_bpf_dirs(stalld_t)
+
+selinux_read_security_files(stalld_t)
+
+logging_send_syslog_msg(stalld_t)
+
+miscfiles_read_localization(stalld_t)

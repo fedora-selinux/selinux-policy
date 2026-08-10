@@ -1,0 +1,96 @@
+
+## <summary>policy for sandbox</summary>
+
+########################################
+## <summary>
+##	Execute sandbox in the sandbox domain, and
+##	allow the specified role the sandbox domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the sandbox domain.
+##	</summary>
+## </param>
+#
+interface(`sandbox_transition',`
+	gen_require(`
+		attribute sandbox_domain;
+	')
+
+    sandbox_dyntransition($1) #885288
+    allow $1 sandbox_domain:process transition;
+    dontaudit $1 sandbox_domain:process { noatsecure siginh rlimitinh };
+
+    role $2 types sandbox_domain;
+
+    allow sandbox_domain $1:process { sigchld signull };
+    allow sandbox_domain $1:fifo_file rw_inherited_fifo_file_perms;
+
+    dontaudit sandbox_domain $1:process signal;
+    dontaudit sandbox_domain $1:key { link read search view };
+    dontaudit sandbox_domain $1:unix_stream_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Execute sandbox in the sandbox domain, and
+##	allow the specified role the sandbox domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_dyntransition',`
+	gen_require(`
+		attribute sandbox_domain;
+	')
+
+	allow $1 sandbox_domain:process dyntransition;
+')
+
+########################################
+## <summary>
+##	Creates types and rules for a basic
+##	sandbox process domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`sandbox_domain_template',`
+
+	gen_require(`
+		attribute sandbox_domain;
+	')
+	type $1_t, sandbox_domain;
+
+	application_type($1_t)
+
+    # this is to satisfy the assertion:
+    dev_raw_memory_reader($1_t)
+    dev_raw_memory_writer($1_t)
+
+	mls_rangetrans_target($1_t)
+	mcs_constrained($1_t)
+
+    # this is to satisfy the assertion:
+    storage_rw_inherited_fixed_disk_dev($1_t)
+    storage_rw_inherited_scsi_generic($1_t)
+
+    # this is to satisfy the assertion:
+    auth_reader_shadow($1_t)
+    auth_writer_shadow($1_t)
+
+    #optional_policy(`
+	#    unconfined_typebounds($1_t)
+    #')
+')

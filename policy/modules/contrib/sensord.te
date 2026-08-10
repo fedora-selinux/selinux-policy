@@ -1,0 +1,52 @@
+policy_module(sensord, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type sensord_t;
+type sensord_exec_t;
+init_daemon_domain(sensord_t, sensord_exec_t)
+
+type sensord_unit_file_t;
+systemd_unit_file(sensord_unit_file_t)
+
+type sensord_initrc_exec_t;
+init_script_file(sensord_initrc_exec_t)
+
+type sensord_var_run_t;
+files_pid_file(sensord_var_run_t)
+
+type sensord_log_t;
+logging_log_file(sensord_log_t)
+
+########################################
+#
+# Local policy
+#
+
+allow sensord_t self:process { signal execmem };
+
+allow sensord_t self:fifo_file rw_fifo_file_perms;
+allow sensord_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_files_pattern(sensord_t, sensord_log_t, sensord_log_t)
+logging_log_filetrans(sensord_t, sensord_log_t, file)
+allow sensord_t sensord_log_t:file map;
+
+manage_files_pattern(sensord_t, sensord_var_run_t, sensord_var_run_t)
+files_pid_filetrans(sensord_t, sensord_var_run_t, file)
+
+auth_use_nsswitch(sensord_t)
+
+can_exec(sensord_t, sensord_exec_t)
+
+corecmd_exec_shell(sensord_t)
+
+kernel_read_system_state(sensord_t)
+
+dev_read_sysfs(sensord_t)
+
+logging_send_syslog_msg(sensord_t)
+

@@ -1,0 +1,82 @@
+policy_module(jetty, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type jetty_t;
+type jetty_exec_t;
+init_daemon_domain(jetty_t, jetty_exec_t)
+
+type jetty_cache_t;
+files_type(jetty_cache_t)
+
+type jetty_log_t;
+logging_log_file(jetty_log_t)
+
+type jetty_tmp_t;
+files_tmp_file(jetty_tmp_t)
+
+type jetty_var_lib_t;
+files_type(jetty_var_lib_t)
+
+type jetty_var_run_t;
+files_pid_file(jetty_var_run_t)
+
+type jetty_unit_file_t;
+systemd_unit_file(jetty_unit_file_t)
+
+########################################
+#
+# jetty local policy
+#
+
+allow jetty_t self:process execmem;
+allow jetty_t self:process { signal signull };
+
+allow jetty_t self:fifo_file rw_fifo_file_perms;
+allow jetty_t self:tcp_socket { accept listen };
+
+manage_dirs_pattern(jetty_t, jetty_cache_t, jetty_cache_t)
+manage_files_pattern(jetty_t, jetty_cache_t, jetty_cache_t)
+files_var_filetrans(jetty_t, jetty_cache_t, dir)
+
+manage_dirs_pattern(jetty_t, jetty_log_t, jetty_log_t)
+manage_files_pattern(jetty_t, jetty_log_t, jetty_log_t)
+logging_log_filetrans(jetty_t, jetty_log_t, dir)
+
+manage_dirs_pattern(jetty_t, jetty_tmp_t, jetty_tmp_t)
+manage_files_pattern(jetty_t, jetty_tmp_t, jetty_tmp_t)
+files_tmp_filetrans(jetty_t, jetty_tmp_t, { dir file })
+allow jetty_t jetty_tmp_t:file map;
+
+manage_dirs_pattern(jetty_t, jetty_var_lib_t, jetty_var_lib_t)
+manage_files_pattern(jetty_t, jetty_var_lib_t, jetty_var_lib_t)
+files_var_lib_filetrans(jetty_t, jetty_var_lib_t, dir)
+
+manage_dirs_pattern(jetty_t, jetty_var_run_t, jetty_var_run_t)
+manage_files_pattern(jetty_t, jetty_var_run_t, jetty_var_run_t)
+files_pid_filetrans(jetty_t, jetty_var_run_t, dir)
+
+fs_search_cgroup_dirs(jetty_t)
+fs_read_cgroup_files(jetty_t)
+
+kernel_read_system_state(jetty_t)
+kernel_read_network_state(jetty_t)
+
+corecmd_exec_bin(jetty_t)
+corecmd_exec_shell(jetty_t)
+
+corenet_tcp_bind_http_cache_port(jetty_t)
+
+dev_read_rand(jetty_t)
+dev_read_sysfs(jetty_t)
+dev_read_urand(jetty_t)
+
+auth_use_nsswitch(jetty_t)
+
+optional_policy(`
+    #allow access to /etc/abrt/plugins/java.conf
+    abrt_read_config(jetty_t)
+')

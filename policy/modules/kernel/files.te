@@ -1,0 +1,264 @@
+policy_module(files, 1.18.1)
+
+########################################
+#
+# Declarations
+#
+
+attribute base_file_type;
+attribute base_ro_file_type;
+attribute file_type;
+attribute files_unconfined_type;
+attribute lockfile;
+attribute mountpoint;
+attribute pidfile;
+attribute spoolfile;
+attribute configfile;
+attribute etcfile;
+
+# For labeling types that are to be polyinstantiated
+attribute polydir;
+
+# And for labeling the parent directories of those polyinstantiated directories
+# This is necessary for remounting the original in the parent to give
+# security aware apps access
+attribute polyparent;
+
+# And labeling for the member directories
+attribute polymember;
+
+# sensitive security files whose accesses should
+# not be dontaudited for uses
+attribute security_file_type;
+# and its opposite
+attribute non_security_file_type;
+
+# sensitive authentication files whose accesses should
+# not be dontaudited for uses
+attribute auth_file_type;
+# and its opposite
+attribute non_auth_file_type;
+
+attribute tmpfile;
+attribute tmpfsfile;
+
+# this attribute is not currently used and will be removed in the future.
+# unfortunately, this attribute can not be removed yet because it may cause
+# some policies to fail to link if it is still required.
+attribute usercanread;
+
+#
+# boot_t is the type for files in /boot
+#
+type boot_t;
+files_mountpoint(boot_t)
+files_ro_base_file(boot_t)
+
+# default_t is the default type for files that do not
+# match any specification in the file_contexts configuration
+# other than the generic /.* specification.
+type default_t;
+files_mountpoint(default_t)
+files_base_file(default_t)
+
+#
+# etc_t is the type of the system etc directories.
+#
+type etc_t, configfile;
+files_ro_base_file(etc_t)
+
+# compatibility aliases for removed types:
+typealias etc_t alias automount_etc_t;
+typealias etc_t alias snmpd_etc_t;
+
+# system_conf_t is a new type of various
+# files in /etc/ that can be managed and
+# created by several domains.
+# 
+type system_conf_t, configfile;
+files_ro_base_file(system_conf_t)
+# compatibility aliases for removed type:
+typealias system_conf_t alias iptables_conf_t;
+
+# mdevctl_conf_t is a type for files in /etc/mdevctl.d
+type mdevctl_conf_t, configfile;
+files_type(mdevctl_conf_t)
+
+# system_db_t is a new type of various
+# db files.
+type system_db_t;
+files_ro_base_file(system_db_t)
+
+#
+# etc_runtime_t is the type of various
+# files in /etc that are automatically
+# generated during initialization.
+#
+type etc_runtime_t, configfile;
+files_ro_base_file(etc_runtime_t)
+
+#
+# home_root_t is the type for the directory where user home directories
+# are created
+#
+type home_root_t;
+files_base_file(home_root_t)
+files_mountpoint(home_root_t)
+files_poly_parent(home_root_t)
+
+#
+# lost_found_t is the type for the lost+found directories.
+#
+type lost_found_t;
+files_base_file(lost_found_t)
+
+#
+# mnt_t is the type for mount points such as /mnt/cdrom
+#
+type mnt_t;
+files_base_file(mnt_t)
+files_mountpoint(mnt_t)
+
+#
+# modules_object_t is the type for kernel modules
+#
+type modules_object_t;
+files_type(modules_object_t)
+
+type no_access_t;
+files_type(no_access_t)
+
+type poly_t;
+files_type(poly_t)
+
+type readable_t;
+files_type(readable_t)
+
+#
+# root_t is the type for rootfs and the root directory.
+#
+type root_t;
+files_base_file(root_t)
+files_mountpoint(root_t)
+files_poly_parent(root_t)
+kernel_rootfs_mountpoint(root_t)
+genfscon rootfs / gen_context(system_u:object_r:root_t,s0)
+
+#
+# src_t is the type of files in the system src directories.
+#
+type src_t;
+files_mountpoint(src_t)
+files_ro_base_file(src_t)
+
+#
+# system_map_t is for the system.map files in /boot
+#
+type system_map_t;
+files_type(system_map_t)
+kernel_proc_type(system_map_t)
+genfscon proc /kallsyms gen_context(system_u:object_r:system_map_t,s0)
+
+#
+# tmp_t is the type of the temporary directories
+#
+type tmp_t;
+files_base_file(tmp_t)
+files_tmp_file(tmp_t)
+files_mountpoint(tmp_t)
+files_poly(tmp_t)
+files_poly_parent(tmp_t)
+typealias tmp_t alias firstboot_tmp_t;
+
+#
+# usr_t is the type for /usr.
+#
+type usr_t;
+files_ro_base_file(usr_t)
+files_mountpoint(usr_t)
+
+#
+# var_t is the type of /var
+#
+type var_t;
+files_base_file(var_t)
+files_mountpoint(var_t)
+
+#
+# var_lib_t is the type of /var/lib
+#
+type var_lib_t;
+files_base_file(var_lib_t)
+files_mountpoint(var_lib_t)
+files_poly(var_lib_t)
+
+#
+# var_lock_t is tye type of /var/lock
+#
+type var_lock_t;
+files_base_file(var_lock_t)
+files_lock_file(var_lock_t)
+files_mountpoint(var_lock_t)
+
+#
+# var_run_t is the type of /var/run, usually
+# used for pid and other runtime files.
+#
+type var_run_t;
+files_base_file(var_run_t)
+files_pid_file(var_run_t)
+files_mountpoint(var_run_t)
+
+#
+# var_spool_t is the type of /var/spool
+#
+type var_spool_t;
+files_base_file(var_spool_t)
+files_tmp_file(var_spool_t)
+files_spool_file(var_spool_t)
+
+########################################
+#
+# Rules for all file types
+#
+
+allow file_type self:filesystem associate;
+
+fs_associate(file_type)
+fs_associate_noxattr(file_type)
+fs_associate_tmpfs(file_type)
+fs_associate_hugetlbfs(file_type)
+
+########################################
+#
+# Rules for all tmp file types
+#
+
+allow file_type tmp_t:filesystem associate;
+
+fs_associate_tmpfs(tmpfile)
+
+########################################
+#
+# Rules for all tmpfs file types
+#
+
+fs_associate_tmpfs(tmpfsfile)
+
+########################################
+#
+# Unconfined access to this module
+#
+
+# Create/access any file in a labeled filesystem;
+allow files_unconfined_type file_type:{ file chr_file } ~{ execmod entrypoint };
+allow files_unconfined_type file_type:dir ~map;
+allow files_unconfined_type file_type:{ lnk_file sock_file fifo_file blk_file } *;
+allow files_unconfined_type file_type:service *;
+
+# Mount/unmount any filesystem with the context= option.
+allow files_unconfined_type file_type:filesystem all_filesystem_perms;
+
+tunable_policy(`selinuxuser_execmod',`
+	allow files_unconfined_type file_type:file execmod;
+')

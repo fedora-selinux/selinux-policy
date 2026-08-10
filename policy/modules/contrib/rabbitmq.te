@@ -1,0 +1,148 @@
+policy_module(rabbitmq, 1.0.2)
+
+########################################
+#
+# Declarations
+#
+
+type rabbitmq_t;
+type rabbitmq_exec_t;
+init_daemon_domain(rabbitmq_t, rabbitmq_exec_t)
+
+typealias rabbitmq_t alias {rabbitmq_beam_t rabbitmq_epmd_t};
+
+type rabbitmq_unit_file_t;
+systemd_unit_file(rabbitmq_unit_file_t)
+
+type rabbitmq_initrc_exec_t;
+init_script_file(rabbitmq_initrc_exec_t)
+
+type rabbitmq_var_lib_t;
+files_type(rabbitmq_var_lib_t)
+
+type rabbitmq_var_lock_t;
+files_lock_file(rabbitmq_var_lock_t)
+
+type rabbitmq_var_log_t;
+logging_log_file(rabbitmq_var_log_t)
+
+type rabbitmq_var_run_t;
+files_pid_file(rabbitmq_var_run_t)
+
+type rabbitmq_tmp_t;
+files_tmp_file(rabbitmq_tmp_t)
+
+type rabbitmq_conf_t;
+files_config_file(rabbitmq_conf_t)
+
+type rabbitmq_tmpfs_t;
+files_tmpfs_file(rabbitmq_tmpfs_t)
+
+######################################
+#
+# Rabbitmq local policy
+#
+
+allow rabbitmq_t self:capability setuid;
+
+allow rabbitmq_t self:process { setsched signal signull };
+allow rabbitmq_t self:fifo_file rw_fifo_file_perms;
+allow rabbitmq_t self:tcp_socket { accept listen };
+allow rabbitmq_t self:unix_dgram_socket { connect create getopt setopt write };
+
+manage_dirs_pattern(rabbitmq_t, rabbitmq_var_lib_t, rabbitmq_var_lib_t)
+manage_files_pattern(rabbitmq_t, rabbitmq_var_lib_t, rabbitmq_var_lib_t)
+manage_lnk_files_pattern(rabbitmq_t, rabbitmq_var_lib_t, rabbitmq_var_lib_t)
+files_var_lib_filetrans(rabbitmq_t, rabbitmq_var_lib_t, { dir file })
+
+manage_dirs_pattern(rabbitmq_t, rabbitmq_var_log_t, rabbitmq_var_log_t)
+manage_files_pattern(rabbitmq_t, rabbitmq_var_log_t, rabbitmq_var_log_t)
+manage_lnk_files_pattern(rabbitmq_t, rabbitmq_var_log_t, rabbitmq_var_log_t)
+logging_log_filetrans(rabbitmq_t, rabbitmq_var_log_t, { dir file })
+
+manage_dirs_pattern(rabbitmq_t, rabbitmq_var_lock_t, rabbitmq_var_lock_t)
+manage_files_pattern(rabbitmq_t, rabbitmq_var_lock_t, rabbitmq_var_lock_t)
+files_lock_filetrans(rabbitmq_t, rabbitmq_var_lock_t, file)
+
+manage_dirs_pattern(rabbitmq_t, rabbitmq_var_run_t, rabbitmq_var_run_t)
+manage_files_pattern(rabbitmq_t, rabbitmq_var_run_t, rabbitmq_var_run_t)
+manage_lnk_files_pattern(rabbitmq_t, rabbitmq_var_run_t, rabbitmq_var_run_t)
+files_pid_filetrans(rabbitmq_t, rabbitmq_var_run_t, { dir file })
+
+manage_dirs_pattern(rabbitmq_t, rabbitmq_tmp_t, rabbitmq_tmp_t)
+manage_files_pattern(rabbitmq_t, rabbitmq_tmp_t, rabbitmq_tmp_t)
+files_tmp_filetrans(rabbitmq_t, rabbitmq_tmp_t, { file dir })
+
+manage_dirs_pattern(rabbitmq_t, rabbitmq_conf_t, rabbitmq_conf_t)
+manage_files_pattern(rabbitmq_t, rabbitmq_conf_t, rabbitmq_conf_t)
+files_etc_filetrans(rabbitmq_t, rabbitmq_conf_t, dir)
+
+manage_files_pattern(rabbitmq_t, rabbitmq_tmpfs_t, rabbitmq_tmpfs_t)
+fs_tmpfs_filetrans(rabbitmq_t, rabbitmq_tmpfs_t, file)
+can_exec(rabbitmq_t, rabbitmq_tmpfs_t)
+
+kernel_dgram_send(rabbitmq_t)
+
+kernel_read_system_state(rabbitmq_t)
+kernel_read_fs_sysctls(rabbitmq_t)
+kernel_read_net_sysctls(rabbitmq_t)
+
+corecmd_exec_bin(rabbitmq_t)
+corecmd_exec_shell(rabbitmq_t)
+
+corenet_tcp_bind_generic_node(rabbitmq_t)
+corenet_udp_bind_generic_node(rabbitmq_t)
+corenet_all_recvfrom_unlabeled(rabbitmq_t)
+corenet_all_recvfrom_netlabel(rabbitmq_t)
+corenet_tcp_sendrecv_generic_if(rabbitmq_t)
+corenet_tcp_sendrecv_generic_node(rabbitmq_t)
+corenet_tcp_bind_generic_node(rabbitmq_t)
+corenet_tcp_connect_all_ephemeral_ports(rabbitmq_t)
+corenet_tcp_bind_all_ephemeral_ports(rabbitmq_t)
+corenet_sendrecv_amqp_server_packets(rabbitmq_t)
+corenet_sendrecv_epmd_client_packets(rabbitmq_t)
+corenet_tcp_sendrecv_amqp_port(rabbitmq_t)
+corenet_tcp_bind_amqp_port(rabbitmq_t)
+corenet_tcp_bind_epmd_port(rabbitmq_t)
+corenet_tcp_bind_jabber_client_port(rabbitmq_t)
+corenet_tcp_bind_jabber_interserver_port(rabbitmq_t)
+corenet_tcp_bind_rabbitmq_port(rabbitmq_t)
+corenet_tcp_connect_amqp_port(rabbitmq_t)
+corenet_tcp_connect_epmd_port(rabbitmq_t)
+corenet_tcp_connect_jabber_interserver_port(rabbitmq_t)
+corenet_tcp_sendrecv_epmd_port(rabbitmq_t)
+corenet_tcp_connect_http_port(rabbitmq_t)
+corenet_tcp_connect_rabbitmq_port(rabbitmq_t)
+
+domain_read_all_domains_state(rabbitmq_t)
+
+auth_read_passwd(rabbitmq_t)
+auth_use_pam(rabbitmq_t)
+files_getattr_all_mountpoints(rabbitmq_t)
+
+fs_getattr_all_fs(rabbitmq_t)
+fs_getattr_all_dirs(rabbitmq_t)
+fs_getattr_cgroup(rabbitmq_t)
+fs_search_cgroup_dirs(rabbitmq_t)
+
+dev_read_sysfs(rabbitmq_t)
+dev_read_urand(rabbitmq_t)
+
+storage_getattr_fixed_disk_dev(rabbitmq_t)
+
+sysnet_dns_name_resolve(rabbitmq_t)
+
+logging_send_syslog_msg(rabbitmq_t)
+
+optional_policy(`
+    dbus_system_bus_client(rabbitmq_t)
+')
+
+optional_policy(`
+	hostname_exec(rabbitmq_t)
+')
+
+optional_policy(`
+    rpc_read_nfs_state_data(rabbitmq_t)
+')
+

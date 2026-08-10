@@ -1,0 +1,73 @@
+policy_module(storage, 1.11.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute fixed_disk_raw_read;
+attribute fixed_disk_raw_write;
+attribute scsi_generic_read;
+attribute scsi_generic_write;
+attribute storage_unconfined_type;
+
+#
+# fixed_disk_device_t is the type of
+# /dev/hd* and /dev/sd*.
+#
+type fixed_disk_device_t;
+# Obsoleted in F34: nvme_device_t was merged into fixed_disk_device_t
+typealias fixed_disk_device_t alias nvme_device_t;
+dev_node(fixed_disk_device_t)
+
+neverallow ~{ fixed_disk_raw_read storage_unconfined_type } fixed_disk_device_t:{ chr_file blk_file } read;
+neverallow ~{ fixed_disk_raw_write storage_unconfined_type } fixed_disk_device_t:{ chr_file blk_file } { append write };
+
+#
+# fuse_device_t is the type of /dev/fuse
+#
+type fuse_device_t;
+dev_node(fuse_device_t)
+
+#
+# scsi_generic_device_t is the type of /dev/sg*
+# it gives access to ALL SCSI devices (both fixed and removable)
+#
+type scsi_generic_device_t;
+dev_node(scsi_generic_device_t)
+
+neverallow ~{ scsi_generic_read storage_unconfined_type } scsi_generic_device_t:{ chr_file blk_file } read;
+neverallow ~{ scsi_generic_write storage_unconfined_type } scsi_generic_device_t:{ chr_file blk_file } { append write };
+
+#
+# removable_device_t is the type of
+# /dev/scd* and /dev/fd*.
+#
+type removable_device_t;
+dev_node(removable_device_t)
+
+#
+# tape_device_t is the type of
+#
+type tape_device_t;
+dev_node(tape_device_t)
+
+#
+# Type for /dev/pktcdvd/control
+#
+type pktcdvd_control_device_t;
+dev_node(pktcdvd_control_device_t)
+
+########################################
+#
+# Unconfined access to this module
+#
+
+allow storage_unconfined_type { fixed_disk_device_t removable_device_t }:blk_file *;
+allow storage_unconfined_type { scsi_generic_device_t tape_device_t }:chr_file *;
+
+# Since block devices are some times used before being labeled correctly
+ifdef(`hide_broken_symptoms',`
+	dev_read_generic_blk_files(fixed_disk_raw_read)
+	dev_manage_generic_blk_files(fixed_disk_raw_write)
+')

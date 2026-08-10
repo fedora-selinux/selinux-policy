@@ -1,0 +1,43 @@
+policy_module(rrdcached, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type rrdcached_t;
+type rrdcached_exec_t;
+init_daemon_domain(rrdcached_t, rrdcached_exec_t)
+
+type rrdcached_tmp_t;
+files_tmp_file(rrdcached_tmp_t)
+
+type rrdcached_var_run_t;
+files_pid_file(rrdcached_var_run_t)
+
+########################################
+#
+# rrdcached local policy
+#
+allow rrdcached_t self:capability { chown setgid setuid };
+allow rrdcached_t self:process { fork signal_perms };
+allow rrdcached_t self:fifo_file rw_fifo_file_perms;
+allow rrdcached_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(rrdcached_t, rrdcached_var_run_t, rrdcached_var_run_t)
+manage_files_pattern(rrdcached_t, rrdcached_var_run_t, rrdcached_var_run_t)
+manage_lnk_files_pattern(rrdcached_t, rrdcached_var_run_t, rrdcached_var_run_t)
+files_pid_filetrans(rrdcached_t, rrdcached_var_run_t, { dir file lnk_file })
+
+manage_dirs_pattern(rrdcached_t, rrdcached_tmp_t, rrdcached_tmp_t)
+manage_files_pattern(rrdcached_t, rrdcached_tmp_t, rrdcached_tmp_t)
+manage_sock_files_pattern(rrdcached_t, rrdcached_tmp_t, rrdcached_tmp_t)
+files_tmp_filetrans(rrdcached_t, rrdcached_tmp_t, { dir file sock_file })
+
+auth_use_nsswitch(rrdcached_t)
+
+domain_use_interactive_fds(rrdcached_t)
+
+files_read_etc_files(rrdcached_t)
+
+logging_send_syslog_msg(rrdcached_t)

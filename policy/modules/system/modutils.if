@@ -1,0 +1,528 @@
+## <summary>Policy for kernel module utilities</summary>
+
+######################################
+## <summary>
+##	Getattr the dependencies of kernel modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_getattr_module_deps',`
+	gen_require(`
+		type modules_dep_t, modules_object_t;
+	')
+
+	getattr_files_pattern($1, modules_object_t, modules_dep_t)
+')
+########################################
+## <summary>
+##	Read the dependencies of kernel modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_read_module_deps_files',`
+	gen_require(`
+		type modules_dep_t;
+	')
+
+	allow $1 modules_dep_t:file { map read_file_perms };
+')
+
+########################################
+## <summary>
+##	Read the dependencies of kernel modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_read_module_deps',`
+	gen_require(`
+		type modules_dep_t;
+	')
+
+	files_list_kernel_modules($1)
+    files_read_kernel_modules($1)
+	allow $1 modules_dep_t:file { map read_file_perms };
+')
+
+########################################
+## <summary>
+##	Read the dependencies of kernel modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_delete_module_deps',`
+	gen_require(`
+		type modules_dep_t;
+	')
+
+	delete_files_pattern($1, modules_dep_t, modules_dep_t)
+')
+
+########################################
+## <summary>
+##	list the configuration options used when
+##	loading modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`modutils_list_module_config',`
+	gen_require(`
+		type modules_conf_t;
+	')
+
+	list_dirs_pattern($1, modules_conf_t, modules_conf_t)
+')
+
+########################################
+## <summary>
+##	Read the configuration options used when
+##	loading modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`modutils_read_module_config',`
+	gen_require(`
+		type modules_conf_t;
+	')
+
+	# This file type can be in /etc or
+	# /lib(64)?/modules
+	files_search_etc($1)
+	files_search_boot($1)
+
+	allow $1 modules_conf_t:dir list_dir_perms;
+	allow $1 modules_conf_t:file read_file_perms;
+	allow $1 modules_conf_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Rename a file with the configuration options used when
+##	loading modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_rename_module_config',`
+	gen_require(`
+		type modules_conf_t;
+	')
+
+	rename_files_pattern($1, modules_conf_t, modules_conf_t)
+')
+
+########################################
+## <summary>
+##	Unlink a file with the configuration options used when
+##	loading modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_delete_module_config',`
+	gen_require(`
+		type modules_conf_t;
+	')
+
+	delete_files_pattern($1, modules_conf_t, modules_conf_t)
+')
+
+########################################
+## <summary>
+##	Manage files with the configuration options used when
+##	loading modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_manage_module_config',`
+	gen_require(`
+		type modules_conf_t;
+	')
+
+	manage_files_pattern($1, modules_conf_t, modules_conf_t)
+')
+
+########################################
+## <summary>
+##	Execute insmod in the kmod domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`modutils_domtrans_kmod',`
+	gen_require(`
+		type kmod_t, kmod_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, kmod_exec_t, kmod_t)
+
+    allow $1 kmod_exec_t:file map;
+')
+
+########################################
+## <summary>
+##	Get attributes of the kmod executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`modutils_getattr_kmod_exec',`
+	gen_require(`
+		type kmod_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	allow $1 kmod_exec_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Unconditionally execute insmod in the insmod domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+# cjp: this is added for pppd, due to nested
+# conditionals not working.
+interface(`modutils_domtrans_insmod_uncond',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_domtrans_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Execute insmod in the insmod domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`modutils_domtrans_insmod',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_domtrans_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Execute depmod in the depmod domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`modutils_domtrans_depmod',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_domtrans_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Execute depmod in the depmod domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`modutils_domtrans_update_mods',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_domtrans_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Allow send signal to insmod.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`modutils_signal_kmod',`
+	gen_require(`
+		type kmod_t;
+	')
+
+    allow $1 kmod_t:process signal;
+')
+
+########################################
+## <summary>
+##	Allow send signal to insmod.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`modutils_signal_insmod',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_signal_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Execute insmod in the insmod domain, and
+##	allow the specified role the insmod domain,
+##	and use the caller's terminal.  Has a sigchld
+##	backchannel.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`modutils_run_kmod',`
+	gen_require(`
+		type kmod_t;
+	')
+
+	modutils_domtrans_kmod($1)
+	role $2 types kmod_t;
+')
+
+########################################
+## <summary>
+##	Execute insmod in the insmod domain, and
+##	allow the specified role the insmod domain,
+##	and use the caller's terminal.  Has a sigchld
+##	backchannel.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`modutils_run_insmod',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_run_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Execute depmod in the depmod domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`modutils_run_depmod',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_run_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Execute update_modules in the update_modules domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`modutils_run_update_mods',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_run_kmod() instead.')
+')
+
+#######################################
+## <summary>
+##	Execute insmod in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_exec_kmod',`
+	gen_require(`
+		type kmod_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, kmod_exec_t)
+')
+
+#######################################
+## <summary>
+##	Execute insmod in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_exec_insmod',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_exec_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Execute depmod in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_exec_depmod',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_exec_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Execute update_modules in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modutils_exec_update_mods',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_exec_kmod() instead.')
+')
+
+#######################################
+## <summary>
+## Don't audit execute insmod in the caller domain.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`modutils_dontaudit_exec_kmod',`
+    gen_require(`
+        type kmod_exec_t;
+    ')
+
+    dontaudit $1 kmod_exec_t:file exec_file_perms;
+')
+
+#######################################
+## <summary>
+## Don't audit execute insmod in the caller domain.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`modutils_dontaudit_exec_insmod',`
+	refpolicywarn(`$0($*) has been deprecated, use modutils_dontaudit_exec_kmod() instead.')
+')
+
+########################################
+## <summary>
+##	Transition to modutils named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`modules_filetrans_named_content',`
+	gen_require(`
+		type modules_dep_t;
+		type modules_conf_t;
+	')
+
+	files_etc_filetrans($1, modules_conf_t, file, "modprobe.conf")
+	files_etc_filetrans($1, modules_conf_t, file, "modules.conf")
+
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.alias")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.alias.bin")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.block")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.builtin")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.builtin.bin")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.dep")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.dep.bin")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.devname")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.drm")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.modesetting")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.networking")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.order")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.softdep")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.symbols")
+	#files_kernel_modules_filetrans($1, modules_dep_t, file, "modules.symbols.bin")
+')

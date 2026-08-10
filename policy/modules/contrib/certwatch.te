@@ -1,0 +1,72 @@
+policy_module(certwatch, 1.8.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role certwatch_roles;
+roleattribute system_r certwatch_roles;
+
+type certwatch_t;
+type certwatch_exec_t;
+application_domain(certwatch_t, certwatch_exec_t)
+role certwatch_roles types certwatch_t;
+
+########################################
+#
+# Local policy
+#
+
+allow certwatch_t self:capability { dac_read_search dac_override sys_nice };
+allow certwatch_t self:process { setsched getsched };
+allow certwatch_t self:tcp_socket create_stream_socket_perms;
+
+kernel_read_system_state(certwatch_t)
+
+corecmd_exec_bin(certwatch_t)
+
+dev_read_rand(certwatch_t)
+dev_read_urand(certwatch_t)
+
+files_read_usr_symlinks(certwatch_t)
+files_list_tmp(certwatch_t)
+files_dontaudit_write_all_mountpoints(certwatch_t)
+
+fs_getattr_xattr_fs(certwatch_t)
+
+auth_manage_cache(certwatch_t)
+auth_read_passwd(certwatch_t)
+auth_var_filetrans_cache(certwatch_t)
+
+logging_send_syslog_msg(certwatch_t)
+
+miscfiles_read_all_certs(certwatch_t)
+miscfiles_manage_generic_cert_dirs(certwatch_t)
+miscfiles_manage_generic_cert_files(certwatch_t)
+miscfiles_map_generic_certs(certwatch_t)
+
+sysnet_read_config(certwatch_t)
+
+userdom_use_inherited_user_terminals(certwatch_t)
+userdom_dontaudit_list_admin_dir(certwatch_t)
+
+optional_policy(`
+	apache_domtrans(certwatch_t)
+	apache_exec_modules(certwatch_t)
+	apache_read_config(certwatch_t)
+')
+
+optional_policy(`
+    mta_send_mail(certwatch_t)
+')
+
+optional_policy(`
+	cron_system_entry(certwatch_t, certwatch_exec_t)
+')
+
+optional_policy(`
+	pcscd_domtrans(certwatch_t)
+	pcscd_read_pid_files(certwatch_t)
+	pcscd_stream_connect(certwatch_t)
+')

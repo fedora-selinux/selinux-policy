@@ -1,0 +1,257 @@
+policy_module(chrome,1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type chrome_sandbox_t;
+type chrome_sandbox_exec_t;
+application_domain(chrome_sandbox_t, chrome_sandbox_exec_t)
+role system_r types chrome_sandbox_t;
+ubac_constrained(chrome_sandbox_t)
+
+type chrome_sandbox_tmp_t;
+files_tmp_file(chrome_sandbox_tmp_t)
+
+type chrome_sandbox_tmpfs_t;
+files_tmpfs_file(chrome_sandbox_tmpfs_t)
+ubac_constrained(chrome_sandbox_tmpfs_t)
+
+type chrome_sandbox_nacl_t;
+type chrome_sandbox_nacl_exec_t;
+application_domain(chrome_sandbox_nacl_t, chrome_sandbox_nacl_exec_t)
+role system_r types chrome_sandbox_nacl_t;
+ubac_constrained(chrome_sandbox_nacl_t)
+
+type chrome_sandbox_home_t;
+userdom_user_home_content(chrome_sandbox_home_t)
+
+########################################
+#
+# chrome_sandbox local policy
+#
+allow chrome_sandbox_t self:capability2 block_suspend;
+allow chrome_sandbox_t self:capability { chown dac_read_search  fsetid setgid setuid sys_admin sys_chroot sys_ptrace };
+dontaudit chrome_sandbox_t self:capability sys_nice;
+allow chrome_sandbox_t self:process { execmem execstack setcap setrlimit setsched signal_perms };
+allow chrome_sandbox_t self:fifo_file manage_fifo_file_perms;
+allow chrome_sandbox_t self:unix_stream_socket create_stream_socket_perms;
+allow chrome_sandbox_t self:unix_dgram_socket { create_socket_perms sendto };
+allow chrome_sandbox_t self:shm create_shm_perms;
+allow chrome_sandbox_t self:sem create_sem_perms;
+allow chrome_sandbox_t self:msgq create_msgq_perms;
+allow chrome_sandbox_t self:netlink_route_socket r_netlink_socket_perms;
+dontaudit chrome_sandbox_t self:memprotect mmap_zero;
+
+manage_dirs_pattern(chrome_sandbox_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+manage_files_pattern(chrome_sandbox_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+manage_lnk_files_pattern(chrome_sandbox_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+
+manage_dirs_pattern(chrome_sandbox_t, chrome_sandbox_tmp_t, chrome_sandbox_tmp_t)
+manage_files_pattern(chrome_sandbox_t, chrome_sandbox_tmp_t, chrome_sandbox_tmp_t)
+files_tmp_filetrans(chrome_sandbox_t, chrome_sandbox_tmp_t, { dir file })
+userdom_user_tmp_filetrans(chrome_sandbox_t, chrome_sandbox_tmp_t, { dir file })
+
+manage_files_pattern(chrome_sandbox_t, chrome_sandbox_tmpfs_t, chrome_sandbox_tmpfs_t)
+fs_tmpfs_filetrans(chrome_sandbox_t, chrome_sandbox_tmpfs_t, { file dir })
+
+kernel_read_system_state(chrome_sandbox_t)
+kernel_read_kernel_sysctls(chrome_sandbox_t)
+
+auth_dontaudit_read_passwd(chrome_sandbox_t)
+
+fs_manage_cgroup_dirs(chrome_sandbox_t)
+fs_manage_cgroup_files(chrome_sandbox_t)
+fs_read_dos_files(chrome_sandbox_t)
+fs_read_hugetlbfs_files(chrome_sandbox_t)
+
+corecmd_exec_bin(chrome_sandbox_t)
+
+corenet_all_recvfrom_netlabel(chrome_sandbox_t)
+corenet_tcp_connect_all_ephemeral_ports(chrome_sandbox_t)
+corenet_tcp_connect_aol_port(chrome_sandbox_t)
+corenet_tcp_connect_asterisk_port(chrome_sandbox_t)
+corenet_tcp_connect_commplex_link_port(chrome_sandbox_t)
+corenet_tcp_connect_couchdb_port(chrome_sandbox_t)
+corenet_tcp_connect_flash_port(chrome_sandbox_t)
+corenet_tcp_connect_ftp_port(chrome_sandbox_t)
+corenet_tcp_connect_gatekeeper_port(chrome_sandbox_t)
+corenet_tcp_connect_generic_port(chrome_sandbox_t)
+corenet_tcp_connect_http_cache_port(chrome_sandbox_t)
+corenet_tcp_connect_http_port(chrome_sandbox_t)
+corenet_tcp_connect_ipp_port(chrome_sandbox_t)
+corenet_tcp_connect_ipsecnat_port(chrome_sandbox_t)
+corenet_tcp_connect_jabber_client_port(chrome_sandbox_t)
+corenet_tcp_connect_jboss_management_port(chrome_sandbox_t)
+corenet_tcp_connect_mmcc_port(chrome_sandbox_t)
+corenet_tcp_connect_monopd_port(chrome_sandbox_t)
+corenet_tcp_connect_msnp_port(chrome_sandbox_t)
+corenet_tcp_connect_ms_streaming_port(chrome_sandbox_t)
+corenet_tcp_connect_pulseaudio_port(chrome_sandbox_t)
+corenet_tcp_connect_rtsp_port(chrome_sandbox_t)
+corenet_tcp_connect_soundd_port(chrome_sandbox_t)
+corenet_tcp_connect_speech_port(chrome_sandbox_t)
+corenet_tcp_connect_squid_port(chrome_sandbox_t)
+corenet_tcp_connect_tor_port(chrome_sandbox_t)
+corenet_tcp_connect_transproxy_port(chrome_sandbox_t)
+corenet_tcp_connect_vnc_port(chrome_sandbox_t)
+corenet_tcp_connect_whois_port(chrome_sandbox_t)
+corenet_tcp_sendrecv_generic_if(chrome_sandbox_t)
+corenet_tcp_sendrecv_generic_node(chrome_sandbox_t)
+
+domain_dontaudit_read_all_domains_state(chrome_sandbox_t)
+
+dev_read_urand(chrome_sandbox_t)
+dev_read_sysfs(chrome_sandbox_t)
+dev_rwx_zero(chrome_sandbox_t)
+dev_dontaudit_getattr_all_chr_files(chrome_sandbox_t)
+
+fs_dontaudit_getattr_all_fs(chrome_sandbox_t)
+
+libs_legacy_use_shared_libs(chrome_sandbox_t)
+
+term_dontaudit_use_console(chrome_sandbox_t)
+
+miscfiles_read_fonts(chrome_sandbox_t)
+
+sysnet_dns_name_resolve(chrome_sandbox_t)
+
+userdom_rw_inherited_user_tmp_files(chrome_sandbox_t)
+userdom_execute_user_tmp_files(chrome_sandbox_t)
+userdom_map_tmp_files(chrome_sandbox_t)
+
+userdom_use_user_ptys(chrome_sandbox_t)
+userdom_write_inherited_user_tmp_files(chrome_sandbox_t)
+userdom_read_inherited_user_home_content_files(chrome_sandbox_t)
+userdom_dontaudit_use_user_terminals(chrome_sandbox_t)
+userdom_search_user_home_content(chrome_sandbox_t)
+# This one we should figure a way to make it more secure
+userdom_manage_home_certs(chrome_sandbox_t)
+
+optional_policy(`
+	gnome_exec_config_home_files(chrome_sandbox_t)
+	gnome_read_generic_cache_files(chrome_sandbox_t)
+	gnome_rw_inherited_config(chrome_sandbox_t)
+	gnome_read_home_config(chrome_sandbox_t)
+	gnome_cache_filetrans(chrome_sandbox_t, chrome_sandbox_home_t, dir, "chromium")
+	gnome_cache_filetrans(chrome_sandbox_t, chrome_sandbox_home_t, dir, "chrome")
+	gnome_cache_filetrans(chrome_sandbox_t, chrome_sandbox_home_t, dir, "google-chrome")
+	gnome_cache_filetrans(chrome_sandbox_t, chrome_sandbox_home_t, dir, "google-chrome-unstable")
+	gnome_config_filetrans(chrome_sandbox_t, chrome_sandbox_home_t, dir, "chromium")
+')
+
+optional_policy(`
+	mozilla_write_user_home_files(chrome_sandbox_t)
+')
+
+optional_policy(`
+	xserver_use_user_fonts(chrome_sandbox_t)
+	xserver_user_x_domain_template(chrome_sandbox, chrome_sandbox_t, chrome_sandbox_tmpfs_t)
+')
+
+tunable_policy(`use_nfs_home_dirs',`
+	fs_search_nfs(chrome_sandbox_t)
+	fs_exec_nfs_files(chrome_sandbox_t)
+	fs_read_nfs_files(chrome_sandbox_t)
+	fs_rw_inherited_nfs_files(chrome_sandbox_t)
+	fs_read_nfs_symlinks(chrome_sandbox_t)
+	fs_dontaudit_append_nfs_files(chrome_sandbox_t)
+')
+
+tunable_policy(`use_samba_home_dirs',`
+	fs_search_cifs(chrome_sandbox_t)
+	fs_exec_cifs_files(chrome_sandbox_t)
+	fs_rw_inherited_cifs_files(chrome_sandbox_t)
+	fs_read_cifs_files(chrome_sandbox_t)
+	fs_read_cifs_symlinks(chrome_sandbox_t)
+	fs_dontaudit_append_cifs_files(chrome_sandbox_t)
+')
+
+tunable_policy(`use_fusefs_home_dirs',`
+    fs_search_fusefs(chrome_sandbox_t)
+    fs_read_fusefs_files(chrome_sandbox_t)
+    fs_exec_fusefs_files(chrome_sandbox_t)
+	fs_read_fusefs_symlinks(chrome_sandbox_t)
+')
+
+tunable_policy(`use_ecryptfs_home_dirs',`
+        fs_read_ecryptfs_files(chrome_sandbox_t)
+		fs_dontaudit_append_ecryptfs_files(chrome_sandbox_t)
+		fs_read_ecryptfs_symlinks(chrome_sandbox_t)
+')
+
+optional_policy(`
+	bumblebee_stream_connect(chrome_sandbox_t)
+')
+
+optional_policy(`
+	cups_stream_connect(chrome_sandbox_t)
+')
+
+optional_policy(`
+	sandbox_use_ptys(chrome_sandbox_t)
+')
+
+optional_policy(`
+    unconfined_dontaudit_write_state(chrome_sandbox_t)
+')
+
+########################################
+#
+# chrome_sandbox_nacl local policy
+#
+
+allow chrome_sandbox_nacl_t self:process { execmem setsched sigkill sigstop signull signal };
+
+allow chrome_sandbox_nacl_t self:fifo_file manage_fifo_file_perms;
+allow chrome_sandbox_nacl_t self:unix_stream_socket create_stream_socket_perms;
+allow chrome_sandbox_nacl_t self:shm create_shm_perms;
+allow chrome_sandbox_nacl_t self:unix_dgram_socket { create_socket_perms sendto };
+allow chrome_sandbox_nacl_t chrome_sandbox_t:unix_stream_socket { getattr write read };
+allow chrome_sandbox_t chrome_sandbox_nacl_t:unix_stream_socket { getattr write read };
+allow chrome_sandbox_nacl_t chrome_sandbox_t:unix_dgram_socket { read write };
+
+allow chrome_sandbox_nacl_t chrome_sandbox_t:shm rw_shm_perms;
+allow chrome_sandbox_nacl_t chrome_sandbox_tmpfs_t:file rw_inherited_file_perms;
+allow chrome_sandbox_t chrome_sandbox_nacl_t:process { sigkill sigstop signull signal sigchld share };
+
+manage_files_pattern(chrome_sandbox_nacl_t, chrome_sandbox_tmpfs_t, chrome_sandbox_tmpfs_t)
+fs_tmpfs_filetrans(chrome_sandbox_nacl_t, chrome_sandbox_tmpfs_t, file)
+
+domain_use_interactive_fds(chrome_sandbox_nacl_t)
+
+dontaudit chrome_sandbox_nacl_t self:memprotect mmap_zero;
+
+domtrans_pattern(chrome_sandbox_t, chrome_sandbox_nacl_exec_t, chrome_sandbox_nacl_t)
+ps_process_pattern(chrome_sandbox_t, chrome_sandbox_nacl_t)
+ps_process_pattern(chrome_sandbox_nacl_t, chrome_sandbox_t)
+
+manage_dirs_pattern(chrome_sandbox_nacl_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+manage_files_pattern(chrome_sandbox_nacl_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+manage_lnk_files_pattern(chrome_sandbox_nacl_t, chrome_sandbox_home_t, chrome_sandbox_home_t)
+
+kernel_read_state(chrome_sandbox_nacl_t)
+kernel_read_system_state(chrome_sandbox_nacl_t)
+
+corecmd_bin_entry_type(chrome_sandbox_nacl_t)
+
+dev_read_urand(chrome_sandbox_nacl_t)
+dev_read_sysfs(chrome_sandbox_nacl_t)
+dev_rwx_zero(chrome_sandbox_nacl_t)
+
+init_read_state(chrome_sandbox_nacl_t)
+
+libs_legacy_use_shared_libs(chrome_sandbox_nacl_t)
+
+userdom_use_inherited_user_ptys(chrome_sandbox_nacl_t)
+userdom_rw_inherited_user_tmp_files(chrome_sandbox_nacl_t)
+userdom_execute_user_tmp_files(chrome_sandbox_nacl_t)
+userdom_rw_inherited_user_tmp_files(chrome_sandbox_nacl_t)
+userdom_dontaudit_read_user_home_content_files(chrome_sandbox_nacl_t)
+userdom_dontaudit_use_user_terminals(chrome_sandbox_nacl_t)
+
+optional_policy(`
+	gnome_dontaudit_append_config_files(chrome_sandbox_nacl_t)
+	gnome_dontaudit_write_config_files(chrome_sandbox_nacl_t)
+')

@@ -1,0 +1,137 @@
+policy_module(consolekit, 1.9.0)
+
+########################################
+#
+# Declarations
+#
+
+type consolekit_t;
+type consolekit_exec_t;
+init_daemon_domain(consolekit_t, consolekit_exec_t)
+
+type consolekit_log_t;
+logging_log_file(consolekit_log_t)
+
+type consolekit_tmpfs_t;
+files_tmpfs_file(consolekit_tmpfs_t)
+
+type consolekit_var_run_t;
+files_pid_file(consolekit_var_run_t)
+init_daemon_run_dir(consolekit_var_run_t, "ConsoleKit")
+
+type consolekit_unit_file_t;
+systemd_unit_file(consolekit_unit_file_t)
+
+########################################
+#
+# Local policy
+#
+
+allow consolekit_t self:capability { chown setuid setgid sys_tty_config dac_read_search  sys_nice sys_ptrace };
+
+allow consolekit_t self:process { getsched signal };
+allow consolekit_t self:fifo_file rw_fifo_file_perms;
+allow consolekit_t self:unix_stream_socket { accept listen };
+
+manage_dirs_pattern(consolekit_t, consolekit_log_t, consolekit_log_t)
+manage_files_pattern(consolekit_t, consolekit_log_t, consolekit_log_t)
+logging_log_filetrans(consolekit_t, consolekit_log_t, { dir file })
+
+manage_dirs_pattern(consolekit_t, consolekit_var_run_t, consolekit_var_run_t)
+manage_files_pattern(consolekit_t, consolekit_var_run_t, consolekit_var_run_t)
+files_pid_filetrans(consolekit_t, consolekit_var_run_t, { dir file })
+
+kernel_read_system_state(consolekit_t)
+
+corenet_all_recvfrom_unlabeled(consolekit_t)
+corenet_all_recvfrom_netlabel(consolekit_t)
+corenet_tcp_sendrecv_generic_if(consolekit_t)
+corenet_tcp_sendrecv_generic_node(consolekit_t)
+
+corecmd_exec_bin(consolekit_t)
+corecmd_exec_shell(consolekit_t)
+
+dev_read_urand(consolekit_t)
+dev_read_sysfs(consolekit_t)
+
+domain_read_all_domains_state(consolekit_t)
+domain_use_interactive_fds(consolekit_t)
+
+# needs to read /var/lib/dbus/machine-id
+files_read_var_lib_files(consolekit_t)
+files_search_all_mountpoints(consolekit_t)
+
+term_use_all_terms(consolekit_t)
+
+auth_use_nsswitch(consolekit_t)
+auth_manage_pam_console_data(consolekit_t)
+auth_write_login_records(consolekit_t)
+auth_create_pam_console_data_dirs(consolekit_t)
+
+init_read_utmp(consolekit_t)
+
+logging_send_syslog_msg(consolekit_t)
+logging_send_audit_msgs(consolekit_t)
+
+systemd_exec_systemctl(consolekit_t)
+systemd_start_power_services(consolekit_t)
+
+userdom_read_all_users_state(consolekit_t)
+userdom_dontaudit_read_user_home_content_files(consolekit_t)
+userdom_dontaudit_getattr_admin_home_files(consolekit_t)
+userdom_read_user_tmp_files(consolekit_t)
+
+userdom_home_reader(consolekit_t)
+
+optional_policy(`
+	cron_read_system_job_lib_files(consolekit_t)
+')
+
+optional_policy(`
+	dbus_read_lib_files(consolekit_t)
+	dbus_system_domain(consolekit_t, consolekit_exec_t)
+
+	optional_policy(`
+		policykit_dbus_chat(consolekit_t)
+	')
+
+	optional_policy(`
+		rpm_dbus_chat(consolekit_t)
+	')
+
+	optional_policy(`
+		unconfined_dbus_chat(consolekit_t)
+	')
+')
+
+
+optional_policy(`
+	policykit_domtrans_auth(consolekit_t)
+	policykit_read_lib(consolekit_t)
+	policykit_read_reload(consolekit_t)
+')
+
+optional_policy(`
+	shutdown_domtrans(consolekit_t)
+')
+
+optional_policy(`
+	corenet_sendrecv_xserver_client_packets(consolekit_t)
+	corenet_tcp_connect_xserver_port(consolekit_t)
+	corenet_tcp_sendrecv_xserver_port(consolekit_t)
+	xserver_non_drawing_client(consolekit_t)
+	xserver_read_xdm_pid(consolekit_t)
+	xserver_read_user_xauth(consolekit_t)
+	xserver_stream_connect(consolekit_t)
+	xserver_user_x_domain_template(consolekit, consolekit_t, consolekit_tmpfs_t)
+')
+
+optional_policy(`
+	udev_domtrans(consolekit_t)
+	udev_read_db(consolekit_t)
+	udev_signal(consolekit_t)
+')
+
+optional_policy(`
+	unconfined_stream_connect(consolekit_t)
+')

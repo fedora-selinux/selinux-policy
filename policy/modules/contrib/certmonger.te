@@ -1,0 +1,225 @@
+policy_module(certmonger, 1.2.0)
+
+########################################
+#
+# Declarations
+#
+
+type certmonger_t;
+type certmonger_exec_t;
+init_daemon_domain(certmonger_t, certmonger_exec_t)
+
+type certmonger_initrc_exec_t;
+init_script_file(certmonger_initrc_exec_t)
+
+type certmonger_var_lib_t;
+files_type(certmonger_var_lib_t)
+
+type certmonger_var_run_t;
+files_pid_file(certmonger_var_run_t)
+
+type certmonger_unconfined_exec_t;
+application_executable_file(certmonger_unconfined_exec_t)
+
+type certmonger_unit_file_t;
+systemd_unit_file(certmonger_unit_file_t)
+
+type certmonger_tmp_t;
+files_tmp_file(certmonger_tmp_t)
+
+########################################
+#
+# Local policy
+#
+
+# certmonger requires DAC override to access /etc/pki/pki-tomcat/alias
+allow certmonger_t self:capability { chown dac_read_search dac_override fowner fsetid setgid setuid kill sys_nice };
+dontaudit certmonger_t self:capability sys_tty_config;
+allow certmonger_t self:capability2 block_suspend;
+
+allow certmonger_t self:process { getsched setsched sigkill signal };
+allow certmonger_t self:fifo_file rw_file_perms;
+allow certmonger_t self:unix_stream_socket create_stream_socket_perms;
+allow certmonger_t self:tcp_socket create_stream_socket_perms;
+allow certmonger_t self:netlink_route_socket r_netlink_socket_perms;
+
+manage_dirs_pattern(certmonger_t, certmonger_var_lib_t, certmonger_var_lib_t)
+manage_files_pattern(certmonger_t, certmonger_var_lib_t, certmonger_var_lib_t)
+files_var_lib_filetrans(certmonger_t, certmonger_var_lib_t, dir)
+
+manage_dirs_pattern(certmonger_t, certmonger_var_run_t, certmonger_var_run_t)
+manage_files_pattern(certmonger_t, certmonger_var_run_t, certmonger_var_run_t)
+files_pid_filetrans(certmonger_t, certmonger_var_run_t, { dir file })
+allow certmonger_t certmonger_var_run_t:file map;
+
+manage_dirs_pattern(certmonger_t, certmonger_tmp_t, certmonger_tmp_t)
+manage_files_pattern(certmonger_t, certmonger_tmp_t, certmonger_tmp_t)
+files_tmp_filetrans(certmonger_t, certmonger_tmp_t, { file dir })
+allow certmonger_t certmonger_tmp_t:file map;
+
+kernel_read_kernel_sysctls(certmonger_t)
+kernel_read_net_sysctls(certmonger_t)
+kernel_read_system_state(certmonger_t)
+kernel_read_network_state(certmonger_t)
+
+corenet_all_recvfrom_unlabeled(certmonger_t)
+corenet_all_recvfrom_netlabel(certmonger_t)
+corenet_tcp_sendrecv_generic_if(certmonger_t)
+corenet_tcp_sendrecv_generic_node(certmonger_t)
+
+corenet_sendrecv_certmaster_client_packets(certmonger_t)
+corenet_tcp_connect_certmaster_port(certmonger_t)
+
+corenet_tcp_connect_http_port(certmonger_t)
+corenet_tcp_connect_http_cache_port(certmonger_t)
+
+corenet_tcp_connect_ldap_port(certmonger_t)
+
+corenet_tcp_connect_pki_ca_port(certmonger_t)
+corenet_tcp_sendrecv_certmaster_port(certmonger_t)
+
+corecmd_exec_bin(certmonger_t)
+corecmd_exec_shell(certmonger_t)
+
+dev_read_rand(certmonger_t)
+dev_read_urand(certmonger_t)
+dev_read_sysfs(certmonger_t)
+dev_rw_tpm(certmonger_t)
+
+domain_use_interactive_fds(certmonger_t)
+
+files_list_tmp(certmonger_t)
+files_list_home(certmonger_t)
+files_dontaudit_write_etc_runtime_files(certmonger_t)
+
+fs_getattr_tmpfs(certmonger_t)
+fs_getattr_xattr_fs(certmonger_t)
+fs_search_cgroup_dirs(certmonger_t)
+
+auth_use_nsswitch(certmonger_t)
+auth_rw_cache(certmonger_t)
+
+init_getattr_all_script_files(certmonger_t)
+
+libs_exec_ldconfig(certmonger_t)
+
+logging_send_syslog_msg(certmonger_t)
+
+miscfiles_manage_all_certs(certmonger_t)
+
+systemd_exec_systemctl(certmonger_t)
+systemd_manage_all_unit_files(certmonger_t)
+systemd_start_systemd_services(certmonger_t)
+systemd_status_all_unit_files(certmonger_t)
+
+userdom_search_user_home_content(certmonger_t)
+userdom_write_user_tmp_dirs(certmonger_t)
+
+optional_policy(`
+	apache_read_config(certmonger_t)
+	apache_signal(certmonger_t)
+	apache_signull(certmonger_t)
+	apache_systemctl(certmonger_t)
+')
+
+optional_policy(`
+	bind_manage_cache(certmonger_t)
+')
+
+optional_policy(`
+    cockpit_manage_pid_dirs(certmonger_t)
+    cockpit_manage_pid_files(certmonger_t)
+')
+
+optional_policy(`
+	cron_dbus_chat_system_job(certmonger_t)
+')
+
+optional_policy(`
+	dbus_connect_system_bus(certmonger_t)
+	dbus_system_bus_client(certmonger_t)
+')
+
+optional_policy(`
+	dirsrv_manage_config(certmonger_t)
+	dirsrv_signal(certmonger_t)
+	dirsrv_signull(certmonger_t)
+    dirsrv_stream_connect(certmonger_t)
+	dirsrv_systemctl(certmonger_t)
+')
+
+optional_policy(`
+    ipa_manage_lib(certmonger_t)
+    ipa_manage_log(certmonger_t)
+    ipa_manage_pid_files(certmonger_t)
+    ipa_filetrans_pid(certmonger_t,"renewal.lock")
+	ipa_named_filetrans_log_dir(certmonger_t)
+')
+
+optional_policy(`
+	kerberos_use(certmonger_t)
+	kerberos_read_keytab(certmonger_t)
+	kerberos_manage_kdc_config(certmonger_t)
+    kerberos_filetrans_named_content(certmonger_t)
+')
+
+optional_policy(`
+    mta_send_mail(certmonger_t)
+')
+
+optional_policy(`
+	pcscd_read_pid_files(certmonger_t)
+	pcscd_stream_connect(certmonger_t)
+')
+
+optional_policy(`
+	pki_rw_tomcat_cert(certmonger_t)
+	pki_read_tomcat_lib_files(certmonger_t)
+    pki_tomcat_systemctl(certmonger_t)
+')
+
+optional_policy(`
+	pkcs_tmpfs_named_filetrans(certmonger_t)
+	pkcs_use_opencryptoki(certmonger_t)
+')
+
+optional_policy(`
+	rhcs_manage_cluster_lib_files(certmonger_t)
+    rhcs_start_haproxy_services(certmonger_t)
+')
+
+optional_policy(`
+	sssd_delete_public_files(certmonger_t)
+')
+
+optional_policy(`
+    allow certmonger_t certmonger_unit_file_t:service manage_service_perms;
+    allow certmonger_t certmonger_unit_file_t:file manage_file_perms;
+    allow certmonger_t certmonger_unit_file_t:dir manage_dir_perms;
+    systemd_unit_file_filetrans(certmonger_t, certmonger_unit_file_t, dir)
+')
+
+########################################
+#
+# certmonger_unconfined_script_t local policy
+#
+
+optional_policy(`
+	type certmonger_unconfined_t;
+	domain_type(certmonger_unconfined_t)
+
+	domain_entry_file(certmonger_unconfined_t, certmonger_unconfined_exec_t)
+	role system_r types certmonger_unconfined_t;
+
+	domtrans_pattern(certmonger_t, certmonger_unconfined_exec_t, certmonger_unconfined_t)
+
+	allow certmonger_t certmonger_unconfined_exec_t:dir search_dir_perms;
+	allow certmonger_t certmonger_unconfined_exec_t:dir read_file_perms;
+	allow certmonger_t certmonger_unconfined_exec_t:file ioctl;
+
+	init_domtrans_script(certmonger_unconfined_t)
+
+	optional_policy(`
+		unconfined_domain(certmonger_unconfined_t)
+	')
+')

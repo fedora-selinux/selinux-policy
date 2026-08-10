@@ -1,0 +1,81 @@
+
+## <summary>Sensor information logging daemon</summary>
+
+########################################
+## <summary>
+##	Execute sensord in the sensord domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`sensord_domtrans',`
+	gen_require(`
+		type sensord_t, sensord_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, sensord_exec_t, sensord_t)
+')
+########################################
+## <summary>
+##	Execute sensord server in the sensord domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`sensord_systemctl',`
+	gen_require(`
+		type sensord_t;
+		type sensord_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	allow $1 sensord_unit_file_t:file read_file_perms;
+	allow $1 sensord_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, sensord_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an sensord environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sensord_admin',`
+	gen_require(`
+		type sensord_t;
+		type sensord_unit_file_t;
+		type sensord_log_t;
+		type sensord_var_run_t;
+	')
+
+	allow $1 sensord_t:process { ptrace signal_perms };
+	ps_process_pattern($1, sensord_t)
+
+	sensord_systemctl($1)
+	admin_pattern($1, sensord_unit_file_t)
+	allow $1 sensord_unit_file_t:service all_service_perms;
+
+	admin_pattern($1, sensord_log_t)
+	admin_pattern($1, sensord_var_run_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

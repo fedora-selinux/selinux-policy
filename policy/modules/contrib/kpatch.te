@@ -1,0 +1,40 @@
+policy_module(kpatch, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type kpatch_t;
+type kpatch_exec_t;
+application_domain(kpatch_t, kpatch_exec_t)
+init_daemon_domain(kpatch_t, kpatch_exec_t)
+
+type kpatch_var_lib_t;
+files_type(kpatch_var_lib_t)
+
+########################################
+#
+# kpatch local policy
+#
+
+manage_dirs_pattern(kpatch_t, kpatch_var_lib_t, kpatch_var_lib_t)
+manage_files_pattern(kpatch_t, kpatch_var_lib_t, kpatch_var_lib_t)
+files_var_lib_filetrans(kpatch_t, kpatch_var_lib_t, { dir file })
+allow kpatch_t kpatch_var_lib_t:system module_load;
+
+auth_use_nsswitch(kpatch_t)
+
+corecmd_exec_bin(kpatch_t)
+corecmd_mmap_bin_files(kpatch_t)
+
+dev_list_sysfs(kpatch_t)
+
+optional_policy(`
+    policykit_dbus_chat(kpatch_t)
+')
+
+optional_policy(`
+    unconfined_domain(kpatch_t)
+')
+

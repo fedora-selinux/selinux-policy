@@ -1,0 +1,112 @@
+## <summary>Filesystem namespacing/polyinstantiation application.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run seunshare.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`seunshare_domtrans',`
+	gen_require(`
+		type seunshare_t, seunshare_exec_t;
+	')
+
+	domtrans_pattern($1, seunshare_exec_t, seunshare_t)
+')
+
+########################################
+## <summary>
+##	Execute seunshare in the seunshare domain, and
+##	allow the specified role the seunshare domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`seunshare_run',`
+	gen_require(`
+		type seunshare_t;
+	')
+
+	seunshare_domtrans($1)
+	role $2 types seunshare_t;
+
+	allow $1 seunshare_t:process signal_perms;
+')
+
+########################################
+## <summary>
+##	The role template for the seunshare module.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+interface(`seunshare_role_template',`
+	gen_require(`
+		attribute seunshare_domain;
+		type seunshare_exec_t;
+	')
+
+	type $1_seunshare_t, seunshare_domain;
+	application_domain($1_seunshare_t, seunshare_exec_t)
+	role $2 types $1_seunshare_t;
+
+	kernel_read_system_state($1_seunshare_t)
+
+    domain_dyntrans_type($1_seunshare_t)
+
+	auth_use_nsswitch($1_seunshare_t)
+
+	logging_send_syslog_msg($1_seunshare_t)
+
+	mls_process_set_level($1_seunshare_t)
+
+	domtrans_pattern($3, seunshare_exec_t, $1_seunshare_t)
+	allow $1_seunshare_t $3:unix_stream_socket getattr;
+
+	# part of sandboxX.pp
+	optional_policy(`
+		sandbox_x_transition($1_seunshare_t, $2)
+	')
+
+	# part of sandbox.pp
+	optional_policy(`
+		sandbox_transition($1_seunshare_t, $2)
+	')
+
+	ps_process_pattern($3, $1_seunshare_t)
+	dontaudit $1_seunshare_t $3:file read;
+	allow $3 $1_seunshare_t:process signal_perms;
+	allow $3 $1_seunshare_t:fd use;
+
+	allow $1_seunshare_t $3:process transition;
+	dontaudit $1_seunshare_t $3:process { noatsecure siginh rlimitinh };
+
+	corecmd_bin_domtrans($1_seunshare_t, $1_t)
+	corecmd_shell_domtrans($1_seunshare_t, $1_t)
+')

@@ -1,0 +1,121 @@
+policy_module(consoletype, 1.10.0)
+
+########################################
+#
+# Declarations
+#
+
+type consoletype_t;
+type consoletype_exec_t;
+application_domain(consoletype_t, consoletype_exec_t)
+role system_r types consoletype_t;
+
+########################################
+#
+# Local declarations
+#
+
+allow consoletype_t self:capability { sys_admin sys_tty_config };
+allow consoletype_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+allow consoletype_t self:fd use;
+allow consoletype_t self:fifo_file rw_fifo_file_perms;
+allow consoletype_t self:sock_file read_sock_file_perms;
+allow consoletype_t self:unix_dgram_socket create_socket_perms;
+allow consoletype_t self:unix_stream_socket create_stream_socket_perms;
+allow consoletype_t self:unix_dgram_socket sendto;
+allow consoletype_t self:unix_stream_socket connectto;
+allow consoletype_t self:shm create_shm_perms;
+allow consoletype_t self:sem create_sem_perms;
+allow consoletype_t self:msgq create_msgq_perms;
+allow consoletype_t self:msg { send receive };
+
+kernel_use_fds(consoletype_t)
+kernel_dontaudit_read_system_state(consoletype_t)
+
+dev_dontaudit_rw_generic_chr_files(consoletype_t)
+
+domain_use_interactive_fds(consoletype_t)
+
+files_dontaudit_read_root_files(consoletype_t)
+files_list_usr(consoletype_t)
+
+fs_getattr_all_fs(consoletype_t)
+fs_search_auto_mountpoints(consoletype_t)
+fs_write_nfs_files(consoletype_t)
+
+mls_file_read_all_levels(consoletype_t)
+mls_file_write_all_levels(consoletype_t)
+
+term_use_all_inherited_terms(consoletype_t)
+term_use_ptmx(consoletype_t)
+
+init_use_fds(consoletype_t)
+init_use_script_ptys(consoletype_t)
+init_use_script_fds(consoletype_t)
+init_rw_script_pipes(consoletype_t)
+init_rw_inherited_script_tmp_files(consoletype_t)
+
+userdom_use_inherited_user_terminals(consoletype_t)
+
+ifdef(`distro_redhat',`
+	fs_rw_tmpfs_chr_files(consoletype_t)
+')
+
+optional_policy(`
+	apm_use_fds(consoletype_t)
+	apm_write_pipes(consoletype_t)
+')
+
+optional_policy(`
+	auth_read_pam_pid(consoletype_t)
+')
+
+optional_policy(`
+	cron_read_pipes(consoletype_t)
+	cron_use_system_job_fds(consoletype_t)
+')
+
+optional_policy(`
+	dbus_use_system_bus_fds(consoletype_t)
+')
+
+optional_policy(`
+	devicekit_dontaudit_read_pid_files(consoletype_t)
+	devicekit_dontaudit_rw_log(consoletype_t)
+')
+
+optional_policy(`
+	files_read_etc_files(consoletype_t)
+	firstboot_use_fds(consoletype_t)
+	firstboot_rw_pipes(consoletype_t)
+')
+
+optional_policy(`
+	logrotate_dontaudit_use_fds(consoletype_t)
+')
+
+optional_policy(`
+	lpd_read_config(consoletype_t)
+')
+
+optional_policy(`
+	nis_use_ypbind(consoletype_t)
+')
+
+optional_policy(`
+	# Commonly used from postinst scripts
+	rpm_read_pipes(consoletype_t)
+')
+
+optional_policy(`
+	userdom_use_unpriv_users_fds(consoletype_t)
+	userdom_dontaudit_rw_dgram_socket(consoletype_t)
+')
+
+optional_policy(`
+	kernel_read_xen_state(consoletype_t)
+	kernel_write_xen_state(consoletype_t)
+	xen_append_log(consoletype_t)
+	xen_dontaudit_rw_unix_stream_sockets(consoletype_t)
+	xen_dontaudit_use_fds(consoletype_t)
+')

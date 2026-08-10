@@ -1,0 +1,63 @@
+policy_module(journalctl, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role journalctl_roles;
+roleattribute system_r journalctl_roles;
+
+type journalctl_t;
+type journalctl_exec_t;
+application_domain(journalctl_t, journalctl_exec_t)
+
+role journalctl_roles types journalctl_t;
+
+########################################
+#
+# journalctl local policy
+#
+allow journalctl_t self:capability sys_resource;
+allow journalctl_t self:process { fork setrlimit signal_perms };
+
+allow journalctl_t self:fifo_file manage_fifo_file_perms;
+allow journalctl_t self:unix_stream_socket create_stream_socket_perms;
+
+kernel_read_fs_sysctls(journalctl_t)
+kernel_read_system_state(journalctl_t)
+kernel_stream_connect(journalctl_t)
+
+corecmd_exec_bin(journalctl_t)
+
+domain_use_interactive_fds(journalctl_t)
+
+files_read_etc_files(journalctl_t)
+
+fs_getattr_all_fs(journalctl_t)
+
+init_read_state(journalctl_t)
+init_mmap_read_var_lib_files(journalctl_t)
+
+auth_use_nsswitch(journalctl_t)
+
+miscfiles_read_localization(journalctl_t)
+
+logging_read_generic_logs(journalctl_t)
+logging_watch_generic_log_dirs(journalctl_t)
+logging_read_syslog_pid(journalctl_t)
+logging_mmap_journal(journalctl_t)
+logging_watch_journal_dir(journalctl_t)
+
+term_use_generic_ptys(journalctl_t)
+
+userdom_list_user_home_dirs(journalctl_t)
+userdom_read_user_home_content_files(journalctl_t)
+userdom_use_user_ptys(journalctl_t)
+userdom_use_user_ttys(journalctl_t)
+userdom_rw_inherited_user_tmp_files(journalctl_t)
+userdom_rw_inherited_user_home_content_files(journalctl_t)
+
+optional_policy(`
+	rhcd_read_fifo_files(journalctl_t)
+')

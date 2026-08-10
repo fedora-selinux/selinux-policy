@@ -1,0 +1,121 @@
+policy_module(nvme_stas, 1.0.0)
+
+gen_require(`
+	class dbus send_msg;
+')
+
+########################################
+#
+# Declarations
+#
+
+type nvme_stas_t;
+type nvme_stas_exec_t;
+init_daemon_domain(nvme_stas_t, nvme_stas_exec_t)
+
+type nvme_stas_cache_t;
+files_type(nvme_stas_cache_t)
+
+type nvme_stas_tmpfs_t;
+files_tmp_file(nvme_stas_tmpfs_t)
+
+type nvme_stas_unit_file_t;
+systemd_unit_file(nvme_stas_unit_file_t)
+
+type nvme_stas_var_run_t;
+files_pid_file(nvme_stas_var_run_t)
+
+########################################
+#
+# stas local policy
+#
+allow nvme_stas_t self:capability { net_admin sys_admin };
+allow nvme_stas_t self:capability2 bpf;
+allow nvme_stas_t self:dbus send_msg;
+allow nvme_stas_t self:fifo_file rw_fifo_file_perms;
+allow nvme_stas_t self:netlink_kobject_uevent_socket create_socket_perms;
+
+allow nvme_stas_t self:process setsched;
+allow nvme_stas_t self:tcp_socket create_stream_socket_perms;
+allow nvme_stas_t self:unix_stream_socket create_stream_socket_perms;
+allow nvme_stas_t self:unix_dgram_socket create_socket_perms;
+
+manage_files_pattern(nvme_stas_t, nvme_stas_tmpfs_t, nvme_stas_tmpfs_t)
+fs_tmpfs_filetrans(nvme_stas_t, nvme_stas_tmpfs_t, file)
+can_exec(nvme_stas_t, nvme_stas_tmpfs_t)
+
+manage_dirs_pattern(nvme_stas_t, nvme_stas_var_run_t, nvme_stas_var_run_t)
+manage_files_pattern(nvme_stas_t, nvme_stas_var_run_t, nvme_stas_var_run_t)
+files_pid_filetrans(nvme_stas_t, nvme_stas_var_run_t, file, "last-known-config.pickle" )
+
+kernel_dgram_send(nvme_stas_t)
+kernel_request_load_module(nvme_stas_t)
+
+corecmd_exec_bin(nvme_stas_t)
+
+dev_read_sysfs(nvme_stas_t)
+domain_use_interactive_fds(nvme_stas_t)
+
+files_getattr_all_files(nvme_stas_t)
+files_read_etc_files(nvme_stas_t)
+
+storage_raw_read_fixed_disk(nvme_stas_t)
+storage_rw_inherited_fixed_disk_dev(nvme_stas_t)
+
+optional_policy(`
+	auth_read_passwd_file(nvme_stas_t)
+')
+
+optional_policy(`
+	avahi_dbus_chat(nvme_stas_t)
+')
+
+optional_policy(`
+	dbus_connect_system_bus(nvme_stas_t)
+	dbus_send_system_bus(nvme_stas_t)
+	dbus_stream_connect_system_dbusd(nvme_stas_t)
+	dbus_write_pid_sock_files(nvme_stas_t)
+')
+
+optional_policy(`
+	gnome_search_gconf(nvme_stas_t)
+')
+
+optional_policy(`
+	libs_exec_ldconfig(nvme_stas_t)
+')
+
+optional_policy(`
+	logging_write_syslog_pid_socket(nvme_stas_t)
+')
+
+optional_policy(`
+	miscfiles_read_localization(nvme_stas_t)
+	miscfiles_read_generic_certs(nvme_stas_t)
+')
+
+optional_policy(`
+	sssd_search_lib(nvme_stas_t)
+')
+
+optional_policy(`
+	sysnet_read_config(nvme_stas_t)
+')
+
+optional_policy(`
+	systemd_exec_systemctl(nvme_stas_t)
+')
+
+optional_policy(`
+	udev_manage_pid_dirs(nvme_stas_t)
+	udev_manage_pid_files(nvme_stas_t)
+')
+
+optional_policy(`
+	unconfined_dbus_send(nvme_stas_t)
+')
+
+optional_policy(`
+	userdom_list_user_home_content(nvme_stas_t)
+')
+

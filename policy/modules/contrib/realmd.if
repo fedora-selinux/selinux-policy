@@ -1,0 +1,179 @@
+
+## <summary>dbus system service which manages discovery and enrollment in realms and domains like Active Directory or IPA</summary>
+
+########################################
+## <summary>
+##	Execute realmd in the realmd_t domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`realmd_domtrans',`
+	gen_require(`
+		type realmd_t, realmd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, realmd_exec_t, realmd_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	realmd over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`realmd_dbus_chat',`
+	gen_require(`
+		type realmd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 realmd_t:dbus send_msg;
+	allow realmd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Search realmd cache directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`realmd_search_cache',`
+	gen_require(`
+		type realmd_var_cache_t;
+	')
+
+	allow $1 realmd_var_cache_t:dir search_dir_perms;
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Read realmd cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`realmd_read_cache_files',`
+	gen_require(`
+		type realmd_var_cache_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, realmd_var_cache_t, realmd_var_cache_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	realmd cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`realmd_manage_cache_files',`
+	gen_require(`
+		type realmd_var_cache_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, realmd_var_cache_t, realmd_var_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage realmd cache dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`realmd_manage_cache_dirs',`
+	gen_require(`
+		type realmd_var_cache_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, realmd_var_cache_t, realmd_var_cache_t)
+')
+
+
+########################################
+## <summary>
+##	Read realmd tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`realmd_read_tmp_files',`
+	gen_require(`
+		type realmd_tmp_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, realmd_tmp_t, realmd_tmp_t)
+')
+
+#######################################
+## <summary>
+##	Read realmd library files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`realmd_read_var_lib',`
+	gen_require(`
+		type realmd_var_lib_t;
+	')
+
+	list_dirs_pattern($1, realmd_var_lib_t, realmd_var_lib_t)
+	read_files_pattern($1, realmd_var_lib_t, realmd_var_lib_t)
+
+')
+
+########################################
+## <summary>
+##	Send to realmd  over a unix domain
+##	datagram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`realmd_dgram_send',`
+	gen_require(`
+		type realmd_t, realmd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	dgram_send_pattern($1, realmd_var_lib_t, realmd_var_lib_t, realmd_t)
+')

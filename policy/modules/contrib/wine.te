@@ -1,0 +1,84 @@
+policy_module(wine, 1.11.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether attempts by
+##	wine to mmap low regions should
+##	be silently blocked.
+##	</p>
+## </desc>
+gen_tunable(wine_mmap_zero_ignore, false)
+
+attribute wine_domain;
+attribute_role wine_roles;
+roleattribute system_r wine_roles;
+
+type wine_t, wine_domain;
+type wine_exec_t;
+userdom_user_application_domain(wine_t, wine_exec_t)
+role wine_roles types wine_t;
+
+type wine_home_t;
+userdom_user_home_content(wine_home_t)
+
+########################################
+#
+# Local policy
+#
+domain_mmap_low(wine_t)
+
+optional_policy(`
+	unconfined_domain(wine_t)
+')
+
+
+########################################
+#
+# Common wine domain policy
+#
+
+allow wine_domain self:process { execstack execmem execheap };
+allow wine_domain self:fifo_file manage_fifo_file_perms;
+
+can_exec(wine_domain, wine_exec_t)
+
+manage_files_pattern(wine_domain, wine_home_t, wine_home_t)
+manage_lnk_files_pattern(wine_domain, wine_home_t, wine_home_t)
+manage_dirs_pattern(wine_domain, wine_home_t, wine_home_t)
+userdom_tmpfs_filetrans(wine_domain, file)
+wine_filetrans_named_content(wine_domain)
+
+files_execmod_all_files(wine_domain)
+
+userdom_use_inherited_user_terminals(wine_domain)
+
+tunable_policy(`wine_mmap_zero_ignore',`
+	dontaudit wine_domain self:memprotect mmap_zero;
+')
+
+optional_policy(`
+	dbus_system_bus_client(wine_domain)
+
+	optional_policy(`
+		policykit_dbus_chat(wine_domain)
+	')
+')
+
+optional_policy(`
+    gnome_create_generic_cache_dir(wine_domain)
+')
+
+optional_policy(`
+	rtkit_scheduled(wine_domain)
+')
+
+optional_policy(`
+	xserver_read_xdm_pid(wine_domain)
+	xserver_rw_shm(wine_domain)
+')
+

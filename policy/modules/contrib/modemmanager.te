@@ -1,0 +1,89 @@
+policy_module(modemmanager, 1.2.1)
+
+########################################
+#
+# Declarations
+#
+
+type modemmanager_t;
+type modemmanager_exec_t;
+init_daemon_domain(modemmanager_t, modemmanager_exec_t)
+init_nnp_daemon_domain(modemmanager_t)
+typealias modemmanager_t alias ModemManager_t;
+typealias modemmanager_exec_t alias ModemManager_exec_t;
+
+type modemmanager_unit_file_t;
+systemd_unit_file(modemmanager_unit_file_t)
+
+########################################
+#
+# Local policy
+#
+
+dontaudit modemmanager_t self:process { execmem setpgid };
+allow modemmanager_t self:capability { dac_read_search dac_override net_admin sys_admin sys_tty_config };
+allow modemmanager_t self:process { getsched signal };
+allow modemmanager_t self:fifo_file rw_fifo_file_perms;
+allow modemmanager_t self:unix_stream_socket {connectto create_stream_socket_perms};
+allow modemmanager_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow modemmanager_t self:netlink_route_socket create_netlink_socket_perms;
+allow modemmanager_t self:qipcrtr_socket create_socket_perms;
+
+kernel_read_system_state(modemmanager_t)
+kernel_request_load_module(modemmanager_t)
+
+auth_read_passwd(modemmanager_t)
+
+corecmd_exec_bin(modemmanager_t)
+
+dev_create_sysfs_files(modemmanager_t)
+dev_rw_sysfs(modemmanager_t)
+dev_read_urand(modemmanager_t)
+dev_rw_modem(modemmanager_t)
+
+term_use_generic_ptys(modemmanager_t)
+term_use_unallocated_ttys(modemmanager_t)
+term_use_usb_ttys(modemmanager_t)
+
+xserver_read_state_xdm(modemmanager_t)
+
+logging_send_syslog_msg(modemmanager_t)
+
+optional_policy(`
+	dbus_system_domain(modemmanager_t, modemmanager_exec_t)
+
+	optional_policy(`
+		devicekit_dbus_chat_power(modemmanager_t)
+	')
+
+    optional_policy(`
+	    fwupd_dbus_chat(modemmanager_t)
+	')
+
+	optional_policy(`
+		networkmanager_dbus_chat(modemmanager_t)
+	')
+
+	optional_policy(`
+		policykit_dbus_chat(modemmanager_t)
+	')
+
+	optional_policy(`
+		systemd_dbus_chat_logind(modemmanager_t)
+		systemd_write_inhibit_pipes(modemmanager_t)
+	')
+')
+
+optional_policy(`
+    sssd_read_public_files(modemmanager_t)
+    sssd_stream_connect(modemmanager_t)
+')
+
+optional_policy(`
+	udev_read_db(modemmanager_t)
+	udev_manage_pid_files(modemmanager_t)
+')
+
+optional_policy(`
+	unconfined_stream_connect(modemmanager_t)
+')

@@ -1,0 +1,185 @@
+## <summary>Policy for the kernel modules, kernel image, and bootloader.</summary>
+
+########################################
+## <summary>
+##	Execute bootloader in the bootloader domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`bootloader_domtrans',`
+	gen_require(`
+		type bootloader_t, bootloader_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, bootloader_exec_t, bootloader_t)
+')
+
+######################################
+## <summary>
+##  Execute bootloader in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`bootloader_exec',`
+    gen_require(`
+        type bootloader_exec_t;
+    ')
+
+    can_exec($1, bootloader_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute bootloader interactively and do
+##	a domain transition to the bootloader domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bootloader_run',`
+	gen_require(`
+		type bootloader_t;
+		attribute_role bootloader_roles;
+	')
+
+	bootloader_domtrans($1)
+	roleattribute $2 bootloader_roles;
+
+')
+
+########################################
+## <summary>
+##	Read the bootloader configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bootloader_read_config',`
+	gen_require(`
+		type bootloader_etc_t;
+	')
+
+	allow $1 bootloader_etc_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the bootloader
+##	configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bootloader_rw_config',`
+	gen_require(`
+		type bootloader_etc_t;
+	')
+
+	allow $1 bootloader_etc_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage the bootloader
+##	configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bootloader_manage_config',`
+	gen_require(`
+		type bootloader_etc_t;
+	')
+
+	manage_files_pattern($1, bootloader_etc_t, bootloader_etc_t)
+')
+
+########################################
+## <summary>
+##	Read and write the bootloader
+##	temporary data in /tmp.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bootloader_rw_tmp_files',`
+	gen_require(`
+		type bootloader_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 bootloader_tmp_t:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the bootloader
+##	temporary data in /tmp.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bootloader_create_runtime_file',`
+	gen_require(`
+		type boot_runtime_t;
+	')
+
+	allow $1 boot_runtime_t:file { create_file_perms rw_file_perms };
+	files_boot_filetrans($1, boot_runtime_t, file)
+')
+
+########################################
+## <summary>
+##	Type transition files created in /etc
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bootloader_filetrans_config',`
+	gen_require(`
+		type bootloader_etc_t;
+	')
+
+	files_etc_filetrans($1,bootloader_etc_t,file, "grub")
+	files_etc_filetrans($1,bootloader_etc_t,file, "lilo.conf")
+	files_etc_filetrans($1,bootloader_etc_t,file, "yaboot.conf")
+	files_etc_filetrans($1,bootloader_etc_t,file, "zipl.conf")
+')

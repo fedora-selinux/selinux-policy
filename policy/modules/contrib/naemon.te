@@ -1,0 +1,59 @@
+policy_module(naemon, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type naemon_t;
+type naemon_exec_t;
+init_daemon_domain(naemon_t, naemon_exec_t)
+
+type naemon_initrc_exec_t;
+init_script_file(naemon_initrc_exec_t)
+
+type naemon_cache_t;
+files_type(naemon_cache_t)
+
+type naemon_log_t;
+logging_log_file(naemon_log_t)
+
+type naemon_var_lib_t;
+files_type(naemon_var_lib_t)
+
+type naemon_var_run_t;
+files_pid_file(naemon_var_run_t)
+
+########################################
+#
+# naemon local policy
+#
+allow naemon_t self:process { fork setpgid setrlimit signal_perms };
+allow naemon_t self:fifo_file rw_fifo_file_perms;
+allow naemon_t self:unix_stream_socket create_stream_socket_perms;
+allow naemon_t self:unix_stream_socket connectto;
+
+manage_dirs_pattern(naemon_t, naemon_cache_t, naemon_cache_t)
+manage_files_pattern(naemon_t, naemon_cache_t, naemon_cache_t)
+manage_sock_files_pattern(naemon_t, naemon_cache_t, naemon_cache_t)
+files_var_filetrans(naemon_t, naemon_cache_t, { dir })
+
+manage_dirs_pattern(naemon_t, naemon_log_t, naemon_log_t)
+manage_files_pattern(naemon_t, naemon_log_t, naemon_log_t)
+logging_log_filetrans(naemon_t, naemon_log_t, { dir })
+
+manage_dirs_pattern(naemon_t, naemon_var_lib_t, naemon_var_lib_t)
+manage_files_pattern(naemon_t, naemon_var_lib_t, naemon_var_lib_t)
+manage_sock_files_pattern(naemon_t, naemon_var_lib_t, naemon_var_lib_t)
+manage_fifo_files_pattern(naemon_t, naemon_var_lib_t, naemon_var_lib_t)
+files_var_lib_filetrans(naemon_t, naemon_var_lib_t, { dir })
+
+manage_dirs_pattern(naemon_t, naemon_var_run_t, naemon_var_run_t)
+manage_files_pattern(naemon_t, naemon_var_run_t, naemon_var_run_t)
+files_pid_filetrans(naemon_t, naemon_var_run_t, { dir })
+
+kernel_read_system_state(naemon_t)
+
+auth_read_passwd(naemon_t)
+
+fs_getattr_xattr_fs(naemon_t)

@@ -1,0 +1,37 @@
+policy_module(ninfod, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type ninfod_t;
+type ninfod_exec_t;
+init_daemon_domain(ninfod_t, ninfod_exec_t)
+init_nnp_daemon_domain(ninfod_t)
+
+type ninfod_run_t;
+files_pid_file(ninfod_run_t)
+
+type ninfod_unit_file_t;
+systemd_unit_file(ninfod_unit_file_t)
+
+########################################
+#
+# ninfod local policy
+#
+allow ninfod_t self:capability { net_raw setuid };
+allow ninfod_t self:process setcap;
+allow ninfod_t self:fifo_file rw_fifo_file_perms;
+allow ninfod_t self:rawip_socket { create setopt };
+allow ninfod_t self:unix_stream_socket create_stream_socket_perms;
+allow ninfod_t self:rawip_socket read;
+
+manage_files_pattern(ninfod_t, ninfod_run_t, ninfod_run_t)
+files_pid_filetrans(ninfod_t,ninfod_run_t, { file })
+
+auth_use_nsswitch(ninfod_t)
+
+logging_send_syslog_msg(ninfod_t)
+
+sysnet_dns_name_resolve(ninfod_t)

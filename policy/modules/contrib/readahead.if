@@ -1,0 +1,45 @@
+## <summary>Read files into page cache for improved performance.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition
+##	to run readahead.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`readahead_domtrans',`
+	gen_require(`
+		type readahead_t, readahead_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, readahead_exec_t, readahead_t)
+')
+
+########################################
+## <summary>
+##	Manage readahead var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`readahead_manage_pid_files',`
+	gen_require(`
+		type readahead_var_run_t;
+	')
+
+	manage_dirs_pattern($1, readahead_var_run_t, readahead_var_run_t)
+	manage_files_pattern($1, readahead_var_run_t, readahead_var_run_t)
+	dev_filetrans($1, readahead_var_run_t, { dir  file })
+	init_pid_filetrans($1, readahead_var_run_t, { dir file })
+	files_search_pids($1)	
+	init_search_pid_dirs($1)
+')
+

@@ -1,0 +1,143 @@
+
+## <summary>speech-dispatcher - server process managing speech requests in Speech Dispatcher</summary>
+
+########################################
+## <summary>
+##	Execute speech-dispatcher in the speech_dispatcher domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`speech_dispatcher_domtrans',`
+	gen_require(`
+		type speech_dispatcher_t, speech_dispatcher_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, speech_dispatcher_exec_t, speech_dispatcher_t)
+')
+########################################
+## <summary>
+##	Read speech-dispatcher's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`speech_dispatcher_read_log',`
+	gen_require(`
+		type speech_dispatcher_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, speech_dispatcher_log_t, speech_dispatcher_log_t)
+')
+
+########################################
+## <summary>
+##	Append to speech-dispatcher log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`speech_dispatcher_append_log',`
+	gen_require(`
+		type speech_dispatcher_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, speech_dispatcher_log_t, speech_dispatcher_log_t)
+')
+
+########################################
+## <summary>
+##	Manage speech-dispatcher log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`speech_dispatcher_manage_log',`
+	gen_require(`
+		type speech_dispatcher_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, speech_dispatcher_log_t, speech_dispatcher_log_t)
+	manage_files_pattern($1, speech_dispatcher_log_t, speech_dispatcher_log_t)
+	manage_lnk_files_pattern($1, speech_dispatcher_log_t, speech_dispatcher_log_t)
+')
+########################################
+## <summary>
+##	Execute speech-dispatcher server in the speech_dispatcher domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`speech_dispatcher_systemctl',`
+	gen_require(`
+		type speech_dispatcher_t;
+		type speech_dispatcher_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+    systemd_read_fifo_file_passwd_run($1)
+	allow $1 speech_dispatcher_unit_file_t:file read_file_perms;
+	allow $1 speech_dispatcher_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, speech_dispatcher_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an speech-dispatcher environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`speech_dispatcher_admin',`
+	gen_require(`
+		type speech_dispatcher_t;
+		type speech_dispatcher_log_t;
+	    type speech_dispatcher_unit_file_t;
+	')
+
+	allow $1 speech_dispatcher_t:process { signal_perms };
+	ps_process_pattern($1, speech_dispatcher_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 speech_dispatcher_t:process ptrace;
+    ')
+
+	logging_search_logs($1)
+	admin_pattern($1, speech_dispatcher_log_t)
+
+	speech_dispatcher_systemctl($1)
+	admin_pattern($1, speech_dispatcher_unit_file_t)
+	allow $1 speech_dispatcher_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

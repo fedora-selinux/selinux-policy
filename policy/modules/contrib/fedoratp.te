@@ -1,0 +1,85 @@
+policy_module(fedoratp, 1.0)
+
+type fedoratp_t;
+type fedoratp_exec_t;
+init_system_domain(fedoratp_t, fedoratp_exec_t)
+
+type fedoratp_var_lib_t;
+files_type(fedoratp_var_lib_t)
+
+manage_files_pattern(fedoratp_t, fedoratp_var_lib_t, fedoratp_var_lib_t)
+
+allow fedoratp_t self:capability { dac_override sys_nice };
+allow fedoratp_t self:process setsched;
+allow fedoratp_t self:unix_dgram_socket create_socket_perms;
+
+kernel_read_proc_files(fedoratp_t)
+
+corecmd_exec_bin(fedoratp_t)
+
+corenet_tcp_connect_http_port(fedoratp_t)
+
+dev_read_sysfs(fedoratp_t)
+
+files_manage_system_conf_files(fedoratp_t)
+files_manage_generic_tmp_dirs(fedoratp_t)
+files_manage_generic_tmp_files(fedoratp_t)
+files_manage_var_lib_dirs(fedoratp_t)
+files_manage_var_lib_files(fedoratp_t)
+
+fs_getattr_xattr_fs(fedoratp_t)
+
+sysnet_dns_name_resolve(fedoratp_t)
+
+term_use_unallocated_ttys(fedoratp_t)
+
+optional_policy(`
+	gen_require(`
+		type gpg_t, gpg_agent_t, tmp_t, gpg_agent_tmp_t;
+	')
+
+	delete_sock_files_pattern(fedoratp_t, tmp_t, gpg_agent_tmp_t)
+	manage_dirs_pattern(fedoratp_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
+	manage_files_pattern(fedoratp_t, gpg_agent_tmp_t, gpg_agent_tmp_t)
+	manage_files_pattern(gpg_t, tmp_t, tmp_t)
+
+	files_watch_generic_tmp_dirs(gpg_t)
+	files_watch_generic_tmp_dirs(gpg_agent_t)
+
+	gpg_domtrans(fedoratp_t)
+
+	term_use_unallocated_ttys(gpg_t)
+	term_use_unallocated_ttys(gpg_agent_t)
+')
+
+optional_policy(`
+	auth_read_passwd_file(fedoratp_t)
+')
+
+optional_policy(`
+	dbus_system_bus_client(fedoratp_t)
+')
+
+optional_policy(`
+	gnome_manage_cache_home_dir(fedoratp_t)
+	gnome_manage_generic_cache_files(fedoratp_t)
+	gnome_map_generic_cache_files(fedoratp_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(fedoratp_t)
+')
+
+optional_policy(`
+	miscfiles_manage_generic_cert_files(fedoratp_t)
+')
+
+optional_policy(`
+	policykit_dbus_chat(fedoratp_t)
+')
+
+optional_policy(`
+	userdom_manage_admin_dirs(fedoratp_t)
+	userdom_manage_admin_files(fedoratp_t)
+	userdom_manage_tmp_dirs(fedoratp_t)
+')

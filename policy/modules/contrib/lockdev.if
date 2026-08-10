@@ -1,0 +1,62 @@
+## <summary>Library for locking devices.</summary>
+
+#######################################
+## <summary>
+##  Create, read, write, and delete
+##  lockdev lock files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`lockdev_manage_files',`
+    gen_require(`
+            type lockdev_lock_t;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, lockdev_lock_t, lockdev_lock_t)
+')
+
+########################################
+## <summary>
+##	Role access for lockdev.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+interface(`lockdev_role',`
+	gen_require(`
+		attribute_role lockdev_roles;
+		type lockdev_t, lockdev_exec_t;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	roleattribute $1 lockdev_roles;
+
+	########################################
+	#
+	# Policy
+	#
+
+	domtrans_pattern($2, lockdev_exec_t, lockdev_t)
+
+	allow $2 lockdev_t:process { ptrace signal_perms };
+	ps_process_pattern($2, lockdev_t)
+
+	allow lockdev_t $2:process signull;
+')

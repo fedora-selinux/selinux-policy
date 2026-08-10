@@ -1,0 +1,210 @@
+policy_module(xguest, 1.2.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+## <p>
+## Allow xguest users to mount removable media
+## </p>
+## </desc>
+gen_tunable(xguest_mount_media, true)
+
+## <desc>
+## <p>
+## Allow xguest users to configure Network Manager and connect to apache ports
+## </p>
+## </desc>
+gen_tunable(xguest_connect_network, true)
+
+## <desc>
+## <p>
+## Allow xguest to use blue tooth devices
+## </p>
+## </desc>
+gen_tunable(xguest_use_bluetooth, true)
+
+# role xguest_r;
+
+userdom_restricted_xwindows_user_template(xguest)
+sysnet_dns_name_resolve(xguest_t)
+
+init_dbus_chat(xguest_t)
+init_status(xguest_t)
+systemd_dontaudit_dbus_chat(xguest_t)
+
+########################################
+#
+# Local policy
+#
+
+dontaudit xguest_t xguest_t : tcp_socket { listen };
+
+ifndef(`enable_mls',`
+	fs_exec_noxattr(xguest_t)
+
+	tunable_policy(`selinuxuser_rw_noexattrfile',`
+		fs_manage_noxattr_fs_files(xguest_t)
+		fs_manage_noxattr_fs_dirs(xguest_t)
+		# Write floppies 
+		storage_raw_read_removable_device(xguest_t)
+		storage_raw_write_removable_device(xguest_t)
+	',`
+		storage_raw_read_removable_device(xguest_t)
+	')
+')
+
+optional_policy(`
+	# Dontaudit fusermount
+	mount_dontaudit_exec_fusermount(xguest_t)
+')
+
+kernel_dontaudit_request_load_module(xguest_t)
+kernel_read_software_raid_state(xguest_t)
+
+#GDM runs the X server as the unprivileged user.
+dev_rw_input_dev(xguest_t)
+
+tunable_policy(`selinuxuser_execstack',`
+	allow xguest_t self:process execstack;
+')
+
+# Allow mounting of file systems
+optional_policy(`
+	tunable_policy(`xguest_mount_media',`
+		kernel_read_fs_sysctls(xguest_t)
+		kernel_request_load_module(xguest_t)
+		files_dontaudit_getattr_boot_dirs(xguest_t)
+		files_search_mnt(xguest_t)
+
+		fs_manage_noxattr_fs_files(xguest_t)
+		fs_manage_noxattr_fs_dirs(xguest_t)
+		fs_manage_noxattr_fs_dirs(xguest_t)
+		fs_getattr_noxattr_fs(xguest_t)
+		fs_read_noxattr_fs_symlinks(xguest_t)
+		fs_mount_fusefs(xguest_t)
+
+		auth_list_pam_console_data(xguest_t)
+	')
+')
+
+optional_policy(`
+	tunable_policy(`xguest_use_bluetooth',`
+		bluetooth_dbus_chat(xguest_t)
+        allow xguest_t self:bluetooth_socket create_stream_socket_perms;
+    ')
+')
+
+optional_policy(`
+	tunable_policy(`xguest_use_bluetooth',`
+		blueman_dbus_chat(xguest_t)
+	')
+')
+
+
+optional_policy(`
+    abrt_dontaudit_read_config(xguest_t)
+')
+
+optional_policy(`
+	colord_dbus_chat(xguest_t)
+')
+
+optional_policy(`
+	chrome_role(xguest_r, xguest_t)
+')
+
+optional_policy(`
+    thumb_role(xguest_r, xguest_t)
+')
+
+optional_policy(`
+	dbus_dontaudit_chat_system_bus(xguest_t)
+')
+
+optional_policy(`
+	gnome_filetrans_fontconfig_home_content(xguest_t)
+')
+
+optional_policy(`
+	apache_role(xguest_r, xguest_t)
+')
+
+optional_policy(`
+	mozilla_run_plugin(xguest_t, xguest_r)
+')
+
+optional_policy(`
+	mount_run_fusermount(xguest_t, xguest_r)
+')
+
+optional_policy(`
+	pcscd_read_pid_files(xguest_t)
+	pcscd_stream_connect(xguest_t)
+')
+
+optional_policy(`
+	rhsmcertd_dontaudit_dbus_chat(xguest_t)
+')
+
+optional_policy(`
+	systemd_read_conf_files(xguest_t)
+')
+
+optional_policy(`
+	tunable_policy(`xguest_connect_network',`
+		networkmanager_dbus_chat(xguest_t)
+		networkmanager_read_lib_files(xguest_t)
+	')
+')
+
+optional_policy(`
+	tunable_policy(`xguest_connect_network',`
+		kernel_read_network_state(xguest_t)
+
+		corenet_tcp_connect_pulseaudio_port(xguest_t)
+		corenet_tcp_sendrecv_generic_if(xguest_t)
+		corenet_raw_sendrecv_generic_if(xguest_t)
+		corenet_tcp_sendrecv_generic_node(xguest_t)
+		corenet_raw_sendrecv_generic_node(xguest_t)
+		corenet_tcp_connect_commplex_link_port(xguest_t)
+		corenet_tcp_sendrecv_http_port(xguest_t)
+		corenet_tcp_sendrecv_http_cache_port(xguest_t)
+		corenet_tcp_sendrecv_squid_port(xguest_t)
+		corenet_tcp_sendrecv_ftp_port(xguest_t)
+		corenet_tcp_sendrecv_ipp_port(xguest_t)
+		corenet_tcp_connect_http_port(xguest_t)
+		corenet_tcp_connect_http_cache_port(xguest_t)
+		corenet_tcp_connect_squid_port(xguest_t)
+		corenet_tcp_connect_flash_port(xguest_t)
+		corenet_tcp_connect_ftp_port(xguest_t)
+		corenet_tcp_connect_ipp_port(xguest_t)
+		corenet_tcp_connect_generic_port(xguest_t)
+		corenet_tcp_connect_soundd_port(xguest_t)
+		corenet_sendrecv_http_client_packets(xguest_t)
+		corenet_sendrecv_http_cache_client_packets(xguest_t)
+		corenet_sendrecv_squid_client_packets(xguest_t)
+		corenet_sendrecv_ftp_client_packets(xguest_t)
+		corenet_sendrecv_ipp_client_packets(xguest_t)
+		corenet_sendrecv_generic_client_packets(xguest_t)
+		# Should not need other ports
+		corenet_dontaudit_tcp_sendrecv_generic_port(xguest_t)
+		corenet_dontaudit_tcp_bind_generic_port(xguest_t)
+		corenet_tcp_connect_speech_port(xguest_t)
+		corenet_tcp_sendrecv_transproxy_port(xguest_t)
+		corenet_tcp_connect_transproxy_port(xguest_t)
+	')
+')
+
+optional_policy(`
+	gen_require(`
+		type mozilla_t;
+	')
+
+	allow xguest_t mozilla_t:process transition;
+	role xguest_r types mozilla_t;
+')
+
+# gen_user(xguest_u, user, xguest_r, s0, s0)

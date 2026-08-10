@@ -1,0 +1,113 @@
+policy_module(mongodb, 1.1.0)
+
+########################################
+#
+# Declarations
+#
+
+type mongod_t;
+type mongod_exec_t;
+init_daemon_domain(mongod_t, mongod_exec_t)
+
+type mongod_initrc_exec_t;
+init_script_file(mongod_initrc_exec_t)
+
+type mongod_unit_file_t;
+systemd_unit_file(mongod_unit_file_t)
+
+type mongod_log_t;
+logging_log_file(mongod_log_t)
+
+type mongod_var_lib_t;
+files_type(mongod_var_lib_t)
+
+type mongod_var_run_t;
+files_pid_file(mongod_var_run_t)
+
+type mongod_tmp_t;
+files_tmp_file(mongod_tmp_t)
+
+########################################
+#
+# Local policy
+#
+
+
+allow mongod_t self:process { setsched signal execmem };
+allow mongod_t self:fifo_file rw_fifo_file_perms;
+
+allow mongod_t self:netlink_route_socket r_netlink_socket_perms;
+allow mongod_t self:unix_stream_socket create_stream_socket_perms;
+allow mongod_t self:unix_dgram_socket create_socket_perms;
+allow mongod_t self:udp_socket create_socket_perms;
+allow mongod_t self:tcp_socket { accept listen };
+
+manage_files_pattern(mongod_t, mongod_log_t, mongod_log_t)
+logging_log_filetrans(mongod_t, mongod_log_t, { dir file })
+
+manage_dirs_pattern(mongod_t, mongod_var_lib_t, mongod_var_lib_t)
+manage_files_pattern(mongod_t, mongod_var_lib_t, mongod_var_lib_t)
+files_var_lib_filetrans(mongod_t, mongod_var_lib_t, dir)
+allow mongod_t mongod_var_lib_t:file map;
+
+manage_dirs_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
+manage_files_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
+manage_sock_files_pattern(mongod_t, mongod_var_run_t, mongod_var_run_t)
+files_pid_filetrans(mongod_t, mongod_var_run_t, { dir file sock_file })
+
+manage_dirs_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
+manage_files_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
+manage_sock_files_pattern(mongod_t, mongod_tmp_t, mongod_tmp_t)
+files_tmp_filetrans(mongod_t, mongod_tmp_t, { file dir sock_file })
+
+## In MongoDB 3.4.16, 3.6.6, 4.0.0 and later, mongod tries to read netstat
+## info from /proc/net and store it in its diagnostic system (FTDC).
+## See: https://jira.mongodb.org/browse/SERVER-31400
+## This means that we need to adjust the policy so that the mongod
+## process is allowed to open and read /proc/net/netstat, which
+## also typically has symlinks (e.g. /proc/net/snmp).
+kernel_list_proc(mongod_t)
+kernel_read_proc_symlinks(mongod_t)
+kernel_read_psi(mongod_t)
+
+kernel_read_system_state(mongod_t)
+kernel_read_network_state(mongod_t)
+kernel_read_fs_sysctls(mongod_t)
+kernel_read_net_sysctls(mongod_t)
+kernel_read_vm_sysctls(mongod_t)
+
+corecmd_exec_bin(mongod_t)
+corecmd_exec_shell(mongod_t)
+
+corenet_all_recvfrom_unlabeled(mongod_t)
+corenet_all_recvfrom_netlabel(mongod_t)
+corenet_tcp_sendrecv_generic_if(mongod_t)
+corenet_tcp_sendrecv_generic_node(mongod_t)
+corenet_tcp_connect_mongod_port(mongod_t)
+corenet_tcp_connect_http_port(mongod_t)
+corenet_tcp_bind_mongod_port(mongod_t)
+corenet_tcp_bind_generic_node(mongod_t)
+
+dev_read_sysfs(mongod_t)
+dev_read_urand(mongod_t)
+
+fs_getattr_all_fs(mongod_t)
+fs_search_cgroup_dirs(mongod_t)
+fs_read_cgroup_files(mongod_t)
+
+auth_use_nsswitch(mongod_t)
+
+logging_send_syslog_msg(mongod_t)
+
+optional_policy(`
+	mysql_stream_connect(mongod_t)
+')
+
+optional_policy(`
+	postgresql_stream_connect(mongod_t)
+')
+
+optional_policy(`
+	sysnet_dns_name_resolve(mongod_t)
+')
+

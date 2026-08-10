@@ -1,0 +1,49 @@
+policy_module(opensm, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type opensm_t;
+type opensm_exec_t;
+init_daemon_domain(opensm_t, opensm_exec_t)
+
+type opensm_cache_t;
+files_type(opensm_cache_t)
+
+type opensm_log_t;
+logging_log_file(opensm_log_t)
+
+type opensm_unit_file_t;
+systemd_unit_file(opensm_unit_file_t)
+
+########################################
+#
+# opensm local policy
+#
+allow opensm_t self:process { signal fork };
+allow opensm_t self:fifo_file rw_fifo_file_perms;
+allow opensm_t self:unix_stream_socket create_stream_socket_perms;
+
+manage_dirs_pattern(opensm_t, opensm_cache_t, opensm_cache_t)
+manage_files_pattern(opensm_t, opensm_cache_t, opensm_cache_t)
+files_var_filetrans(opensm_t, opensm_cache_t, { dir file })
+
+manage_files_pattern(opensm_t, opensm_log_t, opensm_log_t)
+logging_log_filetrans(opensm_t, opensm_log_t, file )
+
+kernel_read_system_state(opensm_t)
+
+auth_use_nsswitch(opensm_t)
+
+corenet_ib_access_unlabeled_pkeys(opensm_t)
+corenet_ib_manage_subnet_unlabeled_endports(opensm_t)
+
+corecmd_exec_bin(opensm_t)
+
+dev_read_sysfs(opensm_t)
+dev_rw_infiniband_dev(opensm_t)
+dev_rw_infiniband_mgmt_dev(opensm_t)
+
+logging_send_syslog_msg(opensm_t)

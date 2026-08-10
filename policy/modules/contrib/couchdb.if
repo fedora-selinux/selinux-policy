@@ -1,0 +1,247 @@
+## <summary>Document database server.</summary>
+
+########################################
+## <summary>
+##	Allow to read couchdb log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`couchdb_read_log_files',`
+	gen_require(`
+		type couchdb_log_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, couchdb_log_t, couchdb_log_t)
+')
+
+########################################
+## <summary>
+##	Allow to read couchdb lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`couchdb_read_lib_files',`
+	gen_require(`
+		type couchdb_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, couchdb_var_lib_t, couchdb_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an couchdb environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`couchdb_manage_lib_files',`
+	gen_require(`
+		type couchdb_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, couchdb_var_lib_t, couchdb_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage couchdb lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`couchdb_manage_lib_dirs',`
+	gen_require(`
+		type couchdb_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, couchdb_var_lib_t, couchdb_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Allow to read couchdb conf files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`couchdb_read_conf_files',`
+	gen_require(`
+		type couchdb_conf_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, couchdb_conf_t, couchdb_conf_t)
+')
+
+########################################
+## <summary>
+##	Read couchdb PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`couchdb_read_pid_files',`
+	gen_require(`
+		type couchdb_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 couchdb_var_run_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##      Search couchdb PID dirs.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`couchdb_search_pid_dirs',`
+        gen_require(`
+                type couchdb_var_run_t;
+        ')
+
+        files_search_pids($1)
+        allow $1 couchdb_var_run_t:dir search_dir_perms;
+')
+
+#######################################
+## <summary>
+##  Allow domain to manage couchdb content.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`couchdb_manage_files',`
+        gen_require(`
+                type couchdb_var_run_t;
+                type couchdb_log_t;
+                type couchdb_var_lib_t;
+                type couchdb_conf_t;
+        ')
+
+    manage_files_pattern($1, couchdb_log_t, couchdb_log_t)
+    manage_files_pattern($1, couchdb_var_lib_t, couchdb_var_lib_t)
+    manage_files_pattern($1, couchdb_var_run_t, couchdb_var_run_t)
+    manage_files_pattern($1, couchdb_conf_t, couchdb_conf_t)
+')
+
+########################################
+## <summary>
+##	Execute couchdb server in the couchdb domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`couchdb_systemctl',`
+	gen_require(`
+		type couchdb_t;
+		type couchdb_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+	init_reload_services($1)
+	systemd_read_fifo_file_passwd_run($1)
+	allow $1 couchdb_unit_file_t:file read_file_perms;
+	allow $1 couchdb_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, couchdb_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an couchdb environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`couchdb_admin',`
+	gen_require(`
+		type couchdb_unit_file_t;
+		type couchdb_t, couchdb_conf_t, couchdb_initrc_exec_t;
+		type couchdb_log_t, couchdb_var_lib_t, couchdb_var_run_t;
+		type couchdb_tmp_t;
+	')
+
+	allow $1 couchdb_t:process { signal_perms };
+	ps_process_pattern($1, couchdb_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 couchdb_t:process ptrace;
+    ')
+
+	init_labeled_script_domtrans($1, couchdb_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 couchdb_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, couchdb_conf_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, couchdb_log_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, couchdb_tmp_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, couchdb_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, couchdb_var_run_t)
+
+	admin_pattern($1, couchdb_unit_file_t)
+	couchdb_systemctl($1)
+	allow $1 couchdb_unit_file_t:service all_service_perms;
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
