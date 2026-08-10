@@ -61,7 +61,8 @@ files_lock_filetrans(rhsmcertd_t, rhsmcertd_lock_t, file)
 
 manage_dirs_pattern(rhsmcertd_t, rhsmcertd_tmp_t, rhsmcertd_tmp_t)
 manage_files_pattern(rhsmcertd_t, rhsmcertd_tmp_t, rhsmcertd_tmp_t)
-files_tmp_filetrans(rhsmcertd_t, rhsmcertd_tmp_t, { dir file })
+manage_lnk_files_pattern(rhsmcertd_t, rhsmcertd_tmp_t, rhsmcertd_tmp_t)
+files_tmp_filetrans(rhsmcertd_t, rhsmcertd_tmp_t, { dir file lnk_file })
 
 manage_files_pattern(rhsmcertd_t, rhsmcertd_tmpfs_t, rhsmcertd_tmpfs_t)
 fs_tmpfs_filetrans(rhsmcertd_t, rhsmcertd_tmpfs_t, file)
@@ -111,10 +112,12 @@ files_manage_generic_locks(rhsmcertd_t)
 files_manage_system_conf_files(rhsmcertd_t)
 files_create_boot_flag(rhsmcertd_t)
 files_dontaudit_write_all_mountpoints(rhsmcertd_t)
+files_read_generic_pids(rhsmcertd_t)
 
 fs_dontaudit_write_configfs_dirs(rhsmcertd_t)
 fs_getattr_cgroup(rhsmcertd_t)
 fs_getattr_tmpfs(rhsmcertd_t)
+fs_getattr_xattr_fs(rhsmcertd_t)
 fs_read_xenfs_files(rhsmcertd_t)
 
 auth_map_passwd(rhsmcertd_t)
@@ -172,6 +175,14 @@ optional_policy(`
 
 optional_policy(`
 	install_read_var_run_files(rhsmcertd_t)
+')
+
+# On bootc/ostree image-mode systems, rhsm-package-profile-uploader
+# executes rpm-ostree (install_exec_t) to determine which packages are
+# persistent vs transient.  Transition to install_t so the child process
+# has the permissions it needs (systemctl, reading deployment state, etc).
+optional_policy(`
+	anaconda_domtrans_install(rhsmcertd_t)
 ')
 
 optional_policy(`
