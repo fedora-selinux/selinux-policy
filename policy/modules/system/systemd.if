@@ -29,24 +29,6 @@ template(`systemd_domain_template',`
 
 ######################################
 ## <summary>
-##  Allow read on machined dirs for dbusd
-## </summary>
-## <param name="domain_prefix">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
-## </param>
-#
-interface(`systemd_read_machine_var_lib_dirs',`
-        gen_require(`
-                type system_dbusd_t;
-        ')
-
-         allow $1 systemd_machined_var_lib_t:dir read;
-')
-
-######################################
-## <summary>
 ##	Creates types and rules for systemd generators
 ## </summary>
 ## <param name="prefix">
@@ -257,23 +239,6 @@ interface(`systemd_search_cache_dirs',`
 
 ######################################
 ## <summary>
-##      Allow domain systemd importd init files executions.
-## </summary>
-## <param name="domain">
-##      <summary>
-##      Domain allowed access.
-##      </summary>
-## </param>
-#
-interface(`systemd_init_exec',`
-        gen_require(`
-                type init_exec_t;
-        ')
-        allow $1 init_exec_t:file { map execute execute_no_trans open read };
-')
-
-######################################
-## <summary>
 ##      Allow domain to search systemd unit dirs.
 ## </summary>
 ## <param name="domain">
@@ -281,7 +246,7 @@ interface(`systemd_init_exec',`
 ##      domain allowed access.
 ##      </summary>
 ## </param>
-
+#
 interface(`systemd_search_unit_dirs',`
         gen_require(`
                 attribute systemd_unit_file_type;
@@ -2628,10 +2593,28 @@ interface(`systemd_machined_manage_lib_files',`
         manage_dirs_pattern($1, systemd_machined_var_lib_t, systemd_machined_var_lib_t)
         manage_files_pattern($1, systemd_machined_var_lib_t, systemd_machined_var_lib_t)
         manage_lnk_files_pattern($1, systemd_machined_var_lib_t, systemd_machined_var_lib_t)
-        allow $1 systemd_machined_var_lib_t:chr_file { relabelto relabelfrom create getattr setattr };
-        allow $1 systemd_machined_var_lib_t:file { relabelfrom relabelto };
-        allow $1 systemd_machined_var_lib_t:lnk_file { relabelfrom relabelto };
-        allow $1 systemd_machined_var_lib_t:dir { relabelfrom relabelto };
+        allow $1 systemd_machined_var_lib_t:file relabel_file_perms;
+        allow $1 systemd_machined_var_lib_t:lnk_file relabel_lnk_file_perms;
+        allow $1 systemd_machined_var_lib_t:dir relabel_dir_perms;
+')
+
+########################################
+## <summary>
+##      Relabel systemd-machined lib character nodes.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`systemd_machined_relabel_lib_chr_files',`
+        gen_require(`
+                type systemd_machined_var_lib_t;
+        ')
+
+        files_search_var_lib($1)
+        allow $1 systemd_machined_var_lib_t:chr_file { create_chr_file_perms setattr_chr_file_perms relabel_chr_file_perms unlink };
 ')
 
 ########################################
