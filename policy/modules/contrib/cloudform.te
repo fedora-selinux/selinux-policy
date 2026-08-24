@@ -1,4 +1,9 @@
 policy_module(cloudform, 1.0)
+
+gen_require(`
+	class passwd { passwd rootok };
+')
+
 ########################################
 #
 # Declarations
@@ -64,7 +69,13 @@ miscfiles_read_certs(cloudform_domain)
 # cloud-init local policy
 #
 
-allow cloud_init_t self:capability { fowner chown fsetid dac_read_search  };
+allow cloud_init_t self:capability { fowner chown fsetid dac_read_search dac_override kill net_admin setgid sys_admin };
+allow cloud_init_t self:passwd { passwd rootok };
+# AVC: denied { setfscreate } for comm="sed" scontext=cloud_init_t
+# tcontext=cloud_init_t -- only showed up once the selinux_config_t "read"
+# denial below was fixed and cloud-init's sed-based config edits actually
+# ran; not evidenced before that point
+allow cloud_init_t self:process setfscreate;
 
 allow cloud_init_t self:udp_socket create_socket_perms;
 
@@ -80,6 +91,7 @@ manage_files_pattern(cloud_init_t, cloud_log_t, cloud_log_t)
 logging_log_filetrans(cloud_init_t, cloud_log_t, { file })
 
 init_dbus_chat(cloud_init_t)
+init_status(cloud_init_t)
 
 kernel_read_network_state(cloud_init_t)
 
@@ -91,18 +103,43 @@ corecmd_exec_shell(cloud_init_t)
 domain_read_all_domains_state(cloud_init_t)
 
 fs_getattr_all_fs(cloud_init_t)
+fs_getattr_nsfs_files(cloud_init_t)
 
 storage_raw_read_fixed_disk(cloud_init_t)
+mls_file_read_all_levels(cloud_init_t)
 
 auth_use_nsswitch(cloud_init_t)
+auth_read_shadow(cloud_init_t)
+
+files_setattr_etc_dirs(cloud_init_t)
 
 libs_exec_ldconfig(cloud_init_t)
 
 logging_send_syslog_msg(cloud_init_t)
 
 miscfiles_read_localization(cloud_init_t)
+miscfiles_manage_localization(cloud_init_t)
 
 selinux_validate_context(cloud_init_t)
+
+optional_policy(`
+    # cloud-init (and udevadm, run under cloud_init_t via the udev block
+    # below) reads /etc/selinux/config directly to detect the running
+    # SELinux mode -- AVC: denied { read } for comm="cloud-init"/"udevadm"
+    # name="config" ... tcontext=selinux_config_t. Two follow-up runs
+    # (after granting "read", then again after also granting "open") each
+    # surfaced the next permission the same open(2)/read(2) sequence
+    # checks -- "open" and then "getattr" -- for the same two callers.
+    # Still granting exactly the three bits actually observed as denied
+    # instead of the broader seutil_read_config() interface (which also
+    # grants dir listing, ioctl, lock, and lnk_file reads that were never
+    # denied).
+    gen_require(`
+        type selinux_config_t;
+    ')
+
+    allow cloud_init_t selinux_config_t:file { getattr open read };
+')
 
 systemd_dbus_chat_hostnamed(cloud_init_t)
 systemd_dbus_chat_logind(cloud_init_t)
@@ -111,6 +148,13 @@ systemd_exec_systemctl(cloud_init_t)
 systemd_start_all_services(cloud_init_t)
 
 usermanage_domtrans_passwd(cloud_init_t)
+# domtrans_pattern (misc_patterns.spt) does not grant these -- AVC: denied
+# { noatsecure }/{ rlimitinh }/{ siginh } for comm="cloud-init"/"passwd"
+# scontext=cloud_init_t tcontext=passwd_t
+gen_require(`
+    type passwd_t;
+')
+allow cloud_init_t passwd_t:process { noatsecure rlimitinh siginh };
 
 optional_policy(`
     certmonger_dbus_chat(cloud_init_t)
@@ -130,6 +174,8 @@ optional_policy(`
 
 optional_policy(`
     networkmanager_dbus_chat(cloud_init_t)
+    networkmanager_manage_rw_conf(cloud_init_t)
+    networkmanager_systemctl(cloud_init_t)
 ')
 
 optional_policy(`
@@ -138,6 +184,19 @@ optional_policy(`
 
 optional_policy(`
     fstools_domtrans(cloud_init_t)
+
+    # domtrans_pattern does not grant these -- AVC: denied
+    # { noatsecure }/{ rlimitinh }/{ siginh } for comm="growpart"/"sfdisk"/
+    # "partx"/"blkid" scontext=cloud_init_t tcontext=fsadm_t
+    gen_require(`
+        type fsadm_t;
+    ')
+    allow cloud_init_t fsadm_t:process { noatsecure rlimitinh siginh };
+
+    # growpart (fsadm_t) writes its own scratch/error files into the
+    # cloud-init tmp dir -- AVC: denied { write } for comm="sfdisk" path=
+    # ".../growpart/.../tmp.out" scontext=fsadm_t tcontext=cloud_init_tmp_t
+    allow fsadm_t cloud_init_tmp_t:file write;
 ')
 
 optional_policy(`
@@ -156,12 +215,26 @@ optional_policy(`
     # it check file context and run restorecon
     seutil_read_file_contexts(cloud_init_t)
     seutil_domtrans_setfiles(cloud_init_t)
+    seutil_read_default_contexts(cloud_init_t)
 ')
 
 optional_policy(`
     ssh_read_user_home_files(cloud_init_t)
     ssh_domtrans_keygen(cloud_init_t)
+    ssh_read_server_keys(cloud_init_t)
+    ssh_manage_home_files(cloud_init_t)
+    manage_dirs_pattern(cloud_init_t, ssh_home_t, ssh_home_t)
 
+    # domtrans_pattern does not grant these -- AVC: denied
+    # { noatsecure }/{ rlimitinh }/{ siginh } for comm="write-ssh-key-f"/
+    # "ssh-keygen" scontext=cloud_init_t tcontext=ssh_keygen_t (cloud-init
+    # still runs its ssh_genkeytypes module even with ssh_deletekeys: false,
+    # since that setting only skips deleting existing keys, not generating
+    # missing ones)
+    gen_require(`
+        type ssh_keygen_t;
+    ')
+    allow cloud_init_t ssh_keygen_t:process { noatsecure rlimitinh siginh };
 ')
 
 optional_policy(`
@@ -170,10 +243,56 @@ optional_policy(`
     sysnet_read_dhcpc_state(cloud_init_t)
     sysnet_dns_name_resolve(cloud_init_t)
     sysnet_filetrans_cloud_net_conf(cloud_init_t)
+    sysnet_manage_config(cloud_init_t)
+    sysnet_manage_config_dirs(cloud_init_t)
+    sysnet_manage_config_sockets(cloud_init_t)
+    sysnet_read_dhcpc_pid(cloud_init_t)
+    sysnet_kill_dhcpc(cloud_init_t)
+
+    # domtrans_pattern does not grant these -- AVC: denied
+    # { noatsecure }/{ rlimitinh }/{ siginh } for comm="cloud-init"/"dhcpcd"
+    # scontext=cloud_init_t tcontext=dhcpc_t, and for comm="cloud-init"/"ip"
+    # scontext=cloud_init_t tcontext=ifconfig_t
+    gen_require(`
+        type dhcpc_t, ifconfig_t;
+    ')
+    allow cloud_init_t dhcpc_t:process { noatsecure rlimitinh siginh };
+    allow cloud_init_t ifconfig_t:process { noatsecure rlimitinh siginh };
 ')
 
 optional_policy(`
     rpm_run(cloud_init_t, system_r)
+')
+
+optional_policy(`
+    gen_require(`
+        type udev_t, udev_var_run_t;
+    ')
+
+    udev_exec(cloud_init_t)
+    udev_manage_rules_files(cloud_init_t)
+    stream_connect_pattern(cloud_init_t, udev_var_run_t, udev_var_run_t, udev_t)
+')
+
+optional_policy(`
+    # cloud-init stage shims run as initrc_t and connect to cloud_init_t
+    # sync sockets under /run/cloud-init/share (net_conf_t)
+    gen_require(`
+        type initrc_t, net_conf_t;
+    ')
+
+    stream_connect_pattern(initrc_t, net_conf_t, net_conf_t, cloud_init_t)
+')
+
+optional_policy(`
+    # cloud-init-generator writes its own enablement symlink under
+    # /run/systemd/generator.early/
+    gen_require(`
+        type systemd_generator_unit_file_t;
+    ')
+
+    manage_dirs_pattern(cloud_init_t, systemd_generator_unit_file_t, systemd_generator_unit_file_t)
+    manage_lnk_files_pattern(cloud_init_t, systemd_generator_unit_file_t, systemd_generator_unit_file_t)
 ')
 
 optional_policy(`
