@@ -1321,6 +1321,24 @@ interface(`files_relabel_base_file_types',`
 
 ########################################
 ## <summary>
+##	Mounton all base file types.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_mounton_base_file_types',`
+	gen_require(`
+		attribute base_file_type;
+	')
+
+	allow $1 base_file_type:dir { search_dir_perms mounton };
+	allow $1 base_file_type:file { getattr mounton };
+')
+########################################
+## <summary>
 ##	Read all directories on the filesystem, except
 ##	the listed exceptions.
 ## </summary>
@@ -2639,6 +2657,24 @@ interface(`files_dontaudit_unmount_all_mountpoints',`
 	')
 
 	dontaudit $1 mountpoint:filesystem unmount;
+')
+
+########################################
+## <summary>
+##	Mount, remount, unmount all mountpoint filesystems.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_all_mount_fs_perms_mountpoint_fs',`
+	gen_require(`
+		attribute mountpoint;
+	')
+
+	allow $1 mountpoint:filesystem mount_fs_perms;
 ')
 
 ########################################
@@ -6238,6 +6274,25 @@ interface(`files_read_system_conf_files',`
     allow $1 etc_t:dir list_dir_perms;
     read_files_pattern($1, etc_t, system_conf_t)
     read_lnk_files_pattern($1, etc_t, system_conf_t)
+')
+
+#######################################
+## <summary>
+##	Write manageable system configuration files in /etc
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`files_write_system_conf_files',`
+	gen_require(`
+		type etc_t, system_conf_t;
+	')
+
+	files_search_etc($1)
+	write_files_pattern($1, system_conf_t, system_conf_t)
 ')
 
 #######################################
