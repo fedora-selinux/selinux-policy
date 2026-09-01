@@ -332,6 +332,12 @@ files_pid_file(systemd_oomd_var_run_t)
 systemd_domain_template(systemd_pcrextend)
 systemd_domain_template(systemd_pcrlock)
 
+type systemd_pcrlock_var_lib_t;
+files_type(systemd_pcrlock_var_lib_t);
+
+type systemd_pcrlock_var_run_t;
+files_pid_file(systemd_pcrlock_var_run_t)
+
 # /run/varlink{,/registry}
 type systemd_varlink_t;
 files_pid_file(systemd_varlink_t)
@@ -2105,7 +2111,7 @@ init_named_pid_filetrans(systemd_nsresourced_t, systemd_nsresourced_runtime_t, f
 
 ########################################
 #
-# systemd_pcrextend and systemd_pcrlock local policy
+# systemd_pcrextend local policy
 #
 
 permissive systemd_pcrextend_t;
@@ -2124,7 +2130,36 @@ optional_policy(`
 	logging_write_journal_files(systemd_pcrextend_t)
 ')
 
+########################################
+#
+# systemd_pcrlock local policy
+#
+
+# still keep it permissive for now. Failure to run can prevent booting
 permissive systemd_pcrlock_t;
+
+systemd_pcrlock_manage_var_lib_files(systemd_pcrlock_t)
+systemd_pcrlock_manage_var_lib_dirs(systemd_pcrlock_t)
+
+init_search_var_lib_dirs(systemd_pcrlock_t)
+init_var_lib_filetrans(systemd_pcrlock_t, systemd_pcrlock_var_lib_t, { dir file })
+systemd_pcrlock_filetrans_named_content(systemd_pcrlock_t)
+
+init_delete_pid_dir_entry(systemd_pcrlock_t)
+init_read_pid_files(systemd_pcrlock_t)
+manage_files_pattern(systemd_pcrlock_t, systemd_pcrlock_var_run_t, systemd_pcrlock_var_run_t)
+
+dev_list_sysfs(systemd_pcrlock_t)
+dev_read_sysfs(systemd_pcrlock_t)
+dev_rw_tpm(systemd_pcrlock_t)
+
+# for operations on the EFI partition
+fs_manage_dos_dirs(systemd_pcrlock_t)
+fs_manage_dos_files(systemd_pcrlock_t)
+fs_read_efivarfs_files(systemd_pcrlock_t)
+storage_raw_read_fixed_disk_blk_device(systemd_pcrlock_t)
+
+udev_read_db(systemd_pcrlock_t)
 
 #######################################
 #

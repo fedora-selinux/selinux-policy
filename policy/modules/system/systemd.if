@@ -178,6 +178,24 @@ interface(`systemd_systemctl_entrypoint',`
 
 #######################################
 ## <summary>
+##     Execute pcrlock in its own domain
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`systemd_domtrans_pcrlock',`
+    gen_require(`
+        type systemd_pcrlock_t, systemd_pcrlock_exec_t;
+    ')
+
+    domtrans_pattern($1, systemd_pcrlock_exec_t, systemd_pcrlock_t)
+')
+
+#######################################
+## <summary>
 ##	Execute systemctl in the specified domain
 ## </summary>
 ## <param name="domain">
@@ -978,6 +996,24 @@ interface(`systemd_passwd_agent_exec',`
 	systemd_manage_passwd_run($1)
 ')
 
+#######################################
+## <summary>
+##  Allow a domain to execute pcrlock in the caller domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`systemd_pcrlock_exec',`
+    gen_require(`
+        type systemd_pcrlock_exec_t;
+    ')
+
+    can_exec($1,systemd_pcrlock_exec_t)
+')
+
 ########################################
 ## <summary>
 ##	Execute a domain transition to run systemd_rfkill.
@@ -1438,6 +1474,42 @@ interface(`systemd_passwd_agent_dev_template',`
         allow systemd_passwd_agent_t $1_t:unix_dgram_socket sendto;
 	allow systemd_passwd_agent_t systemd_$1_device_t:sock_file write;
         allow systemd_passwd_agent_t systemd_$1_device_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##     Manage pcrlock /var/lib files
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`systemd_pcrlock_manage_var_lib_files',`
+    gen_require(`
+       type systemd_pcrlock_var_lib_t;
+    ')
+
+    manage_files_pattern($1, systemd_pcrlock_var_lib_t, systemd_pcrlock_var_lib_t)
+')
+
+########################################
+## <summary>
+##     Manage pcrlock /var/lib dirs
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`systemd_pcrlock_manage_var_lib_dirs',`
+    gen_require(`
+       type systemd_pcrlock_var_lib_t;
+    ')
+
+    manage_dirs_pattern($1, systemd_pcrlock_var_lib_t, systemd_pcrlock_var_lib_t)
 ')
 
 ########################################
@@ -1985,6 +2057,24 @@ interface(`systemd_filetrans_named_content',`
 	files_etc_filetrans($1, hostname_etc_t, file, "hostname" )
 	files_etc_filetrans($1, hostname_etc_t, file, "machine-info" )
 	init_var_lib_filetrans($1, systemd_rfkill_var_lib_t, dir, "rfkill" )
+')
+
+########################################
+## <summary>
+##	Transition to systemd pcrlock named content
+## </summary>
+## <param name="domain">
+##	<summary>
+##      Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_pcrlock_filetrans_named_content',`
+	gen_require(`
+		type systemd_pcrlock_var_lib_t;
+	')
+	# Needed when /var/lib/pcrlock.d gets unlinked and recreated
+	files_var_lib_filetrans($1, systemd_pcrlock_var_lib_t, { dir file }, "pcrlock.d")
 ')
 
 ########################################
