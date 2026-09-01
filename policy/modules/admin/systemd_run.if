@@ -1,0 +1,301 @@
+## <summary>Execute a command with a substitute user (systemd-run, run0)</summary>
+## <desc>
+##	<p>
+##	run0 is a symlink to systemd-run. Session policy uses type systemd_run_t
+##	(see systemd_run.te) for the PAM stack (e.g. systemd-run0). With
+##	pam_selinux.so, ordered contexts should prefer systemd_run_t over the
+##	interactive user domain (e.g. unconfined_t) so RPM clients (dnf) are covered
+##	by rpm_domtrans(systemd_run_t) in this module instead of requiring broad
+##	entrypoint access on user domains.
+##	</p>
+##	<p>
+##	To build only this module with selinux-policy-devel, use a directory that
+##	contains systemd_run.te, systemd_run.if, and systemd_run.fc only. Do not add
+##	copies of other modules' .if files there; they duplicate
+##	/usr/share/selinux/devel/include and cause M4 duplicate definition warnings.
+##	</p>
+## </desc>
+
+#######################################
+## <summary>
+##	The role template for the systemd_run module.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domain which is allowed
+##	to change the linux user id, to run commands as a different
+##	user.
+##	</p>
+## </desc>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The user role.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The user domain associated with the role.
+##	</summary>
+## </param>
+#
+template(`systemd_run_role_template',`
+
+	gen_require(`
+		type systemd_run_exec_t;
+		type systemd_run_db_t;
+		attribute systemd_rundomain;
+	')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type $1_systemd_run_t, systemd_rundomain;
+	userdom_user_application_domain($1_systemd_run_t, systemd_run_exec_t)
+	domain_interactive_fd($1_systemd_run_t)
+	domain_role_change_exemption($1_systemd_run_t)
+	role $2 types $1_systemd_run_t;
+	userdom_home_manager($1_systemd_run_t)
+
+	type $1_systemd_run_tmp_t;
+	files_tmp_file($1_systemd_run_tmp_t)
+
+	allow $1_systemd_run_t $1_systemd_run_tmp_t:file manage_file_perms;
+	files_tmp_filetrans($1_systemd_run_t, $1_systemd_run_tmp_t, file)
+
+	allow $1_systemd_run_t $3:process getpgid;
+	allow $1_systemd_run_t $3:dir search_dir_perms;
+	allow $1_systemd_run_t $3:file read_file_perms;
+	allow $1_systemd_run_t $3:key search;
+
+	allow $1_systemd_run_t $1_t:unix_stream_socket { getattr connectto ioctl read write };
+
+	# Enter this derived domain from the user domain
+	domtrans_pattern($3, systemd_run_exec_t, $1_systemd_run_t)
+
+	# By default, revert to the calling domain when a shell is executed.
+	corecmd_shell_domtrans($1_systemd_run_t, $3)
+	corecmd_bin_domtrans($1_systemd_run_t, $3)
+	userdom_domtrans_user_home($1_systemd_run_t, $3)
+	userdom_domtrans_user_tmp($1_systemd_run_t, $3)
+	domain_entry_file($3, systemd_run_exec_t)
+	domain_auto_transition_pattern($1_systemd_run_t, systemd_run_exec_t, $3)
+
+	allow $3 $1_systemd_run_t:fd use;
+	allow $3 $1_systemd_run_t:fifo_file rw_fifo_file_perms;
+	allow $3 $1_systemd_run_t:process signal_perms;
+
+	kernel_read_system_state($1_systemd_run_t)
+	seutil_libselinux_linked($1_systemd_run_t)
+
+	auth_run_chk_passwd($1_systemd_run_t, $2)
+	auth_use_nsswitch($1_systemd_run_t)
+
+	logging_send_syslog_msg($1_systemd_run_t)
+	logging_read_syslog_pid($1_systemd_run_t)
+
+	term_use_generic_ptys($1_systemd_run_t)
+	term_setattr_generic_ptys($1_systemd_run_t)
+
+	optional_policy(`
+		dmidecode_domtrans($1_systemd_run_t)
+	')
+
+	optional_policy(`
+		iotop_domtrans($1_systemd_run_t)
+	')
+
+	optional_policy(`
+		kerberos_manage_host_rcache($1_systemd_run_t)
+		kerberos_read_config($1_systemd_run_t)
+	')
+
+	optional_policy(`
+		mta_role($2, $1_systemd_run_t)
+	')
+
+	optional_policy(`
+		netutils_domtrans($1_systemd_run_t)
+		netutils_run_traceroute($1_systemd_run_t, $2)
+	')
+
+	optional_policy(`
+		rpm_run($1_systemd_run_t, $2)
+	')
+
+	optional_policy(`
+		ssh_agent_stream_connect($1_systemd_run_t)
+	')
+
+	optional_policy(`
+		systemd_domtrans_systemctl($1_systemd_run_t, $3)
+		systemd_logind_stream_connect($1_systemd_run_t)
+		systemd_systemctl_entrypoint($3)
+	')
+
+	optional_policy(`
+		userdom_write_user_tmp_sockets($1_systemd_run_t)
+	')
+
+	optional_policy(`
+		usermanage_domtrans_passwd($1_systemd_run_t)
+	')
+')
+
+#######################################
+## <summary>
+##  Allow execute systemd-run in called domain.
+##  This interfaces is added for nova-stack policy.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`systemd_run_exec',`
+	gen_require(`
+		type systemd_run_exec_t;
+	')
+
+	can_exec($1, systemd_run_exec_t)
+')
+
+########################################
+## <summary>
+## 	Transition to systemd-run log named content
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`systemd_run_filetrans_named_content_log',`
+	gen_require(`
+		type systemd_run_log_t;
+	')
+
+	logging_log_filetrans($1, systemd_run_log_t, file, "systemd-run.log")
+	logging_log_filetrans($1, systemd_run_log_t, dir, "systemd-run-io")
+')
+
+########################################
+## <summary>
+##	Allow init to transition into systemd_run domain for run0.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Target systemd_run domain.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_init_transition',`
+	gen_require(`
+		type init_t;
+		class passwd { passwd rootok };
+	')
+
+	domain_auto_transition_pattern(init_t, systemd_run_exec_t, $1)
+	allow init_t $1:key { create write };
+	allow init_t $1:process dyntransition;
+	allow init_t self:process setexec;
+')
+
+######################################
+## <summary>
+##  Allow to manage systemd-run database in called domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`systemd_run_manage_db',`
+	gen_require(`
+		type systemd_run_db_t;
+	')
+
+	manage_dirs_pattern($1, systemd_run_db_t, systemd_run_db_t)
+	manage_files_pattern($1, systemd_run_db_t, systemd_run_db_t)
+')
+
+########################################
+## <summary>
+##	Read systemd ask-password FIFO files in /run.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_read_passwd_run_fifo',`
+	gen_require(`
+		type systemd_passwd_var_run_t;
+	')
+
+	allow $1 systemd_passwd_var_run_t:fifo_file read_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to the systemd_run domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_sigchld',`
+	gen_require(`
+		attribute systemd_rundomain;
+	')
+
+	allow $1 systemd_rundomain:process sigchld;
+')
+
+########################################
+## <summary>
+##	Allow the given type in system_r for systemd_run sessions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be assigned to system_r.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_system_role',`
+	gen_require(`
+		role system_r;
+	')
+
+	role system_r types $1;
+')
+
+########################################
+## <summary>
+##	Allow the given type in unconfined_r for systemd_run sessions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be assigned to unconfined_r.
+##	</summary>
+## </param>
+#
+interface(`systemd_run_unconfined_role',`
+	gen_require(`
+		role unconfined_r;
+	')
+
+	role unconfined_r types $1;
+')
