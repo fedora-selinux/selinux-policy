@@ -66,6 +66,8 @@ systemd_domain_template(systemd_coredump)
 type systemd_coredump_tmpfs_t;
 files_tmpfs_file(systemd_coredump_tmpfs_t)
 
+attribute systemd_coredump_socket_type;
+
 type systemd_coredump_var_lib_t;
 files_type(systemd_coredump_var_lib_t)
 
@@ -1359,8 +1361,13 @@ allow systemd_coredump_t self:process setcap;
 allow systemd_coredump_t self:unix_stream_socket connectto;
 allow systemd_coredump_t self:user_namespace create;
 
+allow systemd_coredump_t systemd_coredump_tmpfs_t:sock_file write;
+
 manage_files_pattern(systemd_coredump_t, systemd_coredump_tmpfs_t, systemd_coredump_tmpfs_t)
 fs_tmpfs_filetrans(systemd_coredump_t, systemd_coredump_tmpfs_t, file )
+
+fs_tmpfs_filetrans(systemd_coredump_socket_type, systemd_coredump_tmpfs_t, sock_file, "coredump")
+userdom_user_tmp_filetrans(systemd_coredump_socket_type, systemd_coredump_tmpfs_t, sock_file, "coredump")
 
 manage_dirs_pattern(systemd_coredump_t, systemd_coredump_var_lib_t, systemd_coredump_var_lib_t)
 manage_files_pattern(systemd_coredump_t, systemd_coredump_var_lib_t, systemd_coredump_var_lib_t)
