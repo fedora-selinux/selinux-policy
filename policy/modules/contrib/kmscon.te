@@ -52,6 +52,75 @@ kernel_read_system_state(kmscon_t)
 
 auth_read_passwd(kmscon_t)
 
+# kmscon can also start initial-setup script instead of /sbin/login
+
+# Certificates
+list_dirs_pattern(kmscon_t, cert_t, cert_t)
+read_files_pattern(kmscon_t, cert_t, cert_t)
+
+# System Contexts
+read_files_pattern(kmscon_t, default_context_t, default_context_t)
+read_files_pattern(kmscon_t, file_context_t, file_context_t)
+
+# Network Configuration (Files & Symlinks)
+read_files_pattern(kmscon_t, net_conf_t, net_conf_t)
+read_lnk_files_pattern(kmscon_t, net_conf_t, net_conf_t)
+
+# Temporary Files
+manage_dirs_pattern(kmscon_t, tmp_t, tmp_t)
+manage_files_pattern(kmscon_t, tmp_t, tmp_t)
+manage_sock_files_pattern(kmscon_t, tmp_t, tmp_t)
+
+# Runtime PID / Socket Files
+manage_dirs_pattern(kmscon_t, var_run_t, var_run_t)
+manage_files_pattern(kmscon_t, var_run_t, var_run_t)
+
+allow kmscon_t NetworkManager_t:dbus send_msg;
+allow kmscon_t systemd_hostnamed_t:dbus send_msg;
+allow kmscon_t init_t:process signal;
+allow kmscon_t init_t:system { reload status };
+
+allow kmscon_t { chronyd_exec_t dbusd_exec_t hwclock_exec_t ldconfig_exec_t passwd_exec_t }:file { execute execute_no_trans open read map };
+
+allow kmscon_t adjtime_t:file { getattr open read write };
+allow kmscon_t clock_device_t:chr_file { ioctl open read };
+allow kmscon_t kernel_t:unix_dgram_socket sendto;
+allow kmscon_t kernel_t:unix_stream_socket connectto;
+allow kmscon_t security_t:dir read;
+allow kmscon_t security_t:file { map write };
+allow kmscon_t security_t:security compute_av;
+
+allow kmscon_t etc_t:dir { add_name remove_name write };
+allow kmscon_t etc_t:file { create link unlink write };
+allow kmscon_t etc_t:lnk_file { create unlink };
+allow kmscon_t hostname_etc_t:file { getattr open write };
+allow kmscon_t locale_t:file write;
+allow kmscon_t passwd_file_t:file write;
+allow kmscon_t shadow_t:file { create getattr open read rename setattr unlink write };
+allow kmscon_t xserver_etc_t:dir getattr;
+
+allow kmscon_t devlog_t:lnk_file read;
+allow kmscon_t devlog_t:sock_file write;
+allow kmscon_t syslogd_var_run_t:dir search;
+allow kmscon_t syslogd_var_run_t:sock_file write;
+allow kmscon_t systemd_unit_file_t:lnk_file read;
+allow kmscon_t systemd_unit_file_t:service status;
+
+allow kmscon_t admin_home_t:file { getattr open read write };
+allow kmscon_t usr_t:dir watch;
+
+allow kmscon_t self:capability { audit_write dac_override setgid setuid sys_time };
+allow kmscon_t self:dbus acquire_svc;
+allow kmscon_t self:netlink_audit_socket { create nlmsg_relay };
+allow kmscon_t self:netlink_route_socket { bind create getattr nlmsg_read };
+allow kmscon_t self:netlink_selinux_socket { bind create };
+allow kmscon_t self:passwd { passwd rootok };
+allow kmscon_t self:process { setcap setfscreate };
+allow kmscon_t self:tcp_socket { bind create };
+allow kmscon_t self:udp_socket { connect create getattr setopt };
+allow kmscon_t self:unix_dgram_socket { connect create getopt setopt };
+allow kmscon_t self:unix_stream_socket connectto;
+
 # because it is a shell script https://github.com/Aetf/kmscon/pull/7/files
 corecmd_exec_shell(kmscon_t)
 # for dbus-send in the shell script
