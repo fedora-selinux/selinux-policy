@@ -370,14 +370,6 @@ Anonymous inode.
 
 ---
 
-## class socket
-
-Socket that is not part of any other specific SELinux socket object class.
-
-*inherits socket*
-
----
-
 ## class tcp\_socket
 
 Protocol: PF\_INET, PF\_INET6 Family Type:SOCK\_STREAM
