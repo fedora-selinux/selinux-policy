@@ -1,3 +1,4 @@
+[DO NOT MERGE]
 # Fedora SELinux policy
 
 This is SELinux policy based on [refpolicy](https://github.com/SELinuxProject/refpolicy) used in Fedora, Red Hat Enterprise Linux and CentOS Stream.
