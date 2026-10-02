@@ -1,0 +1,62 @@
+policy_module(hg, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+## <desc>
+##	<p>
+##	Determine whether Mercurial CGI
+##	can access cifs file systems.
+##	</p>
+## </desc>
+gen_tunable(hg_cgi_use_cifs, false)
+
+## <desc>
+##	<p>
+##	Determine whether Mercurial CGI
+##	can access nfs file systems.
+##	</p>
+## </desc>
+gen_tunable(hg_cgi_use_nfs, false)
+
+########################################
+#
+# CGI policy
+#
+
+optional_policy(`
+	apache_content_template(hg)
+	apache_content_alias_template(hg, hg)
+
+	list_dirs_pattern(hg_script_t, hg_content_t, hg_content_t)
+	read_files_pattern(hg_script_t, hg_content_t, hg_content_t)
+
+	auth_use_nsswitch(hg_script_t)
+
+	dev_read_sysfs(hg_script_t)
+
+	apache_search_config(hg_script_t)
+	apache_list_sys_scripts(hg_script_t)
+
+	kernel_dgram_send(hg_script_t)
+	optional_policy(`
+		abrt_stream_connect(hg_script_t)
+		logging_write_syslog_pid_socket(hg_script_t)
+	')
+
+	tunable_policy(`hg_cgi_use_cifs',`
+		fs_getattr_cifs(hg_script_t)
+		fs_read_cifs_files(hg_script_t)
+	',`
+		fs_dontaudit_read_cifs_files(hg_script_t)
+	')
+
+	tunable_policy(`hg_cgi_use_nfs',`
+		fs_getattr_nfs(hg_script_t)
+		fs_read_nfs_files(hg_script_t)
+	',`
+		fs_dontaudit_read_nfs_files(hg_script_t)
+	')
+')
