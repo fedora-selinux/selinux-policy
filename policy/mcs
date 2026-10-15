@@ -1,8 +1,10 @@
 ifdef(`enable_mcs',`
-default_range dir_file_class_set target low;
+
+define(`mcs_file_like_class_set', `{ dir file lnk_file chr_file blk_file sock_file fifo_file anon_inode }')
+define(`mcs_socket_class_set', `{ socket tcp_socket udp_socket rawip_socket netlink_socket packet_socket key_socket unix_stream_socket unix_dgram_socket netlink_route_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_dnrt_socket appletalk_socket dccp_socket tun_socket netlink_iscsi_socket netlink_fib_lookup_socket netlink_connector_socket netlink_netfilter_socket netlink_generic_socket netlink_scsitransport_socket netlink_rdma_socket netlink_crypto_socket sctp_socket icmp_socket ax25_socket ipx_socket netrom_socket atmpvc_socket x25_socket rose_socket decnet_socket atmsvc_socket rds_socket irda_socket pppox_socket llc_socket can_socket tipc_socket bluetooth_socket iucv_socket rxrpc_socket isdn_socket phonet_socket ieee802154_socket caif_socket alg_socket nfc_socket vsock_socket kcm_socket qipcrtr_socket smc_socket xdp_socket mctp_socket }')
 
 #
-# Define sensitivities 
+# Define sensitivities
 #
 # MCS is single-sensitivity.
 
@@ -70,63 +72,119 @@ gen_levels(1,mcs_num_cats)
 #  - getattr on dirs/files is not constrained.
 #  - /proc/pid operations are not constrained.
 
-mlsconstrain file { read ioctl lock execute execute_no_trans }
+mlsconstrain mcs_file_like_class_set { open read ioctl lock write setattr append create unlink link rename relabelfrom relabelto map watch watch_mount watch_sb watch_with_perm watch_reads watch_mountns }
 	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
-mlsconstrain file { write setattr append unlink link rename }
+mlsconstrain { file } { execute execute_no_trans entrypoint }
 	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
-mlsconstrain dir { search read ioctl lock }
+mlsconstrain anon_inode execute
 	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
-mlsconstrain dir { write setattr append unlink link rename add_name remove_name }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain fifo_file { open }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain { lnk_file chr_file blk_file sock_file } { getattr read ioctl }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain { lnk_file chr_file blk_file sock_file } { write setattr }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain key { create link read search setattr view write }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain { ipc sem msgq shm } { create destroy setattr write unix_write }
+mlsconstrain dir { search add_name remove_name rmdir }
 	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
 # New filesystem object labels must be dominated by the relabeling subject
 # clearance, also the objects are single-level.
-mlsconstrain file { create relabelto }
+mlsconstrain { file lnk_file fifo_file anon_inode } { create relabelto }
 	((( h1 dom h2 ) and ( l2 eq h2 )) or
 	 ( t1 != mcs_constrained_type ));
 
-# new file labels must be dominated by the relabeling subject clearance
-mlsconstrain { dir file lnk_file chr_file blk_file sock_file fifo_file } { relabelfrom }
+#
+# MCS policy for process classes
+#
+mlsconstrain process { transition dyntransition ptrace sigkill sigstop signull signal getsession getattr getsched setsched getrlimit setrlimit getpgid setpgid getcap setcap share setexec setfscreate setkeycreate setcurrent setsockcreate }
 	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
-mlsconstrain { file lnk_file fifo_file } { create relabelto }
-	(( l2 eq h2 )  or ( t1 != mcs_constrained_type ));
-
-mlsconstrain { dir file lnk_file chr_file blk_file sock_file fifo_file } { create relabelto }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain process { transition dyntransition }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain process { ptrace }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain process { sigkill sigstop }
-	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
-
-mlsconstrain process { signal }
+#
+# MCS policy for socket classes
+#
+mlsconstrain mcs_socket_class_set { create ioctl read write setattr relabelfrom relabelto append bind connect listen accept getopt setopt shutdown map }
 	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
 mlsconstrain { tcp_socket udp_socket rawip_socket sctp_socket } node_bind
 	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain unix_stream_socket connectto
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain unix_dgram_socket sendto
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+
+#
+# MCS policy for the binder class
+#
+mlsconstrain binder { impersonate call set_context_mgr transfer }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+#
+# MCS policy for the bpf class
+#
+mlsconstrain bpf { map_read map_write prog_run }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+#
+# MCS policy for the perf_event class
+#
+mlsconstrain perf_event { read write }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+
+#
+# MCS policy for the io_uring class
+#
+mlsconstrain io_uring { override_creds cmd }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+
+
+#
+# MCS policy for key class
+#
+mlsconstrain key { create link read search setattr view write }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+#
+# MCS policy for SysV IPC
+#
+mlsconstrain { ipc sem msgq shm } { create destroy setattr read unix_read write unix_write }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain msg { send receive }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain msgq enqueue
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain shm lock
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+#
+# MCS policy for context class
+#
+mlsconstrain context contains
+	((( h1 dom h2 ) and ( l1 domby l2 )) or ( t1 != mcs_constrained_type ));
+
+#
+# MCS policy for network classes
+#
+
+# The node recvfrom/sendto ops, the recvfrom permission is a "write" operation
+# because the subject in this particular case is the remote domain which is
+# writing data out the network node which is acting as the object
+mlsconstrain { node } { recvfrom sendto }
+	(( l1 dom l2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain { packet peer } { recv }
+	(( l1 dom l2 ) or
+	 (( t1 != mcs_constrained_type ) and ( t2 != mcs_constrained_type )));
+
+# The netif ingress/egress ops, the ingress permission is a "write" operation
+# because the subject in this particular case is the remote domain which is
+# writing data out the network interface which is acting as the object
+mlsconstrain { netif } { egress ingress }
+	(( l1 dom l2 ) or ( t1 != mcs_constrained_type ));
 
 #
 # MCS policy for SELinux-enabled databases
@@ -135,62 +193,43 @@ mlsconstrain { tcp_socket udp_socket rawip_socket sctp_socket } node_bind
 # Any database object must be dominated by the relabeling subject
 # clearance, also the objects are single-level.
 mlsconstrain { db_database db_schema db_table db_sequence db_view db_procedure db_language db_column db_blob } { create relabelto }
-	(( h1 dom h2 ) and ( l2 eq h2 ));
+	((( h1 dom h2 ) and ( l2 eq h2 )) or ( t1 != mcs_constrained_type ));
 
 mlsconstrain { db_tuple } { insert relabelto }
-	(( h1 dom h2 ) and ( l2 eq h2 ));
-
-mlsconstrain context contains
-	(( h1 dom h2 ) and ( l1 domby l2));
+	((( h1 dom h2 ) and ( l2 eq h2 )) or ( t1 != mcs_constrained_type ));
 
 # Access control for any database objects based on MCS rules.
 mlsconstrain db_database { drop getattr setattr relabelfrom access install_module load_module get_param set_param }
-	( h1 dom h2 );
-
-mlsconstrain db_schema { drop getattr setattr relabelfrom search }
-	( h1 dom h2 );
-
-mlsconstrain db_table { drop getattr setattr relabelfrom select update insert delete lock }
-	( h1 dom h2 );
-
-mlsconstrain db_column { drop getattr setattr relabelfrom select update insert }
-	( h1 dom h2 );
-
-mlsconstrain db_tuple { relabelfrom select update delete use }
-	( h1 dom h2 );
-
-mlsconstrain db_sequence { drop getattr setattr relabelfrom get_value next_value set_value }
-	( h1 dom h2 );
-
-mlsconstrain db_view { drop getattr setattr relabelfrom expand }
-	( h1 dom h2 );
-
-mlsconstrain db_procedure { drop getattr setattr relabelfrom execute install entrypoint }
-	( h1 dom h2 );
-
-mlsconstrain db_language { drop getattr setattr relabelfrom execute }
-	( h1 dom h2 );
-
-mlsconstrain db_blob { drop getattr setattr relabelfrom read write import export }
-	( h1 dom h2 );
-
-mlsconstrain { tcp_socket udp_socket rawip_socket } node_bind
 	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
-# the node recvfrom/sendto ops, the recvfrom permission is a "write" operation
-# because the subject in this particular case is the remote domain which is
-# writing data out the network node which is acting as the object
-mlsconstrain { node } { recvfrom sendto }
-	(( l1 dom l2 ) or (t1 != mcs_constrained_type));
+mlsconstrain db_schema { drop getattr setattr relabelfrom search add_name remove_name }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
-mlsconstrain { packet peer } { recv }
-	(( l1 dom l2 ) or
-	 ((t1 != mcs_constrained_type) and (t2 != mcs_constrained_type)));
+mlsconstrain db_table { drop getattr setattr relabelfrom select update insert delete lock }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
-# the netif ingress/egress ops, the ingress permission is a "write" operation
-# because the subject in this particular case is the remote domain which is
-# writing data out the network interface which is acting as the object
-mlsconstrain { netif } { egress ingress }
-	     	(( l1 dom l2 ) or (t1 != mcs_constrained_type));
+mlsconstrain db_column { drop getattr setattr relabelfrom select update insert }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
 
+mlsconstrain db_tuple { relabelfrom select update delete use }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain db_sequence { drop getattr setattr relabelfrom get_value next_value set_value }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain db_view { drop getattr setattr relabelfrom expand }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain db_procedure { drop getattr setattr relabelfrom execute install entrypoint }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+mlsconstrain db_language { drop getattr setattr relabelfrom implement execute }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+
+mlsconstrain db_blob { drop getattr setattr relabelfrom read write import export }
+	(( h1 dom h2 ) or ( t1 != mcs_constrained_type ));
+
+undefine(`mcs_file_like_class_set')
+undefine(`mcs_socket_class_set')
 ') dnl end enable_mcs

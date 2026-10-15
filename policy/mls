@@ -1,8 +1,12 @@
 ifdef(`enable_mls',`
+
+define(`mls_file_like_class_set', `{ dir file lnk_file chr_file blk_file sock_file fifo_file anon_inode }')
+define(`mls_socket_class_set', `{ socket tcp_socket udp_socket rawip_socket netlink_socket packet_socket key_socket unix_stream_socket unix_dgram_socket netlink_route_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_dnrt_socket appletalk_socket dccp_socket tun_socket netlink_iscsi_socket netlink_fib_lookup_socket netlink_connector_socket netlink_netfilter_socket netlink_generic_socket netlink_scsitransport_socket netlink_rdma_socket netlink_crypto_socket sctp_socket icmp_socket ax25_socket ipx_socket netrom_socket atmpvc_socket x25_socket rose_socket decnet_socket atmsvc_socket rds_socket irda_socket pppox_socket llc_socket can_socket tipc_socket bluetooth_socket iucv_socket rxrpc_socket isdn_socket phonet_socket ieee802154_socket caif_socket alg_socket nfc_socket vsock_socket kcm_socket qipcrtr_socket smc_socket xdp_socket mctp_socket }')
+
 #
-# Define sensitivities 
+# Define sensitivities
 #
-# Domination of sensitivities is in increasin
+# Domination of sensitivities is in increasing
 # numerical order, with s0 being the lowest
 
 gen_sens(mls_num_sens)
@@ -65,17 +69,16 @@ gen_levels(mls_num_sens,mls_num_cats)
 #
 
 # make sure these file classes are "single level"
-mlsconstrain { file lnk_file fifo_file } { create relabelto }
+mlsconstrain { file lnk_file fifo_file anon_inode } { create relabelto }
 	( l2 eq h2 );
 
 # new file labels must be dominated by the relabeling subjects clearance
-mlsconstrain { dir file lnk_file chr_file blk_file sock_file fifo_file } relabelto
+mlsconstrain mls_file_like_class_set relabelto
 	(( h1 dom h2 ) or
-	(( t1 == mlsfilerelabeltoclr ) and ( h1 dom l2 )) or
-	( t1 == mlsfilewrite ));
+	(( t1 == mlsfilerelabeltoclr ) and ( h1 dom l2 )));
 
 # the file "read" ops (note the check is dominance of the low level)
-mlsconstrain { dir file lnk_file chr_file blk_file sock_file fifo_file } { read getattr execute }
+mlsconstrain mls_file_like_class_set { read getattr execute watch watch_mount watch_sb watch_with_perm watch_reads watch_mountns }
 	(( l1 dom l2 ) or
 	 (( t1 == mlsfilereadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsfileread ) or
@@ -88,7 +91,7 @@ mlsconstrain dir search
 	 ( t2 == mlstrustedobject ));
 
 # the "single level" file "write" ops
-mlsconstrain { file lnk_file fifo_file dir chr_file blk_file sock_file } { write create setattr relabelfrom append unlink link rename mounton }
+mlsconstrain mls_file_like_class_set { write create setattr relabelfrom append unlink link rename mounton }
 	(( l1 eq l2 ) or
 	 (( t1 == mlsfilewritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
 	 (( t2 == mlsfilewriteinrange ) and ( l1 dom l2 ) and ( h1 domby h2 )) or
@@ -104,12 +107,13 @@ mlsconstrain dir { add_name remove_name reparent rmdir }
 	 ( t2 == mlstrustedobject ));
 
 # these access vectors have no MLS restrictions
-# { dir file lnk_file chr_file blk_file sock_file fifo_file } { ioctl lock swapon quotaon }
+# mls_file_like_class_set { ioctl lock quotaon }
 #
-# { file chr_file } { execute_no_trans entrypoint execmod }
+# { file } { execute_no_trans entrypoint execmod }
+# { chr_file } { execmod }
 
 # the file upgrade/downgrade rule
-mlsvalidatetrans { dir file lnk_file chr_file blk_file sock_file fifo_file }
+mlsvalidatetrans mls_file_like_class_set
 	((( l1 eq l2 ) or
 	  (( t3 == mlsfileupgrade ) and ( l1 domby l2 )) or
 	  (( t3 == mlsfiledowngrade ) and ( l1 dom l2 )) or
@@ -122,7 +126,7 @@ mlsvalidatetrans { dir file lnk_file chr_file blk_file sock_file fifo_file }
 # create can also require the upgrade/downgrade checks if the creating process
 # has used setfscreate (note that both the high and low level of the object
 # default to the process sensitivity level)
-mlsconstrain { dir file lnk_file chr_file blk_file sock_file fifo_file } create
+mlsconstrain mls_file_like_class_set create
 	((( l1 eq l2 ) or
 	  (( t1 == mlsfileupgrade ) and ( l1 domby l2 )) or
 	  (( t1 == mlsfiledowngrade ) and ( l1 dom l2 )) or
@@ -144,7 +148,7 @@ mlsconstrain filesystem relabelto
 	( h1 dom h2 );
 
 # the filesystem "read" ops (implicit single level)
-mlsconstrain filesystem { getattr quotaget }
+mlsconstrain filesystem { getattr quotaget watch }
 	(( l1 dom l2 ) or
 	 (( t1 == mlsfilereadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsfileread ));
@@ -156,20 +160,23 @@ mlsconstrain filesystem { mount remount unmount relabelfrom quotamod }
 	 ( t1 == mlsfilewrite ));
 
 # these access vectors have no MLS restrictions
-# filesystem { transition associate }
+# filesystem { associate }
+
+
+
 
 #
 # MLS policy for the socket classes
 #
 
 # new socket labels must be dominated by the relabeling subjects clearance
-mlsconstrain { socket tcp_socket udp_socket rawip_socket netlink_socket packet_socket key_socket unix_stream_socket unix_dgram_socket netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_ip6fw_socket netlink_dnrt_socket netlink_iscsi_socket netlink_fib_lookup_socket netlink_connector_socket netlink_netfilter_socket netlink_generic_socket netlink_scsitransport_socket netlink_rdma_socket netlink_crypto_socket sctp_socket } relabelto
+mlsconstrain mls_socket_class_set relabelto
 	( h1 dom h2 );
 
 # the socket "read+write" ops
 # (Socket FDs are generally bidirectional, equivalent to open(..., O_RDWR),
 # require equal levels for unprivileged subjects, or read *and* write overrides)
-mlsconstrain { socket tcp_socket udp_socket rawip_socket netlink_socket packet_socket key_socket unix_stream_socket unix_dgram_socket netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_ip6fw_socket netlink_dnrt_socket sctp_socket } { accept connect }
+mlsconstrain mls_socket_class_set { accept connect }
 	(( l1 eq l2 ) or
 	 (((( t1 == mlsnetreadtoclr ) and ( h1 dom l2 )) or
 	   ( t1 == mlsnetread )) and
@@ -179,23 +186,22 @@ mlsconstrain { socket tcp_socket udp_socket rawip_socket netlink_socket packet_s
 
 
 # the socket "read" ops (note the check is dominance of the low level)
-mlsconstrain { socket tcp_socket udp_socket rawip_socket netlink_socket packet_socket key_socket unix_stream_socket unix_dgram_socket netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_ip6fw_socket netlink_dnrt_socket netlink_iscsi_socket netlink_fib_lookup_socket netlink_connector_socket netlink_netfilter_socket netlink_generic_socket netlink_scsitransport_socket netlink_rdma_socket netlink_crypto_socket sctp_socket } { read getattr listen accept getopt recv_msg }
+mlsconstrain mls_socket_class_set { read getattr listen accept getopt map }
 	(( l1 dom l2 ) or
 	 (( t1 == mlsnetreadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsnetread ));
 
-mlsconstrain { netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_xfrm_socket netlink_audit_socket netlink_ip6fw_socket } nlmsg_read
+mlsconstrain { netlink_route_socket netlink_tcpdiag_socket netlink_xfrm_socket netlink_audit_socket } nlmsg_read
 	(( l1 dom l2 ) or
 	 (( t1 == mlsnetreadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsnetread ));
 
 # the socket "write" ops
-mlsconstrain { socket tcp_socket udp_socket rawip_socket netlink_socket packet_socket key_socket unix_stream_socket unix_dgram_socket netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_ip6fw_socket netlink_dnrt_socket netlink_iscsi_socket netlink_fib_lookup_socket netlink_connector_socket netlink_netfilter_socket netlink_generic_socket netlink_scsitransport_socket netlink_rdma_socket netlink_crypto_socket sctp_socket } { write setattr relabelfrom connect setopt shutdown }
-	(( l1 eq l2 ) or 
+mlsconstrain mls_socket_class_set { write setattr relabelfrom append connect setopt shutdown }
+	(( l1 eq l2 ) or
 	 (( t1 == mlsnetwriteranged ) and ( l1 dom l2 ) and ( l1 domby h2 )) or
 	 (( t1 == mlsnetwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
-	 ( t1 == mlsnetwrite ) or
-	 ( t2 == mlstrustedobject ));
+	 ( t1 == mlsnetwrite ));
 
 # used by netlabel to restrict normal domains to same level connections
 mlsconstrain { tcp_socket udp_socket rawip_socket sctp_socket } recvfrom
@@ -205,29 +211,28 @@ mlsconstrain { tcp_socket udp_socket rawip_socket sctp_socket } recvfrom
 
 # UNIX domain socket ops
 mlsconstrain unix_stream_socket connectto
-	(( l1 eq l2 ) or 
+	(( l1 eq l2 ) or
 	 (( t1 == mlsnetwriteranged ) and ( l1 dom l2 ) and ( l1 domby h2 )) or
 	 (( t1 == mlsnetwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
 	 ( t1 == mlsnetwrite ) or
 	 ( t2 == mlstrustedobject ));
 
 mlsconstrain unix_dgram_socket sendto
-	(( l1 eq l2 ) or 
+	(( l1 eq l2 ) or
 	 (( t1 == mlsnetwriteranged ) and ( l1 dom l2 ) and ( l1 domby h2 )) or
 	 (( t1 == mlsnetwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
 	 ( t1 == mlsnetwrite ) or
 	 ( t2 == mlstrustedobject ));
 
 # these access vectors have no MLS restrictions
-# { socket tcp_socket udp_socket rawip_socket netlink_socket packet_socket key_socket unix_stream_socket unix_dgram_socket netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket netlink_xfrm_socket netlink_selinux_socket netlink_audit_socket netlink_ip6fw_socket netlink_dnrt_socket sctp_socket } { ioctl create lock append bind sendto send_msg name_bind }
+# mls_socket_class_set { ioctl lock bind sendto name_bind }
+
 #
 # { tcp_socket udp_socket rawip_socket sctp_socket } node_bind
 #
-# { tcp_socket unix_stream_socket sctp_socket } { connectto newconn acceptfrom }
-#
 # { tcp_socket sctp_socket } name_connect
 #
-# { netlink_route_socket netlink_firewall_socket netlink_tcpdiag_socket netlink_xfrm_socket netlink_audit_socket netlink_ip6fw_socket } nlmsg_write
+# { netlink_route_socket netlink_tcpdiag_socket netlink_xfrm_socket netlink_audit_socket } nlmsg_write
 #
 # netlink_audit_socket { nlmsg_relay nlmsg_readpriv }
 #
@@ -251,11 +256,6 @@ mlsconstrain msg receive
 	(( l1 dom l2 ) or
 	 (( t1 == mlsipcreadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsipcread ));
-
-mlsconstrain key { create link read search setattr view write }
-	(( l1 eq l2 ) or
-	 (( t1 == mlsprocwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
-	 ( t1 == mlsprocwrite ));
 
 # the ipc "write" ops (implicit single level)
 mlsconstrain { ipc sem msgq shm } { create destroy setattr write unix_write }
@@ -282,6 +282,12 @@ mlsconstrain msg send
 # { ipc sem msgq shm } associate
 
 
+#
+# MLS policy for the key class
+#
+
+mlsconstrain key { create link read search setattr view write }
+	( l1 eq l2 );
 
 
 #
@@ -289,34 +295,14 @@ mlsconstrain msg send
 #
 
 # No sharing of open file descriptors between levels unless
-# the process type is authorized to use fds created by 
+# the process type is authorized to use fds created by
 # other levels (mlsfduse) or the fd type is authorized to
-# shared among levels (mlsfdshare). 
+# shared among levels (mlsfdshare).
 mlsconstrain fd use (
 	l1 eq l2
 	or t1 == mlsfduse
 	or t2 == mlsfdshare
 );
-
-#
-# MLS policy for the network object classes
-#
-
-# the netif/node "read" ops (implicit single level socket doing the read)
-#                           (note the check is dominance of the low level)
-mlsconstrain { node netif } { tcp_recv udp_recv rawip_recv }
-	(( l1 dom l2 ) or ( t1 == mlsnetrecvall ));
-
-# the netif/node "write" ops (implicit single level socket doing the write)
-mlsconstrain { netif node } { tcp_send udp_send rawip_send }
-	(( l1 eq l2 ) or
-	(( t1 == mlsnetwriteranged ) and ( l1 dom l2 ) and ( l1 domby h2 )));
-
-# these access vectors have no MLS restrictions
-# node enforce_dest
-
-
-
 
 #
 # MLS policy for the network ingress/egress controls
@@ -366,6 +352,9 @@ mlsconstrain { peer packet } { recv }
 	 (( t1 == mlsnetreadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsnetread ));
 
+
+
+
 #
 # MLS policy for the process class
 #
@@ -381,20 +370,60 @@ mlsconstrain process dyntransition
 	 (( l1 eq l2 ) or ( t1 == mlsprocsetsl )));
 
 # all the process "read" ops
-mlsconstrain process { getsched getsession getpgid getcap getattr ptrace share }
+mlsconstrain process { getsched getsession getpgid getcap getattr getrlimit signull ptrace share }
 	(( l1 dom l2 ) or
 	 (( t1 == mlsprocreadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsprocread ));
 
 # all the process "write" ops (note the check is equality on the low level)
-mlsconstrain process { sigkill sigstop signal setsched setpgid setcap setexec setfscreate setcurrent ptrace share }
+mlsconstrain process { sigkill sigstop signal setsched setpgid setcap setexec setfscreate setkeycreate setsockcreate setcurrent setrlimit ptrace share }
 	(( l1 eq l2 ) or
 	 (( t1 == mlsprocwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
 	 ( t1 == mlsprocwrite ));
 
 # these access vectors have no MLS restrictions
-# process { fork sigchld signull noatsecure siginh setrlimit rlimitinh execmem execstack execheap }
+# process { fork sigchld noatsecure siginh rlimitinh execmem execstack execheap }
 
+
+
+
+#
+# MLS policy for the binder class
+#
+
+# Binder operations transfer data, object references, or execution identity.
+mlsconstrain binder { impersonate call set_context_mgr transfer }
+	( l1 eq l2 );
+
+#
+# MLS policy for the bpf class
+#
+
+mlsconstrain bpf { map_read prog_run }
+	( l1 dom l2 );
+
+mlsconstrain bpf { map_write }
+	( l1 eq l2 );
+
+#
+# MLS policy for the perf_event class
+#
+
+mlsconstrain perf_event read
+	( l1 dom l2 );
+
+mlsconstrain perf_event write
+	( l1 eq l2 );
+
+
+#
+# MLS policy for the io_uring class
+#
+
+# Credential overrides and arbitrary device commands can transfer data
+# in either direction.
+mlsconstrain io_uring { override_creds cmd }
+	( l1 eq l2 );
 
 
 
@@ -449,12 +478,10 @@ mlsconstrain x_drawable { read blend getattr list_child list_property get_proper
 	 ( t1 == mlsxwinread ));
 
 # the x_drawable "write" ops (implicit single level)
-mlsconstrain x_drawable { create destroy write setattr add_child remove_child send manage }
+mlsconstrain x_drawable { create destroy write setattr add_child remove_child set_property send manage override show hide }
 	(( l1 eq l2 ) or
 	 (( t1 == mlsxwinwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
 	 ( t1 == mlsxwinwrite ));
-
-# No MLS restrictions: x_drawable { show hide override }
 
 
 #
@@ -560,7 +587,7 @@ mlsconstrain x_cursor { read getattr use }
 	(( l1 dom l2 ) or
 	 (( t1 == mlsxwinreadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsxwinread ));
-	
+
 # the x_cursor "write" ops (implicit single level)
 mlsconstrain x_cursor { create destroy write setattr }
 	(( l1 eq l2 ) or
@@ -590,16 +617,33 @@ mlsconstrain x_client { destroy setattr manage }
 #
 
 # the x_device "read" ops (implicit single level)
-mlsconstrain x_device { getattr use read getfocus grab }
+mlsconstrain x_device { getattr use read getfocus grab list_property get_property }
 	(( l1 dom l2 ) or
 	 (( t1 == mlsxwinreadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsxwinread ));
 
 # the x_device "write" ops (implicit single level)
-mlsconstrain x_device { setattr write setfocus bell force_cursor freeze manage }
+mlsconstrain x_device { create destroy setattr write setfocus bell force_cursor freeze manage set_property add remove }
 	(( l1 eq l2 ) or
 	 (( t1 == mlsxwinwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
 	 ( t1 == mlsxwinwritexinput ) or
+	 ( t1 == mlsxwinwrite ));
+
+
+#
+# MLS policy for the x_screen class
+#
+
+# the x_screen "read" ops (implicit single level)
+mlsconstrain x_screen { getattr saver_getattr }
+	(( l1 dom l2 ) or
+	 (( t1 == mlsxwinreadtoclr ) and ( h1 dom l2 )) or
+	 ( t1 == mlsxwinread ));
+
+# the x_screen "write" ops (implicit single level)
+mlsconstrain x_screen { setattr hide_cursor show_cursor saver_setattr saver_hide saver_show }
+	(( l1 eq l2 ) or
+	 (( t1 == mlsxwinwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
 	 ( t1 == mlsxwinwrite ));
 
 
@@ -656,6 +700,24 @@ mlsconstrain x_event { send }
 
 
 #
+# MLS policy for the x_synthetic_event class
+#
+
+# the x_synthetic_event "read" ops (implicit single level)
+mlsconstrain x_synthetic_event { receive }
+	(( l1 dom l2 ) or
+	 (( t1 == mlsxwinreadtoclr ) and ( h1 dom l2 )) or
+	 ( t1 == mlsxwinread ));
+
+# the x_synthetic_event "write" ops (implicit single level)
+mlsconstrain x_synthetic_event { send }
+	(( l1 eq l2 ) or
+	 (( t1 == mlsxwinwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
+	 ( t1 == mlsxwinwritexinput ) or
+	 ( t1 == mlsxwinwrite ));
+
+
+#
 # MLS policy for the x_application_data class
 #
 
@@ -666,6 +728,9 @@ mlsconstrain x_application_data { paste }
 # the x_application_data "paste_after_confirm" ops
 mlsconstrain x_application_data { paste_after_confirm }
 	( l1 dom l2 );
+
+mlsconstrain x_application_data { copy }
+	( l1 domby l2 );
 
 
 #
@@ -754,9 +819,6 @@ mlsconstrain association { polmatch }
 # MLS policy for the context class
 #
 
-mlsconstrain context translate
-	(( h1 dom h2 ) or ( t1 == mlstranslate ));
-
 mlsconstrain context contains
 	(( h1 dom h2 ) and ( l1 domby l2));
 
@@ -818,11 +880,12 @@ mlsconstrain { db_procedure } { getattr execute entrypoint install }
 	 ( t1 == mlsdbread ) or
 	 ( t2 == mlstrustedobject ));
 
-mlsconstrain { db_language } { getattr execute }
+mlsconstrain { db_language } { getattr implement execute }
 	(( l1 dom l2 ) or
 	 (( t1 == mlsdbreadtoclr ) and ( h1 dom l2 )) or
 	 ( t1 == mlsdbread ) or
 	 ( t2 == mlstrustedobject ));
+
 
 mlsconstrain { db_blob } { getattr read export }
 	(( l1 dom l2 ) or
@@ -900,6 +963,7 @@ mlsconstrain { db_blob } { create drop setattr relabelfrom write import }
 	 ( t1 == mlsdbwrite ) or
 	 ( t2 == mlstrustedobject ));
 
+
 mlsconstrain { db_tuple } { relabelfrom update insert delete }
 	(( l1 eq l2 ) or
 	 (( t1 == mlsdbwritetoclr ) and ( h1 dom l2 ) and ( l1 domby l2 )) or
@@ -918,4 +982,6 @@ mlsvalidatetrans { db_database db_schema db_table db_sequence db_view db_procedu
 	  (( t3 == mlsdbdowngrade ) and ( h1 dom h2 )) or
 	  (( t3 == mlsdbdowngrade ) and ( h1 incomp h2 ))));
 
+undefine(`mls_file_like_class_set')
+undefine(`mls_socket_class_set')
 ') dnl end enable_mls
