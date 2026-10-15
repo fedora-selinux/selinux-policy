@@ -1,0 +1,32 @@
+policy_module(thermald, 1.0)
+
+########################################
+#
+# Declarations
+#
+
+type thermald_t;
+type thermald_exec_t;
+init_daemon_domain(thermald_t, thermald_exec_t)
+permissive thermald_t;
+
+type thermald_var_run_t;
+files_pid_file(thermald_var_run_t)
+
+########################################
+#
+# Local policy
+#
+
+allow thermald_t self:unix_dgram_socket { connect create };
+
+manage_files_pattern(thermald_t, thermald_var_run_t, thermald_var_run_t)
+files_pid_filetrans(thermald_t, thermald_var_run_t, file)
+
+optional_policy(`
+	dbus_system_bus_client(thermald_t)
+')
+
+optional_policy(`
+	logging_send_syslog_msg(thermald_t)
+')
