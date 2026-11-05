@@ -19,11 +19,17 @@ systemd_unit_file(rshim_unit_file_t)
 #
 # rshim local policy
 #
+# PCIe VFIO pins memory, CUSE creates the rshim device endpoints, and
+# TMFIFO configures a TUN/TAP network interface. These operations need
+# ipc_lock, sys_admin, and net_admin, respectively.
+allow rshim_t self:capability { ipc_lock net_admin sys_admin };
 allow rshim_t self:capability2 bpf;
 allow rshim_t self:fifo_file rw_fifo_file_perms;
 allow rshim_t self:netlink_kobject_uevent_socket { bind create getattr setopt };
 allow rshim_t self:process { fork };
 allow rshim_t self:system module_load;
+allow rshim_t self:tun_socket create;
+allow rshim_t self:udp_socket { create ioctl };
 allow rshim_t self:unix_stream_socket create_stream_socket_perms;
 allow rshim_t self:netlink_kobject_uevent_socket getopt;
 
@@ -32,9 +38,21 @@ files_pid_filetrans(rshim_t, rshim_var_run_t, file)
 
 kernel_read_proc_files(rshim_t)
 
+kernel_request_load_module(rshim_t)
+
 corecmd_exec_shell(rshim_t)
 
-dev_read_sysfs(rshim_t)
+# rshim selects and binds the VFIO or UIO driver through sysfs and maps
+# the PCIe BAR resources exposed there.
+dev_rw_sysfs(rshim_t)
+dev_map_sysfs(rshim_t)
+
+dev_rw_userio_dev(rshim_t)
+dev_map_userio_dev(rshim_t)
+
+corenet_rw_tun_tap_dev(rshim_t)
+
+term_use_unallocated_ttys(rshim_t)
 
 domain_use_interactive_fds(rshim_t)
 
