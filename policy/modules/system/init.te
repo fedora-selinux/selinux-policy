@@ -53,6 +53,13 @@ gen_tunable(init_create_dirs, true)
 
 ## <desc>
 ##	<p>
+##	Enable systemd to create mountpoints.
+##	</p>
+## </desc>
+gen_tunable(init_create_mountpoints, false)
+
+## <desc>
+##	<p>
 ##	Allow init audit_control capability
 ##	</p>
 ## </desc>
@@ -73,6 +80,8 @@ attribute init_sock_file_type;
 # Attribute for directories that systemd will watch based on path units
 # (see systemd.path(5) for more info) (Deprecated)
 attribute init_watch_path_type;
+# Attribute for files that systemd will mount on
+attribute init_mountpoint_type;
 
 # Mark process types as daemons
 attribute daemon;
@@ -601,6 +610,22 @@ tunable_policy(`init_create_dirs',`
 
 tunable_policy(`init_audit_control',`
 	allow init_t self:capability audit_control;
+')
+
+tunable_policy(`init_create_mountpoints',`
+	allow init_t init_mountpoint_type:dir { create_dir_perms add_entry_dir_perms };
+	allow init_t init_mountpoint_type:fifo_file create_fifo_file_perms;
+	allow init_t init_mountpoint_type:sock_file create_sock_file_perms;
+	allow init_t init_mountpoint_type:lnk_file create_lnk_file_perms;
+
+	kernel_write_non_proc_init_mountpoint_files(init_t)
+	kernel_create_non_proc_init_mountpoint_files(init_t)
+')
+
+tunable_policy(`init_create_mountpoints && init_create_dirs',`
+	files_create_non_security_dirs(init_t)
+	files_create_non_security_files(init_t)
+	files_write_non_security_files(init_t)
 ')
 
 allow init_t self:system all_system_perms;
