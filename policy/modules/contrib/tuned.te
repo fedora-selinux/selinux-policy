@@ -31,6 +31,9 @@ files_tmp_file(tuned_tmp_t)
 type tuned_tmpfs_t;
 files_tmpfs_file(tuned_tmpfs_t)
 
+type tuned_ppd_tmpfs_t;
+files_tmpfs_file(tuned_ppd_tmpfs_t)
+
 type tuned_var_run_t;
 files_pid_file(tuned_var_run_t)
 
@@ -194,6 +197,12 @@ dev_watch_sysfs_dirs(tuned_ppd_t)
 dev_watch_reads_sysfs_dirs(tuned_ppd_t)
 
 fs_getattr_xattr_fs(tuned_ppd_t)
+
+# libffi (python ctypes) writes closure trampolines to a memfd and maps it
+# PROT_EXEC, which checks file execute but does not execve it
+manage_files_pattern(tuned_ppd_t, tuned_ppd_tmpfs_t, tuned_ppd_tmpfs_t)
+fs_tmpfs_filetrans(tuned_ppd_t, tuned_ppd_tmpfs_t, file)
+allow tuned_ppd_t tuned_ppd_tmpfs_t:file { map execute };
 
 optional_policy(`
 	auth_read_passwd_file(tuned_ppd_t)
