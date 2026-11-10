@@ -1,4 +1,9 @@
 policy_module(cloudform, 1.0)
+
+gen_require(`
+	class passwd { passwd rootok };
+')
+
 ########################################
 #
 # Declarations
@@ -64,7 +69,10 @@ miscfiles_read_certs(cloudform_domain)
 # cloud-init local policy
 #
 
-allow cloud_init_t self:capability { fowner chown fsetid dac_read_search setgid };
+allow cloud_init_t self:capability { fowner chown fsetid dac_read_search dac_override kill net_admin setgid sys_admin };
+allow cloud_init_t self:passwd { passwd rootok };
+# sed rewrites files with a file-creation context
+allow cloud_init_t self:process setfscreate;
 
 allow cloud_init_t self:udp_socket create_socket_perms;
 
@@ -80,6 +88,7 @@ manage_files_pattern(cloud_init_t, cloud_log_t, cloud_log_t)
 logging_log_filetrans(cloud_init_t, cloud_log_t, { file })
 
 init_dbus_chat(cloud_init_t)
+init_status(cloud_init_t)
 
 kernel_read_network_state(cloud_init_t)
 
@@ -91,16 +100,22 @@ corecmd_exec_shell(cloud_init_t)
 domain_read_all_domains_state(cloud_init_t)
 
 fs_getattr_all_fs(cloud_init_t)
+fs_getattr_nsfs_files(cloud_init_t)
 
 storage_raw_read_fixed_disk(cloud_init_t)
+mls_file_read_all_levels(cloud_init_t)
 
 auth_use_nsswitch(cloud_init_t)
+auth_read_shadow(cloud_init_t)
+
+files_setattr_etc_dirs(cloud_init_t)
 
 libs_exec_ldconfig(cloud_init_t)
 
 logging_send_syslog_msg(cloud_init_t)
 
 miscfiles_read_localization(cloud_init_t)
+miscfiles_manage_localization(cloud_init_t)
 
 selinux_validate_context(cloud_init_t)
 
@@ -109,6 +124,8 @@ systemd_dbus_chat_logind(cloud_init_t)
 systemd_dbus_chat_timedated(cloud_init_t)
 systemd_exec_systemctl(cloud_init_t)
 systemd_start_all_services(cloud_init_t)
+# cloud-init-generator enablement symlinks under /run/systemd/generator.early/
+systemd_create_generator_unit_file(cloud_init_t)
 
 usermanage_domtrans_passwd(cloud_init_t)
 
@@ -130,6 +147,8 @@ optional_policy(`
 
 optional_policy(`
 	networkmanager_dbus_chat(cloud_init_t)
+	networkmanager_manage_rw_conf(cloud_init_t)
+	networkmanager_systemctl(cloud_init_t)
 ')
 
 optional_policy(`
@@ -153,15 +172,19 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# it check file context and run restorecon
+	# check file context and run restorecon; read /etc/selinux/config
 	seutil_read_file_contexts(cloud_init_t)
 	seutil_domtrans_setfiles(cloud_init_t)
+	seutil_read_default_contexts(cloud_init_t)
+	seutil_read_config(cloud_init_t)
 ')
 
 optional_policy(`
 	ssh_read_user_home_files(cloud_init_t)
 	ssh_domtrans_keygen(cloud_init_t)
-
+	ssh_read_server_keys(cloud_init_t)
+	ssh_manage_home_files(cloud_init_t)
+	ssh_create_home_dirs(cloud_init_t)
 ')
 
 optional_policy(`
@@ -170,10 +193,22 @@ optional_policy(`
 	sysnet_read_dhcpc_state(cloud_init_t)
 	sysnet_dns_name_resolve(cloud_init_t)
 	sysnet_filetrans_cloud_net_conf(cloud_init_t)
+	# /run/cloud-init is net_conf_t (dirs + stage sock_files)
+	sysnet_manage_config(cloud_init_t)
+	sysnet_manage_config_dirs(cloud_init_t)
+	sysnet_manage_config_sockets(cloud_init_t)
+	sysnet_read_dhcpc_pid(cloud_init_t)
+	sysnet_kill_dhcpc(cloud_init_t)
 ')
 
 optional_policy(`
 	rpm_run(cloud_init_t, system_r)
+')
+
+optional_policy(`
+	udev_exec(cloud_init_t)
+	udev_manage_rules_files(cloud_init_t)
+	udev_stream_connect(cloud_init_t)
 ')
 
 optional_policy(`
