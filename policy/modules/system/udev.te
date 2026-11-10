@@ -42,7 +42,8 @@ allow udev_t self:capability { chown dac_read_search dac_override fowner fsetid 
 allow udev_t self:capability2 { block_suspend wake_alarm };
 dontaudit udev_t self:capability sys_tty_config;
 allow udev_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
-allow udev_t self:process { execmem setfscreate };
+# setrlimit: adjusting own LimitNOFILE/LimitNPROC etc. at unit startup
+allow udev_t self:process { execmem setfscreate setrlimit };
 allow udev_t self:system module_load;
 allow udev_t self:fd use;
 allow udev_t self:fifo_file rw_fifo_file_perms;
@@ -99,6 +100,8 @@ kernel_read_fs_sysctls(udev_t)
 kernel_read_kernel_sysctls(udev_t)
 kernel_rw_usermodehelper_state(udev_t)
 kernel_rw_unix_dgram_sockets(udev_t)
+# verify netns of an inherited/pre-policy-load kobject uevent socket fd
+kernel_rw_kobject_uevent_socket(udev_t)
 kernel_dgram_send(udev_t)
 kernel_search_debugfs(udev_t)
 kernel_setsched(udev_t)
@@ -147,7 +150,13 @@ fs_search_all(udev_t)
 fs_list_auto_mountpoints(udev_t)
 fs_list_hugetlbfs(udev_t)
 fs_read_cgroup_files(udev_t)
+# write own unit's cgroup memory.pressure file (systemd MemoryPressureWatch=)
+fs_write_cgroup_files(udev_t)
+# verify netns of own netlink socket via ioctl(SIOCGSKNS)
+fs_read_nsfs_files(udev_t)
 fs_rw_tracefs_files(udev_t)
+# rw anonymous memfd buffers (memfd_create()) used during worker startup
+fs_rw_tmpfs_files(udev_t)
 
 mls_file_read_all_levels(udev_t)
 mls_file_write_all_levels(udev_t)
