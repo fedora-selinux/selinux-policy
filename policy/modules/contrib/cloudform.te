@@ -71,8 +71,6 @@ miscfiles_read_certs(cloudform_domain)
 
 allow cloud_init_t self:capability { fowner chown fsetid dac_read_search dac_override kill net_admin setgid sys_admin };
 allow cloud_init_t self:passwd { passwd rootok };
-# sed rewrites files with a file-creation context
-allow cloud_init_t self:process setfscreate;
 
 allow cloud_init_t self:udp_socket create_socket_perms;
 
@@ -124,8 +122,6 @@ systemd_dbus_chat_logind(cloud_init_t)
 systemd_dbus_chat_timedated(cloud_init_t)
 systemd_exec_systemctl(cloud_init_t)
 systemd_start_all_services(cloud_init_t)
-# cloud-init-generator enablement symlinks under /run/systemd/generator.early/
-systemd_create_generator_unit_file(cloud_init_t)
 
 usermanage_domtrans_passwd(cloud_init_t)
 
@@ -172,11 +168,10 @@ optional_policy(`
 ')
 
 optional_policy(`
-	# check file context and run restorecon; read /etc/selinux/config
+	# check file context and run restorecon
 	seutil_read_file_contexts(cloud_init_t)
 	seutil_domtrans_setfiles(cloud_init_t)
 	seutil_read_default_contexts(cloud_init_t)
-	seutil_read_config(cloud_init_t)
 ')
 
 optional_policy(`
@@ -193,10 +188,6 @@ optional_policy(`
 	sysnet_read_dhcpc_state(cloud_init_t)
 	sysnet_dns_name_resolve(cloud_init_t)
 	sysnet_filetrans_cloud_net_conf(cloud_init_t)
-	# /run/cloud-init is net_conf_t (dirs + stage sock_files)
-	sysnet_manage_config(cloud_init_t)
-	sysnet_manage_config_dirs(cloud_init_t)
-	sysnet_manage_config_sockets(cloud_init_t)
 	sysnet_read_dhcpc_pid(cloud_init_t)
 	sysnet_kill_dhcpc(cloud_init_t)
 ')
@@ -208,7 +199,6 @@ optional_policy(`
 optional_policy(`
 	udev_exec(cloud_init_t)
 	udev_manage_rules_files(cloud_init_t)
-	udev_stream_connect(cloud_init_t)
 ')
 
 optional_policy(`
