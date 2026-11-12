@@ -1,0 +1,118 @@
+policy_module(wayland, 1.0)
+
+########################################
+#
+# Declarations
+#
+
+gen_tunable(wayland_compositor_execmem, false)
+
+attribute wayland_compositor;
+attribute wayland_client;
+
+# For use by clients only allowed to talk through security_context restricted sockets.
+attribute wayland_client_sandboxed;
+
+type wayland_runtime_t;
+files_pid_file(wayland_runtime_t)
+userdom_user_tmp_content(wayland_runtime_t)
+
+# For use by sandbox engines implementing the security_context protocol.
+type wayland_runtime_sandboxed_t;
+files_pid_file(wayland_runtime_t)
+userdom_user_tmp_content(wayland_runtime_sandboxed_t)
+
+# Wayland compositors also have their own shared memory.
+attribute wayland_compositor_tmpfs_type;
+
+# No need to distinguish between the shm of sandboxed and unsandboxed clients;
+# all clients should have their own shm type, this attribute is only to group them
+# and grant wayland_compositor access to them.
+attribute wayland_client_tmpfs_type;
+
+##############################
+#
+# Local Policy
+#
+
+allow wayland_client wayland_compositor_tmpfs_type:file mmap_rw_inherited_file_perms;
+
+# for paste without wayland errors that cause most wayland clients to crash
+allow wayland_client wayland_client:fd use;
+allow wayland_client wayland_client:fifo_file { getattr write append lock ioctl };
+
+allow wayland_client wayland_compositor:unix_stream_socket connectto;
+
+wayland_stream_connect(wayland_client)
+
+allow wayland_compositor wayland_client_tmpfs_type:file mmap_rw_inherited_file_perms;
+allow wayland_compositor wayland_client:fd use;
+allow wayland_compositor wayland_client:fifo_file { getattr write append lock ioctl };
+allow wayland_compositor wayland_client_sandboxed:fd use;
+
+allow wayland_compositor wayland_runtime_t:file manage_file_perms;
+allow wayland_compositor wayland_runtime_t:sock_file manage_sock_file_perms;
+
+# Compositors may make more privileged sockets in $XDG_RUNTIME_DIR, so let's
+# hardcode in WAYLAND_DISPLAY so we can give other sockets created a higher level
+# of privilege (namebased filetransitions are not supported yet).
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-0")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-1")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-2")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-3")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-4")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-5")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-6")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-7")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-8")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, sock_file, "wayland-9")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-0.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-1.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-2.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-3.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-4.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-5.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-6.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-7.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-8.lock")
+userdom_user_tmp_filetrans(wayland_compositor, wayland_runtime_t, file, "wayland-9.lock")
+
+# /dev/udmabuf allocator. This is for the linux-dmabuf-v1 protocol. This is a
+# fairly broad permission, and linux-dmabuf-v1 is a Wayland extension which is
+# implemented by all major compositors:
+# https://wayland.app/protocols/linux-dmabuf-v1#compositor-support
+# However, do not grant this access to wayland_client: shmem is the default way
+# for clients to share data with the compositor, and the majority of clients do
+# not make use of linux-dmabuf-v1.
+dev_rw_dma_dev(wayland_compositor)
+
+# GPU Access
+dev_rw_dri(wayland_compositor)
+
+# libinput
+dev_rw_input_dev(wayland_compositor)
+
+files_read_usr_files(wayland_compositor)
+
+# Fonts
+miscfiles_read_fonts(wayland_compositor)
+xserver_use_user_fonts(wayland_compositor)
+
+xserver_read_xkb_libs(wayland_compositor)
+#xserver_rw_mesa_shader_cache(wayland_compositor)
+
+tunable_policy(`wayland_compositor_execmem',`
+	# Most likely needed for llvmpipe.
+	allow wayland_compositor self:process execmem;
+')
+
+optional_policy(`
+	# For seats
+	systemd_dbus_chat_logind(wayland_compositor)
+	systemd_use_fds_logind(wayland_compositor)
+')
+
+optional_policy(`
+	# For input devices
+	udev_read_pid_files(wayland_compositor)
+')
