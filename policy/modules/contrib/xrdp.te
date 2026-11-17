@@ -1,0 +1,121 @@
+policy_module(xrdp, 0.0.1)
+
+########################################
+#
+# Declarations
+#
+
+type xrdp_t;
+type xrdp_exec_t;
+init_daemon_domain(xrdp_t, xrdp_exec_t)
+
+type xrdp_etc_t;
+files_config_file(xrdp_etc_t)
+
+type xrdp_var_log_t;
+logging_log_file(xrdp_var_log_t)
+
+type xrdp_var_run_t;
+files_pid_file(xrdp_var_run_t)
+
+type xrdp_sesman_t;
+type xrdp_sesman_exec_t;
+init_daemon_domain(xrdp_sesman_t, xrdp_sesman_exec_t)
+
+type xrdp_sesman_var_log_t;
+logging_log_file(xrdp_sesman_var_log_t)
+
+type xrdp_sesman_var_run_t;
+files_pid_file(xrdp_sesman_var_run_t)
+
+########################################
+#
+# xrdp local policy
+#
+
+allow xrdp_t self:tcp_socket create_stream_socket_perms;
+
+# .ini files will be written to
+allow xrdp_t xrdp_etc_t:file write_file_perms;
+
+read_files_pattern(xrdp_t, xrdp_etc_t, xrdp_etc_t)
+
+manage_files_pattern(xrdp_t, xrdp_var_log_t, xrdp_var_log_t)
+logging_log_filetrans(xrdp_t, xrdp_var_log_t, file, "xrdp.log")
+
+manage_files_pattern(xrdp_t, xrdp_var_run_t, xrdp_var_run_t)
+manage_sock_files_pattern(xrdp_t, xrdp_var_run_t, xrdp_var_run_t)
+files_pid_filetrans(xrdp_t, xrdp_var_run_t, {file dir})
+
+kernel_request_load_module(xrdp_t)
+
+corenet_tcp_bind_generic_node(xrdp_t)
+corenet_tcp_bind_gnome_remote_desktop_port(xrdp_t)
+
+# port 6100
+corenet_tcp_connect_unreserved_ports(xrdp_t)
+
+stream_connect_pattern(xrdp_t, xrdp_sesman_var_run_t, xrdp_sesman_var_run_t, xrdp_sesman_t)
+
+unconfined_stream_connect(xrdp_t)
+
+miscfiles_read_generic_certs(xrdp_t)
+miscfiles_search_generic_cert_dirs(xrdp_t)
+
+permissive xrdp_t;
+
+########################################
+#
+# xrdp-sesman local policy
+#
+
+allow xrdp_sesman_t self:capability { chown fowner dac_read_search setgid setuid };
+allow xrdp_sesman_t self:process { setexec setpgid };
+
+allow xrdp_sesman_t xrdp_etc_t:file read_file_perms;
+allow xrdp_sesman_t xrdp_etc_t:dir search_dir_perms;
+allow xrdp_sesman_t self:tcp_socket server_stream_socket_perms;
+
+manage_files_pattern(xrdp_sesman_t, xrdp_sesman_var_log_t, xrdp_sesman_var_log_t)
+logging_log_filetrans(xrdp_sesman_t, xrdp_sesman_var_log_t, file, "xrdp-sesman.log")
+
+manage_files_pattern(xrdp_sesman_t, xrdp_sesman_var_run_t, xrdp_sesman_var_run_t)
+manage_sock_files_pattern(xrdp_sesman_t, xrdp_sesman_var_run_t, xrdp_sesman_var_run_t)
+create_dirs_pattern(xrdp_sesman_t, xrdp_sesman_var_run_t, xrdp_sesman_var_run_t)
+files_pid_filetrans(xrdp_sesman_t, xrdp_var_run_t, dir)
+filetrans_pattern(xrdp_sesman_t, xrdp_var_run_t, xrdp_sesman_var_run_t, {file dir sock_file})
+setattr_dirs_pattern(xrdp_sesman_t, xrdp_sesman_var_run_t, xrdp_sesman_var_run_t)
+
+create_dirs_pattern(xrdp_sesman_t, xrdp_var_run_t, xrdp_var_run_t)
+setattr_dirs_pattern(xrdp_sesman_t, xrdp_var_run_t, xrdp_var_run_t)
+
+corenet_tcp_bind_generic_port(xrdp_sesman_t)
+
+fs_getattr_pidfs(xrdp_sesman_t)
+
+auth_login_pgm_domain(xrdp_sesman_t)
+
+optional_policy(`
+	systemd_userdbd_stream_connect(xrdp_sesman_t)
+')
+
+optional_policy(`
+	vnc_manage_vnc_home_files(xrdp_sesman_t)
+')
+
+optional_policy(`
+	unconfined_shell_domtrans(xrdp_sesman_t)
+')
+
+optional_policy(`
+	# pam_kwallet5 runs in this domain during login: reads the wallet salt
+	# from ~/.local/share/kwalletd and creates /run/user/UID/kwallet5.socket
+	userdom_read_user_home_content_files(xrdp_sesman_t)
+	userdom_manage_user_tmp_sockets(xrdp_sesman_t)
+')
+
+optional_policy(`
+	xserver_domtrans(xrdp_sesman_t)
+')
+
+permissive xrdp_sesman_t;
