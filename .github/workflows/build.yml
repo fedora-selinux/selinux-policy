@@ -3,6 +3,39 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Default upstream path (UNK_PERMS=allow from build.conf).
+          - name: targeted-mcs-allow
+            modules_conf: targeted
+            unk_perms: allow
+            policy_name: ""
+            install_dist_conf: false
+            build_container_pp: true
+          # MCS with deny unknown permissions on full targeted modules.
+          - name: targeted-mcs-deny
+            modules_conf: targeted
+            unk_perms: deny
+            policy_name: ""
+            install_dist_conf: false
+            build_container_pp: false
+          # Filtered module set with MCS + deny.
+          - name: minimum-mcs-deny
+            modules_conf: minimum
+            unk_perms: deny
+            policy_name: minimum
+            install_dist_conf: false
+            build_container_pp: false
+          # Automotive policy variant with MCS and deny unknown permissions.
+          - name: automotive-mcs-deny
+            modules_conf: automotive
+            unk_perms: deny
+            policy_name: automotive
+            install_dist_conf: true
+            build_container_pp: false
+    name: build (${{ matrix.name }})
     container:
       image: quay.io/fedora/fedora:rawhide
       options: --security-opt seccomp=unconfined
@@ -11,7 +44,27 @@ jobs:
       - run: dnf install --nogpgcheck -y git-core checkpolicy policycoreutils-devel make m4 findutils
       - run: git clone --depth=1 https://github.com/containers/container-selinux.git /tmp/container-selinux
       - run: cp /tmp/container-selinux/container.* policy/modules/contrib
-      - run: cp dist/targeted/modules.conf policy
-      - run: make -j $(nproc) policy
-      - run: make -j $(nproc) validate
-      - run: make -j $(nproc) container.pp
+      - name: Install modules.conf (${{ matrix.modules_conf }})
+        run: cp "dist/${{ matrix.modules_conf }}/modules.conf" policy
+      - name: Install dist booleans/users (${{ matrix.modules_conf }})
+        if: matrix.install_dist_conf
+        run: |
+          cp "dist/${{ matrix.modules_conf }}/booleans.conf" policy/booleans.conf
+          cp "dist/${{ matrix.modules_conf }}/users" policy/users
+      - name: Build policy
+        run: |
+          make_args=( -j "$(nproc)" TYPE=mcs "UNK_PERMS=${{ matrix.unk_perms }}" )
+          if [ -n "${{ matrix.policy_name }}" ]; then
+            make_args+=( "NAME=${{ matrix.policy_name }}" )
+          fi
+          make "${make_args[@]}" policy
+      - name: Validate policy (link + expand)
+        run: |
+          make_args=( -j "$(nproc)" TYPE=mcs "UNK_PERMS=${{ matrix.unk_perms }}" )
+          if [ -n "${{ matrix.policy_name }}" ]; then
+            make_args+=( "NAME=${{ matrix.policy_name }}" )
+          fi
+          make "${make_args[@]}" validate
+      - name: Build container.pp
+        if: matrix.build_container_pp
+        run: make -j "$(nproc)" TYPE=mcs UNK_PERMS=${{ matrix.unk_perms }} container.pp
