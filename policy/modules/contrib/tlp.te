@@ -9,6 +9,11 @@ type tlp_t;
 type tlp_exec_t;
 init_daemon_domain(tlp_t, tlp_exec_t)
 
+type tlp_pd_t;
+type tlp_pd_exec_t;
+init_daemon_domain(tlp_pd_t, tlp_pd_exec_t)
+init_nnp_daemon_domain(tlp_pd_t)
+
 type tlp_var_run_t;
 files_pid_file(tlp_var_run_t)
 
@@ -145,4 +150,42 @@ optional_policy(`
 optional_policy(`
 	# tlp-pd is not confined ATM
 	unconfined_server_read_state(tlp_t)
+')
+
+########################################
+#
+# tlp-pd local policy
+#
+permissive tlp_pd_t;
+
+dontaudit tlp_pd_t self:capability dac_read_search;
+allow tlp_pd_t self:unix_dgram_socket { connect create };
+
+# tlp_pd to tlp
+allow tlp_t tlp_pd_t:dbus send_msg;
+read_files_pattern(tlp_pd_t, tlp_var_run_t, tlp_var_run_t)
+
+kernel_dgram_send(tlp_pd_t)
+
+corecmd_exec_bin(tlp_pd_t)
+
+optional_policy(`
+	auth_read_passwd(tlp_pd_t)
+')
+
+optional_policy(`
+	dbus_acquire_svc_system_dbusd(tlp_pd_t)
+	dbus_system_bus_client(tlp_pd_t)
+
+	optional_policy(`
+		policykit_dbus_chat(tlp_pd_t)
+	')
+')
+
+optional_policy(`
+	logging_stream_connect_syslog(tlp_pd_t)
+')
+
+optional_policy(`
+	miscfiles_read_certs(tlp_pd_t)
 ')
