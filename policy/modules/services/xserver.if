@@ -121,7 +121,7 @@ interface(`xserver_role',`
 #
 interface(`xserver_ro_session',`
 	gen_require(`
-		type xserver_t, xserver_tmp_t, xserver_tmpfs_t;
+		type xserver_t, user_tmp_t, xserver_tmpfs_t;
 	')
 
 	# Xserver read/write client shm
@@ -134,7 +134,7 @@ interface(`xserver_ro_session',`
 	allow $1 xserver_t:process signal;
 
 	# Read /tmp/.X0-lock
-	allow $1 xserver_tmp_t:file read_file_perms;
+	allow $1 user_tmp_t:file read_file_perms;
 
 	# Client read xserver shm
 	allow $1 xserver_t:fd use;
@@ -1779,11 +1779,11 @@ interface(`xserver_dontaudit_xdm_rw_stream_sockets',`
 #
 interface(`xserver_stream_connect',`
 	gen_require(`
-		type xserver_t, xserver_tmp_t;
+		type xserver_t, user_tmp_t;
 	')
 
 	files_search_tmp($1)
-	stream_connect_pattern($1, xserver_tmp_t, xserver_tmp_t, xserver_t)
+	stream_connect_pattern($1, user_tmp_t, user_tmp_t, xserver_t)
 	allow xserver_t $1:shm rw_shm_perms;
 ')
 
@@ -1800,10 +1800,10 @@ interface(`xserver_stream_connect',`
 #
 interface(`xserver_dontaudit_stream_connect',`
 	gen_require(`
-		type xserver_t, xserver_tmp_t;
+		type xserver_t, user_tmp_t;
 	')
 
-	stream_connect_pattern($1, xserver_tmp_t, xserver_tmp_t, xserver_t)
+	stream_connect_pattern($1, user_tmp_t, user_tmp_t, xserver_t)
 ')
 
 ########################################
@@ -1818,10 +1818,10 @@ interface(`xserver_dontaudit_stream_connect',`
 #
 interface(`xserver_read_tmp_files',`
 	gen_require(`
-		type xserver_tmp_t;
+		type user_tmp_t;
 	')
 
-	allow $1 xserver_tmp_t:file read_file_perms;
+	allow $1 user_tmp_t:file read_file_perms;
 	files_search_tmp($1)
 ')
 
@@ -1921,11 +1921,11 @@ interface(`xserver_dontaudit_append_xdm_home_files',`
 #
 interface(`xserver_append_xdm_home_files',`
 	gen_require(`
-		type xdm_home_t, xserver_tmp_t;
+		type xdm_home_t, user_tmp_t;
 	')
 
 	allow $1 xdm_home_t:file append_file_perms;
-	allow $1 xserver_tmp_t:file append_file_perms;
+	allow $1 user_tmp_t:file append_file_perms;
 
 	tunable_policy(`use_nfs_home_dirs',`
 		fs_append_nfs_files($1)
