@@ -19,7 +19,7 @@ type systemd_homed_cache_t;
 files_type(systemd_homed_cache_t)
 
 type systemd_homed_crypto_luks_t;
-userdom_user_home_content(systemd_homed_crypto_luks_t)
+files_type(systemd_homed_crypto_luks_t)
 
 type systemd_homed_library_dir_t;
 files_type(systemd_homed_library_dir_t)
@@ -64,8 +64,12 @@ init_read_pid_files(systemd_homed_t)
 libs_read_lib_files(systemd_homed_t)
 
 # /home
-files_watch_home(systemd_homed_t)
+files_list_home(systemd_homed_t)
 files_search_home(systemd_homed_t)
+files_watch_home(systemd_homed_t)
+
+# /home/$USER.home
+manage_files_pattern(systemd_homed_t, systemd_homed_crypto_luks_t, systemd_homed_crypto_luks_t)
 
 # unlabeled home directories
 files_manage_isid_type_dirs(systemd_homed_t)
@@ -83,11 +87,8 @@ fs_getattr_pidfs(systemd_homed_t)
 fs_get_tmpfs_quotas(systemd_homed_t)
 
 # /var/cache/systemd/home
-create_dirs_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_cache_t)
-delete_dirs_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_cache_t)
-list_dirs_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_cache_t)
-rename_dirs_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_cache_t)
-delete_files_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_cache_t)
+manage_dirs_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_record_t)
+filetrans_pattern(systemd_homed_t, systemd_homed_cache_t, systemd_homed_record_t, dir)
 
 # /var/lib/systemd/home
 manage_files_pattern(systemd_homed_t, systemd_homed_library_dir_t, systemd_homed_record_t)
@@ -161,8 +162,7 @@ optional_policy(`
 
 optional_policy(`
 	# labeled home directories
-	userdom_home_manager(systemd_homed_t)
-	userdom_manage_home_role(system_r, systemd_homed_t)
+	userdom_read_user_home_content_files(systemd_homed_t)
 ')
 
 optional_policy(`
@@ -188,9 +188,10 @@ allow systemd_homework_t systemd_homed_t:unix_dgram_socket sendto;
 files_create_home_dir(systemd_homework_t)
 files_delete_home_dir(systemd_homework_t)
 files_search_home(systemd_homework_t)
+
+# /home/$USER.home
+manage_files_pattern(systemd_homework_t, systemd_homed_crypto_luks_t, systemd_homed_crypto_luks_t)
 files_home_filetrans(systemd_homework_t, systemd_homed_crypto_luks_t, file)
-delete_files_pattern(systemd_homework_t, systemd_homed_record_t, systemd_homed_record_t)
-delete_dirs_pattern(systemd_homework_t, systemd_homed_record_t, systemd_homed_record_t)
 
 # unlabeled home directories
 files_manage_isid_type_dirs(systemd_homework_t)
@@ -198,18 +199,18 @@ files_manage_isid_type_files(systemd_homework_t)
 files_mounton_isid(systemd_homework_t)
 
 # /var/cache/systemd/home
-create_dirs_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_cache_t)
-delete_dirs_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_cache_t)
-rename_dirs_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_cache_t)
-manage_files_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_cache_t)
+manage_dirs_pattern(systemd_homework_t, systemd_homed_record_t, systemd_homed_record_t)
+manage_dirs_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_record_t)
+manage_files_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_record_t)
+filetrans_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_record_t, dir)
+filetrans_pattern(systemd_homework_t, systemd_homed_cache_t, systemd_homed_record_t, file)
 
 # /run/systemd/home/notify
 write_sock_files_pattern(systemd_homework_t, systemd_homed_runtime_dir_t, systemd_homed_runtime_socket_t)
 
 # /run/systemd/user-home-mount
 create_dirs_pattern(systemd_homework_t, init_var_run_t, systemd_homed_runtime_work_dir_t)
-read_files_pattern(systemd_homework_t, systemd_homed_runtime_work_dir_t, systemd_homed_record_t)
-delete_files_pattern(systemd_homework_t, systemd_homed_runtime_work_dir_t, systemd_homed_record_t)
+manage_files_pattern(systemd_homework_t, systemd_homed_runtime_work_dir_t, systemd_homed_record_t)
 init_pid_filetrans(systemd_homework_t, systemd_homed_runtime_work_dir_t, dir, "user-home-mount")
 
 rw_files_pattern(systemd_homework_t, systemd_homed_tmpfs_t, systemd_homed_tmpfs_t)
@@ -261,6 +262,11 @@ optional_policy(`
 ')
 
 optional_policy(`
+	gnome_manage_home_config_dirs(systemd_homework_t)
+	gnome_filetrans_home_content(systemd_homework_t)
+')
+
+optional_policy(`
 	lvm_manage_var_run(systemd_homework_t)
 	lvm_var_run_filetrans(systemd_homework_t)
 ')
@@ -285,7 +291,14 @@ optional_policy(`
 
 optional_policy(`
 	# labeled home directories
-	userdom_home_filetrans_user_home_dir(systemd_homework_t)
+	userdom_manage_all_user_home_type_dirs(systemd_homework_t)
+	userdom_manage_all_user_home_type_files(systemd_homework_t)
+	userdom_manage_user_home_dirs(systemd_homework_t)
 	userdom_home_manager(systemd_homework_t)
-	userdom_manage_home_role(system_r, systemd_homework_t)
+	userdom_home_filetrans_user_home_dir(systemd_homework_t)
+	userdom_user_home_dir_filetrans(systemd_homework_t, systemd_homed_record_t, dir) # .identity-blob
+	userdom_user_home_dir_filetrans(systemd_homework_t, systemd_homed_record_t, file) # .identity
+	userdom_user_home_dir_filetrans_user_home_content(systemd_homework_t, file, ".bash_logout")
+	userdom_user_home_dir_filetrans_user_home_content(systemd_homework_t, file, ".bash_profile")
+	userdom_user_home_dir_filetrans_user_home_content(systemd_homework_t, file, ".bashrc")
 ')
